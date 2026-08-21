@@ -201,3 +201,13 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 **Verdict: approved on this note's own subject, with one observation that belongs on [[PHASE-037]].** `retire_check` is routed and `cover_check` is deleted, as claimed. The observation: `retireCheckRow`'s docstring says the control *"lives on `~checks`, never on a release page ([[ADR-0035]])"*, and `renderer.ts:7610` puts it on every check row of `~release/<id>/<ITEM-ID>` by calling `buildCheckRow(item)` with `manual` defaulting to `true`. That is filed as the phase's exit-criterion-1 finding rather than as a change request here, because the routing this note delivered is correct — it is the claim about *where* the front door appears that is not.
 
 **Suite, validator, CI step set — observed.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK`; `--as-committed` reports *"HEAD passes the full CI step set"*. Working tree clean at `991838e`. The phase itself is `changes-requested` at this pass on two findings that do not touch this note — see [[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]].
+
+
+
+## Independent review — sixth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `991838e..c4413e3`, widened to `f5ca55b..c4413e3` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all five earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fifth pass's verdict on this note.**
+
+**Verdict: approved.** Unchanged in `991838e..c4413e3` beyond the appended fifth-pass section, and nothing in the round-five repair touches this note's subject. Its `review_response:` chain is accurate and in order.
+
+**Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.

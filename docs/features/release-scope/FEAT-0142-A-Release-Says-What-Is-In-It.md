@@ -10,7 +10,7 @@ updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: changes-requested
-review_response: "Fifth pass 2026-08-21: F1 - the release ITEM page carried a live mark control on every check row, which is ADR-0035's subject and this feature's own 'no write path to a check appears on the release page'. Fixed and the guard widened to name the shared row builder; both mutants fail it."
+review_response: "Fifth pass 2026-08-21: F1 - the release ITEM page carried a live mark control on every check row, which is ADR-0035's subject and this feature's own 'no write path to a check appears on the release page'. Fixed and the guard widened to name the shared row builder; both mutants fail it. || Sixth pass 2026-08-21: F1 and F2 fixed. The guard checked spellings, not the property - buildCheckRow(item, true), (item, manual) and (c) all passed it, and the last is the original defect with one letter changed. It parses every call inside a release surface and requires controls to be a literal false."
 review_response_date: 2026-08-21
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 source: ["user:edwin"]
@@ -275,3 +275,29 @@ It says *"The region is every release-page render function"* and *"Named rather 
 **What is genuinely closed.** The 2600-character window is gone; comments are stripped, so the note recording `markGateRow`'s deletion no longer reads as a write path; the two file-wide `function gateMark` / `function markGateRow` assertions hold; and the anchor really is inside `buildReleasePage`'s region (`covered` is asserted, not assumed). The widening is a real improvement that does not reach the sentence it is cited under.
 
 **Suite, validator, CI step set — observed, not reported.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK` (warnings only); `--as-committed` reports *"HEAD passes the full CI step set"*. Working tree clean at `991838e`.
+
+
+
+## Independent review — sixth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `991838e..c4413e3`, widened to `f5ca55b..c4413e3` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all five earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fifth pass's verdict on this note.**
+
+**Verdict: changes-requested — and the fifth pass's blocker is genuinely fixed.** `~release/<id>/<ITEM-ID>` no longer offers any control that changes a check, and I established that by walking the call graph rather than by trusting the guard: `buildCheckRow` has exactly two callers in `renderer.ts` — `paintCheckList` (the `~checks` page, legitimate under [[ADR-0035]]) and `buildReleaseItemPage` (now `manual = false`) — and `checkMark`, `markCheckRow`, `walkOneCheck`, `askForMark` and `retireCheckRow` are reachable only through it. The five other helpers a release surface calls directly (`gateGroup`, `gateLine`, `gateNote`, `buildRecordRow`, `buildRecordCard`) hold no write path. There is no second surface reaching a verdict write through a shared helper. What holds the note is what the repair put in the control's place.
+
+### Finding 1 (medium-high) — the page stopped offering a false control and started making a false statement
+
+`buildCheckRow(item, false)` also takes the **other** branch of every `if (!manual)` in that function: the row gains the class `is-automated`, and the body gains `checks-row-command` with `item.command || 'automated'`. **Every acceptance check in this repo is manual** — 34 of 34 carry no `command:` — so each row on that page now prints the literal word **`automated`** under its description and wears the class whose own CSS comment reads *"An automated check's row ([[ADR-0039]]). It carries the command that executes it INSTEAD OF a checkbox."*
+
+**Constructed, not inferred.** `buildCheckRow` was lifted out of `desktop/dist/renderer/renderer.js` and executed under a DOM shim. The same manual check, both ways: `manual = true` → mark control, `Retire`, no command line; `manual = false` → `<div class="checks-row is-automated">` … `<div class="checks-row-command mono"> "automated"`. Counted against the real corpus: `publication.release_item_payload` built for all **143** features in this repo yields **67** rows across *Checks it originated* / *invalidated* / *in its areas* with no `command:`.
+
+**The flag belongs to the item and this call hard-codes it.** `paintCheckList` derives `manual` from the section it paints — the partition that exists precisely because some checks are machine-executed and some are not. This function has no such partition. The fallback's own comment four lines away says *"the fallback should never fire — a section is non-manual BECAUSE its checks carry a `command:` — so what it prints is a statement about broken data, and it must not be a claim about CI"* ([[ISS-0241]]). It fires on every row of the page now.
+
+This falsifies no ticked criterion: *"no write path to a check appears on the release page"* is about controls and it holds. It is a new instance of the thing this phase exists to remove, written by the commit that closes it.
+
+### Finding 2 (medium) — the widened guard forbids spellings, not the property
+
+`forbidden` names `buildCheckRow(item)`, `buildCheckRow(item,\n` and `buildCheckRow(row)`. Three mutants planted in `buildReleasePage`, each re-arming both the mark dialog and `Retire` on the main release page, and each of which the guard **passes**: `buildCheckRow(item, true)`; `const manual = true; … buildCheckRow(item, manual)`; and `const c = …; buildCheckRow(c)` — **the identical defect to the fifth pass's F1 with one letter changed.** The positive assertion beside it, `assert "buildCheckRow(item, false)" in src`, is scanned over the whole 470,000-character file rather than over the release region, so it stays satisfied by the one legitimate call while a live one sits next to it. The property the rule wants is *no `buildCheckRow` call in a release region whose second argument is not `false`*; what is written is three ways of spelling one call. Two further constructions the guard cannot see, both honestly scoped in its own comment and neither guarded: a release surface whose name omits *release* (`function buildShipmentPage` calling `askForMark` → passes), and an arrow-function surface (`const renderReleaseDrawer = async () => { await askForMark(); }` → passes, because the scan is `^(?:async )?function`).
+
+**What the widening did close, verified by mutant:** reverting to `buildCheckRow(item)` fails it; planting `retireCheckRow(` inside `buildReleaseItemPage` fails it; adding `function buildReleaseChecksPanel` calling `askForMark` fails it on the discovered-set assertion — so appearance is now caught, which is what the fifth pass asked for. Three for three, including the exact regression it was written for.
+
+**Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.

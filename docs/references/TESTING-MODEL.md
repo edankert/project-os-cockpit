@@ -9,7 +9,9 @@ created: 2026-08-18
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
-review_verdict: changes-requested
+review_verdict: approved
+review_response: "Sixth pass 2026-08-21: the two section banners were byte-identical and the one under '### Refuted' quoted the other section's 'All three hold'. It now names which refutations are superseded (1 and 2, about cover_check and covered_by links) and which stand (3, 4, 5). This note is the record of a superseded model and is kept as one; a re-review is the reviewer's to give."
+review_response_date: 2026-08-21
 scope: tests
 related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]"]
 ---
@@ -142,7 +144,11 @@ automation: full
 
 ### Refuted
 
-> ⛔ **Partly superseded 2026-08-21 by [[REQ-0057]]**, in this heading's own first line. Anything below about `covered_by:`, `automation:` as a coverage claim, `_resolve_coverage` or `note_writes.cover_check` is written in the present tense about code that is **deleted**. *"All three hold"* held; it does not now.
+> ⛔ **Partly superseded 2026-08-21 by [[REQ-0057]]**, in this heading's own first line.
+>
+> Refutations **1** and **2** are about `note_writes.cover_check` and about `covered_by:` links, and both are written in the present tense about a function and a field that are **deleted**. The refutations remain true of the moment they were made — which is the whole reason this note is kept — and neither describes anything a reader can now find in the code.
+>
+> Refutations 3, 4 and 5 are unaffected: `obligations._is_owed`, the `Needs a run` bucket and the `## Runs` population are all still there.
 
 1. **"`note_writes.cover_check` writes the link behind four refusals."** It is **six** — empty `covered_by`, an automation value outside `full`/`partial`, `partial` without a reason, an id the index cannot resolve, a target that is not a test, and the `command:` one. (A seventh `raise` is an I/O error.)
 2. **"not one names a `TST-*` id"** — four `your-trainer` acceptance bodies do: `TST-0050`, `TST-0051` (naming TST-0009), `TST-0364` (TST-0010), `TST-0586` (TST-0008). The *point* survives — all four name manual tests, none is a `covered_by:` link — but the sentence is false and this document says it describes what is implemented.
@@ -192,3 +198,21 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 **What is still unbannered is the part that asserts the claims in the present tense, under headings of its own.** Line 136, under `### Verified against the code, unchanged`: *"**`Item.settled` / `_resolve_coverage`** — all-covers-must-pass …, executable-only …, resolved at load and never stored. **All three hold.**"* Line 143, under `### Refuted`: *"`note_writes.cover_check` writes the link behind four refusals." It is **six** …"* — present tense about a function that is deleted. The new banner reaches them by naming them, from two headings away; the banner's own argument is that *"a heading is a landing target, and a reader arriving by link or scroll never sees a warning further up"*, and `#verified-against-the-code-unchanged` is a landing target. This is a sentence-level fix on a reference file and it does not block anything.
 
 **Suite, validator, CI step set — observed, not reported.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK` (warnings only); `--as-committed` reports *"HEAD passes the full CI step set"*. Working tree clean at `991838e`.
+
+
+
+## Independent review — sixth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `991838e..c4413e3`, widened to `f5ca55b..c4413e3` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all five earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fifth pass's verdict on this note.**
+
+**Verdict: approved.** The fifth pass's finding is fixed as claimed: both `### Verified against the code, unchanged` and `### Refuted` now carry a supersession banner in their own first line, naming `covered_by:`, `automation:` as a coverage claim, `_resolve_coverage` and `note_writes.cover_check` — so a reader landing on `#refuted` or `#verified-against-the-code-unchanged` by link or scroll meets the warning before the claim. That is the whole of what was owed.
+
+### Finding 1 (trivial) — the two banners are byte-identical and one cites the other's sentence
+
+Line 145, under `### Refuted`, ends *"**All three hold**" held; it does not now"*. *"All three hold"* is at line 138, under the neighbouring heading. The banner is right about the section it names and is quoting the wrong one.
+
+### Finding 2 (trivial) — this note carries a verdict and no response
+
+`review_verdict: changes-requested` with **no `review_response:` field at all**, though the fix was applied. That is the mechanism [[ISS-0253]] built inside this very phase, unused on the one note in this range it was made for. The verdict is cleared here, so nothing is now outstanding — but the gap is worth naming, because a note that is fixed and still reads `changes-requested` with nothing beside it is the exact state ISS-0253 was filed about.
+
+**Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.

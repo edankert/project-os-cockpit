@@ -9,8 +9,8 @@ created: 2026-08-19
 updated: "2026-08-21"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
-review_verdict: changes-requested
-review_response: "2026-08-21: the `--by` filter is gone from the invalidation set and the failing branch's asymmetry is documented as the decision it is, with tests constructing a `manual` and a `migration` verdict for both directions. || Second pass 2026-08-21: findings B and C fixed. The pass-dedup's --by removal was guarded by nothing (restoring it failed no test); test_a_second_machine_saying_pass_adds_nothing guards it now. || Third pass 2026-08-21: findings 1, 2 and 5 fixed, with three mutants constructed and each failing its named test. The emitter has now had three separate defects of one shape - what counts as evidence of absence - and every one was found by running it in a loop and counting ledger entries rather than by reading it. || Fourth pass 2026-08-21: findings 1 and 2 fixed, both by construction. The bare-name collision and the double invalidation in one run were each mutated and each now fails a named test. The emitter has had five distinct defects, every one found by running it and counting, never by reading it. || Fifth pass 2026-08-21: F2 and F3 fixed. The emitter has now had seven distinct defects across five rounds, every one about what counts as evidence, and every one found by running it and counting rather than by reading it."
+review_verdict: approved
+review_response: "2026-08-21: the `--by` filter is gone from the invalidation set and the failing branch's asymmetry is documented as the decision it is, with tests constructing a `manual` and a `migration` verdict for both directions. || Second pass 2026-08-21: findings B and C fixed. The pass-dedup's --by removal was guarded by nothing (restoring it failed no test); test_a_second_machine_saying_pass_adds_nothing guards it now. || Third pass 2026-08-21: findings 1, 2 and 5 fixed, with three mutants constructed and each failing its named test. The emitter has now had three separate defects of one shape - what counts as evidence of absence - and every one was found by running it in a loop and counting ledger entries rather than by reading it. || Fourth pass 2026-08-21: findings 1 and 2 fixed, both by construction. The bare-name collision and the double invalidation in one run were each mutated and each now fails a named test. The emitter has had five distinct defects, every one found by running it and counting, never by reading it. || Fifth pass 2026-08-21: F2 and F3 fixed. The emitter has now had seven distinct defects across five rounds, every one about what counts as evidence, and every one found by running it and counting rather than by reading it. || Sixth pass 2026-08-21: three more guards added and each mutated - tier precedence, tier-1 tie refusal, and NOT ATTRIBUTED on stderr. plan()'s docstring said it returned four values and returns five."
 review_response_date: 2026-08-21
 parent: "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
@@ -253,3 +253,36 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 `test_a_report_that_does_not_name_the_file_emits_nothing` covers only the case where **neither** candidate matches, and its docstring's *"rather than picking whichever sorted first"* is exactly what the two-match case does. Nothing detects the shape: `--check` refuses a marker outside a test and an unresolvable id, and says nothing about ambiguity. Not live in this repo — no two test files here share a basename — but neither was the bare-name collision until somebody looked.
 
 **Suite, validator, CI step set — observed, not reported.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK` (warnings only); `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `991838e`.
+
+
+
+## Independent review — sixth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `991838e..c4413e3`, widened to `f5ca55b..c4413e3` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all five earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fifth pass's verdict on this note.**
+
+**Verdict: approved.** The fifth pass's two findings on this note are fixed, and the fix is real rather than reworded — I established every claim by running the emitter and counting, never by reading the docstring.
+
+- **The class-nesting trigger is gone and the round-four resolver is now a caught mutant.** Reinstating round four's `_resolve` verbatim fails three named tests: `test_a_test_inside_a_class_still_resolves`, `test_two_files_with_one_stem_are_not_order_dependent` and `test_a_test_it_cannot_place_is_reported_not_guessed`.
+- **The three checks this repo declares still resolve on a real run.** Ran the declaring files with `--junitxml` and drove `emit-coverage.py --dry-run` over the report: `pass TST-0069` (all five declaring tests), `pass TST-0075`, `pass TST-0076`. pytest writes `classname="tests.test_close_out_commit"` and tier 1 matches exactly.
+- **The tier shapes hold against real report shapes.** A test nested in a class (`tests.test_thing.TestGroup`) resolves through tier 1's prefix; `com.x.FooTest`, bare `FooTest` and `src.test.kotlin.com.x.FooTest` resolve through tier 2; `junit_results` strips `test_x[param]` to the function name before keying, so a parametrised declaring test is not silently dropped.
+- **No unbounded growth in any loop.** Six identical passing runs → one append then stable; four consecutive failing runs → one invalidation then stable; `pass` → `fail` → `pass` → `pass` → three transitions, three entries.
+
+### Finding 1 (medium) — the bold tier-precedence claim is guarded by nothing, and reversing it changes answers
+
+`_resolve`'s docstring says *"**Tier 1 must be exhausted before tier 2 is consulted.**"* Swapping the two blocks passes **all 43** tests in `tests/test_observed_coverage.py` and the whole 2072-test suite. It is not a cosmetic ordering: for a declaration nested in a class with a same-named test elsewhere that **failed**, the shipped order emits `pass TST-0001` and the reversed order emits nothing — and against a standing verdict it would invalidate off the wrong file's failure. `test_two_files_with_one_stem_are_not_order_dependent` cannot reach this, because its twin pair **ties in tier 2** and falls through to tier 1 either way round; it demonstrates the tie rule and is silent about precedence.
+
+### Finding 2 (medium) — the tie-refusal is guarded in tier 2 and unguarded in tier 1
+
+Mutating `if exact: return None` to `return exact[0]` passes the entire suite. Constructed: `tests/test_thing.py` declaring `TST-0001`, the report holding `tests.test_thing.TestA` (passed) and `tests.test_thing.TestB` (failed) — two classes in one module, an ordinary pytest shape. As shipped, both orders refuse and print `NOT ATTRIBUTED`, which is right. With the mutant, `pass TST-0001` in one order and *"nothing changed"* in the other: identical inputs, opposite verdicts, decided by XML ordering — the sentence the fifth pass's finding was filed under, now true of the tier the fix left unpinned. Two adjacent rules are unguarded the same way: dropping the dot from tier 1's prefix test (so `tests/test_a.py` matches `classname="tests.test_abc"`) and loosening tier 2 from *last component* to `endswith` (so `com.x.MyFooTest` matches a declaration in `FooTest.kt`) both pass everything.
+
+### Finding 3 (medium) — `NOT ATTRIBUTED` reaches stdout and nothing else
+
+Measured: a check observed `pass`, then six consecutive runs in which its declaring test is present but unattributable. Every run prints the notice, every run **also** prints *"nothing changed (0 check(s) observed passing)"*, the exit code stays **0**, the ledger stays at one entry, and `verdicts()` keeps returning `mark='pass', method='automated'`. Nothing in the record, and nothing on any surface, can tell a reader the check stopped being observed. The note claims only that the state is *reported rather than guessed*, which is true — so this is a residual rather than an overclaim, but it is the half of the fix this phase's own thesis says has to exist.
+
+### Finding 4 (low) — one docstring was falsified by its own commit
+
+`tools/scripts/emit-coverage.py:121` still says `plan` returns `(passing, failing, stale, current)`; this commit changed it to return five values.
+
+**None of these four blocks the note.** The behaviour is correct in every construction I could build; what is missing is a guard on two rules the code asserts in bold, and a record for a state the run now announces.
+
+**Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.

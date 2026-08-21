@@ -7627,7 +7627,16 @@ function buildReleaseItemPage(
       //: Found by independent review, fifth pass, 2026-08-21, by planting a
       //: `buildCheckRow` call in each release function and watching the guard
       //: pass — the guard was one call deep and so was the violation.
-      s.appendChild(buildCheckRow(item, false));
+      //:
+      //: **And the first repair was `buildCheckRow(item, false)`, which is a
+      //: different lie.** `manual` and `controls` were one parameter, so
+      //: taking the controls away also took the `is-automated` branch — and
+      //: all 34 of this repo's checks are manual, so **67 rows printed the
+      //: word `automated`** under checks no machine runs. The row's own
+      //: fallback comment says why that is worse than the control: *"it must
+      //: not be a claim about CI"* ([[ISS-0241]]). Two facts, two parameters:
+      //: `manual` comes from the item, `controls` from the surface.
+      s.appendChild(buildCheckRow(item, !item.command, false));
     }
     wrap.appendChild(s);
   }
@@ -9094,7 +9103,23 @@ function checkPercent(items: GateItem[]): HTMLElement {
   return el;
 }
 
-function buildCheckRow(item: GateItem, manual: boolean = true): HTMLElement {
+/** One check row.
+ *
+ *  **`manual` and `controls` are two facts and were one parameter.**
+ *  `manual` says whether a PERSON executes this check — it drives the
+ *  `is-automated` class and the `checks-row-command` line. `controls` says
+ *  whether this SURFACE offers the mark and Retire buttons.
+ *
+ *  Collapsing them made the release item page choose between a live verdict
+ *  control on a release page ([[ADR-0035]]) and printing the word
+ *  `automated` under all 34 of this repo's manual checks — 67 rows measured.
+ *  It shipped the first, then, on a review finding, the second. The row's own
+ *  fallback comment four lines below names why the second is worse: *"it must
+ *  not be a claim about CI"* ([[ISS-0241]]). Found by independent review,
+ *  sixth pass, 2026-08-21.
+ */
+function buildCheckRow(item: GateItem, manual: boolean = true,
+                       controls: boolean = true): HTMLElement {
   const row = document.createElement('div');
   row.className = 'checks-row';
   if (!manual) row.classList.add('is-automated');
@@ -9111,14 +9136,14 @@ function buildCheckRow(item: GateItem, manual: boolean = true): HTMLElement {
   // something no person runs is an invitation to record a verdict nobody
   // earned — and the row says what DOES execute it instead, which is the one
   // fact about it that can go stale.
-  if (manual) {
+  if (manual && controls) {
     row.appendChild(checkMark(item));
   }
   //: **Retire, beside the mark** ([[ISS-0249]]). Offered only on a manual
   //: check, for the same reason the mark is: a machine-executed check is
   //: retired by deleting the test that runs it, which is [[FEAT-0138]]'s
   //: inversion rather than a button.
-  if (manual) {
+  if (manual && controls) {
     const retire = document.createElement('button');
     retire.type = 'button';
     retire.className = 'review-btn is-small checks-row-retire';

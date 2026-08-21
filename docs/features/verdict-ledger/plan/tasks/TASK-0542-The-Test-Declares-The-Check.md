@@ -152,3 +152,13 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 **Verdict: approved.** The declaration convention is unchanged in `9a75f11..991838e` and holds under everything I put to it. Scanning this repo returns **7 declarations over 3 checks** (`TST-0069` ×5, `TST-0075`, `TST-0076`), each resolving to a real acceptance note, and all three still resolve against a real `--junitxml` run of the declaring files. The `tokenize`/`ast` path still refuses a marker that is a `#` inside a string. The bare-name property this task's fourth-pass section correctly parked as *"a property of the consumer"* is now a **basename** property of the consumer, and is filed against [[FEAT-0138]] / [[TASK-0543]] where it belongs, not here.
 
 **Suite, validator, CI step set — observed.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK`; `--as-committed` reports *"HEAD passes the full CI step set"*. Working tree clean at `991838e`. The phase itself is `changes-requested` at this pass on two findings that do not touch this note — see [[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]].
+
+
+
+## Independent review — sixth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `991838e..c4413e3`, widened to `f5ca55b..c4413e3` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all five earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fifth pass's verdict on this note.**
+
+**Verdict: approved.** Unchanged in `991838e..c4413e3` beyond the appended fifth-pass section. The declaration mechanism this task delivered is exercised by the round-five repair rather than altered by it: `coverage-declarations.py` still finds all seven declarations across three checks, and driving the emitter over a real pytest report resolves every one of them through tier 1.
+
+**Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.

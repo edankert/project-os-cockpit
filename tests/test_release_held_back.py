@@ -325,6 +325,34 @@ def _code_only(text: str) -> str:
     return re.sub(r"^\s*//.*$", "", text, flags=re.M)
 
 
+def test_a_release_row_does_not_call_a_manual_check_automated() -> None:
+    """**The first repair for the control was a different lie.**
+
+    `manual` and `controls` were one parameter, so taking the buttons away
+    also took the `is-automated` branch — and all 34 of this repo's checks are
+    manual, so 67 rows on `~release/<id>/<ITEM-ID>` printed the word
+    `automated` under checks no machine runs. That is [[ISS-0241]] exactly,
+    and the row's own fallback comment says so: *"it must not be a claim about
+    CI."*
+
+    `manual` comes from the item; `controls` comes from the surface.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    sig = re.search(r"function buildCheckRow\(([^)]*)\)", src)
+    assert sig, "buildCheckRow moved"
+    params = [p.split(":")[0].strip() for p in sig.group(1).split(",")]
+    assert params == ["item", "manual", "controls"], params
+
+    #: The two facts must not be read as one: the automated styling keys on
+    #: `manual` alone and the buttons on both.
+    body = src[sig.start():src.index("\nfunction ", sig.start())]
+    assert "if (!manual) row.classList.add('is-automated');" in body
+    assert body.count("if (manual && controls) {") == 2, body[:400]
+
+    #: And the release surface derives `manual` from the ITEM.
+    assert "buildCheckRow(item, !item.command, false)" in src
+
+
 def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     """[[ADR-0035]] unweakened — [[TASK-0576]]'s fourth criterion.
 
@@ -365,18 +393,8 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: window that did not even contain the enclosing function.
     anchor = src.index("const heldBack = c.held_back")
 
-    #: **`buildCheckRow(item)` is on this list because the violation was one
-    #: call deeper than the guard.** `~release/<id>/<ITEM-ID>` rendered every
-    #: check row with the default `manual = true`, so each carried a live mark
-    #: button posting to `/api/notes/mark-check` and, after [[ISS-0249]], a
-    #: `Retire` button — the sixty live marks [[ISS-0210]] found, reaching the
-    #: same dialog through a shared row builder while `gateMark` and
-    #: `markGateRow` were deleted file-wide. A guard that names only the
-    #: dialog misses every helper that opens it.
     forbidden = ("askForMark", "walkOneCheck", "/api/notes/mark-check",
-                 "gateMark(", "markGateRow(", "retireCheckRow(",
-                 "buildCheckRow(item)", "buildCheckRow(item,\n",
-                 "buildCheckRow(row)")
+                 "gateMark(", "markGateRow(", "retireCheckRow(")
     covered = False
     for n, (start, name) in enumerate(decls):
         if name not in subjects:
@@ -392,10 +410,29 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
             )
     assert covered, "the held-back block is not inside any release function"
 
-    #: **And the one legitimate call is asserted positively**, so the rule
-    #: above cannot be satisfied by deleting the row instead of disarming it.
-    assert "buildCheckRow(item, false)" in src, (
-        "the release item page no longer renders its check rows read-only"
+    #: **The row builder is checked on its ARGUMENT, not on its spelling.**
+    #: Listing `buildCheckRow(item)` as a forbidden string caught one call and
+    #: nothing else: `buildCheckRow(item, true)`, `(item, manual)` and `(c)`
+    #: all passed, and the last is the original defect with one letter
+    #: changed. Every call inside a release surface must pass `controls` as a
+    #: literal `false`, which is the property — *this surface offers no
+    #: verdict control* — rather than a way of writing it.
+    calls = 0
+    for n, (start, name) in enumerate(decls):
+        if name not in subjects:
+            continue
+        end = decls[n + 1][0] if n + 1 < len(decls) else len(src)
+        for call in re.finditer(r"buildCheckRow\(([^;]*?)\)",
+                                _code_only(src[start:end])):
+            calls += 1
+            args = [a.strip() for a in call.group(1).split(",")]
+            assert len(args) == 3 and args[2] == "false", (
+                "%s() renders a check row with controls — buildCheckRow(%s) "
+                "(ADR-0035)" % (name, call.group(1))
+            )
+    assert calls == 1, (
+        "expected exactly one check-row call on a release surface, found %d"
+        % calls
     )
 
     #: And the two deletions are file-wide, which is the stronger claim: a

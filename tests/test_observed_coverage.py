@@ -677,6 +677,72 @@ def test_a_test_it_cannot_place_is_reported_not_guessed(
     assert ledger.load(root / "docs", "macos")[0].entries == []
 
 
+def _xml(tmp: Path, entries: list[tuple[str, str, str]]) -> Path:
+    """`[(classname, name, outcome)]` as a JUnit report, order preserved."""
+    body = "".join(
+        "<testcase classname='%s' name='%s'>%s</testcase>"
+        % (cls, name, f"<{out} message='x'/>" if out else "")
+        for cls, name, out in entries)
+    path = tmp / "x.xml"
+    path.write_text("<testsuites><testsuite name='x' tests='%d'>%s</testsuite>"
+                    "</testsuites>" % (len(entries), body), encoding="utf-8")
+    return path
+
+
+def test_the_declarations_own_module_beats_a_bare_stem_match(
+        tmp_path: Path) -> None:
+    """**Tier 1 must be exhausted before tier 2, and nothing guarded that.**
+    Swapping the two tiers passed all 43 tests in this file and the whole
+    suite — while turning a `pass` into silence for a declaration in a class
+    with a same-stem twin elsewhere.
+
+    `tests.test_thing.TestGroup` is the declaration's own module (tier 1);
+    `other.test_thing` merely ends in its file stem (tier 2). The first wins,
+    whatever order the report lists them in.
+    """
+    from project_os_cockpit import ledger
+
+    for order in ("tier1-first", "tier2-first"):
+        root = _repo(tmp_path / order)
+        entries = [("tests.test_thing.TestGroup", "test_the_thing", ""),
+                   ("other.test_thing", "test_the_thing", "failure")]
+        if order == "tier2-first":
+            entries.reverse()
+        _emit(root, _xml(root, entries))
+        marks = [(e.check, e.mark, e.is_invalidation)
+                 for e in ledger.load(root / "docs", "macos")[0].entries]
+        assert marks == [("TST-0001", "pass", False)], (order, marks)
+
+
+def test_two_classes_in_the_declarations_module_are_a_refusal(
+        tmp_path: Path) -> None:
+    """[[ISS-0250]]'s shape one tier up. Both `tests.test_thing.TestA` and
+    `tests.test_thing.TestB` are inside the declaration's own module, so tier
+    1 has two candidates — and taking the first makes the answer depend on
+    report order, which is the defect tier 2 was just fixed for."""
+    from project_os_cockpit import ledger
+
+    for order in ("pass-first", "fail-first"):
+        root = _repo(tmp_path / order)
+        entries = [("tests.test_thing.TestA", "test_the_thing", ""),
+                   ("tests.test_thing.TestB", "test_the_thing", "failure")]
+        if order == "fail-first":
+            entries.reverse()
+        out = _emit(root, _xml(root, entries))
+        assert "NOT ATTRIBUTED" in out.stdout, (order, out.stdout)
+        assert ledger.load(root / "docs", "macos")[0].entries == [], order
+
+
+def test_an_unattributable_run_says_so_on_stderr_too(tmp_path: Path) -> None:
+    """It is the one outcome where the emitter knows it cannot answer, and
+    printing it only into a stdout stream that ends with *"nothing changed"*
+    puts it where nobody tells it from silence."""
+    root = _repo(tmp_path)
+    out = _emit(root, _xml(root, [("a.b", "test_the_thing", ""),
+                                  ("c.d", "test_the_thing", "")]))
+    assert "NOT ATTRIBUTED" in out.stderr, out.stderr
+
+
 def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     from project_os_cockpit import ledger
 

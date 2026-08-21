@@ -119,7 +119,8 @@ def junit_results(
 
 def plan(root: Path, results: dict[str, bool], skipped: "set[str]",
          platform: str):
-    """What this run should append: `(passing, failing, stale, current)`.
+    """What this run should append:
+    `(passing, failing, stale, current, unattributable)`.
 
     A check is **observed passing** only when every test declaring it ran and
     passed. One declaring test failing is enough: a check covered by five tests
@@ -295,10 +296,17 @@ def main(argv: list[str] | None = None) -> int:
     results, skipped = junit_results(Path(args.junit))
     passing, failing, stale, current, unattributable = plan(
         root, results, skipped, args.platform)
+    #: **To stderr as well as stdout.** An unattributable declaration is the
+    #: one outcome where the emitter knows it cannot answer, and printing it
+    #: only into a stdout stream that ends with *"nothing changed"* puts it
+    #: where nobody distinguishes it from silence.
     for note in unattributable:
-        print("emit-coverage: NOT ATTRIBUTED %s — the run holds a test with "
-              "that name and no classname identifying the declaration's file; "
-              "nothing emitted in either direction" % note)
+        message = ("emit-coverage: NOT ATTRIBUTED %s — the run holds a test "
+                   "with that name and no classname identifying the "
+                   "declaration's file; nothing emitted in either direction"
+                   % note)
+        print(message)
+        print(message, file=sys.stderr)
     run = args.run or "the test run"
 
     wrote: list[str] = []

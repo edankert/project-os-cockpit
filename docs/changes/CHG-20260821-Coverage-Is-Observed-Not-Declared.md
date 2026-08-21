@@ -1,7 +1,7 @@
 ---
 type: "[[change]]"
 id: CHG-20260821-Coverage-Is-Observed-Not-Declared
-review_verdict: changes-requested
+review_verdict: approved
 review_response: "2026-08-21: the impact list was short by two files (TAXONOMY.md, migrate-acceptance-checks.py) and both are now corrected and listed; the emitter's `--by` filter is removed. || Second pass 2026-08-21: finding D fixed - the impact table stated the retired scoping and was appended to rather than corrected. It now has five rows, including the one the whole feature turns on: a declaring test simply absent from a run's report changes nothing. || Third pass 2026-08-21: finding 4 fixed - the impact list said 'two files stranded' and the set was not closed; it is four, and the migrate script's recorded reason was itself wrong. The emitter's event table gains the skipped-sibling case. || Fourth pass 2026-08-21: the stranded-file list was still short - TESTING-MODEL.md's implemented-today section. Corrected there rather than by widening this list again. || Fifth pass 2026-08-21: the resolution rule is three tiers and the impact list gains nothing - TESTING-MODEL.md's remaining sections were corrected in place rather than by widening this list a third time."
 review_response_date: 2026-08-21
 review_date: 2026-08-21
@@ -241,3 +241,13 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 `test_a_report_that_does_not_name_the_file_emits_nothing` covers only the case where **neither** candidate matches, and its docstring's *"rather than picking whichever sorted first"* is exactly what the two-match case does. Nothing detects the shape: `--check` refuses a marker outside a test and an unresolvable id, and says nothing about ambiguity. Not live in this repo — no two test files here share a basename — but neither was the bare-name collision until somebody looked.
 
 **Suite, validator, CI step set — observed, not reported.** **2066 passed, 3 skipped** in 269s; `validate-docs: OK` (warnings only); `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `991838e`.
+
+
+
+## Independent review — sixth pass, 2026-08-21
+
+Fresh context, separate session, `model:claude-opus-5`. Started from the notes and the diff `991838e..c4413e3`, widened to `f5ca55b..c4413e3` for the did-anything-break question; I have no memory of authoring any of this and had no access to the author's reasoning trace or to any earlier reviewer's working beyond what these notes record. What was independent is the **context**, not the model family ([[project-os-dev#ADR-0013]]) — the same model authored the work and ran all five earlier passes, and `reviewed_by` records that as provenance rather than as a compliance token. **This supersedes the fifth pass's verdict on this note.**
+
+**Verdict: approved.** The fifth pass's findings on the emitter are fixed — the class-nesting trigger is gone, the round-four resolver reinstated as a mutant fails three named tests, and the three checks this repo declares all resolve against a real pytest report (`pass TST-0069`, `pass TST-0075`, `pass TST-0076`). The change note's impact list matches what `991838e..c4413e3` actually did. Four residual findings are recorded on [[FEAT-0138]] / [[REQ-0057]] / [[TASK-0543]] — two unguarded rules in `_resolve`, a `NOT ATTRIBUTED` notice that reaches stdout and nothing else, and a `plan()` docstring falsified by its own commit — and none of them blocks this note.
+
+**Suite, validator, CI step set — observed, not reported.** **2072 passed, 3 skipped** in 272s; `validate-docs: OK`, zero errors and 344 warnings; `--as-committed` reports *"HEAD passes the full CI step set"* — validator OK, `sync-snapshot: up to date`, `generate-adapters: all 36 artifacts current`. Working tree clean at `c4413e3`.
