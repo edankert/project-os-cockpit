@@ -2968,6 +2968,11 @@ a.ov-phase-title:hover {
   background: var(--bg-elevated);
   border-top: 1px solid var(--border);
   position: relative;
+  /* The console's inset lives HERE and not on .terminal-mount, which is
+   * the element xterm is opened into — see that rule for why. The
+   * divider is unaffected: it is absolutely positioned, and offsets
+   * resolve against the padding box, which padding does not move. */
+  padding: 6px 8px;
 }
 :root[data-theme="dark"] .terminal-pane {
   background: #1b1d1f;
@@ -2988,10 +2993,22 @@ a.ov-phase-title:hover {
 .terminal-divider:hover {
   background: var(--accent-soft);
 }
+/* The fit parent, and it must carry NO padding (ISS-0255).
+ *
+ * @xterm/addon-fit sizes the terminal from `getComputedStyle(parent).height`
+ * and subtracts only the *xterm element's* own padding. That is right under
+ * CSS's default content-box, where the parent's padding is already excluded
+ * from the reported height — but base.css puts every element in both front
+ * doors in `box-sizing: border-box`, where it is INCLUDED. Padding here is
+ * therefore room the addon spends and the terminal cannot use: it asks the
+ * PTY for rows and columns that fall outside the box, and the overflow below
+ * cuts them. 6px/8px cost the last row at 466 of 581 pane heights and the
+ * last two columns at every width measured.
+ *
+ * The inset is on .terminal-pane instead, which is not measured by anything. */
 .terminal-mount {
   flex: 1;
   min-height: 0;
-  padding: 6px 8px;
   overflow: hidden;
 }
 .terminal-mount .xterm,

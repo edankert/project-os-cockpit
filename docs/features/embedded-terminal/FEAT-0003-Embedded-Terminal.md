@@ -7,7 +7,7 @@ status: done
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-07-20
+updated: 2026-08-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
@@ -16,7 +16,7 @@ goal: "Run an AI coding assistant alongside the docs in a single browser window 
 release: ""
 related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[RISK-0001]]"]
 requirements: ["[[REQ-0005]]"]
-tasks: ["[[TASK-0043]]", "[[TASK-0044]]", "[[TASK-0045]]", "[[TASK-0047]]"]
+tasks: ["[[TASK-0043]]", "[[TASK-0044]]", "[[TASK-0045]]", "[[TASK-0047]]", "[[TASK-0185]]", "[[TASK-0186]]", "[[TASK-0577]]"]
 ---
 
 # Embedded local-only terminal

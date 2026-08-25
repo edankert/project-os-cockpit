@@ -4,7 +4,7 @@ id: PHASES
 title: "Phase registry"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-08-10
+updated: 2026-08-25
 tags: [phases, registry]
 ---
 
@@ -26,7 +26,7 @@ This document is the **semantic source of truth** for development phases. It map
 | [PHASE-001](phases/PHASE-001-MVP.md) | MVP | Renderer + live reload — the smallest useful tool. | FEAT-0001, FEAT-0002 | done |
 | [PHASE-002](phases/PHASE-002-Project-OS-Adapter.md) | Project-os adapter | ID resolution polish, auto-index pages, backlinks panel, bases-driven cockpit layout. | FEAT-0004, FEAT-0006 | active |
 | [PHASE-003](phases/PHASE-003-Downstream-Pilot.md) | Downstream pilot | Would have proven cross-repo invocation with one shim. **Never built** — workspace discovery (PHASE-005) replaced the need, and the shell now serves all 12 fleet repos (ISS-0078). | FEAT-0005 | superseded → PHASE-005 |
-| [PHASE-004](phases/PHASE-004-Embedded-Terminal.md) | Embedded terminal | Opt-in `ttyd`-iframe terminal panel, loopback-only. Pulled out of PHASE-001. | FEAT-0003 | planned |
+| [PHASE-004](phases/PHASE-004-Embedded-Terminal.md) | Embedded terminal | Opt-in `ttyd`-iframe terminal panel, loopback-only. Pulled out of PHASE-001. **Standing** — the terminal's home, so a single console defect gets an issue and a task here rather than a phase of its own; reopened and re-closed 2026-08-25 for [[ISS-0255]]. *(Status corrected 2026-08-25: this row read `planned` against a note that has said `done` since 2026-07-20 — the registry is hand-maintained and `sync-snapshot.py` does not reach it.)* | FEAT-0003, ISS-0255 | done |
 | [PHASE-005](phases/PHASE-005-Desktop-Shell.md) | Desktop shell (Electron + Python sidecar) | System-wide Electron app that wraps the existing cockpit as a sidecar. Multi-project. Additive to modes 1 + 2. | FEAT-0007 | active |
 | [PHASE-006](phases/PHASE-006-Native-Cockpit-UI.md) | Native cockpit UI (TypeScript rewrite) | Replace the iframe-mounted cockpit with native TypeScript panes. Python becomes a pure data + Markdown-render API. Mode 1 (browser) preserved. | FEAT-0008..FEAT-0013 | done |
 | [PHASE-007](phases/PHASE-007-Agent-Instrumentation.md) | Agent instrumentation (hooks-aware terminal) | Auto-instrument Claude Code / Codex sessions in the embedded terminal via lifecycle hooks; activity strip, needs-input inbox, task dispatch, session insight. **Reopened and re-closed 2026-08-06** for session economics — what the context weighs and what the next turn costs. | FEAT-0019..FEAT-0022, FEAT-0081, ISS-0104..ISS-0119 | done |

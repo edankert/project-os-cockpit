@@ -7,9 +7,11 @@ status: done
 order: 4
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-07-20
+updated: 2026-08-25
 features:
   - "[[FEAT-0003-Embedded-Terminal]]"
+issues:
+  - "[[ISS-0255]]"
 depends: ["[[PHASE-001-MVP]]"]
 ---
 
@@ -43,3 +45,11 @@ Originally scoped under PHASE-001 (MVP). Pulled out to a dedicated phase so PHAS
 ## Close-out (2026-07-20)
 
 The embedded local-only terminal is complete and closed (FEAT-0003): xterm + per-workspace local PTY (loopback-only by construction), tmux survivability, and the ttyd reverse-proxy path. The preview-tab nice-to-have (TASK-0045) is deferred to PHASE-999. No open items remain.
+
+## Reopened and re-closed (2026-08-25) — [[ISS-0255]]
+
+This is the terminal's **standing home** (`CLAUDE.md`, "When to open a phase — and when not to"): a single reported defect gets an `ISS-*` and a task here, not a phase of its own. Reopened to `active` for the day and closed again the same session, which is what the rule asks for — a phase left permanently `active` because its home must be "known" reads as one somebody forgot.
+
+The defect: the console clipped its last line and its last two columns, because `@xterm/addon-fit` measures the fit parent's *border* box under this renderer's global `box-sizing: border-box` and `.terminal-mount` carried padding the terminal could not use. Fixed in [[TASK-0577]] by moving the inset to `.terminal-pane`; pinned by [[TST-0078]]; recorded in [[CHG-20260825-The-Console-Stops-Clipping-Its-Last-Line]].
+
+Distinct from [[ISS-0016]], which was a *stale* fit and whose `ResizeObserver` remedy still holds. Two defects, one symptom — which is why the second one took a measurement rather than a memory to find.

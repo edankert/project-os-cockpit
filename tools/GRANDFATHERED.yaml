@@ -13,7 +13,7 @@
 # admission that the debt was not cleared, and each one is a small backlog item.
 version: 1
 cutover: "2026-07-25"
-count: 77
+count: 75
 gates:
   VERIFY: {}
   REQ-BOXES:
@@ -90,8 +90,6 @@ gates:
     TASK-0180: "TASK-0180 declares parent: FEAT-0032, but FEAT-0032 does not name it in `tasks:`; add it, or drop the parent (docs/features/agents-screen/plan/tasks/T..."
     TASK-0181: "TASK-0181 declares parent: FEAT-0023, but FEAT-0023 does not name it in `tasks:`; add it, or drop the parent (docs/features/overview-scopes/plan/tasks..."
     TASK-0184: "TASK-0184 declares parent: FEAT-0030, but FEAT-0030 does not name it in `tasks:`; add it, or drop the parent (docs/features/agent-inbox/plan/tasks/TAS..."
-    TASK-0185: "TASK-0185 declares parent: FEAT-0003, but FEAT-0003 does not name it in `tasks:`; add it, or drop the parent (docs/features/embedded-terminal/plan/tas..."
-    TASK-0186: "TASK-0186 declares parent: FEAT-0003, but FEAT-0003 does not name it in `tasks:`; add it, or drop the parent (docs/features/embedded-terminal/plan/tas..."
     TASK-0198: "TASK-0198 declares parent: FEAT-0006, but FEAT-0006 does not name it in `tasks:`; add it, or drop the parent (docs/features/cockpit/plan/tasks/TASK-01..."
     TASK-0213: "TASK-0213 declares parent: FEAT-0025, but FEAT-0025 does not name it in `tasks:`; add it, or drop the parent (docs/features/agent-registry/plan/tasks/..."
     TASK-0226: "TASK-0226 declares parent: FEAT-0042, but FEAT-0042 does not name it in `tasks:`; add it, or drop the parent (docs/features/design-bench/plan/tasks/TA..."
