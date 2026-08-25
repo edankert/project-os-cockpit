@@ -24,7 +24,7 @@ tests: ["[[TST-0079]]"]
 - [x] `migrate-acceptance-checks.py` parses under Python 3.11.
 - [x] `test_acceptance_marks.py` reaches a corpus that exists on a clean runner, and stays non-vacuous.
 - [x] `test_change_shape.py::test_it_answers_for_this_repos_own_work` has the git history it reads.
-- [ ] `observed-coverage` is green on GitHub. *(Unticked until the run says so — the whole issue is that this cannot be verified from here.)*
+- [x] `observed-coverage` is green on GitHub — run on f4d8e32, 2026-08-25. *(Left unticked through two pushes; the whole issue is that this cannot be verified from here.)*
 
 ## Steps
 - [x] Hoist the nested f-string out of the expression at `migrate-acceptance-checks.py:169`.
@@ -39,6 +39,8 @@ Each fix was verified **under the condition that broke it**, because all three p
 - **f-string** — a tokenizer scan calibrated against the offending line reports the repo clean; reinstating the line makes [[TST-0079]] fail.
 - **Marks guard** — run with `HOME` pointed at an empty directory (no fleet, as on a runner): the pre-fix version fails exactly as CI did, the fix passes 38/38.
 - **Shallow clone** — `change_shape_payload(root, "ISS-0135")` against a real `--depth 1` clone returns `files=0`, which is CI's `assert 0 > 0`; against a full clone, `files=14`.
+
+The first pass fixed four of eight failures — the CI log was read through a grep window instead of its `short test summary info`. The second pass gave the runner the upstream repo and a built renderer, and repaired this task's own new guard, which had used tokens 3.12 introduced. See [[ISS-0256]].
 
 ## Notes
 
