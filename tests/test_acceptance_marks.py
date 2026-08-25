@@ -496,10 +496,19 @@ def test_every_mark_in_the_corpus_has_a_label_a_glyph_and_a_colour() -> None:
     from project_os_cockpit import acceptance as _acc
     from project_os_cockpit.index import Index as _Index
 
+    # THIS repo's corpus first, because it is the only one that exists
+    # everywhere this test runs. Reaching for ~/Dev/repos alone made the guard
+    # unrunnable on a CI runner, where it found no suite and correctly refused
+    # to pass on nothing (ISS-0256). The fleet repos still join in when they
+    # are present — they carry marks this one does not, which is the whole
+    # reason the guard walks real corpora instead of a fixture.
+    here = _Path(__file__).resolve().parent.parent
+    corpora = [here / "docs"]
     fleet = _Path.home() / "Dev" / "repos"
+    corpora += [fleet / r / "docs" for r in ("your-sudoku", "your-trainer")]
+
     marks: set[str] = set()
-    for repo in ("project-os-cockpit", "your-sudoku", "your-trainer"):
-        docs = fleet / repo / "docs"
+    for docs in corpora:
         if not docs.is_dir():
             continue
         marks |= {i.mark for i in _acc.load(docs, _Index.build(docs)).items}

@@ -1,0 +1,10 @@
+# The construct that caused ISS-0256, kept verbatim as the detector's subject.
+#
+# Not a .py file: the scan walks *.py, and a deliberate offender inside the
+# corpus it polices would fail the very check it exists to exercise.
+#
+# A backslash inside an f-string EXPRESSION — here inside a nested f-string's
+# literal text, which is where the obvious detector misses it. Legal from
+# Python 3.12 (PEP 701); a SyntaxError on 3.11, which this project supports.
+refs = ["TST-0001", "TST-0002"]
+line = f"covers: [{', '.join(f'\"[[{r}]]\"' for r in refs)}]"

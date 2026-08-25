@@ -35,7 +35,11 @@ jobs:
     # where the evidence came from.
     runs-on: macos-latest
     steps:
+      # Full history: test_change_shape asks what a note's commit touched, and
+      # a depth-1 clone does not contain the commit to answer from (ISS-0256).
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

@@ -164,9 +164,14 @@ def note_text(item: A.Item, *, check_id: str, sha: str, ordinal: int,
     #: validator refusing the field, which proves too much: it refuses ten
     #: more that this function still writes. Corrected after independent
     #: review, 2026-08-21.)*
+    # Built outside the f-string on purpose: a backslash inside an f-string
+    # EXPRESSION is Python 3.12+ (PEP 701) and this project supports 3.11
+    # (pyproject `requires-python`), where the nested-and-escaped form was a
+    # SyntaxError — so the script did not fail, it failed to PARSE (ISS-0256).
+    covers = ", ".join(f'"[[{ref}]]"' for ref in item.refs)
     fm.extend([
         "automation: manual",
-        f"covers: [{', '.join(f'\"[[{r}]]\"' for r in item.refs)}]",
+        f"covers: [{covers}]",
         "burden: []",
         "evidence: []",
         # **The sha must contain the row it stamps.** A suite with uncommitted

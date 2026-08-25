@@ -61,7 +61,7 @@ counters:
     last_date: 20260817
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 142
-  ISS: 255
+  ISS: 256
   PHASE: 40
   REQ: 60
   RISK: 7
@@ -69,15 +69,15 @@ counters:
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 577
-  TST: 78
+  TASK: 578
+  TST: 79
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0577"
-  feature: "FEAT-0003"
-  phase: "PHASE-004"
-  issue: "ISS-0255"
+  task: "TASK-0578"
+  feature: "FEAT-0138"
+  phase: "PHASE-037"
+  issue: "ISS-0256"
   note: "2026-08-25 ISS-0255 — the console clips its last line, reported with a screenshot of a Claude Code session sliced through the middle of its bottom row. NOT ISS-0016 recurring: that was a STALE fit (a row count from a size the mount no longer had) and the ResizeObserver still holds. This is a FRESH fit that is wrong every time. @xterm/addon-fit reads `parseInt(getComputedStyle(parent).height)` and subtracts only the XTERM ELEMENT's padding — correct under content-box, where the parent's padding is already out of the reported height. base.css puts every element in both front doors in `box-sizing: border-box`, where it is IN. `.terminal-mount` carried `padding: 6px 8px`, so the addon spent 12px vertical and 16px horizontal that the terminal could never occupy, asked the PTY for rows and columns outside the box, and `overflow: hidden` cut them. MEASURED against the built xterm and the real stylesheet over 581 pane heights and 129 widths: 466 of 581 heights clip a row (worst 12px of a 15px row) and 581 of 581 widths clip up to 16px — about two columns — which is why the right-aligned hint in the screenshot is also cut. The vertical half misses 20% of heights BY LUCK (the leftover happens to be under one row), which is why it reads as intermittent; the horizontal half fires everywhere because 16px always exceeds two 7.8px columns. FIX (TASK-0577): the inset moves to `.terminal-pane`, so the element xterm is opened into has border box == content box. Geometry is unchanged PIXEL FOR PIXEL — xterm rect 1904x387 at (8,570) and divider 1920 wide at top 562, identical before and after — because the pane's padding removes exactly what the mount's used to, and the divider is absolutely positioned so its offsets resolve against the padding box, which padding does not move. REJECTED: `box-sizing: content-box` on the mount, which also measures correctly but repairs the symptom in the direction a reader cannot check without knowing which box getComputedStyle reports. PHASE-004 REOPENED as the terminal's standing home rather than minting a phase for one fix (CLAUDE.md); it closes again at close-out. Previously: 2026-08-21 PHASE-037 CLOSED on all five exit criteria. 95 notes name it and ALL 95 ARE RESOLVED - 11 features, 8 requirements, 3 ADRs, 30 issues, 41 tasks, 1 design, 5 change notes. 2053 tests pass, validator OK. NO PHASE IS ACTIVE; the next one is Edwin's to open. WHAT THE LAST DAY BUILT, and none of it was bookkeeping: FEAT-0138 - COVERAGE IS OBSERVED, NOT DECLARED. The test declares the check (`# Covers: TST-####`, one comment prefix per language, one grep), the run emits from JUnit XML (pytest --junitxml and gradle both write it, so no shared library in either toolchain), and DELETING THE COVERING TEST PUTS ITS CHECK BACK ON THE RUN LIST - proved by construction, and its test FAILED ON FIRST RUN because the invalidation set was computed from the declarations, so deleting the test deleted the declaration and the check stayed settled forever: covered_by's silent rot reproduced inside the tool built to end it. `covered_by:` and `cover_check` are DELETED; REQ-0039 superseded by REQ-0057. THE LIMIT IS UNCHANGED AND STATED EVERYWHERE IT MATTERS: ISS-0209 - the acceptance gate runs in NO repo that holds a check, so this is proved HERE and the fleet is not covered. FEAT-0142 closed on TASK-0576: an exclusion records a REASON in `held_back:` beside `features:`, the page reads `N features held back - M checks no longer gating` in ONE sentence with the cost read from the gate, and an exclusion with no reason says so rather than being filled in. THREE RULES THAT COULD NOT FIRE were found while building it: `Remove` on the release page was guarded on `c.kind !== 'derived'` and NO THIRD KIND WAS EVER EMITTED, so a feature could be added through the front door and never taken back out; the gate's subtraction read `index.by_id(release_id)` and release_id is the literal `next` on the page a person opens, so it never fired there; and the scanner READ ITS OWN DOCSTRING as a coverage claim because a `#` comment inside a string satisfies is-this-a-comment (it uses tokenize and ast now). FOUR ISSUES CLOSED, each the phase's own shape - a state the record could not express: ISS-0250 SURFACE-ORPHAN (a rename orphaned every check on a surface silently; 21 names over 34 checks here, zero in the other eleven, warned to 2026-11-18); ISS-0253 review_response: + REVIEW-STALE (43 notes closed while still reading changes-requested - THE RULE FOUND EXACTLY THE NUMBER THE ISSUE MEASURED BY HAND, and NONE OF THE 43 WAS FLIPPED); ISS-0249 retire_check ROUTED (27 -> 28 guarded routes) and cover_check deleted, plus test_no_public_write_in_note_writes_is_unreachable which asks the general question nothing was asking; ISS-0252 close-out-commit.sh now names its SNAPSHOT.yaml membership changes and the DANGLING case separately, because that is the one that does not self-heal. DELIBERATELY NOT CLOSED: ISS-0213 is `deferred` under PHASE-999 - its finding is answered and what remains is three lines of data in your-trainer costing three blocking checks, on a repo whose 15 surfaces are in NO COMMIT; the area: -> [[SUR-####]] schema change is a migration across 579 notes in that same uncommitted corpus; and whether concurrent close-out sessions are supported is ADR-shaped - A LOCK WAS MEASURED AND DOES NOT CLOSE THE COLLISION IT WAS OFFERED AGAINST, because sync-snapshot reads the WORKING TREE and a lock serialises commits. TWO VOCABULARIES NOW EXIST IN THREE COPIES EACH (OWED_VERDICTS across cockpit/validator/renderer; the surface-title join across cockpit/validator) - both forced, both pinned by tests that DRIVE the copies over the same inputs rather than matching text, because a text assertion passes on a rule whose normalisation is in a comment and that pitfall bit this phase again on its last day."
 
 items:
@@ -135,7 +135,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
       requirements: ["REQ-0057"]
-      tasks: ["TASK-0541", "TASK-0542", "TASK-0543"]
+      tasks: ["TASK-0541", "TASK-0542", "TASK-0543", "TASK-0578"]
       note: "Stage 2. A standing covered_by: rots SILENTLY — rename/delete/@Ignore the covering test and the note keeps asserting coverage while the check leaves the run list permanently with no signal. Inverting it makes deletion self-correcting. ISS-0198 already measured why the standing claim cannot work here: 203 bodies name 54 JVM classes and no TST-* id, and cover_check correctly refuses an unrunnable link — which is exactly the population observed coverage handles. ONE CROSS-STAGE CONSTRAINT: TASK-0541 seeds the mapping before TASK-0530 removes automation:. LIMIT: ISS-0209 means the emitter runs here and nowhere the data lives."
     FEAT-0125:
       file: "docs/features/surfaces-report/FEAT-0125-The-Release-Page-Reports-What-Holds-It.md"
@@ -811,6 +811,13 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0578:
+      file: "docs/features/verdict-ledger/plan/tasks/TASK-0578-Make-The-Suite-Runnable-Off-This-Machine.md"
+      title: "Make the `observed-coverage` suite runnable off this machine — a 3.11-legal f-string, an in-repo corpus for the marks guard, and a checkout deep enough to hold the history a test reads"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0138
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0577:
       file: "docs/features/embedded-terminal/plan/tasks/TASK-0577-The-Fit-Parent-Carries-No-Padding.md"
       title: "The element xterm is opened into carries no padding — move the console's inset from `.terminal-mount` to `.terminal-pane` so the fit addon's measurement is exact"
@@ -922,13 +929,6 @@ items:
       status: done
       owner: user:edwin
       parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0535:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0535-The-Cross-Platform-Burndown.md"
-      title: "The cross-platform burndown — A-pass with no terminal B entry, computed, never maintained"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0135
       phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0536:
       file: "docs/features/verdict-ledger/plan/tasks/TASK-0536-The-Read-Path-Moves-To-The-Ledger.md"
@@ -1719,6 +1719,14 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0256:
+      file: "docs/issues/ISS-0256-The-Suite-Had-Never-Run-Anywhere-But-Here.md"
+      title: "The `observed-coverage` suite had never run anywhere but Edwin's machine — its first CI run was red on three separate dependencies on that machine"
+      status: fixed
+      owner: user:edwin
+      severity: high
+      component: tooling
+      note: "FIRST EXECUTION EVER — the workflow shipped inside the 197 commits this repo had not pushed, so nothing ran it anywhere else for 13 days. THREE CAUSES, ONE SHAPE: a backslash in an f-string EXPRESSION (PEP 701, 3.12+) in migrate-acceptance-checks.py:169 that CI's pinned 3.11 cannot PARSE while this machine's 3.13 can; test_acceptance_marks.py reading ~/Dev/repos for its corpus, so a runner has none and the test's own anti-vacuity guard fires (correctly); and test_change_shape.py greping git history for ISS-0135 against actions/checkout's depth-1 clone. validate-docs PASSED in the same push and --as-committed passed locally first: that check materialises HEAD, so it catches IGNORED AND UNTRACKED files and none of these three is that — it still runs the local interpreter on the local machine with the fleet present."
     ISS-0255:
       file: "docs/issues/ISS-0255-The-Console-Clips-Its-Last-Line.md"
       title: "The console clips its last line — xterm's fit addon measures the mount's border box, so it asks for one row and two columns more than the box can show"
@@ -3172,6 +3180,16 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0079:
+      file: "docs/tests/TST-0079-Every-Source-File-Parses-Under-The-Floor.md"
+      title: "Every source file parses under the oldest Python the project claims — the one defect class a newer interpreter cannot see"
+      status: active
+      owner: user:edwin
+      scope: system
+      kind: automated
+      level: unit
+      issues: [ISS-0256]
+      note: "Guards the ONLY one of ISS-0256's three causes that is silent: a version-conditional SYNTAX error is invisible to every check running on a newer interpreter, INCLUDING --as-committed, which materialises HEAD (so untracked/ignored files cannot hide) but still runs the local Python. NOT a 3.11 grammar check and cannot be one — no 3.11 is installed here; it checks the two constructs PEP 701 relaxed. It RETIRES ITSELF when requires-python reaches 3.12. The fixture exists because the first detector returned ZERO findings against the very line it was written for — it skipped FSTRING_MIDDLE, which is where the backslash lives when the string is nested."
     TST-0078:
       file: "docs/tests/TST-0078-The-Fit-Parent-Carries-No-Padding.md"
       title: "The element xterm is opened into carries no padding — the box the fit addon measures and the box the terminal occupies are the same box"
@@ -3937,9 +3955,9 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 142
     features_done: 130
-    tasks_total: 576
-    tasks_done: 540
-    tests_total: 44
+    tasks_total: 577
+    tasks_done: 541
+    tests_total: 45
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
