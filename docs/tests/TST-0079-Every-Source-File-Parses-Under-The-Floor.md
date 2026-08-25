@@ -31,11 +31,15 @@ Automated, in `tests/test_python_floor.py`.
 
 **That the detector fires.** A guard nothing has been seen to catch is an assumption. `tests/fixtures/pep701_offender.py.txt` holds the construct from `migrate-acceptance-checks.py:169` verbatim, and a test asserts the scan finds it. This is not ceremony: the first version of the detector, written the obvious way, returned **zero findings against that very line** — it skipped `FSTRING_MIDDLE` tokens, which is precisely where the backslash lives when the offending string is nested inside another f-string.
 
-**That the check retires itself.** `test_the_floor_is_below_the_pep_701_relaxation` fails once `requires-python` reaches 3.12, at which point both constructs are legal everywhere the project runs and the module should be deleted rather than left as a check that cannot fail.
+**That the module retires itself.** `test_the_floor_is_below_the_pep_701_relaxation` fails once `requires-python` reaches 3.12, at which point both constructs are legal everywhere the project runs and the module should be deleted rather than left as a check that cannot fail.
 
-## What it does not pin
+## Two halves, because the interpreter decides what can be asked
 
-It is **not** a Python 3.11 grammar check, and cannot be one — no 3.11 interpreter is installed on this machine. It covers the two constructs PEP 701 relaxed, which is the gap that actually bit. The general check is CI pinning `3.11`, and that is the authority; this only moves the discovery earlier than a push.
+**On the floor (< 3.12), it compiles every file.** Authoritative and exhaustive — the real grammar, every construct, not just the two this module can name. That is the half CI runs.
+
+**Above it (>= 3.12), it scans for the constructs PEP 701 relaxed.** Narrower by necessity: with no floor interpreter there is nothing to ask. It buys earlier discovery, not equivalence.
+
+The first version had only the second half — and reached for `tokenize.FSTRING_START`, **which 3.12 added**. So a guard written to protect 3.11 raised `AttributeError` on 3.11: the very mistake it exists to catch, one layer up, shipped inside the fix for it. CI caught it on the next run, which is the argument for the whole exercise.
 
 ## Why the existing checks could not see it
 
@@ -43,7 +47,8 @@ It is **not** a Python 3.11 grammar check, and cannot be one — no 3.11 interpr
 
 ## Mutations checked
 
-Both applied, both failed, before this was recorded:
+Each applied, each caught, before this was recorded:
 
-- the original f-string reinstated in `migrate-acceptance-checks.py` → `test_no_source_file_needs_a_python_newer_than_the_floor` fails.
-- the `len(quotes) < 2` depth test removed from the detector → `test_the_scan_sees_a_known_offender` fails, which is the first version's bug reproduced deliberately.
+- the original f-string reinstated in `migrate-acceptance-checks.py` → the scan half fails.
+- the `len(quotes) < 2` depth test removed from the detector → the known-offender test fails, which is the first version's bug reproduced deliberately.
+- `tokenize.FSTRING_START`/`MIDDLE`/`END` deleted from the module and `CAN_SCAN` forced false, simulating 3.11 → imports cleanly and the compile half passes over every source file. The one thing this cannot show locally is the fixture raising `SyntaxError`, because it compiles fine on 3.13 — that assertion is CI's to make.

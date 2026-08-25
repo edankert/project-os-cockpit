@@ -1721,7 +1721,7 @@ items:
   issues:
     ISS-0256:
       file: "docs/issues/ISS-0256-The-Suite-Had-Never-Run-Anywhere-But-Here.md"
-      title: "The `observed-coverage` suite had never run anywhere but Edwin's machine — its first CI run was red on three separate dependencies on that machine"
+      title: "The `observed-coverage` suite had never run anywhere but Edwin's machine — eight failures on its first CI run, every one a dependency on that machine"
       status: fixed
       owner: user:edwin
       severity: high

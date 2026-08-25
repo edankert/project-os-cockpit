@@ -40,10 +40,32 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # The upstream template repo, where several guards assert a rule or a
+      # template landed FIRST. They read `~/Dev/repos/project-os`, which is
+      # Edwin's fleet layout — so give the runner the same layout rather than
+      # weakening the assertion to "upstream is absent, never mind" (ISS-0256).
+      # Public, so no credential is involved.
+      - uses: actions/checkout@v4
+        with:
+          repository: edankert/project-os
+          path: upstream-project-os
+      - name: Put the upstream repo where the fleet guards look for it
+        run: |
+          mkdir -p "$HOME/Dev/repos"
+          mv upstream-project-os "$HOME/Dev/repos/project-os"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+      # The digest guard asserts against the BUILT bundle, because that is what
+      # was on screen when the wrong number appeared — a source assertion would
+      # pass forever while the screen lied. So CI has to build it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Build the renderer
+        working-directory: desktop
+        run: npm ci && npm run build
       - name: Run the suite
         id: suite
         continue-on-error: true
