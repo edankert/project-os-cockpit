@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0584
 aliases: ["TASK-0584"]
-title: "Migrate `your-trainer` — 628 checks, 2519 notes, and the only repo where release-scoped verification currently pays"
+title: "Migrate `your-trainer` — 625 checks, 2519 notes, and the only repo where release-scoped verification currently pays"
 status: done
 phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
 owner: user:edwin
@@ -30,4 +30,4 @@ tests: []
 
 2519 corpus: 2519 notes.
 
-**The prize, attempted last.** 628 acceptance checks — 91% of the fleet's — and the repo whose inability to scope `REL-0013` supplied [[ISS-0209]]'s worked cost. 589 `PARENT-BACKLINK` findings is over half the fleet total; by the time this runs the tool has been exercised three times. [[PHASE-041]]: *'a stalled first attempt is what parked this in PHASE-999-Future for a quarter already.'*
+**The prize, attempted last.** 625 acceptance checks — this note and the migration commit both said 628, and independent review recounted them from `level: acceptance` frontmatter — 92% of the fleet's 682 — and the repo whose inability to scope `REL-0013` supplied [[ISS-0209]]'s worked cost. 589 `PARENT-BACKLINK` findings is over half the fleet total; by the time this runs the tool has been exercised three times. [[PHASE-041]]: *'a stalled first attempt is what parked this in PHASE-999-Future for a quarter already.'*

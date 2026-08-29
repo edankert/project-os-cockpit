@@ -45,8 +45,13 @@ VALIDATOR_REL = "tools/scripts/validate-docs.py"
 #: Every way the validator names a gate when it reports one. Kept as one regex
 #: rather than a hand-maintained list of codes, so a rule added upstream is
 #: measured the day it lands rather than the day somebody remembers this file.
+#: `\b` is load-bearing. Without it `emit` matches as a SUBSTRING inside
+#: `promotion_emit(`, so the alternation read as if it listed four call names
+#: while three of them were doing nothing -- the pattern was right by accident
+#: and a mutant that deleted `promotion_emit` passed the whole suite. With the
+#: boundary each name means itself, and dropping one is caught.
 RULE_RE = re.compile(
-    r'(?:report\.(?:error|warn)|emit|emit_for|promotion_emit)\('
+    r'\b(?:report\.(?:error|warn)|emit|emit_for|promotion_emit)\('
     r'\s*(?:report,\s*)?"([A-Z][A-Z0-9-]*)"')
 
 #: How a repo is judged to hold acceptance checks: notes at `level: acceptance`.

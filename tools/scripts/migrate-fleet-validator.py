@@ -42,10 +42,12 @@ from pathlib import Path
 
 DEFAULT_UPSTREAM = Path.home() / "Dev" / "repos" / "project-os"
 
-#: Back-reference fields, keyed by the child's note type. Mirrors the
-#: `back_fields` table inside PARENT-BACKLINK. When a rule accepts more than one
-#: field (an issue may be named in `fixes:` or `issues:`), the FIRST is the one
-#: this script writes and the rest are read as already-satisfying.
+#: Back-reference fields, keyed by the child's note type. The SET matches
+#: PARENT-BACKLINK's `back_fields`; the ORDER deliberately does not. Upstream
+#: writes `("fixes", "issues")` and reads them as a union, so order is
+#: immaterial there -- here the first entry is the field this script WRITES, and
+#: `issues:` is the one every note in this fleet actually uses. The rest are
+#: read as already-satisfying.
 BACK_FIELDS = {"task": ("tasks",), "issue": ("issues", "fixes")}
 
 
@@ -91,12 +93,19 @@ def split_frontmatter(text: str):
 
     `before` is the opening delimiter line, `after` starts at the closing one.
     """
-    if not text.startswith(FM_DELIM + "\n"):
+    body = text.lstrip("\ufeff")
+    lead = len(text) - len(body)
+    # CRLF and a BOM are both present in the fleet (`articles`, and one PLAN.md
+    # in `your-sudoku`). Refusing them here raised `ValueError` out of
+    # `apply_plan`, which writes note by note -- so the crash landed AFTER the
+    # forced validator copy and left a half-migrated corpus.
+    if not (body.startswith(FM_DELIM + "\n") or body.startswith(FM_DELIM + "\r\n")):
         return None
-    end = text.find("\n" + FM_DELIM, len(FM_DELIM))
+    end = body.find("\n" + FM_DELIM, len(FM_DELIM))
     if end == -1:
         return None
-    return text[:len(FM_DELIM) + 1], text[len(FM_DELIM) + 1:end + 1], text[end + 1:]
+    head_len = body.index("\n", len(FM_DELIM)) + 1
+    return text[:lead + head_len], body[head_len:end + 1], body[end + 1:]
 
 
 def _key_extent(lines, key):
@@ -106,6 +115,15 @@ def _key_extent(lines, key):
         if not pattern.match(line):
             continue
         j = i + 1
+        # A multi-line flow list closes at whatever column its author chose, and
+        # three notes in `your-trainer` close it at column 0. Consuming only the
+        # INDENTED continuation left the `]` behind as an orphan line, turning a
+        # rewrite into frontmatter that does not parse -- ISS-0260's defect,
+        # reintroduced by the tool that found it. Balance the brackets first.
+        depth = lines[i].count("[") - lines[i].count("]")
+        while depth > 0 and j < len(lines):
+            depth += lines[j].count("[") - lines[j].count("]")
+            j += 1
         while j < len(lines) and (lines[j].startswith((" ", "\t")) or not lines[j].strip()):
             # A blank line only continues the block if something indented follows.
             if not lines[j].strip():
@@ -243,17 +261,26 @@ def _child_type_for(field):
 
 
 def apply_plan(v, note_index, plan: Plan, dry_run: bool):
-    written = []
+    """Returns (written, unhandled). A note the writer cannot read is REPORTED
+    and skipped rather than raised: this loop writes file by file, after
+    `run_sync --force` has already replaced the validator, so an exception
+    halfway through leaves a corpus that is half migrated and a repo that
+    cannot commit."""
+    written, unhandled = [], []
     for (feat_id, field), links in sorted(plan.additions.items()):
         path = note_index[feat_id][0]
         text = path.read_text(encoding="utf-8")
-        new = set_frontmatter_list(text, field, links, v.ID_RE)
+        try:
+            new = set_frontmatter_list(text, field, links, v.ID_RE)
+        except ValueError as exc:
+            unhandled.append((feat_id, field, path, str(exc)))
+            continue
         if new == text:
             continue
         written.append((feat_id, field, len(links), path))
         if not dry_run:
             path.write_text(new, encoding="utf-8")
-    return written
+    return written, unhandled
 
 
 # --------------------------------------------------------------- snapshot io
@@ -498,7 +525,11 @@ def main(argv=None):
 
     note_index, _claimants = v.build_note_index(repo_root / "docs")
     plan = plan_backlinks(v, note_index)
-    written = apply_plan(v, note_index, plan, args.dry_run)
+    written, unhandled = apply_plan(v, note_index, plan, args.dry_run)
+    for feat_id, field, path, why in unhandled:
+        print("%s  UNREADABLE %s `%s:` needs an entry and its frontmatter could not be "
+              "read (%s: %s) -- skipped, fix by hand"
+              % (tag, feat_id, field, path.relative_to(repo_root), why))
     for feat_id, field, n, path in written:
         print("%s  BACKLINK  %s `%s:` -> %d entr%s (%s)"
               % (tag, feat_id, field, n, "y" if n == 1 else "ies", path.relative_to(repo_root)))
@@ -519,11 +550,11 @@ def main(argv=None):
             print("%s  SNAPSHOT  %s tasks: %d -> %d" % (tag, feat_id, before, after))
 
     print("%smigrate-fleet-validator: %d note(s) rewritten, %d snapshot entr%s, "
-          "%d dangling, %d unclaimed"
+          "%d dangling, %d unclaimed, %d unreadable"
           % (tag, len(written), len(snap_changes),
              "y" if len(snap_changes) == 1 else "ies",
-             len(plan.dangling), len(plan.unclaimed)))
-    return 0
+             len(plan.dangling), len(plan.unclaimed), len(unhandled)))
+    return 1 if unhandled else 0
 
 
 if __name__ == "__main__":

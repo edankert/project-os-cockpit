@@ -32,8 +32,8 @@ tags: [change, tooling, fleet]
 |---|---|---|
 | `obsidian-supernote-sync` | 16 errors under upstream's rules, gate absent | 0 errors, gate present |
 | `your-health` | 271, gate absent | 0, gate present |
-| `your-sudoku` | 194, gate absent | 0, gate present, **10 `VERIFY-ACCEPTANCE` findings now fire in its own pre-commit** |
-| `your-trainer` | 605, gate absent | 0, gate present, **19 `VERIFY-ACCEPTANCE` findings now fire** |
+| `your-sudoku` | 194, gate absent | 0, gate present, **10 `VERIFY-ACCEPTANCE` findings now fire in its own pre-commit** (57 checks) |
+| `your-trainer` | 605, gate absent | 0, gate present, **19 `VERIFY-ACCEPTANCE` findings now fire** (625 checks) |
 
 Fleet validator divergence from upstream went **782 / 817 / 776 / 776 → 0**.
 
@@ -54,10 +54,11 @@ Because behaviour changed in repos that are not this one. Four pre-commit hooks 
 - [[ISS-0257-The-Sync-Carries-Upstreams-Build-Output]] — `sync-project-os.py` walks upstream's filesystem and copied a gitignored `.pyc` downstream.
 - [[ISS-0258-A-Release-Cannot-Derive-What-It-Broke]] — the invalidation leg of a release's check scope.
 - [[ISS-0259-Six-Fleet-Repos-Run-Ten-Fewer-Rules]] — six more repos, outside this phase's scope, now measured.
-- `your-trainer`'s three grandfathered `VERIFY` items, which are that repo's to settle.
+- `your-trainer`'s three grandfathered `VERIFY` items, which are that repo's to settle. **Filed there as `ISS-0378`** — independent review pointed out that this section originally said "filed" while nothing had been, and that `GRANDFATHERED.yaml`'s own header says *"this file only shrinks"*, which three additions on 2026-08-29 contradict.
 
 ## Verification
 
 - [[TST-0080-The-Reconciliation-Writes-Only-What-The-Notes-Declare]] — 19 tests, `tests/test_fleet_migration.py`.
 - [[TST-0081-The-Drift-Check-Fails-When-The-Fleet-Falls-Behind]] — 12 tests, `tests/test_fleet_drift.py`.
-- Nine mutants constructed against the two scripts; each fails a named test. One survived on the first pass — deleting the writer's byte-identity guard — and the module now drives that function directly.
+- Nine mutants constructed against the two scripts; each fails a named test. One survived that first pass — deleting the writer's byte-identity guard — and the module now drives that function directly.
+- **Independent review then found five more survivors**, and they were the important ones: the add-only merge loop, the partly-populated-list path, `main()` (reached by no test at all, so the dry-run's snapshot preview and ISS-0257's artefact pruning were both unguarded), two `RULE_RE` sub-patterns each of which blinds the drift check to `VERIFY-ACCEPTANCE`, and two live note shapes — a flow list closing at column 0, and CRLF — that made the writer produce unparseable frontmatter or raise mid-migration. All fixed; 42 tests now, and every one of the ten mutants fails a named test.

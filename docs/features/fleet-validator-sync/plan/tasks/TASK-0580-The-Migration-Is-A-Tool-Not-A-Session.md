@@ -25,7 +25,7 @@ tests: ["[[TST-0080]]"]
 - [x] It has a `--dry-run` that reports every write it would make and touches nothing.
 - [x] It is **idempotent** — a second run reports zero changes.
 - [x] It refuses to invent membership: a task naming a parent that does not exist is **reported**, not silently dropped or silently added.
-- [x] Existing `tasks:` entries that no task claims are reported before removal, because that is the direction that loses information.
+- [x] Existing `tasks:` entries that no task claims are **reported and kept**, never removed, because removal is the direction that loses information. *(This box read "reported before removal" until independent review pointed out it described behaviour the tool deliberately does not have.)*
 - [x] Guarded by [[TST-0080]] before it is pointed at a repo.
 
 ## Notes

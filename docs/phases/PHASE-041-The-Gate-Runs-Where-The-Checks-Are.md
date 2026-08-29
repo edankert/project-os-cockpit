@@ -43,9 +43,13 @@ Measured 2026-08-29. Divergence is `diff` against upstream `project-os`, whitesp
 | repo | notes | acceptance checks | divergence | 2026-08-18 | gate |
 |---|---|---|---|---|---|
 | `obsidian-supernote-sync` | 88 | 0 | 782 | 690 | **0** |
-| `your-sudoku` | 604 | 59 | 784 | 690 | **0** |
+| `your-sudoku` | 604 | 59 [^n] | 784 [^d] | 690 | **0** |
 | `your-health` | 782 | 0 | 817 | 725 | **0** |
-| `your-trainer` | 2519 | **628** | 784 | 690 | **0** |
+| `your-trainer` | 2519 | **628** [^n] | 784 [^d] | 690 | **0** |
+
+[^n]: **Corrected at close, 2026-08-29.** Counting notes whose frontmatter carries `level: acceptance`, `your-sudoku` holds **57** and `your-trainer` **625** — not 59 and 628. Both figures were inherited from [[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]] and repeated here, in [[TASK-0583-Migrate-Your-Sudoku]], in [[TASK-0584-Migrate-Your-Trainer]] and in `your-trainer`'s migration commit message without being recomputed. The fleet total is **682** across these four and **716** across all twelve repos, not 669. Found by independent review.
+
+[^d]: **The method label is wrong, not the number.** 784 is a raw `diff` line count; whitespace-normalised (`diff -w`) the same comparison gives **776**, which is what every other table in this note, in ISS-0209's close-out and in the commit messages reports. `your-health` (817) and `obsidian-supernote-sync` (782) are identical under both. So the *"grew ~93 lines in eleven days"* reading rests on 784 against a 690 whose own method is now unknown; the direction holds and the magnitude is ±8.
 
 Two facts set the shape of this phase.
 
@@ -148,6 +152,14 @@ The 32 in `your-sudoku` and `your-trainer` are [[ADR-0030]]'s `CHK` prefix and `
 `REL-0013` needs **32** of `your-trainer`'s 625 checks. **13** are now derived from the note's own `features:` — they had been unreachable because all thirteen were authored for `FEAT-0104` on 2026-08-17 and every one said `covers: FEAT-0011`, so the query returned zero and the table was written by hand *because the query looked empty rather than wrong*. That is fixed and it is a data defect, not a missing tool.
 
 The other **19** are not derivable and no field carries the relation. `features:` answers *what did this release build?*; those nineteen answer *what did this release break?* — checks whose subject the diff overlaps without the release owning the feature they cover. Filed as [[ISS-0258-A-Release-Cannot-Derive-What-It-Broke]] against [[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]'s model rather than worked around in the release note.
+
+### The goal sentence is not fully met, and no `[x]` claims it is
+
+This phase's goal says *"leave behind a drift check that **fails the build** when the next divergence opens, **so this is the last time the fleet has to catch up**."* Exit criterion 4 is narrower — *"reports … and fails past a stated threshold"* — and that is met: `fleet-drift.py` exits 1 for a gated repo that is behind, and [[TST-0081-The-Drift-Check-Fails-When-The-Fleet-Falls-Behind]] exercises the failing branch.
+
+**But nothing runs it.** `.git/hooks/pre-commit.local` does not exist in this repo or in any fleet repo; `tools/hooks/pre-commit.local` is tracked here and installed by hand in three lines; `.git/hooks/` is not tracked, so a fresh clone has no gate. And it cannot run in CI by construction — it compares local working copies and a runner has one repo. So *"the last time the fleet has to catch up"* is **not** guaranteed by anything that shipped: what shipped is a check that will say so, once somebody installs it or runs it.
+
+Stated here rather than left in the tool's header, because a reader of this phase should not have to open a hook to find out whether the guard is armed. Raised by independent review, which found the goal and the criterion saying different things.
 
 **The three issues this phase filed are homed in [[PHASE-999-Future]], not here.** They are follow-ups it produced rather than work it owes: leaving them under a `done` phase fires `PHASE-CHILDREN`, and reopening the phase to hold them would make a closed migration look permanently unfinished. Each names this phase in `related:` so the trail back is intact.
 

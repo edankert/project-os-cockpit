@@ -37,6 +37,17 @@ def _load(name, path):
 drift = _load("_fleet_drift", REPO / "tools" / "scripts" / "fleet-drift.py")
 
 
+#: Deliberately carries every CALL SHAPE upstream's validator actually uses, not
+#: just the convenient one. `RULE_RE` has two sub-patterns that the first fixture
+#: exercised neither of, and each blinds the check to real rules:
+#:
+#:   `\s*` spanning a newline   -- 10 of upstream's 52 codes are emitted from a
+#:                                 wrapped call, VERIFY-ACCEPTANCE among them
+#:   `(?:report,\s*)?`          -- 3 more, VERIFY-ACCEPTANCE again
+#:
+#: A code the regex cannot see is subtracted from BOTH sides, so a repo genuinely
+#: missing it reports `ok` -- this phase's own failure shape, inside the guard it
+#: left behind. So ECHO and FOXTROT below are load-bearing punctuation.
 UPSTREAM_VALIDATOR = '''
 def go(report, emit_for):
     report.error("ALPHA", "a")
@@ -45,6 +56,11 @@ def go(report, emit_for):
     emit("CHARLIE", "c")
     if _acceptance_is_settled(t, i) and _acceptance_is_settled(u, i):
         report.error("DELTA", "d")
+    promotion_emit(
+        report, "ECHO", grandfathered, item_id)("ECHO", "e")
+    report.warn(
+        "FOXTROT",
+        "f %s" % x)
 '''
 
 CHECK_NOTE = '''---
@@ -220,3 +236,46 @@ def test_json_output_is_a_document_and_nothing_else(fleet, capsys):
     assert by["behind"]["missing_rules"] == ["DELTA"] and by["behind"]["gated"] is True
     assert by["nochecks"]["gated"] is False
     assert "NOT GATED but behind" in out.err
+
+
+def test_every_call_shape_upstream_uses_is_seen(validator_path_not_used=None):
+    """Drives `rule_codes` over the fixture and over UPSTREAM ITSELF.
+
+    The fixture half kills the two regex mutants; the upstream half is the one
+    that keeps mattering, because it fails the day somebody adds a rule with a
+    call shape nobody anticipated -- which is exactly how this guard would go
+    quietly blind.
+    """
+    from pathlib import Path
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        f = Path(d) / "v.py"
+        f.write_text(UPSTREAM_VALIDATOR, encoding="utf-8")
+        assert drift.rule_codes(f) == {"ALPHA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT"}
+
+    up = Path.home() / "Dev" / "repos" / "project-os" / "tools" / "scripts" / "validate-docs.py"
+    if not up.is_file():
+        pytest.skip("no sibling project-os checkout")
+    codes = drift.rule_codes(up)
+    # Named explicitly rather than counted: a count passes while the SET rots,
+    # and these three are the ones the two regex mutants drop.
+    for code in ("VERIFY-ACCEPTANCE", "PARENT-BACKLINK", "SNAPSHOT-MEMBERSHIP",
+                 "TEST-ENTRYPOINT", "PLAN-UNTYPED", "FEATURE-UNCOVERED"):
+        assert code in codes, code
+    assert len(codes) >= 50
+
+
+def test_a_rule_the_regex_cannot_see_would_be_invisible_on_both_sides(fleet):
+    """Why the fixture's call shapes matter, stated as behaviour.
+
+    A repo missing ONLY a rule emitted from a wrapped call must still be
+    reported behind -- if the regex cannot read that shape, the code is
+    subtracted from upstream too and the repo reports `ok`.
+    """
+    root, up = fleet
+    only_foxtrot_missing = UPSTREAM_VALIDATOR.replace(
+        '    report.warn(\n        "FOXTROT",\n        "f %s" % x)', "    pass")
+    make_repo(root, "wrapped", validator=only_foxtrot_missing, checks=1)
+    _codes, rows = drift.survey(root, up)
+    assert next(r for r in rows if r["repo"] == "wrapped")["missing_rules"] == ["FOXTROT"]
+    assert run(root, up) == 1

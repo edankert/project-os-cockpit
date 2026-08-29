@@ -857,7 +857,7 @@ items:
       phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
     TASK-0584:
       file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0584-Migrate-Your-Trainer.md"
-      title: "Migrate `your-trainer` — 628 checks, 2519 notes, and the only repo where release-scoped verification currently pays"
+      title: "Migrate `your-trainer` — 625 checks, 2519 notes, and the only repo where release-scoped verification currently pays"
       status: done
       owner: user:edwin
       parent: FEAT-0143

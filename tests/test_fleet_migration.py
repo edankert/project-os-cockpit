@@ -147,7 +147,8 @@ def build_repo(tmp_path, *, feature_tasks="", snap_tasks="", tasks=(("TASK-0001"
 def run(validator, root, dry_run=False):
     index, _ = validator.build_note_index(root / "docs")
     plan = mig.plan_backlinks(validator, index)
-    written = mig.apply_plan(validator, index, plan, dry_run)
+    written, unhandled = mig.apply_plan(validator, index, plan, dry_run)
+    assert unhandled == [], unhandled
     index2, _ = validator.build_note_index(root / "docs")
     snap = mig.reconcile_snapshot(validator, root, index2, dry_run,
                                   mig.planned_tasks(validator, plan) if dry_run else None)
@@ -405,3 +406,163 @@ def test_the_writer_adds_no_empty_key(validator):
 def test_the_writer_refuses_a_file_with_no_frontmatter(validator):
     with pytest.raises(ValueError):
         mig.set_frontmatter_list("no frontmatter here\n", "tasks", ["TASK-0001-A"], validator.ID_RE)
+
+
+# --------------------------------------- the gaps independent review found
+#
+# Every test below exists because a mutant survived the suite above, or because
+# a real note shape in the fleet had no fixture. Each names the mutant it kills.
+
+def test_an_entry_no_child_claims_survives_a_rewrite_of_the_same_list(tmp_path, validator):
+    """The merge loop in `plan_backlinks` was guarded by nothing.
+
+    Deleting it passed all 31 tests, and the tool would then DELETE every entry
+    no child claims the next time it touched that list -- five live entries
+    across `your-health` and `your-trainer`. The earlier unclaimed test only
+    covers the case where nothing is added, so the writer is never called.
+    """
+    root = build_repo(tmp_path, tasks=(("TASK-0001", "FEAT-0001"), ("TASK-0002", "")),
+                      feature_tasks='tasks: ["[[TASK-0002-A-Task]]"]\n')
+    plan, written, _snap = run(validator, root)
+    assert ("FEAT-0001", "tasks", "TASK-0002") in plan.unclaimed
+    text = (root / "docs" / "features" / "FEAT-0001-A-Feature.md").read_text()
+    assert "TASK-0002-A-Task" in text, "the unclaimed entry was dropped by the rewrite"
+    assert "TASK-0001-A-Task" in text
+
+
+def test_a_partly_populated_list_gains_only_what_is_missing(tmp_path, validator):
+    """The commonest real shape had no fixture at all.
+
+    Every other fixture starts from a list that is empty, complete, or satisfied
+    through `fixes:`. `set(children) <= named_anywhere` -> `set(children) &
+    named_anywhere` ("satisfied once ANY child is named") passed all 31 tests
+    and leaves `PARENT-BACKLINK` firing for every sibling.
+    """
+    root = build_repo(tmp_path, tasks=(("TASK-0001", "FEAT-0001"), ("TASK-0002", "FEAT-0001"),
+                                       ("TASK-0003", "FEAT-0001")),
+                      feature_tasks='tasks: ["[[TASK-0001-A-Task]]"]\n')
+    _plan, written, _snap = run(validator, root)
+    assert [w[2] for w in written] == [3]
+    index, _ = validator.build_note_index(root / "docs")
+    assert mig.plan_backlinks(validator, index).additions == {}
+
+
+def test_main_runs_end_to_end_and_its_dry_run_previews_the_snapshot(tmp_path, validator, capsys):
+    """`main()` was reached by no test, so four of its behaviours were unguarded:
+    the dry run's snapshot preview, artefact pruning (ISS-0257's whole
+    mitigation), the report lines, and the exit code."""
+    root = build_repo(tmp_path, tasks=(("TASK-0001", "FEAT-0001"), ("TASK-0002", "FEAT-0001")))
+    before = {p: p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
+
+    assert mig.main([str(root), "--dry-run", "--no-sync"]) == 0
+    dry = capsys.readouterr().out
+    assert "SNAPSHOT  FEAT-0001 tasks: 0 -> 2" in dry, "the preview was silent about the snapshot"
+    assert {p: p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()} == before
+
+    assert mig.main([str(root), "--no-sync"]) == 0
+    wet = capsys.readouterr().out
+    assert "BACKLINK  FEAT-0001 `tasks:` -> 2 entries" in wet
+    assert "SNAPSHOT  FEAT-0001 tasks: 0 -> 2" in wet
+    assert 'tasks: ["TASK-0001", "TASK-0002"]' in (root / "SNAPSHOT.yaml").read_text()
+
+    assert mig.main([str(root), "--no-sync"]) == 0
+    assert "0 note(s) rewritten, 0 snapshot entries" in capsys.readouterr().out
+
+
+def test_main_refuses_a_directory_with_no_snapshot(tmp_path, validator):
+    (tmp_path / "notarepo").mkdir()
+    with pytest.raises(SystemExit):
+        mig.main([str(tmp_path / "notarepo"), "--no-sync"])
+
+
+def test_the_sync_output_parser_finds_the_paths_it_wrote(validator):
+    """`parse_synced_paths` + `prune_artefacts` are ISS-0257's mitigation and
+    were reached by nothing; `ARTEFACT_FRAGMENTS = ()` survived the suite."""
+    out = ("[dry-run] sync-project-os: 2 copied\n"
+           "[dry-run]   synced  tools/scripts/__pycache__/validate-docs.cpython-313.pyc\n"
+           "  synced  tools/scripts/validate-docs.py (forced)\n"
+           "  GONE  docs/__templates__/old.base\n")
+    assert mig.parse_synced_paths(out) == [
+        "tools/scripts/__pycache__/validate-docs.cpython-313.pyc",
+        "tools/scripts/validate-docs.py",
+    ]
+
+
+def test_prune_artefacts_removes_only_build_output(tmp_path):
+    repo = tmp_path / "repo"
+    (repo / "tools" / "scripts" / "__pycache__").mkdir(parents=True)
+    (repo / "tools" / "scripts" / "__pycache__" / "v.pyc").write_bytes(b"x")
+    (repo / "tools" / "scripts" / "validate-docs.py").write_text("x", encoding="utf-8")
+    paths = ["tools/scripts/__pycache__/v.pyc", "tools/scripts/validate-docs.py"]
+    assert mig.prune_artefacts(repo, paths, dry_run=True) == ["tools/scripts/__pycache__/v.pyc"]
+    assert (repo / "tools" / "scripts" / "__pycache__" / "v.pyc").exists()
+    assert mig.prune_artefacts(repo, paths, dry_run=False) == ["tools/scripts/__pycache__/v.pyc"]
+    assert not (repo / "tools" / "scripts" / "__pycache__" / "v.pyc").exists()
+    assert (repo / "tools" / "scripts" / "validate-docs.py").exists()
+
+
+# ------------------------------------------ note shapes that exist out there
+
+MULTILINE_FLOW = '''---
+type: "[[feature]]"
+id: FEAT-0001
+tasks: [
+  "[[TASK-0001-A]]"
+]
+goal: "unchanged"
+---
+
+body
+'''
+
+
+def test_a_flow_list_closing_at_column_zero_is_consumed_whole(validator):
+    """Three notes in `your-trainer` close a multi-line flow list at column 0.
+
+    Consuming only the INDENTED continuation left the `]` behind as an orphan
+    line, so the rewrite produced frontmatter that does not parse -- ISS-0260's
+    defect, reintroduced by the tool that found it.
+    """
+    import yaml
+    out = mig.set_frontmatter_list(MULTILINE_FLOW, "tasks",
+                                   ["TASK-0001-A", "TASK-0002-B"], validator.ID_RE)
+    assert "\n]" not in out
+    end = out.find("\n---", 3)
+    data = yaml.safe_load(out[4:end])
+    assert data["tasks"] == ["[[TASK-0001-A]]", "[[TASK-0002-B]]"]
+    assert data["goal"] == "unchanged"
+    assert mig.set_frontmatter_list(MULTILINE_FLOW, "tasks",
+                                    ["TASK-0001-A"], validator.ID_RE) == MULTILINE_FLOW
+
+
+def test_crlf_and_a_bom_are_read_rather_than_refused(validator):
+    """Both are live in the fleet (`articles`, one `your-sudoku` PLAN.md).
+
+    `ValueError` here came out of `apply_plan`, which writes note by note AFTER
+    the forced validator copy -- so the crash left a half-migrated corpus and a
+    repo that could not commit.
+    """
+    crlf = NOTE.replace("\n", "\r\n")
+    assert mig.set_frontmatter_list(crlf, "tasks",
+                                    ["TASK-0001-A", "TASK-0002-B"], validator.ID_RE) == crlf
+    out = mig.set_frontmatter_list(crlf, "tasks",
+                                   ["TASK-0001-A", "TASK-0002-B", "TASK-0003-C"], validator.ID_RE)
+    assert "TASK-0003-C" in out and out.startswith("---\r\n")
+    bom = "﻿" + NOTE
+    assert mig.set_frontmatter_list(bom, "tasks",
+                                    ["TASK-0001-A", "TASK-0002-B"], validator.ID_RE) == bom
+
+
+def test_an_unreadable_note_is_reported_and_the_rest_still_migrate(tmp_path, validator):
+    """One bad note must not halt a 2519-note corpus midway."""
+    root = build_repo(tmp_path, tasks=(("TASK-0001", "FEAT-0001"),))
+    broken = root / "docs" / "features" / "FEAT-0002-Broken.md"
+    broken.write_text("no frontmatter at all\nid: FEAT-0002\n", encoding="utf-8")
+    (root / "docs" / "tasks" / "TASK-0009-A-Task.md").write_text(
+        TASK.format(tid="TASK-0009", parent="FEAT-0002"), encoding="utf-8")
+    index, _ = validator.build_note_index(root / "docs")
+    plan = mig.plan_backlinks(validator, index)
+    written, unhandled = mig.apply_plan(validator, index, plan, dry_run=False)
+    assert [u[0] for u in unhandled] == ["FEAT-0002"]
+    assert [w[0] for w in written] == ["FEAT-0001"]
+    assert "TASK-0001-A-Task" in (root / "docs" / "features" / "FEAT-0001-A-Feature.md").read_text()
