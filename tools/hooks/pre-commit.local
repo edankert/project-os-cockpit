@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Fleet drift gate (TASK-0585, PHASE-041) — chained by the project-os pre-commit
+# hook via install-git-hooks.sh, which picks up `.git/hooks/pre-commit.local`.
+#
+# Install:
+#   cp tools/hooks/pre-commit.local "$(git rev-parse --git-path hooks)/pre-commit.local"
+#   chmod +x "$(git rev-parse --git-path hooks)/pre-commit.local"
+#   bash tools/scripts/install-git-hooks.sh      # appends the chain block
+#
+# WHY IT LIVES HERE AND NOT IN CI, stated plainly because the alternative is the
+# failure this phase is about: what it measures is the drift between LOCAL
+# WORKING COPIES of sibling repos. A GitHub runner checks out one repo and has
+# no fleet, so a CI job could only ever report "nothing to compare" — which is
+# exactly the reports-success-because-it-could-not-look shape PHASE-041 exists
+# to remove. The durable artefacts are `tools/scripts/fleet-drift.py` and its
+# tests; this file is the local wiring, and `.git/hooks/` is not tracked, so a
+# fresh clone has no gate until somebody runs the three lines above.
+#
+# It blocks only for repos that HOLD acceptance checks. Repos with none are
+# reported and not fatal (ADR-0011 clause 3: a check promoted over existing debt
+# fails every build on the day it ships and gets switched off).
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+DRIFT="$ROOT/tools/scripts/fleet-drift.py"
+[[ -f "$DRIFT" ]] || exit 0
+command -v python3 >/dev/null 2>&1 || exit 0
+
+OUT="$(python3 "$DRIFT" 2>&1)"
+RC=$?
+if [[ $RC -ne 0 ]]; then
+  printf '%s\n' "$OUT" >&2
+  echo "" >&2
+  echo "pre-commit: a repo holding acceptance checks is no longer running upstream's rules." >&2
+  echo "Fix with: python3 tools/scripts/migrate-fleet-validator.py <repo> --dry-run" >&2
+  exit 1
+fi
+printf '%s\n' "$OUT" | grep -E '^fleet-drift: NOT GATED' >&2 || true
+exit 0
