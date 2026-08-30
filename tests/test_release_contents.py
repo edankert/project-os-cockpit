@@ -298,3 +298,122 @@ def test_a_note_that_is_neither_is_refused(tmp_path: Path) -> None:
         note_writes.release_contents(
             Index.build(docs), "REL-0001", action="add", feature_id="REL-0001")
     assert "carries features" in exc.value.message
+
+
+# ---- the derived set is this release's platform's (ISS-0261) ---------------
+
+
+def _platform_repo(tmp: Path) -> Path:
+    """One release on `android`, and one done feature per platform spelling the
+    corpus actually uses — measured, not imagined: `../your-trainer` holds 818
+    `android`, 288 empty, 284 `ios`, 15 `cross`, 12 `web`, 3 `all`, 1 `both`
+    and **zero** `shared`."""
+    docs = tmp / "docs"
+    (docs / "releases").mkdir(parents=True)
+    (docs / "features" / "f").mkdir(parents=True)
+    (docs / "releases" / "REL-0001-R.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0001\ntitle: "R"\n'
+        'status: draft\nversion: "1.1.0"\nplatform: "android"\n'
+        'preparing: true\nfeatures: []\nupdated: "2026-01-01"\n---\n\n# R\n',
+        encoding="utf-8")
+    for fid, plat in (("FEAT-0001", "android"), ("FEAT-0002", "ios"),
+                      ("FEAT-0003", "cross"), ("FEAT-0004", None),
+                      ("FEAT-0005", "web"), ("FEAT-0006", "both")):
+        line = "" if plat is None else f'platform: "{plat}"\n'
+        (docs / "features" / "f" / f"{fid}-Thing.md").write_text(
+            f'---\ntype: "[[feature]]"\nid: {fid}\ntitle: "Thing"\n'
+            f'status: done\n{line}---\n\n# T\n', encoding="utf-8")
+    return docs
+
+
+def test_an_android_release_is_not_offered_ios_features(tmp_path: Path) -> None:
+    """[[ISS-0261]]. `REL-0013` on `../your-trainer` declared `platform:
+    android` and was offered nine iOS features and an iOS-parity feature — none
+    of which any Android build can contain, and none of which could ever leave
+    the list by shipping, because that repo has no `ios/*` tag at all.
+    """
+    from project_os_cockpit import publication
+
+    docs = _platform_repo(tmp_path)
+    ids = [r["id"] for r in publication.shipping_in(Index.build(docs), "REL-0001")]
+    assert "FEAT-0002" not in ids, "an iOS feature is offered to an Android release"
+    assert "FEAT-0005" not in ids, "a web feature is offered to an Android release"
+    assert "FEAT-0001" in ids
+
+
+def test_cross_platform_spellings_are_not_dropped(tmp_path: Path) -> None:
+    """**The cell a match-based rule gets wrong.**
+
+    Writing this as *include when the platforms are equal* passes the test
+    above and silently drops `cross`, `both` and every feature that never set
+    the field — 303 notes of the 1,432 measured. The rule is an exclusion of a
+    FOREIGN platform, so anything that does not name a different one stays.
+    """
+    from project_os_cockpit import publication
+
+    docs = _platform_repo(tmp_path)
+    ids = [r["id"] for r in publication.shipping_in(Index.build(docs), "REL-0001")]
+    for fid, why in (("FEAT-0003", "cross"), ("FEAT-0004", "unset"),
+                     ("FEAT-0006", "both")):
+        assert fid in ids, f"a {why} feature was dropped from an Android release"
+
+
+def test_a_release_naming_no_platform_still_takes_everything(tmp_path: Path) -> None:
+    """[[DES-0012]] D4's opt-in rule, which eleven historical releases depend
+    on: a release that has not said what it ships must not start filtering."""
+    from project_os_cockpit import publication
+
+    docs = _platform_repo(tmp_path)
+    rel = docs / "releases" / "REL-0001-R.md"
+    rel.write_text(rel.read_text(encoding="utf-8").replace(
+        'platform: "android"\n', ""), encoding="utf-8")
+    ids = [r["id"] for r in publication.shipping_in(Index.build(docs), "REL-0001")]
+    assert {"FEAT-0001", "FEAT-0002", "FEAT-0005"} <= set(ids)
+
+
+def test_the_unreleased_card_itself_is_not_filtered(tmp_path: Path) -> None:
+    """An iOS feature nobody has shipped IS unreleased, and the fleet card must
+    keep saying so. Filtering there would hide genuinely unshipped work — the
+    opposite defect, and the more expensive one."""
+    from project_os_cockpit.cockpit import unreleased_payload
+
+    docs = _platform_repo(tmp_path)
+    ids = [r["id"] for r in unreleased_payload(Index.build(docs))["items"]]
+    assert "FEAT-0002" in ids and "FEAT-0005" in ids
+
+
+def test_the_navigator_and_the_page_derive_the_same_set(tmp_path: Path) -> None:
+    """**The left pane is a second reader, and it was the one still wrong.**
+
+    `_publication_groups` built the *Next release* group from
+    `unreleased_payload` directly while `release_payload` went through
+    `shipping_in`. Fixing the page therefore fixed the page: the navigator went
+    on listing nine iOS features under `../your-trainer`'s Android release, and
+    from the reader's chair nothing had changed at all.
+
+    Asserted as an equality between the two surfaces rather than as a fact
+    about either, because a rule stated once and read twice is [[REQ-0059]]'s
+    subject — the guard has to fail when they diverge, whichever one moves.
+    """
+    from project_os_cockpit import publication
+    from project_os_cockpit.cockpit import _publication_groups
+
+    docs = _platform_repo(tmp_path)
+    index = Index.build(docs)
+
+    groups = _publication_groups(index, docs.parent)
+    nxt = next(g for g in groups if g["key"] == "release-next")
+
+    def _ids(node: dict) -> set[str]:
+        found = {str(i.get("id") or "") for i in (node.get("items") or [])}
+        for child in (node.get("children") or node.get("subgroups") or []):
+            found |= _ids(child)
+        return found
+
+    on_the_page = {r["id"] for r in publication.shipping_in(index, "REL-0001")}
+    in_the_pane = _ids(nxt)
+
+    assert "FEAT-0002" not in in_the_pane, \
+        "the navigator lists an iOS feature under an Android release"
+    assert on_the_page <= in_the_pane or in_the_pane <= on_the_page, \
+        f"navigator and page disagree: pane={sorted(in_the_pane)} page={sorted(on_the_page)}"

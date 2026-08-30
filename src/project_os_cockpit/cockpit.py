@@ -5047,7 +5047,15 @@ def _publication_groups(
     )
     if since_id:
         label = f"{label} · since {since_id}"
-    _next_ids = [str(row.get("id") or "") for row in (unshipped.get("items") or [])]
+    #: **Through `shipping_in`, not `unreleased_payload`** ([[ISS-0261]]).
+    #: This read the card's items directly, so the navigator and the release
+    #: page derived the same set by two routes -- and when the page learned to
+    #: scope by platform, the left pane went on listing nine iOS features under
+    #: an Android release. Two implementations of one question is [[REQ-0059]]'s
+    #: forbidden shape, and this is the second time it has been found in this
+    #: computation.
+    _next_ids = [str(row.get("id") or "")
+                 for row in _pub.shipping_in(index, held["id"] if held else "")]
     _next_content = _release_content_rows(
         index, _next_ids, held, row_status="ready", shipped=False,
     )

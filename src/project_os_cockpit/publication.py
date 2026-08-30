@@ -875,8 +875,52 @@ def contents_candidates(
     return out
 
 
+#: Platform values that mean **every** platform, so a release on any one of
+#: them would carry the feature.
+#:
+#: `cockpit._platform_match` knows `shared` and nothing else. Measured on
+#: `../your-trainer` before this was written: the corpus holds 818 `android`,
+#: 288 empty, 284 `ios`, 15 `cross`, 12 `web`, 10 `marketing`, 3 `all`, 1
+#: `docs`, 1 `both` -- and **zero** `shared`. A rule that knows one spelling of
+#: cross-platform and meets four would drop `cross`, `all` and `both` from
+#: every release that named a platform, which is a silent narrowing in the one
+#: direction a release surface must never move quietly.
+_EVERY_PLATFORM = frozenset({"", "shared", "cross", "all", "both"})
+
+
+def _ships_on(feature_platform: str, release_platform: str) -> bool:
+    """Would a release on ``release_platform`` carry this feature?
+
+    **A foreign platform is excluded; nothing else is.** The predicate is
+    written as an exclusion rather than a match, and the direction is the
+    point: an unset, `cross` or unrecognised platform stays in, so a feature
+    leaves a release's contents only when it says, in so many words, that it
+    belongs to a different one. That is the same conservative direction
+    [[ADR-0040]] chose for check subtraction -- selection may only ever remove
+    what somebody can point at.
+
+    A release that has not said what it ships takes everything, which is the
+    opt-in rule [[DES-0012]] D4 already gives release contents and the
+    acceptance gate.
+    """
+    f = str(feature_platform or "").strip().lower()
+    r = str(release_platform or "").strip().lower()
+    if r in _EVERY_PLATFORM:
+        return True
+    return f in _EVERY_PLATFORM or f == r
+
+
+def _platform_of_release(index: "Index", release_id: str) -> str:
+    path = index.by_id(release_id) if release_id else None
+    record = index.get(path) if path is not None else None
+    if record is None:
+        return ""
+    return str(record.frontmatter.get("platform") or "").strip().lower()
+
+
 def shipping_in(index: "Index", release_id: str = "") -> list[dict[str, Any]]:
-    """The features a release would freeze — the derived done-but-unshipped set.
+    """The features a release would freeze — the derived done-but-unshipped set,
+    **on this release's platform**.
 
     Exposed for `mark_released` (TASK-0469), which has to write this list down
     at the moment of shipping. `../your-trainer`'s REL-0013 is the reason: it
@@ -885,14 +929,35 @@ def shipping_in(index: "Index", release_id: str = "") -> list[dict[str, Any]]:
     derived and never frozen, and shipping is exactly when there stops being
     anything to derive it from.
 
-    ``release_id`` is accepted and unused for now: the derived set is the same
-    for whichever release is open, because only one is ever open at a time
-    (`create_release` refuses a second). Named rather than omitted so the
-    caller reads as asking about a particular release, which is what it means.
-    """
-    from .cockpit import unreleased_payload
+    **`release_id` is no longer decorative** ([[ISS-0261]]). It used to be
+    accepted and unused, on the reasoning that only one release is open at a
+    time so the derived set is the same for all of them. That is true of
+    *which* releases are open and false of *what they ship*: `your-trainer`'s
+    REL-0013 declares `platform: android` and was offered nine iOS features and
+    an iOS-parity feature, none of which any Android build can contain. There
+    is not one `ios/*` tag in that repo, so they could never leave the list by
+    shipping either — they would have sat on every Android release forever.
 
-    return list(unreleased_payload(index).get("items") or [])
+    **`unreleased_payload` is deliberately left alone.** Those features *are*
+    unreleased and the fleet card is right to say so; what is wrong is offering
+    them to a release that cannot carry them. Filtering the card instead would
+    hide genuinely unshipped work, which is the opposite defect.
+    """
+    from .cockpit import unreleased_payload, _record_platform
+
+    rows = list(unreleased_payload(index).get("items") or [])
+    release_platform = _platform_of_release(index, release_id)
+    if release_platform in _EVERY_PLATFORM:
+        return rows
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        path = index.by_id(str(row.get("id") or ""))
+        record = index.get(path) if path is not None else None
+        #: A row whose note cannot be resolved stays: the fail-closed
+        #: direction here is to keep offering it, not to drop it silently.
+        if record is None or _ships_on(_record_platform(record), release_platform):
+            out.append(row)
+    return out
 
 
 def _acc_module() -> Any:
@@ -1012,7 +1077,6 @@ def release_payload(
         # Read them rather than inventing near-misses — a second vocabulary
         # for one computation is how two surfaces come to disagree.
         unshipped = unreleased_payload(index)
-        derived_rows = unshipped.get("items") or []
         since = unshipped.get("since") or {}
         since_id = since.get("id", "") if isinstance(since, dict) else str(since)
 
@@ -1022,6 +1086,11 @@ def release_payload(
         #: not fire for the one release anybody is preparing. The resolved id
         #: is the release; the argument is how it was asked for.
         _rel_id = held["id"] if held else ""
+        #: **The derived set is this release's platform's** ([[ISS-0261]]).
+        #: `unreleased_payload` answers *what has not shipped anywhere*; a
+        #: release page asks *what could this release carry*, and the two are
+        #: the same question only in a single-platform repo.
+        derived_rows = shipping_in(index, _rel_id)
         _rel_path = index.by_id(_rel_id) if _rel_id else None
         _rel_rec = index.get(_rel_path) if _rel_path is not None else None
         named_order: list[str] = []
@@ -1052,7 +1121,11 @@ def release_payload(
             rows = derived_rows
             contents = {
                 "kind": "derived",
-                "count": int(unshipped.get("count") or 0),
+                #: `len(derived_rows)`, not `unshipped["count"]` — the card's
+                #: count is fleet-wide and this list is platform-scoped, and a
+                #: heading that disagrees with the rows under it is worse than
+                #: either number alone.
+                "count": len(derived_rows),
                 "since": since_id,
                 "rows": rows,
             }
