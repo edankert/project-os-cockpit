@@ -5849,6 +5849,36 @@ const VIEW_LANDING_RELS: ReadonlySet<string> = new Set([
   '~features', '~issues', '~tests',
 ]);
 
+/** Other virtual pages a view owns, besides its own landing ([[ISS-0263]]).
+ *
+ *  **A view with two pages was landed as though it had one.** `~checks` is the
+ *  acceptance suite and it lives inside Tests deliberately — a ninth nav mode
+ *  would put one corpus in two places, which is ISS-0068. But the landing guard
+ *  asked only `currentRel !== '~tests'`, so from `~checks` the answer was always
+ *  *"you are not on this view"* and anything that refreshed the navigator
+ *  navigated the reader to the Needs-you landing.
+ *
+ *  Marking a check does exactly that: the write fires `file-changed`,
+ *  `scheduleSoftReload` calls `loadWsNav`, and the reader walking a filtered
+ *  surface is thrown off the page mid-walk. Edwin, on the third round of this:
+ *  *"It still moves away from the acceptance checks page to the tests
+ *  section/needs you section?"*
+ *
+ *  Publication and Design already have the property — both guard on their whole
+ *  `~release` / `~design` family rather than on one exact rel — so this is the
+ *  same rule made available to the three views that use `VIEW_LANDING_RELS`. */
+const VIEW_OWNED_PAGES: Readonly<Record<string, readonly string[]>> = {
+  tests: ['~checks'],
+};
+
+/** Is the reader already somewhere this view owns? */
+function onOwnedPage(navMode: string, rel: string): boolean {
+  if (!rel) return false;
+  if (rel === `~${navMode}`) return true;
+  return (VIEW_OWNED_PAGES[navMode] || []).some(
+    (owned) => rel === owned || rel.startsWith(`${owned}/`));
+}
+
 //: The heading each landing carries. Read from the top bar's own `title`
 //: attributes rather than restated, so the page and the button that opens it
 //: cannot come to call the same view two different things.
@@ -8802,7 +8832,10 @@ function commitVirtualPage(rel: string, opts: { replace?: boolean }): void {
   refreshActiveNavRow();
 }
 
-async function renderChecksPage(tier: string = '', area: string = ''): Promise<boolean> {
+async function renderChecksPage(
+  tier: string = '', area: string = '',
+  { keepFilters = false }: { keepFilters?: boolean } = {},
+): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance`);
@@ -8830,14 +8863,29 @@ async function renderChecksPage(tier: string = '', area: string = ''): Promise<b
   docView.classList.remove('overview-pane', 'agents-page', 'design-page',
     'is-design-shell', 'review-page');
   rightPaneContent.replaceChildren();
-  // A tier in the address preselects it, so the page a navigator row opens is
-  // the one the row's label promised.
-  checkFilters.tiers = tier ? new Set([tier]) : new Set();
-  //: An area in the address preselects it, the same way a tier does. Set
-  //: unconditionally — assigning only when non-empty would leave a previous
-  //: page's area filter applied to a bare `~checks`, which is the sticky
-  //: filter ISS-0203 removed from the tier axis.
-  checkFilters.areas = area ? new Set([area]) : new Set();
+  //: **The address decides the filters; a repaint does not** ([[ISS-0262]]).
+  //:
+  //: Arriving at `~checks` is a navigation and the address is the whole of
+  //: what the reader asked for, so both axes are set unconditionally —
+  //: assigning only when non-empty would leave a previous page's filter
+  //: applied to a bare `~checks`, which is the sticky filter ISS-0203 removed.
+  //:
+  //: **Repainting after a write is not a navigation**, and treating it as one
+  //: is the defect. `markCheckRow` handed this function straight to
+  //: `walkOneCheck` as its repaint, so it ran with no address and cleared the
+  //: tier and area the reader was working in — on every single mark. Walking a
+  //: filtered surface, which is the way the page is meant to be used, put the
+  //: whole 623-row suite back after each tick. Edwin: *"it moves away from the
+  //: list of acceptance tests and makes me having to move back to them again,
+  //: this is really annoying if you want to do multiple checks."*
+  //:
+  //: The scroll restore in `walkOneCheck` could not save it and was never the
+  //: problem: holding a pixel offset is meaningless once the list under it is
+  //: a different list.
+  if (!keepFilters) {
+    checkFilters.tiers = tier ? new Set([tier]) : new Set();
+    checkFilters.areas = area ? new Set([area]) : new Set();
+  }
   docView.replaceChildren(buildChecksPage(checksData));
   docView.hidden = false;
   placeholder.hidden = true;
@@ -9292,7 +9340,9 @@ async function retireCheckRow(item: GateItem): Promise<void> {
       return;
     }
     showStatus(`Retired ${item.number || item.id}`);
-    await renderChecksPage();
+    //: The reader's filters survive a retire for the same reason they survive
+    //: a mark ([[ISS-0262]]) — this is a write, not a navigation.
+    await repaintChecksPage();
   } catch (err) {
     showStatus(`Could not retire the check: ${String(err)}`, 'error');
   }
@@ -9306,7 +9356,23 @@ async function retireCheckRow(item: GateItem): Promise<void> {
  *  this defect on the document surface; the new one holds the property from
  *  its first commit rather than earning it back. */
 async function markCheckRow(item: GateItem): Promise<void> {
-  await walkOneCheck(item, renderChecksPage);
+  await walkOneCheck(item, repaintChecksPage);
+}
+
+/** Repaint `~checks` after a write, **without moving the reader** ([[ISS-0262]]).
+ *
+ *  `renderChecksPage` is the address-driven entry point: it takes a tier and an
+ *  area and makes the page say what the address asked for, which includes
+ *  clearing what the address does not mention. That is right for a navigation
+ *  and wrong for a repaint, and passing it directly as a repaint callback is
+ *  how the difference got lost.
+ *
+ *  Named rather than inlined as `() => renderChecksPage('', '', {...})` at each
+ *  call site, because there are two of them — mark and retire — and the next
+ *  write path added to this page should find the correct one already sitting
+ *  beside the wrong one. */
+async function repaintChecksPage(): Promise<boolean> {
+  return renderChecksPage('', '', { keepFilters: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -11657,7 +11723,10 @@ async function loadWsNav(): Promise<void> {
     // Overview left the reader on the overview with the Issues nav beside it.
     // Caught in the harness, not by a test, which is the argument for driving
     // a surface before calling it done.
-    if (currentRel !== target && !skipLanding) {
+    //: **Owned pages count as "already here"** ([[ISS-0263]]). `~checks/area/…`
+    //: is the Tests view; landing on `~tests` from it is not a landing, it is
+    //: an eviction.
+    if (!onOwnedPage(currentNavMode, currentRel || '') && !skipLanding) {
       void navigateTo(target, { replace: false });
     }
   }

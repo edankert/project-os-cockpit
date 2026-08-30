@@ -470,3 +470,152 @@ def test_a_stale_tick_is_not_drawn_as_done() -> None:
     #: has none, and the one distinction that survived the compression —
     #: stale apart from done — is asserted above, in both the numerator and
     #: the text.
+
+
+# ---- a write is not a navigation (ISS-0262) --------------------------------
+
+
+def _renderer() -> str:
+    return RENDERER.read_text(encoding="utf-8")
+
+
+def test_marking_a_check_does_not_clear_the_readers_filters() -> None:
+    """**Walking the page is the page's purpose, and every tick reset it.**
+
+    `renderChecksPage(tier, area)` is address-driven: it sets both filter axes
+    unconditionally, because arriving at a bare `~checks` must not inherit the
+    last page's filter (ISS-0203). `markCheckRow` handed that function straight
+    to `walkOneCheck` as its repaint, so each mark ran it with no address and
+    cleared the tier and area the reader was working in.
+
+    Edwin, walking the suite for v2.1.7: *"it moves away from the list of
+    acceptance tests and makes me having to move back to them again, this is
+    really annoying if you want to do multiple checks at the same time."*
+
+    Asserted on the repaint CALLBACK rather than on the filter lines, because
+    the defect is which function is used as a repaint — the reset itself is
+    correct where it lives.
+    """
+    src = _renderer()
+    i = src.index("async function markCheckRow")
+    body = src[i:i + 220]
+    assert "walkOneCheck(item, repaintChecksPage)" in body, body
+    assert "walkOneCheck(item, renderChecksPage)" not in body, \
+        "the address-driven render is being used as a repaint again"
+
+
+def test_every_write_on_the_checks_page_repaints_the_same_way() -> None:
+    """Mark and retire are the two write paths, and a third will be added.
+
+    Guarded as *no zero-argument `renderChecksPage()` call exists* rather than
+    by naming the two sites: a new write path that copies the old shape is
+    exactly how this regressed the first time, and it would pass a
+    call-site-by-call-site assertion.
+    """
+    src = _renderer()
+    assert "renderChecksPage()" not in src, \
+        "a bare renderChecksPage() is a repaint that clears the reader's filters"
+
+
+def test_the_address_still_wins_on_navigation() -> None:
+    """The fix must not become ISS-0203 again: a bare `~checks` reached by
+    NAVIGATION still clears both axes, and only `keepFilters` opts out."""
+    src = _renderer()
+    i = src.index("async function renderChecksPage")
+    body = src[i:i + 3000]
+    assert "keepFilters = false" in body, "keeping filters must be opt-in"
+    assert "if (!keepFilters) {" in body, body[:400]
+    for axis in ("checkFilters.tiers =", "checkFilters.areas ="):
+        assert axis in body, f"{axis} no longer set from the address"
+
+
+def test_a_write_does_not_evict_the_reader_from_the_checks_page() -> None:
+    """**The third round of one complaint, and the first at the real cause.**
+
+    Marking a check writes a note; the watcher emits `file-changed`;
+    `scheduleSoftReload` calls `loadWsNav`; and `loadWsNav`'s landing guard
+    asked only `currentRel !== '~tests'`. From `~checks` that is always true, so
+    the reader walking a filtered surface was navigated to the Needs-you
+    landing on every tick.
+
+    `~checks` belongs to the Tests view on purpose — a ninth nav mode would put
+    one corpus in two places (ISS-0068) — so the fix is for the landing to know
+    which pages a view owns, the property Publication and Design already have
+    by guarding on their whole `~release` / `~design` family.
+    """
+    src = _renderer()
+    assert "const VIEW_OWNED_PAGES" in src
+    i = src.index("const VIEW_OWNED_PAGES")
+    assert "'~checks'" in src[i:i + 200], src[i:i + 200]
+    assert "onOwnedPage(currentNavMode, currentRel || '')" in src, \
+        "the landing guard is not consulting the pages this view owns"
+    assert "if (currentRel !== target && !skipLanding)" not in src, \
+        "the exact-match landing guard is back — ~checks will be evicted again"
+
+
+def test_the_landing_still_fires_when_the_reader_is_elsewhere() -> None:
+    """The other side: a view whose page you are NOT on must still land, or
+    FEAT-0092's whole point — a view that leaves the centre pane on whatever
+    you were reading — comes back."""
+    src = _renderer()
+    i = src.index("function onOwnedPage")
+    body = src[i:i + 400]
+    assert "if (!rel) return false;" in body, body
+    assert "rel === `~${navMode}`" in body, body
+
+
+# ---- retiring removes the obligation, not the record (ISS-0265) ------------
+
+
+def _suite_repo(tmp_path: Path, status: str, mark: str = "question") -> Path:
+    docs = tmp_path / "docs"
+    (docs / "tests" / "acceptance").mkdir(parents=True)
+    (docs / "features").mkdir(parents=True)
+    (docs / "features" / "FEAT-0001-Thing.md").write_text(
+        '---\ntype: "[[feature]]"\nid: FEAT-0001\ntitle: "Thing"\n'
+        'status: done\n---\n\n# T\n', encoding="utf-8")
+    (docs / "tests" / "acceptance" / "TST-0001-Gone.md").write_text(
+        f'---\ntype: "[[test]]"\nid: TST-0001\naliases: ["TST-0001"]\n'
+        f'title: "Gone"\nstatus: {status}\nowner: user:edwin\n'
+        f'created: 2026-08-30\nupdated: "2026-08-30"\ntier: 1\n'
+        f'area: "Monetization"\nmark: {mark}\nverdict_date: "2026-08-30"\n'
+        f'verdict_reason: "its subject was removed"\ninvalidated_by: {{}}\n'
+        f'automation: manual\ncovered_by: []\ncovers: ["[[FEAT-0001]]"]\n'
+        f'evidence: []\nrelated: []\nlevel: acceptance\n---\n\n# Gone\n',
+        encoding="utf-8")
+    return docs
+
+
+def test_a_retired_check_does_not_block_the_release(tmp_path: Path) -> None:
+    """**`retire_check` wrote `status: retired` since ISS-0249 and nothing read
+    it.** So a retired check kept its row in the mark facets and went on
+    blocking — measured on `../your-trainer` the moment the first one was
+    retired: `TST-0075`, retired with a reason, still in the `unclear` filter
+    and still in the blocking 104.
+
+    A button that reports success and changes no outcome is worse than no
+    button, because the reader stops trusting the ones that do work.
+    """
+    from project_os_cockpit import acceptance
+    from project_os_cockpit.index import Index
+
+    docs = _suite_repo(tmp_path, "retired")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert [i.number for i in suite.items] == [], \
+        "a retired check is still in the walkable suite"
+    assert not acceptance.gate_payload(docs)["blocking"], \
+        "a retired check still blocks the release"
+
+
+def test_an_active_check_with_the_same_verdict_still_blocks(tmp_path: Path) -> None:
+    """The other side, and the one that makes the test above mean something:
+    the filter must key on `status`, not on the verdict. Both notes carry
+    `mark: question`; only the retired one leaves."""
+    from project_os_cockpit import acceptance
+    from project_os_cockpit.index import Index
+
+    docs = _suite_repo(tmp_path, "active")
+    suite = acceptance.load(docs, Index.build(docs))
+    assert [i.number for i in suite.items] == ["TST-0001"]
+    assert acceptance.gate_payload(docs)["blocking"], \
+        "an active unsettled check must still block"

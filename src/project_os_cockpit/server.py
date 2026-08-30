@@ -2390,6 +2390,38 @@ def _make_handler(
                 return
             self._respond_json({"ok": True, **result})
 
+        def _reindex(self, *note_ids: str) -> None:
+            """Make a write readable by the very next request ([[ISS-0264]]).
+
+            **The index is refreshed by the WATCHER, which is asynchronous, and
+            a write endpoint answers `ok` long before that lands.** Measured on
+            a scratch repo: the `mark-check` POST returns in **1 ms**, a re-read
+            issued the moment it resolves still reports the OLD mark, and the
+            index catches up at roughly **50 ms**.
+
+            The renderer repaints as soon as the POST resolves, so it always
+            lost that race: the first tick appeared to do nothing and the
+            second showed the first one's result. Edwin, walking v2.1.7's
+            suite: *"I need to do the check twice before the feature/acceptance
+            test disappears."*
+
+            **A synchronous re-parse of one path**, not a rebuild — the write
+            already knows which note it touched, and `Index.invalidate` is the
+            same call the watcher subscriber makes when it arrives late.
+
+            Answering `ok` for a write the next read cannot see is the API
+            lying, so this belongs to the endpoint rather than to a delay in
+            the client. A client-side retry would have to guess the watcher's
+            latency, and every other consumer would still be told `ok` about
+            something it could not read.
+            """
+            for note_id in note_ids:
+                if not note_id:
+                    continue
+                path = index.by_id(note_id)
+                if path is not None:
+                    index.invalidate(path)
+
         def _serve_mark_check(self) -> None:
             """``POST /api/notes/mark-check`` — one acceptance check, one
             verdict, one justification (FEAT-0111 / TASK-0455).
@@ -2461,6 +2493,9 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": str(exc)},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
+            #: Before the response, never after: the caller repaints the moment
+            #: this resolves ([[ISS-0264]]).
+            self._reindex(check_id)
             self._respond_json({"ok": True, **result})
 
         def _serve_retire_check(self) -> None:
@@ -2506,6 +2541,9 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": str(exc)},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
+            #: Same reason as `mark-check` ([[ISS-0264]]) — a retire that the
+            #: next read cannot see reads to the walker as a dead button.
+            self._reindex(str(body.get("id") or ""))
             self._respond_json({"ok": True, **result})
 
         def _serve_mark_released(self) -> None:

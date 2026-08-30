@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 143
-  ISS: 260
+  ISS: 265
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -69,7 +69,7 @@ counters:
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 586
+  TASK: 591
   TST: 81
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -90,7 +90,7 @@ items:
       owner: user:edwin
       phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
       requirements: []
-      tasks: ["TASK-0579", "TASK-0580", "TASK-0581", "TASK-0582", "TASK-0583", "TASK-0584", "TASK-0585", "TASK-0586"]
+      tasks: ["TASK-0579", "TASK-0580", "TASK-0581", "TASK-0582", "TASK-0583", "TASK-0584", "TASK-0585", "TASK-0586", "TASK-0587", "TASK-0588", "TASK-0589", "TASK-0590", "TASK-0591"]
       note: "The census (TASK-0579) replaced the estimate that parked ISS-0209 for a quarter: 1086 errors across four repos, 100% from PARENT-BACKLINK and SNAPSHOT-MEMBERSHIP, which are one relationship seen from two ends. acceptance_exception is set — this ships no user-facing surface; its observable behaviour is the upstream validator exiting 0 where it reported 1086."
     FEAT-0133:
       file: "docs/features/verdict-ledger/FEAT-0133-The-Ledger-Is-The-Only-Place-A-Verdict-Lives.md"
@@ -4027,8 +4027,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 143
     features_done: 131
-    tasks_total: 585
-    tasks_done: 549
+    tasks_total: 590
+    tasks_done: 554
     tests_total: 47
     tests_passing: 2
     test_cases_total: 182

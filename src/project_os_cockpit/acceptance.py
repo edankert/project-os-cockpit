@@ -1019,6 +1019,25 @@ def _section_key(section: str) -> tuple[int, ...]:
     return tuple(out)
 
 
+#: A retired check is a record, not an obligation ([[ISS-0265]]).
+#:
+#: `TESTING.md`: *"Nothing removes a check. A check whose subject is gone goes
+#: `retired`."* The note is kept deliberately — its `mark` and `verdict_date`
+#: survive as the record that the behaviour was once walked, which is the whole
+#: difference between retiring and deleting.
+#:
+#: **What must NOT survive is the obligation.** `retire_check` has written
+#: `status: retired` since [[ISS-0249]] and nothing here ever read it, so a
+#: retired check stayed in the tiers, kept its row in the mark facets, and
+#: **went on blocking the release**. Measured on `../your-trainer` the moment
+#: the first one was retired: `TST-0075`, retired with a reason, still in the
+#: `unclear` filter and still in the blocking 104. Retiring did nothing a
+#: reader could see, which makes the button worse than absent — it reports
+#: success and changes no outcome.
+def _is_retired(item: "Item") -> bool:
+    return str(getattr(item, "status", "") or "").strip().lower() == "retired"
+
+
 def sort_items(items: list[Item]) -> list[Item]:
     """Suite order: **tier, then id** ([[ISS-0224]]).
 
@@ -1197,12 +1216,17 @@ def load(docs_root: Path, index: "Any | None" = None, *,
         ]
         if items:
             items = apply_ledger(items, docs_root, platform)
+            #: Dropped here rather than in each consumer: the gate, the tiers
+            #: and the facets all read `Suite.items`, and three filters is how
+            #: two of them come to disagree ([[REQ-0059]]).
+            items = [i for i in items if not _is_retired(i)]
             return Suite(path=checks_dir, items=sort_items(items),
                          shape=SHAPE_NOTES, platform=platform)
     elif checks_dir.is_dir():
         items = load_notes(checks_dir)
         if items:
             items = apply_ledger(items, docs_root, platform)
+            items = [i for i in items if not _is_retired(i)]
             return Suite(path=checks_dir, items=items, shape=SHAPE_NOTES,
                          platform=platform)
     path = docs_root / SUITE_REL

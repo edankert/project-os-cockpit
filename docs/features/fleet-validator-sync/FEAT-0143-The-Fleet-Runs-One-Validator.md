@@ -16,7 +16,7 @@ phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
 source: ["[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]"]
 goal: "Move every fleet repo onto the upstream validator — which is what carries the acceptance gate — by reconciling the two rules the census shows are the entire cost, and leave a drift check behind that fails the build when the fleet falls behind again."
 requirements: []
-tasks: ["[[TASK-0579-Count-The-Flood-By-Rule]]", "[[TASK-0580-The-Migration-Is-A-Tool-Not-A-Session]]", "[[TASK-0581-Migrate-Obsidian-Supernote-Sync]]", "[[TASK-0582-Migrate-Your-Health]]", "[[TASK-0583-Migrate-Your-Sudoku]]", "[[TASK-0584-Migrate-Your-Trainer]]", "[[TASK-0585-Drift-Is-Measured-Not-Noticed]]", "[[TASK-0586-Your-Trainer-Scopes-Its-Release]]"]
+tasks: ["[[TASK-0579-Count-The-Flood-By-Rule]]", "[[TASK-0580-The-Migration-Is-A-Tool-Not-A-Session]]", "[[TASK-0581-Migrate-Obsidian-Supernote-Sync]]", "[[TASK-0582-Migrate-Your-Health]]", "[[TASK-0583-Migrate-Your-Sudoku]]", "[[TASK-0584-Migrate-Your-Trainer]]", "[[TASK-0585-Drift-Is-Measured-Not-Noticed]]", "[[TASK-0586-Your-Trainer-Scopes-Its-Release]]", "[[TASK-0587-The-Derived-Set-Is-This-Releases-Platforms]]", "[[TASK-0588-A-Write-Is-Not-A-Navigation]]", "[[TASK-0589-A-View-Knows-Which-Pages-It-Owns]]", "[[TASK-0590-A-Write-Is-Readable-When-It-Answers]]", "[[TASK-0591-Retiring-Removes-The-Obligation]]"]
 release: ""
 acceptance_exception: "This feature ships no user-facing surface: it is a migration of four repos' pre-commit tooling plus a CI check. Its observable behaviour is `validate-docs.py` exiting 0 in repos where upstream's rules previously reported 1086 errors, which is what its automated tests assert directly."
 acceptance: ""
