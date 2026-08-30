@@ -2258,9 +2258,35 @@ function sealPlatform(): string {
   return verdictPlatform();
 }
 
+//: Platforms this repo keeps a ledger for, from the acceptance payload
+//: ([[ISS-0272]]). Empty until `~checks` has been rendered once, which is also
+//: the only place a mark can be made, so it is populated whenever it matters.
+let ledgerPlatforms: string[] = [];
+
+/** The platform a verdict is recorded against.
+ *
+ *  **The picker is a filter, not a declaration, and it was doing both.** It
+ *  returns `''` on `All` — and once a repo keeps a ledger the server refuses a
+ *  mark carrying no platform, because a scalar in a note would be a second
+ *  answer to a question the ledger already owns. That refusal is right. What
+ *  was wrong is that a reader walking a checklist met it, in a message written
+ *  for whoever is calling the API: *"use the ledger write path and send
+ *  `platform`"*.
+ *
+ *  Edwin, mid-walk: *"My understanding of the functionality is that I update
+ *  the notes and you then update the ledger, I do not update the ledger
+ *  directly."* That is the right expectation — where a verdict is stored is the
+ *  tool's business — and it cannot be met by making him pick the right filter
+ *  first.
+ *
+ *  **One ledger platform means nothing is ambiguous**, so send it. Several is a
+ *  genuine question — which one did you walk on? — and guessing there would put
+ *  a verdict on the wrong platform, which is worse than the refusal. So that
+ *  case still returns `''` and the server still refuses, deliberately. */
 function verdictPlatform(): string {
   const found = loadStoredPlatform();
-  return found && found !== 'all' ? found : '';
+  if (found && found !== 'all') return found;
+  return ledgerPlatforms.length === 1 ? ledgerPlatforms[0] : '';
 }
 
 const MARK_CHOICES: Array<{
@@ -8840,9 +8866,15 @@ async function renderChecksPage(
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/acceptance`);
     if (!resp.ok) return false;
-    const data = (await resp.json()) as { view?: ChecksView };
+    const data = (await resp.json()) as {
+      view?: ChecksView; ledger_platforms?: string[];
+    };
     if (!data.view) return false;
     checksData = data.view;
+    //: Captured on every render, so a repo that adopts a ledger mid-session
+    //: starts routing marks correctly without a restart ([[ISS-0272]]).
+    ledgerPlatforms = Array.isArray(data.ledger_platforms)
+      ? data.ledger_platforms : [];
   } catch { return false; }
   if (currentNavMode !== 'tests') {
     // ISS-0193: `setNavMode` fires `loadWsNav`, which lands the Tests view on

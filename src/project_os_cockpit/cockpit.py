@@ -614,7 +614,24 @@ DONE_BY_TYPE: dict[str, set[str]] = {
     "task": DONE_TASK,
     "requirement": DONE_REQ,
     "issue": DONE_ISS,
-    "test": PASSING,
+    #: **`retired` is terminal for a test** ([[ISS-0272]]). `PASSING` alone said
+    #: a retired check was unfinished work, so retiring one left it sitting in
+    #: the session work strip as something touched and never completed —
+    #: reported by Edwin as *"Why is TST-75 still in the todo list?"* after
+    #: every other surface had been cleaned.
+    #:
+    #: `statuses.is_completed("retired")` is already `True`: it sits in the
+    #: `archived` band, whose own comment reads *"terminal, and terminal
+    #: WITHOUT the thing having been done, which is what the archived band
+    #: means."* That is exactly a retired check — kept as the record that a
+    #: behaviour was once walked, owed by nobody. This table was the outlier.
+    #:
+    #: Scoped to `test` deliberately. The band predicate and the per-type
+    #: tables disagree on `retired` for other types too, and `validate-docs.py`
+    #: has a third opinion — see [[ISS-0269]], where a retired check keeps its
+    #: coverage credit. Widening the fix here would paper over that rather than
+    #: settle it.
+    "test": PASSING | {"retired"},
     "risk": {"closed"},
     "change": {"merged"},
     "phase": {"done", "superseded"},

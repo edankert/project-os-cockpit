@@ -1017,6 +1017,7 @@ def _make_handler(
                              .get("platform", [""])[0]).strip().lower()
                 if _platform == "all":
                     _platform = ""
+                from . import ledger as _led
                 self._respond_json({
                     "schema_version": cockpit.SCHEMA_VERSION,
                     **acceptance.payload(docs_root, index, platform=_platform),
@@ -1024,6 +1025,16 @@ def _make_handler(
                                                     platform=_platform),
                     "view": acceptance.view_payload(docs_root, index,
                                                     platform=_platform),
+                    #: **Which platforms this repo keeps a ledger for**
+                    #: ([[ISS-0272]]). The renderer sends no platform when the
+                    #: nav picker reads `All`, and once a ledger exists the
+                    #: scalar write path is refused -- so a walker was met with
+                    #: a 409 telling them to "use the ledger write path", which
+                    #: is advice for whoever is calling the API rather than for
+                    #: someone ticking a checklist. With this the client can
+                    #: supply the platform itself when there is only one, and
+                    #: the storage decision stops being the walker's problem.
+                    "ledger_platforms": _led.platforms(docs_root),
                 })
                 return
 
