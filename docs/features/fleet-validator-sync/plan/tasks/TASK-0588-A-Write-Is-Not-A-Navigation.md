@@ -8,6 +8,9 @@ phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
 owner: user:edwin
 created: 2026-08-30
 updated: "2026-08-30"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-30
+review_verdict: changes-requested
 source: ["[[ISS-0262-Marking-A-Check-Clears-The-Filter-You-Are-Walking]]"]
 parent: "FEAT-0143"
 effort: ""
@@ -33,3 +36,9 @@ tests: []
 `test_every_write_on_the_checks_page_repaints_the_same_way` forbids a bare `renderChecksPage()` anywhere in the file. Naming the two call sites would pass while a third write path copied the original mistake, which is the shape that produced this bug.
 
 `test_the_address_still_wins_on_navigation` pins the other side, so the fix cannot drift into [[ISS-0203]]'s sticky filter.
+
+## Independent review, 2026-08-30 — changes-requested
+
+`tsc --noEmit` is clean, verified. Finding: [[ISS-0266]] — *"Reverting the callback to `renderChecksPage` fails it, which was run rather than assumed"* holds only for that spelling. The equivalent revert one line lower, inside `repaintChecksPage`, passes the full suite. Assert on the body of `repaintChecksPage`, not only on the call site.
+
+Reviewed from a clean context (the notes and the diff, no authoring transcript) by `model:claude-opus-5`, the same model family as the author and a different session. Mutants were applied one at a time in a worktree at `c861414` and the full suite re-run; corpus figures were recomputed against `git archive fb99a751`, the `../your-trainer` state as of these commits.

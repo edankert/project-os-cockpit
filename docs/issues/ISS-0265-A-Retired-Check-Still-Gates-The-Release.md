@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-30
 updated: 2026-08-30
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-30
+review_verdict: changes-requested
 severity: high
 component: server
 phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
@@ -42,3 +45,9 @@ Edwin, on being shown it: *"A Retired check should not hold/gate the release."*
 One filter, in `acceptance.load`, dropping retired items before the `Suite` is built — rather than in each consumer, because the gate, the tiers and the facets all read `Suite.items` and three filters is how two of them come to disagree ([[REQ-0059]]).
 
 Guarded both ways. The first test fails with the filter removed; the second builds the **same note with `status: active`** and asserts it still blocks, so the filter must key on the lifecycle rather than on the verdict — both fixtures carry `mark: question`, and only the retired one leaves.
+
+## Independent review, 2026-08-30 — changes-requested
+
+The strongest-guarded change in the set: both fixtures kill their mutants on both branches of `load`, and keying the filter on `mark` instead of `status` fails the second test exactly as the note says it must. Two findings. [[ISS-0269]] — `Suite.items` is not the whole population of readers: `tools/scripts/validate-docs.py` counts a retired check as covering its feature and knows nothing about the status, so retiring now removes the obligation *and keeps the coverage credit*, and that validator is the artifact FEAT-0143 copied into four repos. [[ISS-0270]] — the blocking figure was 101, not the `104` published here and in two other places, and not TASK-0591's `103`; retiring one check cannot move the gate by three.
+
+Reviewed from a clean context (the notes and the diff, no authoring transcript) by `model:claude-opus-5`, the same model family as the author and a different session. Mutants were applied one at a time in a worktree at `c861414` and the full suite re-run; corpus figures were recomputed against `git archive fb99a751`, the `../your-trainer` state as of these commits.

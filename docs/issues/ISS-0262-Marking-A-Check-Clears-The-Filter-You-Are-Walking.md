@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-30
 updated: 2026-08-30
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-30
+review_verdict: changes-requested
 severity: medium
 component: ui
 phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
@@ -53,3 +56,9 @@ Named rather than inlined at each call site because there are two write paths an
 ## Guards
 
 Three, in `tests/test_checks_view.py`, and the first fails when the repaint callback is put back to `renderChecksPage` — the original defect, reproduced exactly. The second forbids a bare `renderChecksPage()` anywhere in the renderer rather than naming the two known sites, because a new write path copying the old shape is how this would regress. The third asserts the address still wins on navigation, so the fix cannot quietly become `ISS-0203`.
+
+## Independent review, 2026-08-30 — changes-requested
+
+The diagnosis is right and the split is the right shape. [[ISS-0266]] — the fix is not guarded: `repaintChecksPage` is the whole of it and nothing asserts what it passes, so changing its body to `renderChecksPage('', '')` restores this defect with **2126 tests passing**. All three guards here are source-text greps and pin the spelling of the call site rather than the behaviour. [[ISS-0270]] — `623 rows` does not reproduce (625 before the retire, 624 after) and the figure is now also a source comment in `renderChecksPage`.
+
+Reviewed from a clean context (the notes and the diff, no authoring transcript) by `model:claude-opus-5`, the same model family as the author and a different session. Mutants were applied one at a time in a worktree at `c861414` and the full suite re-run; corpus figures were recomputed against `git archive fb99a751`, the `../your-trainer` state as of these commits.

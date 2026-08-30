@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-30
 updated: 2026-08-30
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-30
+review_verdict: changes-requested
 severity: high
 component: server
 phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
@@ -48,3 +51,9 @@ Three defects on one keystroke, found in the order they masked each other: [[ISS
 ## Latent elsewhere, and not fixed here
 
 Every other write endpoint has the same shape — `release-contents`, `release-verified`, `release-prepare`, `mark-released`, the status writes. None was reported and none is fixed, because making them all reindex means deciding what each one touched, and a guess there is worse than the race. Filed rather than swept in.
+
+## Independent review, 2026-08-30 — changes-requested
+
+The cause and the placement are right — fixing it at the endpoint rather than with a client delay is the correct call, and `C1` (removing the `mark-check` reindex) fails both tests as claimed. Two findings. [[ISS-0266]] — the retire-check reindex is unguarded: removing it fails nothing, while TASK-0590 says *"Removing the `_reindex` call fails both"*. [[ISS-0270]] — *"Filed rather than swept in"* names a note that does not exist, and the enumeration of the other write endpoints is short by about a dozen. One observation, not a finding: in a repo that keeps a ledger the mark routes to `record_verdict`, which writes the ledger and not the check note, so `_reindex(check_id)` invalidates a path that was not written — harmless today because `ledger.load` reads from disk on every call, and worth knowing before that changes.
+
+Reviewed from a clean context (the notes and the diff, no authoring transcript) by `model:claude-opus-5`, the same model family as the author and a different session. Mutants were applied one at a time in a worktree at `c861414` and the full suite re-run; corpus figures were recomputed against `git archive fb99a751`, the `../your-trainer` state as of these commits.

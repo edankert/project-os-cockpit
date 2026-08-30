@@ -8,6 +8,9 @@ phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
 owner: user:edwin
 created: 2026-08-30
 updated: "2026-08-30"
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-30
+review_verdict: changes-requested
 source: ["[[ISS-0261-A-Release-Is-Offered-Features-Its-Platform-Cannot-Ship]]"]
 parent: "FEAT-0143"
 effort: ""
@@ -52,3 +55,9 @@ Both plausible mutants were run before this was called done:
 ## Effect on `../your-trainer`
 
 `REL-0013` (`platform: android`) stops being offered nine iOS features and `FEAT-0098`. What remains is `FEAT-0037` (unattributable, genuinely unknown), `FEAT-0057` (cancelled) and `FEAT-0101` (`cross`, so it correctly still qualifies) — and the middle one leaves when `superseded`/`cancelled` stop counting as shippable, which `ISS-0261` files separately.
+
+## Independent review, 2026-08-30 — changes-requested
+
+Both mutants named in *"Guards, and that they can fail"* were re-run and both fail as described, including the pre-existing claimed-by-another-release test under the equality rule. Findings: [[ISS-0266]] (the release page itself is unguarded — `A4` passes 2126 tests; and the navigator/page assertion is `A <= B or B <= A`, which tolerates divergence in either direction rather than asserting agreement), [[ISS-0268]] (the placeholder, `create_release`, and `mark_released` as a fourth reader), [[ISS-0270]] (`303 of 1,432`, and the census two columns out by one). The *"Effect on `../your-trainer`"* table reproduces exactly.
+
+Reviewed from a clean context (the notes and the diff, no authoring transcript) by `model:claude-opus-5`, the same model family as the author and a different session. Mutants were applied one at a time in a worktree at `c861414` and the full suite re-run; corpus figures were recomputed against `git archive fb99a751`, the `../your-trainer` state as of these commits.

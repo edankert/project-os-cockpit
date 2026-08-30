@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-30
 updated: 2026-08-30
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-30
+review_verdict: changes-requested
 severity: medium
 component: tooling
 phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
@@ -66,3 +69,9 @@ That is [[REQ-0059]]'s forbidden shape — one question, two implementations —
 ## Still open, and not this issue's
 
 `superseded` and `cancelled` satisfy `statuses.is_completed()`, so a replaced or abandoned feature is still offered as release contents — `your-trainer` has seven superseded iOS features and one cancelled. Excluding them changes what the fleet-wide Unreleased card counts in twelve repos, which is a decision rather than a fix, and it is filed separately.
+
+## Independent review, 2026-08-30 — changes-requested
+
+The predicate and its direction hold up, and the effect table reproduces exactly at the corpus state these commits were written against. Three findings against the issue as documented. [[ISS-0268]] — the scoping stops at the derived view: the navigator's `Nothing unshipped` placeholder now keys on the scoped set and can assert *"no features are waiting on a release"* while the Unreleased card lists two (constructed and run); `create_release` — disclosed here as safe — is the path by which the unfiltered set becomes the note's `features:` and comes back as `chosen` rows; and `mark_released` is a fourth reader whose frozen list moved silently. [[ISS-0266]] — the release page, which is the surface this issue is about, has no guard: reverting `release_payload`'s one changed line passes all 2126 tests. [[ISS-0270]] — `303 of 1,432` is neither the empty column (287) nor the set the sentence enumerates (306), and is measured over a population `_ships_on` never reads; and the `superseded`/`cancelled` follow-up this note says is *"filed separately"* does not exist.
+
+Reviewed from a clean context (the notes and the diff, no authoring transcript) by `model:claude-opus-5`, the same model family as the author and a different session. Mutants were applied one at a time in a worktree at `c861414` and the full suite re-run; corpus figures were recomputed against `git archive fb99a751`, the `../your-trainer` state as of these commits.

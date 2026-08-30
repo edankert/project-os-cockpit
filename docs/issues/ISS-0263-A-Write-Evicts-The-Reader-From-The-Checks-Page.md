@@ -7,6 +7,9 @@ status: fixed
 owner: user:edwin
 created: 2026-08-30
 updated: 2026-08-30
+reviewed_by: model:claude-opus-5
+review_date: 2026-08-30
+review_verdict: changes-requested
 severity: high
 component: ui
 phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
@@ -45,3 +48,9 @@ Publication and Design do not have this bug, and the reason is instructive — b
 `VIEW_OWNED_PAGES` — the pages a view owns besides its own landing, `tests: ['~checks']` — and `onOwnedPage(navMode, rel)` replacing the equality test. `~checks`, `~checks/tier/2` and `~checks/area/Monetization` all now read as *already on this view*.
 
 Guarded two ways: reverting the guard to the equality test fails `test_a_write_does_not_evict_the_reader_from_the_checks_page`, and a second test pins that a reader who is genuinely elsewhere still gets landed, so the fix cannot quietly undo [[FEAT-0092]].
+
+## Independent review, 2026-08-30 — changes-requested
+
+The cause is correct and the rule stated here — *"a view with two pages was landed as though it had one"* — is the right one. Two findings. [[ISS-0267]] — the rule is stated generally and applied to one page: `~tests/<TST>/run` sets `navMode = 'tests'` itself and says in its own source that it *is* the Tests view, and `~accept/<FEAT>` claims no view at all; both still evict, and both are walk-and-write surfaces. [[ISS-0266]] — reducing `onOwnedPage` to its first two lines (the equality test this replaced) restores the eviction with **2126 tests passing**; the guards check that the constant exists and that the call is spelled that way.
+
+Reviewed from a clean context (the notes and the diff, no authoring transcript) by `model:claude-opus-5`, the same model family as the author and a different session. Mutants were applied one at a time in a worktree at `c861414` and the full suite re-run; corpus figures were recomputed against `git archive fb99a751`, the `../your-trainer` state as of these commits.
