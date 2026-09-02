@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 143
-  ISS: 276
+  ISS: 277
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -1728,6 +1728,14 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0277:
+      file: "docs/issues/ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit.md"
+      title: "Nothing detects a stale, divergent or incomplete tools/cockpit — one repo carried no package at all for five weeks and the stamp said it was fine"
+      status: open
+      owner: user:edwin
+      severity: medium
+      component: tooling
+      note: "Found by the 2026-09-02 fleet sweep, not by any check. Twelve repos five weeks / 193 commits stale; `articles` carried four files and NO src/ (the 45-module package run.sh exists to launch was never committed, and its stamp named a different release so nothing compared it to a sibling); and validate_docs_bundled.py differed BETWEEN repos at the SAME CANONICAL_SHA. The third is the sharpest -- a stamp that varies in content is the failure the stamp exists to prevent. fleet-drift.py measures validator rule codes, not this."
     ISS-0276:
       file: "docs/issues/ISS-0276-Twenty-One-Tests-Still-Measure-A-Character-Distance.md"
       title: "21 tests still assert over a fixed character window, an idiom that has now failed in both directions in this suite"
@@ -4058,7 +4066,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 15
+    issues_open: 16
     issues_triage: 7
     risks_open: 6
     releases_total: 1
