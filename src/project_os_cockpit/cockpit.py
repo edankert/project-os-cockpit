@@ -4725,6 +4725,17 @@ def _surface_rows(items: list[dict[str, Any]], url: str, tier: int,
                     #: state, and inventing a word for it is what [[ADR-0037]]
                     #: decision 5 removed.
                     "mark": i.get("mark") or "",
+                    #: **Stale travels with the mark, because the sort used it
+                    #: and nothing else could see it** ([[ISS-0275]]).
+                    #: `_is_incomplete` counts a stale tick as owed — that is
+                    #: the rule that made `your-trainer`'s honest 113 stop
+                    #: reading as 60 — but the item carried only `mark`, so a
+                    #: `pass` that a change had overtaken was indistinguishable
+                    #: here from a `pass` that stands. Anything checking this
+                    #: order had to invent a second predicate to do it, which
+                    #: is exactly what `_is_incomplete`'s docstring says not to
+                    #: do, and `test_the_nav_leads_with_what_is_owed` did.
+                    "stale": bool(i.get("stale")),
                     "url": (f"/docs/{i['rel']}" if i.get("rel") else url),
                     "type": "test",
                 }

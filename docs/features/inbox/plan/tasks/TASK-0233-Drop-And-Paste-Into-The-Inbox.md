@@ -44,6 +44,8 @@ The properties themselves are tested independently of which layer provides them,
 
 *(Superseded in part on 2026-09-02, [[ISS-0274]]. **A third guard could not fire, and this note did not catch it: the suffix allow-list.** It was described here and in the code as one of the things making the drop safe. It was not. `_SAFE` and the `relative_to` containment refuse a hostile name without it; nothing executes a file out of `inbox/`; and it admitted `.svg` — which can carry `<script>` and came back at the cockpit's own origin — while refusing `.zip`, which the server never opens. The list is gone from the write path. What it was reaching for now lives on the read: a type outside `INLINE_SUFFIXES` is served as `application/octet-stream` with `Content-Disposition: attachment`, and every response carries `default-src 'none'; sandbox`. The paragraph above is right about the pattern and counted three instances; this was the fourth, sitting in the same file.)*
 
+*(And the paragraph above is now **false about the basename split**, which the same change made load-bearing without anyone noticing. `"///"` reaches it as an empty basename and is refused; without the split it stores as `item`, so a test does go red. Independent review, 2026-09-02. A note recording that a guard is redundant has to be re-checked by whatever edits the guard — otherwise it decays into an invitation to delete something that now matters.)*
+
 **The pinned virtual-landing mode set earned its keep.** Adding `inbox` broke `test_the_boot_path_does_not_race_a_virtual_landing_mode` immediately — the set is pinned exactly so a new mode has to come to that test and say so, rather than silently inheriting [[ISS-0040]]'s race.
 
 ## Correction (ISS-0060) — drop never worked

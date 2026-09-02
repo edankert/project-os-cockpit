@@ -50,6 +50,16 @@ INLINE_SUFFIXES: frozenset[str] = frozenset({
     ".pdf", ".txt", ".md", ".csv", ".tsv", ".json", ".yaml", ".yml", ".log",
 })
 
+#: Suffixes that need `sandbox` on top of `default-src 'none'` — the ones a
+#: browser will execute if you navigate to them. `sandbox` is not free: without
+#: `allow-scripts` it is also how Chrome is usually made to DOWNLOAD a PDF
+#: instead of rendering it, so it is applied where it buys something rather
+#: than everywhere (independent review, 2026-09-02, finding 5).
+#:
+#: Non-inline types get it too — they are already an attachment, so there is
+#: nothing to break.
+SCRIPTABLE_SUFFIXES: frozenset[str] = frozenset({".svg"})
+
 _SAFE = re.compile(r"[^A-Za-z0-9._-]+")
 _MAX_STEM = 60
 #: A suffix is a label, not a payload. `.compressed-archive` is a real one;
@@ -69,13 +79,19 @@ def safe_name(raw: str, *, now: _dt.datetime | None = None) -> str | None:
     ``../../.ssh/authorized_keys`` cannot survive as a path and neither can a
     suffix carrying anything but ``[A-Za-z0-9._-]``.
 
-    Note honestly which line does that work: the ``_SAFE`` substitution below
-    turns every separator into ``-``, so **the basename split is redundant** —
-    removing it leaves every test green. It stays because it makes the intent
-    legible at the top of the function, not because it is the guard. The guard
-    is ``_SAFE`` over *both* halves, and containment is re-checked at the write
-    because a filter that is the *only* defence is one edit away from not being
-    one.
+    Note honestly which line does that work. The ``_SAFE`` substitution below
+    turns every separator into ``-``, and this function's docstring used to say
+    the basename split was therefore redundant — *"removing it leaves every
+    test green"*. **That stopped being true in this change and the sentence
+    survived it** (independent review, 2026-09-02). ``"///"`` reaches the split
+    as an empty basename and is refused; without the split it stores as
+    ``item``, so `test_a_name_with_nothing_in_it_is_still_refused` goes red.
+    The split is now load-bearing, and the note that said otherwise was left
+    standing by the edit that falsified it — which is the same failure this
+    file keeps finding, arriving as a stale comment rather than a dead guard.
+
+    Containment is still re-checked at the write, because a filter that is the
+    *only* defence is one edit away from not being one.
 
     Every result is prefixed with a timestamp, which is also why no dotfile can
     be created here: ``.bashrc`` becomes ``20260902-120000-bashrc``.
@@ -103,8 +119,18 @@ def header_filename(name: str) -> str:
     quote and a newline in a filename, and either one unescaped in a
     ``Content-Disposition`` value is header injection.
     """
-    cleaned = _SAFE.sub("-", name).strip("-.") or "item"
-    return cleaned[:_MAX_STEM + _MAX_SUFFIX]
+    #: **Stem and suffix separately, because `.strip("-.")` ate the dot.**
+    #: Independent review, 2026-09-02: `报告.docx` came back as `docx` and
+    #: `éé.zip` as `zip`. A leading non-ASCII run collapses to a single `-`,
+    #: leaving `-.docx`, and stripping `-.` from the front then takes the
+    #: separator AND the dot behind it. The extension survived only for names
+    #: that began with an ASCII letter — and a name that did not is exactly
+    #: the `cp` case this function exists for.
+    stem = _SAFE.sub("-", Path(name).stem).strip("-.") or "item"
+    suffix = _SAFE.sub("-", Path(name).suffix).strip("-")[:_MAX_SUFFIX]
+    if suffix in ("", "."):
+        suffix = ""
+    return stem[:_MAX_STEM] + suffix
 
 
 def unique_path(directory: Path, name: str) -> Path:

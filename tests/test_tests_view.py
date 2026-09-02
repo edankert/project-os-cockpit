@@ -2133,9 +2133,21 @@ def test_the_nav_leads_with_what_is_owed() -> None:
                 f"owed — {pcts}")
             for row in rows:
                 #: A check with no mark is owed; one with a clearing mark is
-                #: not. The bands must not interleave.
+                #: not — **unless it is stale**, which is owed again. The bands
+                #: must not interleave.
+                #:
+                #: [[ISS-0275]]. This read the mark alone and so carried a
+                #: SECOND definition of settled — the thing `_is_incomplete`'s
+                #: docstring names as how a surface's number and its position
+                #: come to disagree about the same set. It went red on
+                #: `your-trainer`'s `History & analytics`, where `TST-0089` is
+                #: `mark: pass` standing over evidence a change overtook: the
+                #: payload sorted it into the owed band, this line called it
+                #: settled, and the PRODUCT was right. `stale` is on the item
+                #: now, so there is one predicate rather than two.
                 bands = [bool(k.get("mark")) and k["mark"] in
                          {"pass", "partial", "na", "excused"}
+                         and not k.get("stale")
                          for k in row.get("items") or []]
                 assert bands == sorted(bands), (
                     f"{repo}: {row['title']!r} interleaves settled checks "

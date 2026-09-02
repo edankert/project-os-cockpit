@@ -47,12 +47,36 @@ def _fingerprint(root: Path) -> dict[str, tuple[float, str]]:
 
 
 def _clone_repo(tmp_path: Path) -> Path:
-    """A working copy of this repo's docs corpus — a real, valid one."""
+    """This repo's docs corpus **as committed** — a real, valid one.
+
+    **Materialised from `HEAD`, not copied off disk** ([[ISS-0275]]).
+
+    Three tests here assert the clone validates `ok`, and the copy took the
+    WORKING TREE. So they went red for any uncommitted documentation edit —
+    including the most ordinary mid-session state there is, one note written
+    before the snapshot has caught up. Measured 2026-09-02: adding a single
+    unregistered `ISS-*` note failed all three, and none of them is about
+    notes, snapshots or membership.
+
+    A test that reads the author's uncommitted work reports on the author, not
+    on the code. `HEAD` is also the basis CI and a fresh clone use, which is
+    the gap `LIFECYCLE.md` opens its "a local pass is not a CI pass" section
+    with — and `validate-docs.sh --as-committed` already materialises `HEAD`
+    the same way for the same reason.
+
+    Tracked files only, which is the point: a file present on disk but absent
+    from the commit is exactly what this must not see.
+    """
     dst = tmp_path / "clone"
     dst.mkdir()
-    shutil.copy2(REPO_ROOT / "SNAPSHOT.yaml", dst / "SNAPSHOT.yaml")
-    shutil.copytree(REPO_ROOT / "docs", dst / "docs")
-    shutil.copytree(REPO_ROOT / "tools", dst / "tools")
+    proc = subprocess.run(
+        ["git", "archive", "HEAD", "SNAPSHOT.yaml", "docs", "tools"],
+        cwd=str(REPO_ROOT), capture_output=True, timeout=120,
+    )
+    assert proc.returncode == 0, proc.stderr.decode(errors="replace")
+    tar = subprocess.run(["tar", "-x", "-C", str(dst)], input=proc.stdout,
+                         capture_output=True, timeout=120)
+    assert tar.returncode == 0, tar.stderr.decode(errors="replace")
     return dst
 
 
@@ -99,6 +123,15 @@ def test_the_cold_pass_command_never_carries_fix_metrics(
     """
     import project_os_cockpit.validation as validation
 
+    #: Built BEFORE the spy is installed ([[ISS-0275]]). The spy replaces
+    #: `subprocess.run` on the shared module object, so it captures every call
+    #: made while it is in place — and `_clone_repo` materialises `HEAD` with
+    #: `git archive`, which is a `subprocess.run`. Its argv then reached the
+    #: `--repo-root` assertion below and failed it, reporting that the
+    #: validator was aimed by cwd when the validator was not involved. The
+    #: fixture is not what this test observes.
+    repo = _clone_repo(tmp_path)
+
     seen: list[list[str]] = []
     real_run = validation.subprocess.run
 
@@ -107,7 +140,7 @@ def test_the_cold_pass_command_never_carries_fix_metrics(
         return real_run(cmd, *args, **kwargs)
 
     monkeypatch.setattr(validation.subprocess, "run", spy)
-    validate_repo(_clone_repo(tmp_path))
+    validate_repo(repo)
 
     assert seen, "the validator was never invoked — this assertion would be vacuous"
     for cmd in seen:

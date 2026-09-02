@@ -336,6 +336,124 @@ def test_a_hand_copied_name_cannot_inject_a_header(tmp_path: Path) -> None:
         httpd.shutdown()
 
 
+def test_reading_the_inbox_is_loopback_only(tmp_path: Path) -> None:
+    """Independent review, 2026-09-02, finding 6.
+
+    The store endpoint was loopback-only from the start; the LISTING and the
+    ITEM were not, while `--bind 0.0.0.0` is a supported way to run this. So
+    anyone on the same Wi-Fi could enumerate the inbox and download any item.
+
+    The bargain that bind makes is scoped to NOTES — a tablet reading the
+    documentation. The inbox is unreviewed external material somebody dropped
+    ten seconds ago, gitignored precisely because nobody has decided about it,
+    and since [[ISS-0274]] it holds any file type up to 250 MB.
+
+    All three clauses: the refusal is a refusal, no bytes come back, and it
+    pre-empts the other branches so a LAN client cannot probe which names
+    exist by comparing 404 against 403.
+    """
+    httpd, port = _serve(tmp_path)
+    try:
+        status, body = _post(port, "/api/inbox/store",
+                             {"name": "secret.png", "data": _b64(PNG)})
+        assert status == HTTPStatus.OK, body
+        stored = body["name"]
+
+        handler_cls = httpd.RequestHandlerClass
+        original = handler_cls._is_loopback
+        handler_cls._is_loopback = lambda self: False   # type: ignore[assignment]
+        try:
+            for path in ("/api/inbox", "/_inbox/%s" % stored):
+                try:
+                    with urllib.request.urlopen(
+                            "http://127.0.0.1:%d%s" % (port, path), timeout=5) as r:
+                        raise AssertionError("%s served %d off-loopback" % (path, r.status))
+                except urllib.error.HTTPError as exc:
+                    assert exc.code == HTTPStatus.FORBIDDEN, (path, exc.code)
+                    assert PNG not in exc.read(), "%s leaked the bytes" % path
+            # 3: an item that does NOT exist answers the same way, so the
+            # refusal cannot be used to enumerate.
+            try:
+                with urllib.request.urlopen(
+                        "http://127.0.0.1:%d/_inbox/nope.png" % port, timeout=5):
+                    raise AssertionError("a missing item was served off-loopback")
+            except urllib.error.HTTPError as exc:
+                assert exc.code == HTTPStatus.FORBIDDEN, exc.code
+        finally:
+            handler_cls._is_loopback = original         # type: ignore[assignment]
+
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/_inbox/%s" % (port, stored), timeout=5) as r:
+            assert r.read() == PNG, "loopback must still be able to read"
+    finally:
+        httpd.shutdown()
+
+
+def test_a_pdf_is_not_sandboxed_and_an_svg_is(tmp_path: Path) -> None:
+    """Independent review, 2026-09-02, finding 5.
+
+    `sandbox` went onto every response first. It is also the usual way to make
+    Chrome DOWNLOAD a PDF instead of rendering it, so a blanket policy would
+    have broken PDF preview to protect a format that cannot script.
+
+    **Observed, not argued** — the header contract is asserted here, and the
+    browser behaviour behind it was measured in Chrome on 2026-09-02:
+
+    * `evil.svg` served WITHOUT the policy set `document.title` to
+      `SCRIPT-RAN` — the vulnerability is real, not theoretical.
+    * the same file served WITH it drew its rectangle and the title stayed the
+      URL — the script did not run.
+    * `probe.pdf` rendered in Chrome's viewer under `default-src 'none'`.
+
+    That control is the part that matters: without it, a policy that happened
+    to change nothing would look identical to one that closed a hole.
+    """
+    httpd, port = _serve(tmp_path)
+    try:
+        def policy_for(name: str, data: bytes) -> tuple[str, str]:
+            status, body = _post(port, "/api/inbox/store",
+                                 {"name": name, "data": _b64(data)})
+            assert status == HTTPStatus.OK, body
+            with urllib.request.urlopen(
+                    "http://127.0.0.1:%d/_inbox/%s" % (port, body["name"]),
+                    timeout=5) as r:
+                headers = {k.lower(): v for k, v in r.headers.items()}
+            return headers["content-security-policy"], headers["content-type"]
+
+        svg_policy, svg_type = policy_for(
+            "logo.svg", b'<svg xmlns="http://www.w3.org/2000/svg"><script/></svg>')
+        assert svg_type == "image/svg+xml"
+        assert "sandbox" in svg_policy, svg_policy
+
+        pdf_policy, pdf_type = policy_for("doc.pdf", b"%PDF-1.4\n%%EOF\n")
+        assert pdf_type == "application/pdf"
+        assert "default-src 'none'" in pdf_policy, pdf_policy
+        assert "sandbox" not in pdf_policy, (
+            "a sandboxed PDF is a downloaded PDF, not a previewed one: "
+            + pdf_policy)
+
+        png_policy, _ = policy_for("shot.png", PNG)
+        assert "sandbox" not in png_policy, png_policy
+    finally:
+        httpd.shutdown()
+
+
+def test_the_header_name_keeps_the_extension(tmp_path: Path) -> None:
+    """Independent review, 2026-09-02, finding 1.
+
+    `header_filename` was one `.strip("-.")` over the whole name, so a leading
+    non-ASCII run collapsed to `-` and the strip then took the separator AND
+    the dot behind it. `报告.docx` was served as `filename="docx"`.
+
+    It survived the first round of tests because every hostile name they tried
+    began with an ASCII letter — and a name that does not is exactly the `cp`
+    case this function exists for.
+    """
+    for raw, expected in (("报告.docx", "item.docx"), ("éé.zip", "item.zip"),
+                          ("ünïcode.mov", "n-code.mov"), ("ok.zip", "ok.zip")):
+        assert inbox_mod.header_filename(raw) == expected, raw
+
+
 def test_discarding_removes_the_item(tmp_path: Path) -> None:
     """Discarding is a GOOD outcome — an inbox whose items can only accumulate
     is an archive, which is what the triage skill exists to prevent."""

@@ -1164,7 +1164,24 @@ def _make_handler(
             # A project's OWN stylesheets, for its design artifacts
             # (TASK-0230). The allow-list is whatever the design notes
             # declare — see `_serve_project_stylesheet`.
+            #: **The inbox is loopback-only to READ, not just to write**
+            #: (independent review, 2026-09-02). The store endpoint had
+            #: `_require_loopback` from the start and these two never did, so
+            #: with `--bind 0.0.0.0` anyone on the Wi-Fi could list the inbox
+            #: and download any item in it.
+            #:
+            #: The bargain that bind makes is scoped to NOTES — a tablet on the
+            #: same network reading the documentation. The inbox is not notes.
+            #: It is unreviewed external material somebody dropped ten seconds
+            #: ago, gitignored precisely because nobody has decided about it
+            #: yet, and now holding any file type up to 250 MB.
+            #:
+            #: Nothing is lost: the tray lives in the Electron renderer, which
+            #: reaches the sidecar over 127.0.0.1, and no web template renders
+            #: an inbox surface.
             if path == "/api/inbox":
+                if not self._require_loopback("inbox reads"):
+                    return
                 self._respond_json({
                     "schema_version": cockpit.SCHEMA_VERSION,
                     "items": inbox_mod.list_items(project_root),
@@ -1172,6 +1189,8 @@ def _make_handler(
                 return
 
             if path.startswith("/_inbox/"):
+                if not self._require_loopback("inbox reads"):
+                    return
                 self._serve_inbox_item(
                     urllib.parse.unquote(path[len("/_inbox/"):]))
                 return
@@ -1694,8 +1713,10 @@ def _make_handler(
             ``max_bytes`` overrides the default 2 MB cap. The inbox needs it:
             a Retina screenshot is routinely over 2 MB and base64 inflates it by
             a third, so the shared cap would have refused ordinary items while
-            `inbox.MAX_ITEM_BYTES` advertised 25 MB — a limit that could never
-            be reached, which is worse than a small limit honestly stated.
+            `inbox.MAX_ITEM_BYTES` advertised a larger number it could never
+            reach, which is worse than a small limit honestly stated.
+            (That number was 25 MB when this was written and is 250 MB
+            now; the figure lived in two places and only one moved.)
             """
             try:
                 length = int(self.headers.get("Content-Length") or 0)
@@ -1714,11 +1735,17 @@ def _make_handler(
                 return None
             return body if isinstance(body, dict) else {}
 
-        def _require_loopback(self) -> bool:
+        def _require_loopback(self, what: str = "mutations") -> bool:
+            """Refuse anything that is not from this machine.
+
+            ``what`` names the refused thing in the message. It defaults to
+            ``mutations`` because that was the only caller until 2026-09-02,
+            when the inbox READ paths joined — see `_serve_inbox_item`.
+            """
             if self._is_loopback():
                 return True
             self._respond_json(
-                {"ok": False, "error": "mutations are loopback-only"},
+                {"ok": False, "error": "%s are loopback-only" % what},
                 status=HTTPStatus.FORBIDDEN,
             )
             return False
@@ -3719,9 +3746,15 @@ def _make_handler(
             tested to ISS-0056's three clauses.
 
             The caller's filename is treated as hostile — it arrives from a
-            drag-and-drop or a clipboard paste. `inbox.safe_name` keeps only a
-            sanitised stem and an allow-listed suffix, and containment is
-            re-checked at the write rather than trusted from the filter.
+            drag-and-drop or a clipboard paste. `inbox.safe_name` rewrites the
+            stem **and the suffix**, and containment is re-checked at the write
+            rather than trusted from the filter.
+
+            *(This said "an allow-listed suffix" until 2026-09-02, fifteen
+            lines above the code that had removed the allow-list in the same
+            commit. Found by independent review. There is no suffix list on
+            this path any more — `_serve_inbox_item` decides what a type
+            means, at the read.)*
             """
             if not self._require_loopback():
                 return
@@ -3831,15 +3864,33 @@ def _make_handler(
             self.send_header("Content-Type", ctype or "application/octet-stream")
             self.send_header("Content-Length", str(len(data)))
             self.send_header("X-Content-Type-Options", "nosniff")
-            self.send_header("Content-Security-Policy", "default-src 'none'; sandbox")
+            #: `sandbox` only where something could execute. It is what makes
+            #: Chrome download a PDF rather than render it, so applying it to
+            #: every inline type would have quietly broken PDF preview to
+            #: protect a file format that cannot script (independent review,
+            #: 2026-09-02). `default-src 'none'` is on everything and is what
+            #: blocks the inline `<script>` in a navigated-to SVG.
+            policy = "default-src 'none'"
+            if not inline or suffix in inbox_mod.SCRIPTABLE_SUFFIXES:
+                policy += "; sandbox"
+            self.send_header("Content-Security-Policy", policy)
             if not inline:
                 # Sanitised again for the header, and NOT because `safe_name`
                 # left something dangerous: it did not. Items also arrive by
                 # `cp` straight into `inbox/` — the convention's own escape
-                # hatch — and `resolve_item` admits those. It rejects a
-                # separator and a traversal; it says nothing about a quote or
-                # a newline, and macOS allows both in a filename. One of those
-                # in an unescaped header value is header injection.
+                # hatch — and `resolve_item` admits those. What actually keeps
+                # those inside the inbox is the `relative_to` containment
+                # check; nothing there looks at a quote or a newline, and macOS
+                # allows both in a filename. One of those in an unescaped
+                # header value is header injection.
+                #
+                # This comment said `resolve_item` "rejects a separator and a
+                # traversal" until 2026-09-02. The separator half is true. The
+                # traversal half is `".." in name.split(".")`, which cannot be
+                # true for any string — `split(".")` never yields an element
+                # containing a dot. Independent review caught it, in a comment
+                # written for a change whose whole subject was a guard that
+                # read as one and was not.
                 self.send_header(
                     "Content-Disposition",
                     'attachment; filename="%s"'

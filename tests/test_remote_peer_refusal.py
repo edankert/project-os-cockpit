@@ -286,7 +286,13 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
     )
     #: 27 -> 28 on 2026-08-21, deliberately: [[ISS-0249]]'s
     #: `/api/notes/retire-check`.
-    assert sites == 28, f"expected 28 guard call sites, found {sites}"
+    #: 28 -> 30 on 2026-09-02, deliberately: the inbox's two READ paths,
+    #: `/api/inbox` and `/_inbox/`, which had no guard while the store endpoint
+    #: beside them always had one — so a `--bind 0.0.0.0` server let the LAN
+    #: list the inbox and download any item (independent review of [[ISS-0274]],
+    #: finding 6). Both new calls use their answer; the `discarded` assertion
+    #: above is what says so.
+    assert sites == 30, f"expected 30 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:

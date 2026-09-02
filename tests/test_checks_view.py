@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 import pytest
+from conftest import js_function_body
 from project_os_cockpit import acceptance
 from project_os_cockpit.index import Index
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -519,10 +520,17 @@ def test_every_write_on_the_checks_page_repaints_the_same_way() -> None:
 
 def test_the_address_still_wins_on_navigation() -> None:
     """The fix must not become ISS-0203 again: a bare `~checks` reached by
-    NAVIGATION still clears both axes, and only `keepFilters` opts out."""
+    NAVIGATION still clears both axes, and only `keepFilters` opts out.
+
+    **Bounded by the function, not by a character count** ([[ISS-0275]]). This
+    read `src[i:i + 3000]` and the `if (!keepFilters) {` it looks for sits at
+    offset 3002 — so the day `renderChecksPage` grew by two characters the test
+    went red with the guard fully intact, and reported a regression that had
+    not happened. A window is a guess about a distance; braces are the boundary
+    the language has.
+    """
     src = _renderer()
-    i = src.index("async function renderChecksPage")
-    body = src[i:i + 3000]
+    body = js_function_body(src, "async function renderChecksPage")
     assert "keepFilters = false" in body, "keeping filters must be opt-in"
     assert "if (!keepFilters) {" in body, body[:400]
     for axis in ("checkFilters.tiers =", "checkFilters.areas ="):

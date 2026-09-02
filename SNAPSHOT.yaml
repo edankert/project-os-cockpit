@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 143
-  ISS: 274
+  ISS: 276
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -77,7 +77,7 @@ focus:
   task: "TASK-0586"
   feature: "FEAT-0143"
   phase: "PHASE-041"
-  issue: "ISS-0274"
+  issue: "ISS-0275"
   note: "2026-08-29 PHASE-041 CLOSED on 5 of 6 exit criteria, ISS-0209 FIXED after eleven days open and a quarter parked. THE FLEET NOW SHARES ONE VALIDATOR: obsidian-supernote-sync / your-health / your-sudoku / your-trainer all migrated and COMMITTED LOCALLY (nothing pushed); errors under upstream rules 16/271/194/605 -> 0/0/0/0, gate 0 -> 2 everywhere, divergence 782/817/776/776 -> 0. VERIFY-ACCEPTANCE now fires 10 times in your-sudoku and 19 in your-trainer, IN THEIR OWN PRE-COMMIT -- as WARNINGS until upstream's grandfather window closes 2026-11-20. Installing the gate and having it BLOCK are two dates. THE CENSUS (TASK-0579) IS WHY THIS WAS CHEAP: 1086 errors and 100% were PARENT-BACKLINK + SNAPSHOT-MEMBERSHIP, one relationship seen from two ends, answered by one operation run four times. ISS-0209 estimated a per-repo reconciliation; it was two rules. AND THE 780-LINE DIVERGENCE WAS ANSWERING A DIFFERENT QUESTION -- that is against upstream HEAD (upstream moving); against each repo's own baseline the delta was 21-100 lines and 0/4/32/32 of the added lines were absent from upstream, the 32 being ADR-0030's CHK/checks which ADR-0031 RETIRED. THE LESSON THE CENSUS COULD NOT HAVE PREDICTED: fixing rule A can ARM rule B. your-trainer's snapshot task lists were empty, VERIFY reads them FROM THE SNAPSHOT, so filling them in produced 15 findings (FEAT-0098 done 2026-07-05 with 11 tasks still doing). Grandfathered by ID (155 -> 158) rather than guessed at. TWO NEW SCRIPTS: migrate-fleet-validator.py (add-only, idempotent, TST-0080 / 19 tests) and fleet-drift.py (TST-0081 / 12 tests). THE DRIFT CHECK GATES ON RULE CODES, NOT LINES -- this repo is 1105 lines from upstream and AHEAD of it, so a line threshold would fail the one repo doing the right thing. IT CANNOT RUN IN CI and the tool says so: it measures drift between LOCAL working copies and a runner has no fleet. Home is tools/hooks/pre-commit.local, tracked here, installed by hand. EXIT CRITERION 6 IS HALF-MET AND RECORDED AS SUCH: REL-0013 needs 32 checks, 13 now derive from the note's own features: -- they were unreachable because all 13 were authored for FEAT-0104 and said covers: FEAT-0011, so the query returned zero and the table was hand-written BECAUSE IT LOOKED EMPTY RATHER THAN WRONG. The other 19 are checks the release BREAKS and no field carries that (ISS-0258). FOUR ISSUES FILED, all homed in PHASE-999: ISS-0257 the sync copies upstream's gitignored __pycache__ downstream; ISS-0258 a release cannot derive what it broke; ISS-0259 six MORE repos are 10 rules behind (reported, not gated); ISS-0260 -- THE SHARPEST -- load_yaml swallows a parse error and the lenient fallback answers, so a note that is not YAML is validated against a DIFFERENT reading of itself. It hid a defect I wrote during this very session through two green pre-commit runs, and your-trainer has had 8 live instances since 2026-07-24."
 
 items:
@@ -1728,6 +1728,22 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0276:
+      file: "docs/issues/ISS-0276-Twenty-One-Tests-Still-Measure-A-Character-Distance.md"
+      title: "21 tests still assert over a fixed character window, an idiom that has now failed in both directions in this suite"
+      status: open
+      owner: user:edwin
+      severity: low
+      component: tooling
+      note: "Split out of ISS-0275 rather than swept in. `js_function_body` is not a drop-in: several anchor on a statement, not a function signature. Converting a guard without studying what it pins is how a test gets weakened -- ISS-0275's own first brace-matcher latched onto a destructured parameter and returned an 84-character body."
+    ISS-0275:
+      file: "docs/issues/ISS-0275-Five-Tests-Failed-For-Reasons-That-Were-Not-Defects.md"
+      title: "Five tests failed and none of them had found a defect — two measured a character distance, one held a second definition of settled, and three read the author's uncommitted working tree"
+      status: fixed
+      owner: user:edwin
+      severity: medium
+      component: tooling
+      note: "Green code, five tests measuring by proxy. A guard at offset 3002 inside a 3000-char window. A band predicate reading `mark` alone while the product's `_is_incomplete` counts a STALE tick as owed -- the payload could not express the sort key it was sorted by, so `stale` is on the item now. And `_clone_repo` copying the WORKING TREE while three tests assert it validates ok, so one unregistered note failed all three. Now materialises HEAD, the basis CI uses. Every fix mutation-checked; the two fleet mutants show the coupling went without the teeth going."
     ISS-0274:
       file: "docs/issues/ISS-0274-The-Inbox-Refuses-Most-File-Types.md"
       title: "The inbox refuses every file type outside a seventeen-suffix list, and that list is not what makes the drop safe"
@@ -4042,7 +4058,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 14
+    issues_open: 15
     issues_triage: 7
     risks_open: 6
     releases_total: 1
