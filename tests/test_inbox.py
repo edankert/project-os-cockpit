@@ -18,6 +18,7 @@ import json
 import re
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 from http import HTTPStatus
 from pathlib import Path
@@ -68,19 +69,62 @@ def test_a_hostile_name_cannot_become_a_path() -> None:
     """The name arrives from a drag-and-drop or a clipboard paste — the one
     place a user-supplied name reaches a write path. Separators are stripped
     before anything else, so a traversal survives only as a stem."""
-    assert inbox_mod.safe_name("../../.ssh/authorized_keys") is None  # suffix
-    got = inbox_mod.safe_name("../../evil.png")
-    assert got and "/" not in got and ".." not in got
-    assert got.endswith("-evil.png"), got
+    for hostile in ("../../.ssh/authorized_keys", "../../evil.png",
+                    "..\\..\\windows\\system32\\cmd.exe"):
+        got = inbox_mod.safe_name(hostile)
+        assert got and "/" not in got and "\\" not in got and ".." not in got, hostile
+    assert inbox_mod.safe_name("../../evil.png").endswith("-evil.png")
 
 
-def test_only_evidence_shaped_files_are_stored() -> None:
-    """An allow-list, not a deny-list: the inbox holds evidence someone
-    dropped, and an executable is not evidence."""
-    for bad in ("run.sh", "x.py", "a.dylib", "noextension", ".", "..", ""):
+def test_any_file_type_is_storable() -> None:
+    """ISS-0274. The write path no longer judges the type. The suffix list it
+    used to carry refused `.zip`, which the server never opens, while admitting
+    `.svg`, which can carry script — so it was not the guard it read as. What
+    the type is now decides how it is SERVED, not whether it is stored."""
+    for name in ("archive.zip", "report.docx", "clip.mov", "page.html",
+                 "run.sh", "x.py", "a.dylib", "Makefile", "README",
+                 "backup.tar.gz", "shot.png", "scan.PDF"):
+        assert inbox_mod.safe_name(name) is not None, name
+
+
+def test_a_name_with_nothing_in_it_is_still_refused() -> None:
+    """Widening the types did not widen this: there is no file here to store."""
+    for bad in ("", ".", "..", "   ", "///"):
         assert inbox_mod.safe_name(bad) is None, bad
-    for good in ("shot.png", "notes.md", "export.csv", "scan.PDF"):
-        assert inbox_mod.safe_name(good) is not None, good
+
+
+def test_the_suffix_is_sanitised_like_the_stem() -> None:
+    """The suffix used to be safe because it was matched against a fixed set.
+    Nothing matches it now, so it goes through `_SAFE` too — otherwise the one
+    half of the name that was never rewritten becomes the way in."""
+    now = dt.datetime(2026, 9, 2, 12, 0, 0)
+    assert inbox_mod.safe_name('weird.a"b', now=now).endswith(".a-b")
+    assert inbox_mod.safe_name("x.a\nb", now=now).endswith(".a-b")
+    long = inbox_mod.safe_name("x." + "a" * 200, now=now)
+    assert len(long.rsplit(".", 1)[1]) <= 16, long
+    # A suffix that sanitises down to punctuation is no suffix at all.
+    assert inbox_mod.safe_name("foo.\u2603", now=now) == "20260902-120000-foo"
+
+
+def test_no_dropped_name_can_create_a_dotfile() -> None:
+    """`list_items` skips dotfiles, so a stored item that begins with a dot
+    would be invisible in the tray — present on disk, absent from the inbox
+    the user is looking at. The timestamp prefix is what prevents it."""
+    now = dt.datetime(2026, 9, 2, 12, 0, 0)
+    for hidden in (".bashrc", ".ssh", "..hidden", ".DS_Store"):
+        got = inbox_mod.safe_name(hidden, now=now)
+        assert got and not got.startswith("."), hidden
+
+
+def test_header_filename_cannot_break_a_header() -> None:
+    """`cp` into `inbox/` is a supported way to add an item, so names this
+    module never built reach the serve path. macOS allows a quote and a
+    newline in a filename; either one unescaped in `Content-Disposition` is
+    header injection."""
+    for hostile in ('a".zip', "a\r\nSet-Cookie: x=1.zip", "a\nb.bin"):
+        got = inbox_mod.header_filename(hostile)
+        assert '"' not in got and "\r" not in got and "\n" not in got, hostile
+    assert inbox_mod.header_filename("") == "item"
 
 
 def test_two_items_in_the_same_second_both_survive(tmp_path: Path) -> None:
@@ -156,15 +200,21 @@ def test_a_traversal_name_writes_inside_the_inbox_or_not_at_all(tmp_path: Path) 
         outside.unlink(missing_ok=True)
 
 
-def test_an_oversized_item_is_refused(tmp_path: Path) -> None:
-    """An unbounded write endpoint on a server that binds 0.0.0.0 is a way to
-    fill a disk from the LAN.
+def test_an_oversized_item_is_refused(tmp_path: Path, monkeypatch) -> None:
+    """The cap is memory, not disk (ISS-0274): the renderer base64s the whole
+    file into one JSON request, so both ends hold it at once. The docstring
+    here used to say "fill a disk from the LAN", which `_require_loopback` had
+    already made impossible.
 
     Refused at the BODY, before decoding — the shared 2 MB reader cap would
     otherwise have rejected ordinary screenshots while `MAX_ITEM_BYTES`
-    advertised 25 MB, a limit that could never be reached. A limit that cannot
-    be hit is worse than a small one honestly stated.
+    advertised a larger number it could never reach. A limit that cannot be hit
+    is worse than a small one honestly stated.
+
+    The cap is patched down for the test. Posting a real 250 MB body would
+    allocate a third of a gigabyte again in base64 to prove a comparison.
     """
+    monkeypatch.setattr(inbox_mod, "MAX_ITEM_BYTES", 64 * 1024)
     httpd, port = _serve(tmp_path)
     try:
         big = b"0" * (inbox_mod.MAX_ITEM_BYTES + 1024)
@@ -192,6 +242,96 @@ def test_an_ordinary_screenshot_is_not_refused(tmp_path: Path) -> None:
                              {"name": "retina.png", "data": _b64(shot)})
         assert status == 200, (status, data)
         assert (tmp_path / "inbox" / data["name"]).stat().st_size == len(shot)
+    finally:
+        httpd.shutdown()
+
+
+def test_an_inert_type_is_served_as_an_attachment(tmp_path: Path) -> None:
+    """ISS-0274. Widening the write path moved the judgement to the read: a
+    type the browser might interpret comes back as bytes to save, never as a
+    document to run at the cockpit's origin.
+
+    This is the guard test for the removed allow-list. Serving `.html` with
+    `text/html` here is exactly the failure the suffix list was standing in
+    front of, and this is what now stands there instead.
+    """
+    httpd, port = _serve(tmp_path)
+    try:
+        status, body = _post(port, "/api/inbox/store",
+                             {"name": "page.html",
+                              "data": _b64(b"<script>alert(1)</script>")})
+        assert status == HTTPStatus.OK, body
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/_inbox/%s" % (port, body["name"]),
+                timeout=5) as r:
+            headers = {k.lower(): v for k, v in r.headers.items()}
+            assert headers["content-type"] == "application/octet-stream", headers
+            assert headers["content-disposition"].startswith("attachment;"), headers
+            assert "default-src 'none'" in headers["content-security-policy"]
+    finally:
+        httpd.shutdown()
+
+
+def test_an_image_is_still_served_inline(tmp_path: Path) -> None:
+    """The tray shows real thumbnails through `<img src>` (TASK-0234). If the
+    hardening above cost that, it broke the surface it was protecting."""
+    httpd, port = _serve(tmp_path)
+    try:
+        status, body = _post(port, "/api/inbox/store",
+                             {"name": "shot.png", "data": _b64(PNG)})
+        assert status == HTTPStatus.OK, body
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/_inbox/%s" % (port, body["name"]),
+                timeout=5) as r:
+            headers = {k.lower(): v for k, v in r.headers.items()}
+            assert headers["content-type"] == "image/png", headers
+            assert "content-disposition" not in headers, headers
+            assert r.read() == PNG
+    finally:
+        httpd.shutdown()
+
+
+def test_an_svg_carries_a_policy_that_neutralises_its_script(tmp_path: Path) -> None:
+    """`.svg` was on the OLD write-side allow-list and is the one type that
+    list should have refused: an SVG can carry `<script>` and came back as
+    `image/svg+xml` at the cockpit's own origin.
+
+    It stays inline, because `<img>` never ran that script and thumbnails need
+    it. What closes the hole is the policy header on the direct-navigation
+    case, which the allow-list never had.
+    """
+    httpd, port = _serve(tmp_path)
+    try:
+        evil = b'<svg xmlns="http://www.w3.org/2000/svg"><script>x()</script></svg>'
+        status, body = _post(port, "/api/inbox/store",
+                             {"name": "logo.svg", "data": _b64(evil)})
+        assert status == HTTPStatus.OK, body
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/_inbox/%s" % (port, body["name"]),
+                timeout=5) as r:
+            headers = {k.lower(): v for k, v in r.headers.items()}
+            assert headers["content-type"] == "image/svg+xml", headers
+            assert "default-src 'none'" in headers["content-security-policy"]
+            assert "sandbox" in headers["content-security-policy"]
+    finally:
+        httpd.shutdown()
+
+
+def test_a_hand_copied_name_cannot_inject_a_header(tmp_path: Path) -> None:
+    """`cp` into `inbox/` is the convention's own escape hatch, so the serve
+    path sees names `safe_name` never built. A quote in one of those, put
+    unescaped into `Content-Disposition`, is header injection."""
+    inbox_dir = tmp_path / "inbox"
+    inbox_dir.mkdir(parents=True, exist_ok=True)
+    hostile = 'a";x.zip'
+    (inbox_dir / hostile).write_bytes(b"PK\x03\x04")
+    httpd, port = _serve(tmp_path)
+    try:
+        with urllib.request.urlopen(
+                "http://127.0.0.1:%d/_inbox/%s"
+                % (port, urllib.parse.quote(hostile)), timeout=5) as r:
+            disposition = r.headers["Content-Disposition"]
+            assert disposition == 'attachment; filename="a-x.zip"', disposition
     finally:
         httpd.shutdown()
 

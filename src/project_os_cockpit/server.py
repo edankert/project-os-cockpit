@@ -3738,12 +3738,11 @@ def _make_handler(
                 return
             name = inbox_mod.safe_name(raw_name)
             if name is None:
+                # Any *type* is storable (ISS-0274). What is left to refuse is
+                # a name with nothing in it — empty, `.`, or `..`.
                 self._respond_json(
                     {"ok": False,
-                     "error": "%r is not a storable name — the inbox takes "
-                              "evidence, and its suffix must be one of: %s"
-                              % (raw_name[:80],
-                                 ", ".join(sorted(inbox_mod.ALLOWED_SUFFIXES)))},
+                     "error": "%r has no filename in it" % (raw_name[:80],)},
                     status=HTTPStatus.BAD_REQUEST)
                 return
             try:
@@ -3802,17 +3801,49 @@ def _make_handler(
             Read-only and containment-checked. No CORS: nothing sandboxed
             reads this, and adding a header nothing needs is how a route
             widens by accident.
+
+            **This is where the file's type is judged** (ISS-0274). The write
+            path used to hold a suffix allow-list, which was the wrong end: it
+            refused `.zip`, which this route would only ever hand back as
+            bytes, while admitting `.svg`, which came back as `image/svg+xml`
+            at the cockpit's own origin and can carry `<script>`.
+
+            Two headers replace that list, and they hold for anything dropped:
+
+            - A suffix outside `INLINE_SUFFIXES` is served as an **attachment**
+              with `application/octet-stream`, so the browser saves it rather
+              than interpreting it. That is the whole of what the allow-list
+              was reaching for.
+            - Every response carries `default-src 'none'; sandbox`, which
+              neutralises a navigated-to SVG or HTML document. Thumbnails are
+              unaffected: a CSP on an image response does not govern the page
+              that put it in an `<img>`, and `<img>` never ran SVG script.
             """
             target = inbox_mod.resolve_item(project_root, name)
             if target is None:
                 self._respond_not_found(self.path)
                 return
-            ctype, _ = mimetypes.guess_type(target.name)
+            suffix = target.suffix.lower()
+            inline = suffix in inbox_mod.INLINE_SUFFIXES
+            ctype, _ = mimetypes.guess_type(target.name) if inline else (None, None)
             data = target.read_bytes()
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", ctype or "application/octet-stream")
             self.send_header("Content-Length", str(len(data)))
             self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("Content-Security-Policy", "default-src 'none'; sandbox")
+            if not inline:
+                # Sanitised again for the header, and NOT because `safe_name`
+                # left something dangerous: it did not. Items also arrive by
+                # `cp` straight into `inbox/` — the convention's own escape
+                # hatch — and `resolve_item` admits those. It rejects a
+                # separator and a traversal; it says nothing about a quote or
+                # a newline, and macOS allows both in a filename. One of those
+                # in an unescaped header value is header injection.
+                self.send_header(
+                    "Content-Disposition",
+                    'attachment; filename="%s"'
+                    % inbox_mod.header_filename(target.name))
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(data)

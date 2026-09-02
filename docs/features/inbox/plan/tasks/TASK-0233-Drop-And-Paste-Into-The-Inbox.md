@@ -7,7 +7,7 @@ status: done
 phase: "[[PHASE-014-Project-Inbox]]"
 owner: user:edwin
 created: 2026-07-28
-updated: 2026-07-28
+updated: "2026-09-02"
 source: ["[[FEAT-0045-Project-Inbox]]"]
 parent: "[[FEAT-0045-Project-Inbox]]"
 effort: "L"
@@ -36,11 +36,13 @@ tests: []
 
 ## Result
 
-**A limit that could never be reached.** `MAX_ITEM_BYTES` advertised 25 MB while the shared JSON body reader capped every request at 2 MB — so ordinary Retina screenshots, which routinely exceed 2 MB, would have been refused by a limit nobody had written down. Found by testing the size guard rather than by reading it. The route now takes its own cap, and `test_an_ordinary_screenshot_is_not_refused` sends 3 MB, because a feature built for screenshots that rejects screenshots is not built.
+**A limit that could never be reached.** `MAX_ITEM_BYTES` advertised 25 MB — raised to 250 MB on 2026-09-02, [[ISS-0274]] — while the shared JSON body reader capped every request at 2 MB — so ordinary Retina screenshots, which routinely exceed 2 MB, would have been refused by a limit nobody had written down. Found by testing the size guard rather than by reading it. The route now takes its own cap, and `test_an_ordinary_screenshot_is_not_refused` sends 3 MB, because a feature built for screenshots that rejects screenshots is not built.
 
 **Two guards could not fire.** Removing the basename split in `safe_name`, and the cheap name check in `resolve_item`, each left every test green — the `_SAFE` substitution and the `relative_to` containment respectively refuse the same inputs. Both stay, and **both docstrings now say which line is the guard**, because a check that cannot fire under a comment implying it protects something is the defect this codebase has found four times ([[ISS-0024]], [[ISS-0049]], [[ISS-0056]], and the `/_project` route).
 
 The properties themselves are tested independently of which layer provides them, so a future edit that removes the real guard still fails.
+
+*(Superseded in part on 2026-09-02, [[ISS-0274]]. **A third guard could not fire, and this note did not catch it: the suffix allow-list.** It was described here and in the code as one of the things making the drop safe. It was not. `_SAFE` and the `relative_to` containment refuse a hostile name without it; nothing executes a file out of `inbox/`; and it admitted `.svg` — which can carry `<script>` and came back at the cockpit's own origin — while refusing `.zip`, which the server never opens. The list is gone from the write path. What it was reaching for now lives on the read: a type outside `INLINE_SUFFIXES` is served as `application/octet-stream` with `Content-Disposition: attachment`, and every response carries `default-src 'none'; sandbox`. The paragraph above is right about the pattern and counted three instances; this was the fourth, sitting in the same file.)*
 
 **The pinned virtual-landing mode set earned its keep.** Adding `inbox` broke `test_the_boot_path_does_not_race_a_virtual_landing_mode` immediately — the set is pinned exactly so a new mode has to come to that test and say so, rather than silently inheriting [[ISS-0040]]'s race.
 
