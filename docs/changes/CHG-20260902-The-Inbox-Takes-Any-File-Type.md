@@ -98,9 +98,16 @@ Each new guard was checked by removing it and confirming a test goes red — the
 
 The oversize test now patches `MAX_ITEM_BYTES` down rather than posting a real body: at 250 MB it would allocate a third of a gigabyte again as base64 to prove a comparison.
 
-## Not changed
+## Released to the fleet
 
-`tools/cockpit/` still carries the old allow-list. That tree is the pinned release snapshot owned by `tools/scripts/release-to-project-os.sh` (`CANONICAL_SHA` 2026-07-28) and is refreshed by a release, not by hand.
+`tools/cockpit/` carried the old allow-list when this note was first written, because that tree is a delivery snapshot refreshed by a release rather than by hand. The release has since been run (Edwin, 2026-09-02) and **all twelve fleet repos now carry `cfae6b1`**, up from `afc4fa7b` — five weeks and 193 commits.
+
+Two things the sweep found that nothing had been looking for:
+
+- **`articles` had no `src/` at all.** Its `tools/cockpit` held four files — `CANONICAL_DATE`, `CANONICAL_SHA`, `pyproject.toml`, `run.sh` — and not the package `run.sh` exists to launch. Not gitignored; simply never committed. It was also stamped at a different release from the other eleven, so no comparison against a sibling had ever been made.
+- **`validate_docs_bundled.py` differed between repos carrying the same `CANONICAL_SHA`** — 1969 lines in the four repos PHASE-041 migrated, ~1810 in the others. A delivery copy that varies at a fixed stamp is not a delivery copy, and the stamp was not enough to notice.
+
+Each repo was committed path-scoped to `tools/cockpit`, so in-flight work elsewhere was left alone — 16 editorial files in `articles`, one gradle file in `your-trainer`. Every repo's validator passed. Nothing was pushed.
 
 `renderer.ts` needs no change: unknown suffixes already fall through to a generic icon and a *"No in-app preview for this type — open it in Finder"* stage, which was written for types the server would not accept and is now reachable.
 
