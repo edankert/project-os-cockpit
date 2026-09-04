@@ -4,7 +4,7 @@ id: INSTR-HOOKS
 status: active
 owner: group:maintainers
 created: 2026-03-08
-updated: 2026-07-21
+updated: 2026-09-04
 tags: [instructions, hooks]
 ---
 
@@ -19,10 +19,11 @@ Contract IDs are `HC-001`..`HC-008`. (Earlier revisions of this file used `CHC-0
 - Trigger: before functional code changes.
 - Rule: `LIFECYCLE.md` — "Preflight (must happen before code changes)" and "Mandatory Automated Documentation".
 - Check logic:
-  - `SNAPSHOT.yaml` has an active `focus.task` or `focus.issue` covering the work (docs/tools/config paths are exempt).
+  - `SNAPSHOT.yaml` has an active `focus.task` or `focus.issue` covering the work. Exempt paths, stated once here and cited by both implementations: `docs/`, `tools/`, `.claude/`, `.cursor/`, `.github/`, `SNAPSHOT.yaml`, `CLAUDE.md`, `CONTEXT.md`, `README.md`, `AGENTS.md`, `LLM_BRIEF.md`, and the lint and sync configs (`.prettierrc`, `.markdownlint*`, `.yamllint*`, `.gitignore`, `.project-os-sync`).
   - Code changes have a `docs/changes/CHG-*.md` note when required.
   - Change notes have no pending documentation-coverage entries.
 - Implementations: Claude Code `hooks/document-first-gate.sh` (blocking PreToolUse); Codex/generic `bash tools/agents/start-change.sh "<short title>"` + `bash tools/agents/check-docs-first.sh`.
+- The target file's repo governs the edit. A file outside every project-os repo is not gated: when the walk up from the target finds no `SNAPSHOT.yaml`, only a relative path or a path under the session repo falls back to the session repo's focus; any other path is allowed (project-os-dev ISS-0003).
 - On failure: block the code edit (or close-out) until the documentation state is explicit.
 
 ## HC-002: Startup preflight / snapshot freshness
@@ -37,13 +38,17 @@ Contract IDs are `HC-001`..`HC-008`. (Earlier revisions of this file used `CHC-0
 
 ## HC-003: Verification gate
 
-- Trigger: before marking a task `done`, issue `fixed`, requirement `implemented`, or feature `done`.
+- Trigger: before marking a task `done`, issue `fixed`, or feature `done`. A requirement is never test-gated (`STATUSES.md` `[[requirement]]`), so `implemented` is not a trigger.
 - Rule: `QUALITY.md` — "Verification gating (tests)".
 - Check logic:
   - Find linked `TST-*` IDs from the snapshot and note frontmatter.
   - Confirm every required test is `status: passing`.
-- On failure: block the terminal status transition unless an explicit `verification_waiver: <reason>` is recorded in the note frontmatter (the waiver is a logged artifact, not a silent skip).
-- Enforcement: this gate must be mechanical, not advisory. The Claude Code adapter implements it as a blocking PreToolUse hook (`../adapters/claude-code/hooks/verification-gate.py`); other adapters must run `tools/scripts/validate-docs.sh` before close-out and at pre-commit/CI, which enforces the same invariant repo-wide.
+- **Two tests are not required tests.** Stated here because two programs enforce this gate and both must read the same list:
+  - a test carrying `command:` — it records no verdict and CI is the verdict (`STATUSES.md` `[[test]]`, ADR-0025). Checked first: an acceptance check that gains a `command:` is automated (`TESTING.md`, "When to create", rule 3).
+  - a test at `level: acceptance` — it rests at `active` and its verdict is a release-ledger event (`STATUSES.md` `[[test]]`, ADR-0037). Whether it is *settled* is the validator's `VERIFY-ACCEPTANCE`; the hook reads frontmatter and cannot see the ledger, so it does not check settledness.
+- A `verification_waiver:` requires `waiver_expires: YYYY-MM-DD` in both implementations; an open-ended waiver is a rule deletion written in the passive voice (ADR-0010).
+- On failure: block the terminal status transition unless a `verification_waiver` is recorded (`QUALITY.md`, "Verification gating").
+- Enforcement: this gate must be mechanical, not advisory. The Claude Code adapter implements it as a blocking PreToolUse hook (`../adapters/claude-code/hooks/verification-gate.py`); other adapters must run `tools/scripts/validate-docs.sh` before close-out and at pre-commit/CI. The two agree on the exemptions and the waiver rule above. They still differ in reach: the validator gates on the reverse `covers:` index and the hook on the subject's `tests:`, so the validator sees links the hook does not (project-os-dev ISS-0051, follow-up).
 
 ## HC-004: Phase alignment
 
@@ -53,12 +58,12 @@ Contract IDs are `HC-001`..`HC-008`. (Earlier revisions of this file used `CHC-0
   - Read `focus.phase` from `SNAPSHOT.yaml` and the task or parent feature `phase`.
   - If both phases are set and the task belongs to a future phase, flag the mismatch.
 - Implementations: Claude Code `hooks/phase-alignment.sh` (PostToolUse advisory).
-- On failure: warn and require explicit user confirmation before proceeding.
+- On failure: warn. Whether the task runs ahead of its phase is the user's decision (`LIFECYCLE.md`, "When to pause for the user").
 
 ## HC-005: Risk-scan trigger
 
-- Trigger: after changes to dependency manifests, environment/configuration surfaces, CI definitions, or artifact paths.
-- Rule: `LIFECYCLE.md` — "Risk scan triggers"; `../skills/risk-scan/SKILL.md`.
+- Trigger: a changed path matching the risk-scan trigger list.
+- Rule: `LIFECYCLE.md` — "Risk scan triggers" (the list); `../skills/risk-scan/SKILL.md`.
 - Check logic: match the changed path against the risk-scan trigger list in `LIFECYCLE.md`; when it matches, a `RISK-*` note must be created or updated per `../skills/risk-scan/SKILL.md`.
 - Implementations: Claude Code `hooks/risk-scan-trigger.sh` (PostToolUse advisory).
 - On failure: warn; close-out (HC-006) verifies the `RISK-*` note exists when hazards changed.
@@ -67,6 +72,7 @@ Contract IDs are `HC-001`..`HC-008`. (Earlier revisions of this file used `CHC-0
 
 - Trigger: before final response after implementation work.
 - Rule: `LIFECYCLE.md` — "Close-out (must happen after work)"; `QUALITY.md` — "Minimum close-out for any implemented task".
+- The block names two actions: if the work is complete, set the status and clear focus now; if stopping mid-flight for the user, write the handoff into the task note (`HANDOFF.md`, "Before stopping work") and stop. The loop guard lets that second stop through.
 - Check logic:
   - Snapshot and note statuses agree.
   - `focus` is cleared or moved to the next active item.
@@ -87,18 +93,19 @@ Contract IDs are `HC-001`..`HC-008`. (Earlier revisions of this file used `CHC-0
   - Every ID referenced from snapshot relationship fields or active-note frontmatter resolves to a snapshot item or note.
   - No terminal status without passing linked tests (or a recorded `verification_waiver`).
   - `metrics.counts` values match the computed counts (`--fix-metrics` rewrites them).
-- On failure: fix the drift before stopping/committing. Rationale: convention-only rules are demonstrably bypassed by agents under context pressure; the three layers (session hook, pre-commit, CI) exist because the first two can be skipped and CI cannot.
+- On failure: fix the drift before stopping/committing. Rationale and the three enforcement layers: `QUALITY.md`, "Documentation Fidelity".
 
-## HC-008: Model routing hint
+## HC-008: Delegation hint
 
 - Trigger: prompt submission (before the agent begins work).
-- Rule: `LIFECYCLE.md` — "Preflight (must happen before code changes)" and "Close-out"; `QUALITY.md` — independent review must not be performed by the authoring model.
+- Rule: `LIFECYCLE.md` — "Preflight (must happen before code changes)" and "Close-out"; `QUALITY.md` — "Independent review (clean-context)", which states once what makes a review independent.
 - Check logic:
-  - Read `focus.task`/`focus.issue`/`focus.feature` from `SNAPSHOT.yaml` and resolve the item's status.
-  - Map the lifecycle phase to the agent that should do the work: planning statuses → the `planner` subagent, execution statuses → the main loop, review statuses → the `independent-reviewer` subagent.
-  - Stay silent on a template placeholder snapshot (`template.replace_me: true`) or when no snapshot exists.
-- Implementations: Claude Code `hooks/model-routing-hint.sh` (advisory UserPromptSubmit) plus the model-pinned subagents generated by `tools/scripts/generate-adapters.py`. Tools without subagents implement the routing as instructions only.
-- On failure: none — the hint is advisory. Hooks cannot change a session's model, so enforcement lives in the subagent model pins, not here.
+  - Read `focus.task`/`focus.issue`/`focus.feature` and `focus.phase` from `SNAPSHOT.yaml`, resolve the item's status, and state all three.
+  - Say who writes the note: a single issue or task gets its note in the main loop; a multi-item scaffold or an ambiguous ask goes to the `planner` subagent, with the user's prompt verbatim and one sentence on what the result enables. The documentation requirement itself does not change.
+  - Name the `independent-reviewer` subagent only in review states.
+  - Stay within 3 lines and 600 characters (asserted by `tools/scripts/test-hooks.sh`), so the hint never grows into the SessionStart slice. Stay silent on a template placeholder snapshot (`template.replace_me: true`) or when no snapshot exists.
+- Implementations: Claude Code `hooks/model-routing-hint.sh` (advisory UserPromptSubmit) plus the model-pinned subagents generated by `tools/scripts/generate-adapters.py`. The script keeps its filename so existing `.claude/settings.json` files keep resolving. Tools without subagents implement this as instructions only.
+- On failure: none. The hint informs; the harness routes (project-os-dev ADR-0003). It does not and cannot change a session's model.
 
 ## Legacy CHC-* code mapping
 

@@ -4,7 +4,7 @@ id: SKILL-PHASE-PLANNING
 status: active
 owner: group:maintainers
 created: 2026-05-05
-updated: 2026-05-05
+updated: 2026-09-04
 tags: [skills, phases, planning]
 ---
 
@@ -28,8 +28,7 @@ tags: [skills, phases, planning]
 
 ## Checklist
 1. Decide whether a first-class phase note is needed:
-   - Use a `PHASE-*` note when the milestone has scope, exit criteria, or linked work.
-   - A simple integer phase in `phase:` is acceptable only for lightweight projects or migration.
+   - Which form `phase:` takes is stated once in `../../../docs/PHASES.md`.
 2. Allocate the next `PHASE-####` from `../../../SNAPSHOT.yaml -> counters.PHASE`.
 3. Create the phase note from `../../../docs/__templates__/phase.md`.
 4. Populate:
@@ -40,9 +39,8 @@ tags: [skills, phases, planning]
    - linked `features`, `requirements`, `tasks`, and `issues`
 5. Update `../../../SNAPSHOT.yaml`:
    - add `items.phases.<PHASE-####>` with `file`, `title`, `status`, `order`, `goal`, and linked item IDs
-   - increment `counters.PHASE`
    - set `focus.phase` if this is the active milestone
-   - update `metrics.counts.phases_total` and `metrics.counts.phases_done`
+   - `counters.PHASE` and `metrics.counts` are derived by the sync script (`../../instructions/LIFECYCLE.md`, "Mandatory Automated Documentation"); do not hand-write them
 6. Update related notes/items:
    - set `phase: "[[PHASE-####]]"` in note frontmatter where applicable
    - set `phase: PHASE-####` in snapshot item entries

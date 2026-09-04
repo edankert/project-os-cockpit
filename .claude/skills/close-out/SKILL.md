@@ -7,8 +7,11 @@ description: "project-os close-out playbook. Use when: At the end of an implemen
 
 This operation is governed by the canonical project-os playbook.
 
-1. Read `tools/skills/close-out/SKILL.md` in full — it is the source of truth for this skill.
-2. Execute its checklist exactly, honoring the preflight and close-out rules in `tools/instructions/LIFECYCLE.md` (document first, update `SNAPSHOT.yaml` and notes in the same turn as the work).
-3. Before finishing, run `bash tools/scripts/validate-docs.sh` and fix anything it reports.
-4. Before pushing, run `bash tools/scripts/validate-docs.sh --as-committed` — it checks `HEAD` as a fresh clone would see it, against the full CI step set. Step 3 runs one check against your working tree; CI runs three against the commit.
-5. After pushing, confirm the run went green (`gh run list --limit 1`). A change is not landed until you have seen that.
+1. Read `tools/skills/close-out/SKILL.md` in full; it is the source of truth for this skill.
+2. Follow its checklist, honouring the preflight and close-out rules in `tools/instructions/LIFECYCLE.md` (document first; update `SNAPSHOT.yaml` and the notes in the same turn as the work). Where the checklist and the repo disagree, say so and file an `ISS-*` rather than improvising.
+
+Use when:
+
+- At the end of an implementation task or when an issue is resolved.
+
+3. Then follow `tools/instructions/LIFECYCLE.md` close-out steps 7 to 9: run the validator, run `--as-committed` before pushing, and confirm the CI run went green.

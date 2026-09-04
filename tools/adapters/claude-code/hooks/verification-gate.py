@@ -2,8 +2,9 @@
 """HC-003: Verification Gate (blocking).
 
 Claude Code PreToolUse hook for Write|Edit. Denies an edit that transitions an
-item to a terminal status (task done, issue closed/fixed->closed, requirement
-implemented, feature done) while any linked TST-* note is not `status: passing`.
+item to a terminal status (task done, issue fixed, feature done; the list is
+HOOKS.md HC-003, and a requirement is never test-gated) while any linked TST-* note is not
+`status: passing`.
 
 Escape hatches (both are recorded artifacts, not silence):
   - the new content or the existing note carries `verification_waiver: <reason>`
@@ -20,10 +21,12 @@ import re
 import sys
 from pathlib import Path
 
-TERMINAL_RE = re.compile(r"status:\s*[\"']?(done|closed|implemented)[\"']?\b")
-ID_RE = re.compile(r"\b((?:TASK|ISS|REQ|FEAT))-(\d{2,})\b")
+TERMINAL_RE = re.compile(r"status:\s*[\"']?(done|fixed)[\"']?\b")
+# REQ is not here: a requirement is never test-gated (STATUSES.md [[requirement]], ADR-0007).
+ID_RE = re.compile(r"\b((?:TASK|ISS|FEAT))-(\d{2,})\b")
 TST_RE = re.compile(r"\bTST-\d{2,}\b")
 WAIVER_RE = re.compile(r"verification_waiver:\s*\S")
+EXPIRES_RE = re.compile(r"waiver_expires:\s*\d{4}-\d{2}-\d{2}")
 
 
 def emit(decision, reason):
@@ -68,6 +71,34 @@ def tst_status(tst_id, project_dir, index):
         return None
     m = re.search(r"^status:\s*[\"']?([\w-]+)", frontmatter_text(path), re.MULTILINE)
     return m.group(1) if m else None
+
+
+def tst_exemption(tst_id, index):
+    """Why this test is not held to `passing`, or None if it is.
+
+    The two exemptions are stated once in HOOKS.md HC-003 and implemented twice:
+    here, and in `tools/scripts/validate-docs.py` (VERIFY). They existed only
+    there until project-os-dev ISS-0051 -- so this hook denied `done` to any
+    feature carrying the acceptance check `feature-scaffold/SKILL.md` requires,
+    which is the ordinary case, while the validator let it through.
+
+    Checked in this order because an acceptance check that has gained a
+    `command:` is automated and has no walk to settle (TESTING.md, "When to
+    create", rule 3) -- the same order validate-docs.py uses.
+    """
+    path = index.get(tst_id)
+    if path is None:
+        return None
+    fm = frontmatter_text(path)
+    command = re.search(r"^command:\s*(\S.*)$", fm, re.MULTILINE)
+    if command and command.group(1).strip().strip("\"'"):
+        return "settled by CI: it carries a command: and records no verdict (ADR-0025)"
+    level = re.search(r"^level:\s*[\"']?([\w-]+)", fm, re.MULTILINE)
+    if level and level.group(1) == "acceptance":
+        # Settledness lives in the release ledger, which this hook cannot read
+        # from frontmatter; VERIFY-ACCEPTANCE in the validator carries it.
+        return "rests at active: its verdict is a release-ledger event (ADR-0037)"
+    return None
 
 
 def linked_tests(item_id, project_dir, index, new_content):
@@ -134,26 +165,42 @@ def main():
 
     # Which items is this edit touching? Note edits: the note's own ID. Snapshot edits: IDs present in the new content.
     ids = set("%s-%s" % m for m in ID_RE.findall(new_content))
-    note_match = re.match(r"((?:TASK|ISS|REQ|FEAT)-\d{2,})", Path(file_path).name)
+    note_match = re.match(r"((?:TASK|ISS|FEAT)-\d{2,})", Path(file_path).name)
     if note_match:
         ids = {note_match.group(1)}
     if not ids:
         return 0
 
     if WAIVER_RE.search(new_content):
-        return 0  # waiver recorded in this very edit; validator will log it as a warning
+        # A waiver needs an expiry in both implementations: the validator errors
+        # on an open-ended one, "a rule deletion written in the passive voice"
+        # (ADR-0010). This hook used to accept a bare waiver, so the two gates
+        # disagreed about the same note (project-os-dev ISS-0051).
+        if not EXPIRES_RE.search(new_content):
+            emit("deny", "Verification gate (HC-003): `verification_waiver:` with no "
+                         "`waiver_expires: YYYY-MM-DD`. An open-ended waiver is a rule "
+                         "deletion written in the passive voice (ADR-0010), and the "
+                         "validator errors on it. Add an expiry date.")
+            return 0
+        return 0  # waived, with an expiry; the validator reports it as a warning
 
     index = note_index(project_dir)
     blocked, untested = [], []
     for item_id in sorted(ids):
         note = index.get(item_id)
-        if note is not None and WAIVER_RE.search(frontmatter_text(note)):
-            continue
+        if note is not None:
+            note_fm = frontmatter_text(note)
+            if WAIVER_RE.search(note_fm):
+                if not EXPIRES_RE.search(note_fm):
+                    blocked.append("%s carries a verification_waiver with no waiver_expires:" % item_id)
+                continue
         tests = linked_tests(item_id, project_dir, index, new_content)
         if not tests:
             untested.append(item_id)
             continue
         for tst in sorted(tests):
+            if tst_exemption(tst, index):
+                continue
             status = tst_status(tst, project_dir, index)
             if status != "passing":
                 blocked.append("%s -> %s is '%s'" % (item_id, tst, status or "missing"))

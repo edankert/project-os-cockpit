@@ -74,9 +74,7 @@ Historic — PHASE-011 through PHASE-016 all closed on 2026-07-30, and PHASE-017
 
 **Phase numbers are allocation order, not chronology.** PHASE-014 documents work that shipped between PHASE-009 and PHASE-010; its note says so rather than leaving the reader to infer it from the number.
 
-## Operational rules for LLMs
+## Operational Rules for LLMs
 
-1. **Verify phase alignment**: check `phase` in task/feature frontmatter before starting work.
-2. **Consult this registry**: understand the boundaries of the current phase.
-3. **Prevent phase bleeding**: don't introduce implementations from future phases prematurely.
-4. **Flag scope concerns**: if a task requires future-phase dependencies, document it and discuss before proceeding.
+The phase-alignment rules are stated once in `../tools/instructions/LIFECYCLE.md`, "Phase alignment (optional gating)": verify the phase before starting, consult this registry, do not build a later phase's work early, and a task that needs a future-phase dependency is the user's decision (`../tools/instructions/LIFECYCLE.md`, "When to pause for the user").
+

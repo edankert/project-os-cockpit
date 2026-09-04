@@ -4,7 +4,7 @@ id: INSTR-SNAPSHOT
 status: active
 owner: group:maintainers
 created: 2026-01-27
-updated: 2026-07-21
+updated: 2026-09-04
 tags: [instructions, snapshot]
 ---
 
@@ -21,7 +21,7 @@ tags: [instructions, snapshot]
 - `version` (int): Schema version (bump only when breaking changes are made).
 - `updated` (timestamp string): Last update time.
 - `project` (object): Project metadata (name/summary/repo root).
-- `team` (object, optional): Team model listing members and the tool adapter each uses. Descriptive only — agent coordination is delegated to the tool's native orchestration, so the snapshot holds no session, claim, or heartbeat state.
+- `team` (object, optional): Team model listing members and the tool adapter each uses ("Team model" below).
 - `retention` (object): Retention policy for keeping the snapshot small (optional but recommended).
 - `counters` (object): Highest allocated IDs per type (used for new ID allocation).
 - `focus` (object): Current in-flight IDs and active phase (empty strings if none).
@@ -47,36 +47,36 @@ Projects may add collections (e.g. `epics`, `milestones`) if rules are documente
 
 ## Focus object
 The `focus` object tracks the current work context:
-- `focus.phase` (PHASE ID, integer, or empty string): Active development phase. `PHASE-*` IDs are preferred when using first-class phase notes; integer values are accepted for simple projects and migration.
+- `focus.phase` (PHASE ID, integer, or empty string): the active development phase; which form to use is `../../docs/PHASES.md`.
 - `focus.feature` (string): Currently active feature ID (or empty string).
 - `focus.task` (string): Currently active task ID (or empty string).
 - `focus.issue` (string): Currently active issue ID (or empty string).
+- `focus.note` (string, optional): what is in flight and what comes next, in at most two sentences. Anything longer belongs in the active task or issue note's own sections, which is where a reader looking for the detail already goes. The snapshot is the first file every session loads, so a paragraph here is paid for on every session.
 
-When phase-gated development is used:
-- Update `focus.phase` when transitioning to a new milestone.
-- Agents should verify work aligns with the active phase before starting implementation.
-- Keep `focus.phase` aligned with `items.phases.<PHASE-ID>` when phase notes are used.
+When phase-gated development is used, the rules are in `LIFECYCLE.md`, "Phase alignment (optional gating)"; keep `focus.phase` aligned with `items.phases.<PHASE-ID>` when phase notes are used.
 
 ## Required fields per item (minimum)
 Each item entry must include:
 - `file` (string): Repo-relative path to the canonical note (e.g. `docs/issues/ISS-0001-...md`).
-- `title` (string): Short human title (no ID).
+- `title` (string): Short human title (no ID), at most twelve words. The sync script derives it from the note's `title:` (ADR-0018), so this is a limit on note titles: a title that needs more words is a summary, and the summary goes in the note body.
 - `status` (string)
 - `owner` (string)
 
 Then type-specific fields, for example:
 - Phase: `order`, `goal`, `features` (FEAT IDs), `requirements` (REQ IDs), `tasks` (TASK IDs), `issues` (ISS IDs)
-- Feature: `goal`, `phase` (optional), `requirements` (REQ IDs), `tasks` (TASK IDs, current scope), `deferred` (TASK IDs descoped out of scope), `issues` (ISS IDs), `tests` (TST IDs), `workflows` (WF IDs), `release`
+- Feature: `goal`, `phase` (optional), `requirements` (REQ IDs), `tasks` (TASK IDs, current scope), `deferred` (TASK IDs descoped out of scope), `issues` (ISS IDs), `workflows` (WF IDs), `release`. A feature does not list its tests: the link is the test's `covers:`, in one direction (ADR-0032, `SCHEMAS.md`)
 - Task: `parent` (FEAT/ISS ID; empty while `deferred`), `origin` (former parent while parked), `phase` (optional, inherit from parent; required forward home while `deferred`), `effort`, `due`, `depends`, `blocks`, `related`
 - Task: (verification) `tests` (TST IDs) when applicable
 - Issue: `severity`, `component`, `phase` (optional), `features` (FEAT IDs), optional `tasks` (TASK IDs), optional `tests` (TST IDs)
 - Requirement: `priority`, `scope`, `phase` (optional), `features` (FEAT IDs), `verifies` (paths/links), optional `tests` (TST IDs)
 - Risk: `likelihood`, `impact`, `related` (IDs), optional `mitigation_tasks` (TASK IDs)
-- Test: `scope`, `kind`, `level`, `entrypoint`, `requirements` (REQ IDs), optional `features`/`issues`/`tasks` (IDs), optional `artifacts`, optional `last_run`
+- Test: `scope`, `level`, `entrypoint`, `covers` (what it verifies), `requirements` (REQ IDs), optional `issues`/`tasks` (IDs), optional `artifacts`
 - Workflow: `entrypoints` (paths), optional `inputs`/`outputs`
 - Change: `commit`, `pr`, `issues` (ISS IDs), `features` (FEAT IDs)
 - Decision (ADR): `decision`, `context`, `supersedes`, `superseded`, `related` (IDs)
 - Release: `version`, `tag`, `date`, optional `platform`, `features` (FEAT IDs), `changes` (CHG IDs), `tests_verified` (TST IDs), `previous_release`
+
+The `goal` and `note` prose on any item is at most two sentences each, and the longer text goes in the note's own Goal or Notes section. `note` is curation the sync script leaves alone; `goal` is derived from the note's `goal:` field where one exists (`LIFECYCLE.md`, "Mandatory Automated Documentation"), so change it on the note.
 
 ## Invariants
 - `file` must point to an existing note under `../../docs/`, and the note’s frontmatter `id` should match the snapshot key.
@@ -88,7 +88,7 @@ Then type-specific fields, for example:
 
 ## Metrics (`metrics.counts`)
 
-`metrics.counts` values are **computed, not hand-maintained**: `tools/scripts/validate-docs.py` recomputes them from all notes under `docs/` (the archive) plus snapshot items, reports discrepancies as errors, and rewrites them with `--fix-metrics`. Definitions (only keys present in the repo's `metrics.counts` are checked):
+`metrics.counts` values are **computed, not hand-maintained**: `tools/scripts/sync-snapshot.py` derives them from the notes at pre-commit, with `counters` and each item's status (`LIFECYCLE.md`, "Mandatory Automated Documentation"), and `bash tools/scripts/validate-docs.sh --fix-metrics` rewrites the block on demand when it has drifted. Definitions (only keys present in the repo's `metrics.counts` are checked):
 
 - `features_total` / `features_done`: all `FEAT-*`; done = status `done`.
 - `phases_total` / `phases_done`: all `PHASE-*`; done = status `done`.
@@ -96,16 +96,14 @@ Then type-specific fields, for example:
 - `tests_total` / `tests_passing` / `tests_failing`: all `TST-*`; by status `passing` / `failing`.
 - `issues_open`: `ISS-*` with status `open`; `issues_triage`: status `triage`. The two are disjoint, and together they are the outstanding set — since ADR-0008 merged `closed` into `fixed`, `fixed` is terminal and correctly excluded. (Before the merge, `fixed` meant "implemented, not verified" and 313 issues fleet-wide sat in it counted by nothing; that limbo is what ISS-0008 reported, and removing the state resolved it rather than widening the metric.)
 - `tasks_deferred` / `issues_deferred`: `TASK-*` / `ISS-*` with status `deferred` (parked work stays visible; see `STATUSES.md`, "Deferral and re-adoption").
-- `risks_open`: `RISK-*` with status `open`. ADR-0008 removed `mitigating`/`monitoring`; mitigation progress lives in `mitigation_tasks:`, not in a status word.
+- `risks_open`: `RISK-*` with status `open`.
 - `releases_total`: all `REL-*`; `decisions_total`: all `ADR-*`.
 
 ## Team model (optional)
 `team.members` lists each participant with the tool adapter they use (`id`, `tool`, `adapter`). It is descriptive context for agents, not coordination state: project-os deliberately holds no `session`, `claimed_by`, `claim_started`, or heartbeat fields — multi-agent coordination belongs to the tool's native orchestration (Agent Teams, Codex parallel runs). Handoff and recovery run off the snapshot, notes, and git instead; see `HANDOFF.md`.
 
 ## Update rules (agent behavior)
-- Agents/LLMs must update the snapshot **before** starting implementation work (create/modify issues/features/tasks/risks as needed).
-- After finishing work, agents/LLMs must update snapshot statuses and relationships and clear/move `focus`.
-- Keep `counters` up to date when allocating new IDs.
+- When the snapshot is updated in the lifecycle is stated once in `LIFECYCLE.md` ("Preflight" and "Close-out"); which fields are derived and which are curated is in its "Mandatory Automated Documentation".
 - Record handoff context in the item notes (`HANDOFF.md`), not in snapshot claim fields.
 
 ## Retention policy (active + recent)
@@ -118,7 +116,7 @@ Recommended approach:
   - features: anything not `done`
   - risks: anything not `closed`
   - requirements: keep `approved` requirements that still matter for current work, retire when obsolete
-  - `deferred` items of every type are **active** — never prune them; they stay in the snapshot (with `origin` and a forward home) until re-adopted or cancelled. Parked work that leaves the snapshot is lost work.
+  - `deferred` items of every type are **active** and never pruned (`STATUSES.md`, "Deferral and re-adoption"); parked work that leaves the snapshot is lost work.
 - Keep **recent** changes only in `items.changes` (e.g. last 10–50), and rely on `../../docs/changes/` notes for history.
 - Keep **all history in notes** (issues/tasks/features/changes/ADRs remain in `../../docs/**` even if removed from the snapshot).
 
