@@ -79,8 +79,8 @@
       radial-gradient(120% 90% at 50% 40%, #072230 0%, #04090D 62%, #01050A 100%);
     color: var(--cy); font-family: var(--mono); font-size: 11px; user-select: none;
   }
-  .field { position: absolute; inset: 0; perspective: 900px; perspective-origin: 56% 46%; pointer-events: none; }
-  .field-inner { position: absolute; inset: 0; transform-style: preserve-3d; pointer-events: none; }
+  .field { position: absolute; inset: 0; pointer-events: none; }
+  .field-inner { position: absolute; inset: 0; pointer-events: none; }
   .card {
     position: absolute; left: 50%; top: 46%; width: 186px; padding: 7px 9px 8px;
     border: 1px solid var(--cy-line); background: rgb(8 30 40 / .62);
@@ -99,7 +99,7 @@
   .card.focused .ct { max-height: none; font-size: 12px; }
   .card .cbody { display: none; margin-top: 8px; border-top: 1px dashed var(--cy-line); padding-top: 7px; color: #9FD4E6; font-size: 10px; line-height: 1.5; }
   .card.focused .cbody { display: block; }
-  #wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3200; }
+  #wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2500; }
 
 
   /* ---- rev 4: depth without blur ----
@@ -628,7 +628,7 @@
       const cx = centreX(SW) + Math.sin(phi)*sl.d*kk, hw = 99*kk;
       const vis = Math.abs(phi) < 78*DEG && cx - hw > RAIL - 30 && cx + hw < SW - HUD + 60;
       if (!vis) { el.style.opacity = '0'; el.style.pointerEvents = 'none'; behind++; continue; }
-      const x = Math.sin(phi)*sl.d, z = -Math.cos(phi)*sl.d;
+      const sx = Math.sin(phi)*sl.d*kk, sy = sl.y*kk;
       const fade = Math.max(0, Math.min(1, (78*DEG - Math.abs(phi)) / (26*DEG)));
       // every card you can SEE, you can OPEN — the quiet band was unclickable
       // in rev 1, which is why FEAT-0143 could not be opened at all
@@ -636,10 +636,10 @@
       el.className = 'card' + (n.k === 'phase' ? ' phase' : '') +
                      (sl.b === 'front' ? ' owed' : '') + (sl.b === 'mid' ? ' mid' : '') +
                      (sl.b === 'quiet' ? ' deep' : '');
-      el.style.transform = 'translate3d(' + (x - 93 + (centreX(SW) - SW/2)) + 'px,' + sl.y + 'px,' + z + 'px)';
+      el.style.transform = 'translate(' + (sx - 93 + (centreX(SW) - SW/2)) + 'px,' + sy + 'px) scale(' + kk.toFixed(3) + ')';
       el.style.opacity = String((sl.b === 'quiet' ? .5 : sl.b === 'mid' ? .94 : 1) * (0.28 + 0.72*fade));
       el.style.filter = (RENDER === 'blur' && sl.b === 'quiet') ? 'blur(1.4px)' : 'none';
-      el.style.zIndex = String(2000 + Math.round(z));
+      el.style.zIndex = String(2000 + Math.round(-Math.cos(phi)*sl.d));
     }
     document.getElementById('behindCount').textContent = behind;
     drawCompass();
@@ -721,34 +721,58 @@
     ids.forEach(id => openSet.get(id).ring.forEach(r => inRing.add(r)));
     ids.forEach((id, i) => {
       const el = els.get(id);
-      const spread = n === 1 ? 0 : (i - (n - 1)/2) * 360;
+      const spread = n === 1 ? 0 : (i - (n - 1)/2) * 380;
       el.className = 'card focused pinned';
       el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
-      el.style.transform = 'translate3d(' + (spread - 160) + 'px,-136px,150px)';
+      el.style.transform = 'translate(' + (spread - 160) + 'px,-136px) scale(1.18)';
       el.style.zIndex = '3000';
     });
-    let k = 0;
-    const R = Math.min(340, 170 + inRing.size*10);
-    for (const rid of inRing) {
-      if (openSet.has(rid)) continue;
-      const a = (k++ / Math.max(inRing.size, 1))*Math.PI*2 - Math.PI/2;
+    // Neighbours flank the open card in two columns rather than ringing it.
+    // A ring puts items above the card, forces long diagonal wires, and — as
+    // built in rev 4 — overlapped it, because the open card sits at z=+150 and
+    // the ring at z=-60, so field coordinates project at different scales.
+    // Columns clear it by construction: the open card's projected half-width
+    // decides where the columns start, and nothing is ever placed between them.
+    const K_OPEN = 1.18, K_RING = 0.94;
+    const openHalfPx = (n === 1 ? 160 : (n - 1) * 190 + 160) * K_OPEN;
+    const colX = openHalfPx + 93 * K_RING + 40;      // clear by construction
+    const ring = [...inRing].filter(id => !openSet.has(id));
+    const ROWS = [-176, -96, -16, 64, 144, 224];
+    ring.forEach((rid, k) => {
+      const side = k % 2 ? 1 : -1;
+      const row = (k / 2) | 0;
+      let cx, cy;
+      if (row < ROWS.length) { cx = side * colX; cy = ROWS[row]; }
+      else {                                    // a third bank, further out
+        const over = row - ROWS.length;
+        cx = side * (colX + 232); cy = ROWS[over % ROWS.length];
+      }
       const el = els.get(rid);
       el.className = 'card owed';
       el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
-      el.style.transform = 'translate3d(' + (Math.cos(a)*R*1.7 - 93) + 'px,' + (Math.sin(a)*R*.8) + 'px,-60px)';
+      el.style.transform = 'translate(' + (cx - 93) + 'px,' + cy + 'px) scale(' + K_RING + ')';
       el.style.zIndex = '2600';
-    }
+    });
     for (const m of NOTES) {
       if (openSet.has(m.id) || inRing.has(m.id)) continue;
       const el = els.get(m.id);
       el.className = 'card deep' + (m.k === 'phase' ? ' phase' : '');
-      el.style.opacity = '.07'; el.style.filter = 'blur(2.4px)'; el.style.pointerEvents = 'none';
+      el.style.opacity = '.06'; el.style.filter = 'blur(2.4px)'; el.style.pointerEvents = 'none';
       el.style.zIndex = '0';
     }
   }
 
   // ---- wires ----------------------------------------------------------
   function clearWires() { while (wires.firstChild) wires.removeChild(wires.firstChild); }
+  // where a line from the centre of `r` toward (tx,ty) crosses r's border
+  function edgePoint(r, tx, ty, pad) {
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const dx = tx - cx, dy = ty - cy;
+    if (!dx && !dy) return [cx, cy];
+    const hw = r.width / 2 + (pad || 0), hh = r.height / 2 + (pad || 0);
+    const t = Math.min(dx ? hw / Math.abs(dx) : Infinity, dy ? hh / Math.abs(dy) : Infinity);
+    return [cx + dx * t, cy + dy * t];
+  }
   function wire(x1, y1, x2, y2, col, w) {
     const ln = document.createElementNS(SVGNS, 'path');
     ln.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + ((x1+x2)/2) + ' ' + y1 + ',' + ((x1+x2)/2) + ' ' + y2 + ',' + x2 + ' ' + y2);
@@ -762,11 +786,14 @@
     const s = stage.getBoundingClientRect();
     for (const [id, o] of openSet) {
       const c = els.get(id).getBoundingClientRect();
-      const x1 = c.left - s.left + c.width/2, y1 = c.top - s.top + c.height/2;
+      const ccx = c.left + c.width / 2, ccy = c.top + c.height / 2;
       for (const r of o.ring) {
         const el = els.get(r); if (!el) continue;
         const b2 = el.getBoundingClientRect();
-        wire(x1, y1, b2.left - s.left + b2.width/2, b2.top - s.top + b2.height/2, 'rgba(127,228,255,.45)');
+        const ncx = b2.left + b2.width / 2, ncy = b2.top + b2.height / 2;
+        const a1 = edgePoint(c, ncx, ncy, 3);        // leaves the open card at its edge
+        const a2 = edgePoint(b2, ccx, ccy, 3);       // and meets the neighbour at its edge
+        wire(a1[0] - s.left, a1[1] - s.top, a2[0] - s.left, a2[1] - s.top, 'rgba(127,228,255,.5)');
       }
     }
   }
@@ -1449,6 +1476,81 @@
   <h4>What I still cannot tell you</h4>
   <p><strong>Frame times.</strong> The bench measures them live, but I could not read them: the tab I built this in was in the background, and browsers suspend <code>requestAnimationFrame</code> there — so every number would have been zero or invented. The counts above are structural and I stand behind them; the milliseconds are on the page for you to read on your own machine.</p>
   <p>The bound I will commit to: with pooling and no blur this is <strong>an ordinary compositing workload</strong> — a few hundred GPU-composited layers, which browsers do comfortably. Without pooling it is 1537 elements, and 52 of every 55 on screen running a blur pass. <strong>Pooling is not an optimisation to add later, it is the architecture</strong>, and this prototype — which still skips it — proves the interaction and nothing about the cost.</p>
+</div>
+
+<h2 class="section">What pooling actually means here</h2>
+<p class="section-sub">
+  <strong>A fixed set of DOM elements, recycled across a much larger set of notes.</strong> The field holds about 55 cards at the widest; the corpus holds 1537. So you build roughly 120 card elements once and re-point them at different notes as you turn, the way a scrolling list reuses row elements. Nothing else about the design changes — but several things stop being free, and they are worth knowing before rather than after.
+</p>
+<div class="gwrap" data-design-region="pooling">
+<table class="g">
+  <thead><tr><th>what it gives</th><th>what it takes away</th><th>the rule that follows</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="v">constant cost</td>
+      <td>—</td>
+      <td>120 elements whether the repo has 200 notes or 7,400 across the fleet. Memory, style recalc and paint stop scaling with the corpus, which is the whole point</td>
+    </tr>
+    <tr>
+      <td class="v">—</td>
+      <td class="v">animation between states</td>
+      <td>If element #37 was <code>FEAT-0143</code> and becomes <code>ISS-0260</code>, there is nothing to animate <em>between</em> — it must snap. <strong>So: only recycle an element after it has left the visible arc</strong>, never one mid-transition. The "watch a note change importance when you switch views" effect only survives for cards that stay bound</td>
+    </tr>
+    <tr>
+      <td class="v">—</td>
+      <td class="v">browser find-in-page</td>
+      <td><code>⌘F</code> can only find text that exists in the DOM, so it would search ~120 cards out of 1537 and silently miss the rest. <strong>The application must own search</strong> — which it does — and must never let the browser's own find look like it worked</td>
+    </tr>
+    <tr>
+      <td class="v">—</td>
+      <td class="v">the accessibility tree</td>
+      <td>A screen reader sees the pool, not the corpus. <strong>The list panel stops being a convenience and becomes the accessible view</strong> — which is a good outcome, but only if it is built that way deliberately</td>
+    </tr>
+    <tr>
+      <td class="v">—</td>
+      <td class="v">per-note element state</td>
+      <td>Anything attached to a card element — an open editor, a text selection, a scroll position — dies when the element is reused. <strong>So opened, pinned and neighbour cards live outside the pool</strong> and get dedicated elements. The pool holds only closed cards in the field</td>
+    </tr>
+    <tr>
+      <td class="v">—</td>
+      <td class="v">"just focus that note"</td>
+      <td>A note that is not materialised has no element to focus or scroll to. <strong>Placement must precede focus</strong>: fly first, then open — which is already how the search box works, and is now a requirement rather than a flourish</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>The one-line version</h4>
+  <p><strong>Pooling buys unbounded corpus size and costs you the browser's built-in affordances.</strong> Find-in-page, the accessibility tree and element-attached state all assume the DOM is the data. Once it is a window onto the data, the application has to supply each of those itself — and a design that skips that is one that works beautifully for a sighted user with 80 notes and fails everyone else at 1537.</p>
+</div>
+
+<h2 class="section">Should this be right before anything is built?</h2>
+<p class="section-sub">
+  You are right that you could list many more defects. That is the most useful signal in this document, and it deserves a straight answer rather than more polish.
+</p>
+<div class="cols" data-design-region="build-or-design">
+  <div>
+    <h4>What the mock has been good for</h4>
+    <p>Four things it produced that reading the code alone would not: <strong>the depth mechanic came out of <code>nav_payload</code></strong>, not the metaphor; <strong>the quiet band belongs behind you</strong>, which only became obvious once you could turn; <strong>blur costs 52 passes over 821k px²</strong>, measured, and the cheap version reads better; and <strong>three real interaction bugs</strong>, two of which you found.</p>
+    <p>That is a good return. It is also mostly spent.</p>
+  </div>
+  <div>
+    <h4>The triage rule I would use</h4>
+    <p>A defect is a <strong>design question</strong> if the answer changes what you would build. It is <strong>polish</strong> if a real implementation fixes it for free.</p>
+    <p>Your two were design questions, and both are now answered: a wire anchors at the card's <em>edge</em>, on the bearing of its neighbour; and <strong>an open card owns an exclusion zone</strong> — neighbours flank it in columns rather than ringing it, which clears it by construction instead of by nudging.</p>
+    <p>"The hover state is a bit dim" is polish. Do not spend the mock on it.</p>
+  </div>
+  <div>
+    <h4>So: stop here</h4>
+    <p><strong>Stop when the next defect is polish</strong> — which is roughly now. Three of the last four fixes were fights with the prototype's own scaffolding rather than with the design: hand-rolled projection, a measurement environment that lies about frozen transitions, synthetic clicks that skip hit-testing.</p>
+    <p>Those are not questions about the interface. They are the cost of simulating a renderer instead of using one.</p>
+  </div>
+</div>
+<div class="warnbox">
+  <h4>What I would build instead of more mock</h4>
+  <p>Not "the glass cockpit". <strong>The narrow slice every version of this needs, which only real data can validate:</strong> a read-only field view inside the cockpit that exists — pooled, no writes, no console, no panels — over the real 1537 notes.</p>
+  <p>That is <code>FEAT-0144</code> as already written: <code>TASK-0592</code> for the edge payload, <code>TASK-0593</code> for a layout that stays put while the corpus adds 634 notes a month, and a renderer. It answers three things this mock structurally cannot: <strong>does the field stay legible at real scale, does a stable layout survive real growth, and what does pooling actually cost.</strong> Every one of those is a go/no-go for the whole idea, and none of them can be answered with 80 fake cards.</p>
+  <p>What the mock is still cheap for, and worth keeping for: <strong>the arrangement rule per view.</strong> Whether Issues should sector by severity or by age needs no renderer, no real data and no performance budget — just an argument and a picture. That is the part to keep iterating here.</p>
 </div>
 
 <h2 class="section">What is wrong with this</h2>

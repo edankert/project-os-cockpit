@@ -135,6 +135,33 @@ The fix is one line — `pointer-events: none` on the perspective container and 
 
 > **A `preserve-3d` container is an invisible pane in front of everything it contains.** Any depth interface must make its containers pointer-transparent, and must verify input with real pointer events, because synthetic `.click()` bypasses exactly the layer that breaks.
 
+## What pooling costs, since it is the architecture
+
+**A fixed set of DOM elements recycled across a much larger set of notes** — 120 elements for 1537 notes, the way a scrolling list reuses rows. It buys constant cost regardless of corpus size. It takes four things away, and each forces a rule:
+
+- **Animation between states.** A recycled element cannot animate from one note to another. *Only recycle an element after it leaves the visible arc.* The "watch a note change importance across views" effect survives only for cards that stay bound.
+- **Browser find-in-page.** `⌘F` searches the DOM, so it would find 120 cards of 1537 and silently miss the rest. *The application owns search*, and must never let the browser's own find look like it worked.
+- **The accessibility tree.** A screen reader sees the pool, not the corpus. *The list panel becomes the accessible view* rather than a convenience.
+- **Per-element state.** An open editor, a text selection, a scroll position all die on reuse. *Opened, pinned and neighbour cards live outside the pool*; the pool holds only closed cards in the field.
+
+One consequence worth stating on its own: **placement must precede focus.** A note that is not materialised has no element to focus, so "fly to it, then open it" is a requirement rather than a flourish.
+
+The short version: pooling buys unbounded corpus size and costs the browser's built-in affordances. A design that skips replacing them works beautifully for a sighted user with 80 notes and fails everyone else at 1537.
+
+## Stop mocking, and build the narrow slice
+
+Edwin, on the defects he found: *"I can probably come up with lots of issues."* He is right, and that is the most useful signal in this whole exercise.
+
+**The triage rule:** a defect is a *design question* if the answer changes what you would build; it is *polish* if a real implementation fixes it for free. Both of his were design questions, and both are answered — a wire anchors at the card's **edge** on the bearing of its neighbour, and an open card **owns an exclusion zone**, with neighbours flanking in columns rather than ringing it, which clears it by construction rather than by nudging.
+
+**The stopping rule: stop when the next defect is polish.** That is roughly now. Three of the last four fixes were fights with the prototype's own scaffolding rather than with the design — hand-rolled projection, a measurement environment that lies about frozen transitions, synthetic clicks that skip hit-testing. Those are the cost of simulating a renderer instead of using one, and they teach nothing about the interface.
+
+**What to build instead is not "the glass cockpit".** It is the narrow slice every version needs and only real data can validate: a **read-only field view inside the cockpit that exists** — pooled, no writes, no console, no panels — over the real 1537 notes. That is [[FEAT-0144]] as already written: [[TASK-0592]] for the edge payload, [[TASK-0593]] for a layout that stays put while the corpus adds 634 notes a month, and a renderer.
+
+It answers three things this mock structurally cannot, each a go/no-go for the whole idea: **does the field stay legible at real scale, does a stable layout survive real growth, and what does pooling actually cost.** None can be answered with 80 fake cards.
+
+**What the mock is still cheap for** is the arrangement rule per view — whether Issues should sector by severity or by age needs no renderer, no real data and no performance budget. That part is worth continuing here.
+
 ## What this does not change
 
 The **write path**, the **verbs** and the **guards** are the cockpit's, unchanged. A human-only verdict is still refused server-side to an agent ([[REQ-0026]]); the registry still owns the verb ([[ISS-0153]]); obligations still live with their subject ([[ADR-0020]]) — the front plane is *where the subject is*, not a central queue.
@@ -180,6 +207,8 @@ So the version I would defend is not the whole cockpit. It is **a twelfth view i
 ## Revisions
 
 - 2026-09-05 — written; the eleven arrangements, the console slab, the carousel, the ring, the focus ring
+- 2026-09-05 — **rev 5.** Fixed the two defects Edwin found, both design questions rather than polish: wires anchor at a card's edge on its neighbour's bearing, and neighbours flank the open card in columns that clear it by construction instead of ringing it. Replaced CSS `perspective` with an explicit `scale()` so the geometry is knowable rather than inferred. Added what pooling costs — animation between states, find-in-page, the accessibility tree, per-element state — and the recommendation to stop mocking and build the narrow read-only slice.
+  **A correction:** I first concluded that `getBoundingClientRect` ignores perspective. It does not. Chrome freezes CSS transitions in a background tab, so every rect and computed style I read was the frozen start value. The explicit-scale change still stands on its own merits, but the reason I reached for it was wrong, and it is the same mistake as the `element.click()` one: measuring a browser UI in an environment that quietly lies.
 - 2026-09-05 — **rev 4.** Measured the blur claim instead of repeating it, and it changed the design: facing the quiet band, blur runs on 52 of 55 visible cards over 821,408 px² and pays for 4,299 glyphs against 1,109. The cockpit now draws depth with fog and detail-by-distance, which is cheaper *and* more legible — a blurred card is unreadable and still costs a full title. Added a live A/B bench with the three techniques as switches, and a renderer toggle in the stage itself. Frame times are left for the reader's machine, and the artifact says why.
 - 2026-09-05 — **rev 3.** The click still did not work: `.field-inner` is a flat plane at z=0 in front of every card, and it ate every pointer event. Containers are now pointer-transparent. Recorded as a build rule, because `element.click()` passed while the interface was unusable.
 - 2026-09-05 — **rev 2.** Fixed the first half of that bug: quiet cards carried `pointer-events: none`, so `FEAT-0143` — which is `done`, therefore always quiet — could not be opened at all. Every card you can see is now clickable, and the search box works: type an ID and the field flies to it. Added per-type card faces with real phase progress bars, phases as cards leading their own sectors, multiple consoles, list panels, files, pulse, the Orbit arrangement, multi-card open, and the sector ordering that stops finished work occupying the visible columns. New sections on many monitors and on whether it would run.
