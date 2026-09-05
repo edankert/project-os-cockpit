@@ -60,7 +60,7 @@ counters:
   CHG:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 143
+  FEAT: 144
   ISS: 278
   PHASE: 41
   REQ: 60
@@ -69,7 +69,7 @@ counters:
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 591
+  TASK: 596
   TST: 81
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -78,11 +78,20 @@ focus:
   feature: ""
   phase: "PHASE-028"
   issue: ""
-  note: "DES-0013 explores nine alternative applications over the same corpus — a proposal, nothing accepted and nothing to build yet. It is homed in the standing survey phase PHASE-028, which reopens for a round and closes again; PHASE-041 closed 2026-08-29 and its context now lives in its own note."
+  note: "DES-0013 rev 2 re-pitches the nine as WHOLE APPLICATIONS carrying the cockpit's full function, terminal included, and forks ORBIT into two treatments. FEAT-0144 is the one part Edwin asked to be real. Originally: DES-0013 explores nine alternative applications over the same corpus — a proposal, nothing accepted and nothing to build yet. It is homed in the standing survey phase PHASE-028, which reopens for a round and closes again; PHASE-041 closed 2026-08-29 and its context now lives in its own note."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0144:
+      file: "docs/features/orbit-view/FEAT-0144-The-Corpus-Has-An-Inside.md"
+      title: "The corpus has an inside — an orbit view of the whole link graph, flown rather than listed, in the cockpit"
+      status: planned
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      requirements: []
+      tasks: ["TASK-0592", "TASK-0593", "TASK-0594", "TASK-0595", "TASK-0596"]
+      note: "Asked for directly by Edwin 2026-09-05 off DES-0013's ORBIT plate. A VIEW at ~orbit, not a replacement for the reader: landing opens the note in the existing document pane and NO verb is discharged in the field (ADR-0020). The two hard tasks are not the renderer -- TASK-0593 (a layout that stays put while the corpus adds 634 notes a month) and TASK-0596 (the treatment decision, glass or blocks, which is human-only and BLOCKS the renderer). Its own design says the orphan-note query is one a table could answer; what a table cannot answer is which clusters hang by a single edge, and where a note sits two hops out."
     FEAT-0143:
       file: "docs/features/fleet-validator-sync/FEAT-0143-The-Fleet-Runs-One-Validator.md"
       title: "The fleet runs one validator — the migration is two mechanical rules, not a per-repo reconciliation, and a drift check keeps it that way"
@@ -820,6 +829,36 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0592:
+      file: "docs/features/orbit-view/plan/tasks/TASK-0592-The-Whole-Edge-List-Is-One-Payload.md"
+      title: "The whole edge list is one payload — every link, with the offset that lets the edge quote the sentence that made it"
+      status: backlog
+      owner: user:edwin
+      parent: "FEAT-0144"
+    TASK-0593:
+      file: "docs/features/orbit-view/plan/tasks/TASK-0593-The-Layout-Is-Computed-Once-And-Kept.md"
+      title: "The layout is computed once and kept — and a new note takes a place without moving its neighbours"
+      status: backlog
+      owner: user:edwin
+      parent: "FEAT-0144"
+    TASK-0594:
+      file: "docs/features/orbit-view/plan/tasks/TASK-0594-The-Field-Renders-And-Flies.md"
+      title: "The field renders and flies — 1537 nodes and 16148 edges, coloured by status band, at a frame rate that survives a laptop"
+      status: backlog
+      owner: user:edwin
+      parent: "FEAT-0144"
+    TASK-0595:
+      file: "docs/features/orbit-view/plan/tasks/TASK-0595-Landing-Opens-The-Note.md"
+      title: "Landing opens the note in the reader that already exists, so the field never becomes a second document pane"
+      status: backlog
+      owner: user:edwin
+      parent: "FEAT-0144"
+    TASK-0596:
+      file: "docs/features/orbit-view/plan/tasks/TASK-0596-The-Treatment-Is-Chosen-Not-Assumed.md"
+      title: "The treatment is chosen, not assumed — the sky, the instrument and the wooden table are drawn, and a person picks"
+      status: backlog
+      owner: user:edwin
+      parent: "FEAT-0144"
     TASK-0579:
       file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0579-Count-The-Flood-By-Rule.md"
       title: "Count the flood by rule — run the upstream validator against all four fleet repos in report-only mode and record what it actually reports"
@@ -960,41 +999,6 @@ items:
       owner: user:edwin
       parent: FEAT-0128
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0544:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0544-Where-Evidence-Goes.md"
-      title: "`evidence` moves to the ledger as a sibling collection, not onto the entry and not onto the note"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0545:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0545-Suite-At-Gets-A-Third-Shape.md"
-      title: "`suite_at` gets a third shape — a historical read after the ledger cut needs notes plus a ledger"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0136
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0546:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0546-Tests-Verified-Is-Derived.md"
-      title: "`tests_verified:` on a release becomes derived from its sealed ledger"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0135
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0547:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0547-Seal-A-Release-From-The-Cockpit.md"
-      title: "A release can be sealed from the cockpit — the ledger has no lifecycle until something closes it"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
-    TASK-0548:
-      file: "docs/features/verdict-ledger/plan/tasks/TASK-0548-A-Sealed-Ledger-Names-Its-Own-Content.md"
-      title: "A sealed ledger names its own content hash and the release note holds it, so an edit is caught whether or not it was committed"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0133
-      phase: "[[PHASE-038-A-Verdict-Is-An-Event]]"
     TASK-0435:
       file: "docs/features/publication-view/plan/tasks/TASK-0435-The-Cycling-Mark-And-Its-Paired-Write.md"
       title: "The cycling mark and its paired write — one click advances the mark and writes it, and Confirm pairs the exception with its justification in the release note"
@@ -3923,11 +3927,11 @@ items:
   designs:
     DES-0013:
       file: "docs/designs/DES-0013-Nine-Ways-To-Read-The-Record.md"
-      title: "Nine ways to read the record — nine applications over one corpus, differing by navigation rather than by theme"
+      title: "Nine ways to read the record, and a tenth that was cut and then asked for — whole applications over one corpus"
       status: proposed
       owner: user:edwin
       phase: "[[PHASE-028-Borrowed-Capability]]"
-      note: "role: proposal, viewport OMITTED (a dossier of mocks, not a surface). Nine concepts drawn as working mocks in one artifact: ORBIT, ATLAS, REEL, PULSE, ASK, DECK, LEDGER, BROADSHEET, FOUNDRY. Each is separated from the others on six axes stated in the artifact's matrix, so the claim `these are different applications` is checkable rather than asserted. NOTHING IS ACCEPTED AND NOTHING IS SCHEDULED. Two of the nine collide with recorded decisions and the artifact says so on the plate rather than in a footnote: ASK is the conversation UI PHASE-028 itself puts out of scope, and DECK's one-card queue contradicts ADR-0020 (obligations live with their subject, not in a central queue). Mocks are driven by measured corpus figures, not invented ones — 1537 notes, 16148 wikilinks, 2206 distinct targets, and the month histogram 180/1/313/634 that makes the June silence visible."
+      note: "REV 2 re-pitched these as WHOLE APPLICATIONS after Edwin: the ask was a replacement for the cockpit, terminal included, not nine views. Carries a twelve-capability inventory read off the routes/endpoints/obligation registry and a coverage table; FOUR OF TEN cannot be a replacement and say so (PULSE no reader, DECK refuses navigation, BROADSHEET is print, ROOM cannot host a shell). Five keep the cockpit's reader and route to it. ORBIT and ROOM each carry a LIVE THREE-WAY TREATMENT TOGGLE, and both record a cost rather than a mood: glass collapses four of six status hues into 25 degrees, blocks cannot draw the 16148 edges. ORBIT is filed as FEAT-0144; ROOM was cut, challenged and promoted to plate 10. Originally: nine concepts drawn as working mocks in one artifact: ORBIT, ATLAS, REEL, PULSE, ASK, DECK, LEDGER, BROADSHEET, FOUNDRY. Each is separated from the others on six axes stated in the artifact's matrix, so the claim `these are different applications` is checkable rather than asserted. NOTHING IS ACCEPTED AND NOTHING IS SCHEDULED. Two of the nine collide with recorded decisions and the artifact says so on the plate rather than in a footnote: ASK is the conversation UI PHASE-028 itself puts out of scope, and DECK's one-card queue contradicts ADR-0020 (obligations live with their subject, not in a central queue). Mocks are driven by measured corpus figures, not invented ones — 1537 notes, 16148 wikilinks, 2206 distinct targets, and the month histogram 180/1/313/634 that makes the June silence visible."
     DES-0011:
       file: "docs/designs/DES-0011-Publication-Is-An-Obligation.md"
       title: "Publication is an obligation — unpushed work joins Needs you, the push lives with the commits, and the overview button carries the number"
@@ -4072,9 +4076,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 143
+    features_total: 144
     features_done: 131
-    tasks_total: 590
+    tasks_total: 595
     tasks_done: 554
     tests_total: 47
     tests_passing: 2

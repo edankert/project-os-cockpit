@@ -1,5 +1,5 @@
 <meta charset="utf-8">
-<title>Nine ways to read the record — nine applications over one corpus</title>
+<title>Nine ways to read the record, and a tenth — whole applications over one corpus</title>
 <style>
   /* ---------------------------------------------------------------
      Status and severity tokens are the implementation's, verbatim from
@@ -205,10 +205,10 @@
 <div class="wrap">
 
 <header class="masthead" data-design-region="masthead">
-  <div class="kicker">DES-0013 · proposal · PHASE-028 Borrowed capability · 2026-09-05</div>
-  <h1>Nine ways to read the record</h1>
+  <div class="kicker">DES-0013 · rev 2 · proposal · PHASE-028 Borrowed capability · 2026-09-05</div>
+  <h1>Nine ways to read the record, and a tenth</h1>
   <p class="standfirst">
-    The cockpit has one shape — three panes and a document in the middle — and it is the right shape for reading a record and discharging what it owes. <strong>These are nine other shapes the same corpus supports.</strong> Each is a separate application with its own navigation, not a theme over the existing one; the matrix below is how that claim is checked.
+    The cockpit has one shape — three panes and a document in the middle — and it is the right shape for reading a record and discharging what it owes. <strong>These are ten other shapes the same corpus supports.</strong> Each is pitched as a whole application with its own navigation — the only window you would open — not a theme over the existing one. The matrix below is how that claim is checked, and the coverage table after it is where four of the ten admit they cannot carry everything.
   </p>
   <div class="byline">
     <span><b>1537</b> notes</span>
@@ -219,7 +219,7 @@
     <span>every figure measured 2026-09-05</span>
   </div>
   <div class="warn-strip">
-    <b>Nothing here is accepted, and nothing is scheduled.</b> No feature, task or phase is allocated against any of the nine. Two of them argue against decisions this project has already taken — <b>ASK</b> against PHASE-028's own out-of-scope list, <b>DECK</b> against ADR-0020 — and each says so on its own plate. The mocks are drawn from measured corpus figures, so what they show is this repo, not a plausible repo.
+    <b>Almost nothing here is accepted, and one thing is.</b> <b>ORBIT</b> was asked for and is filed as <b>FEAT-0144</b> with five tasks; its visual treatment is an open decision drawn three ways. Everything else is a proposal with no feature, task or phase against it. Two designs argue against decisions this project has already taken — <b>ASK</b> against PHASE-028's own out-of-scope list, <b>DECK</b> against ADR-0020 — and each says so on its own plate. <b>ROOM</b> is plate 10 because it was cut, challenged, and re-drawn. Every figure in the mocks is measured from this repo.
   </div>
 </header>
 
@@ -242,78 +242,255 @@
     <tr><td class="num">7</td><td class="name">LEDGER</td><td>table</td><td>you, per view</td><td>any, by filter</td><td>keyboard and filters</td><td>desktop</td><td class="verb">query</td></tr>
     <tr><td class="num">8</td><td class="name">BROADSHEET</td><td>print page</td><td>a typographic grid</td><td>last week</td><td>turning a page</td><td>paper, e-ink, email</td><td class="verb">read</td></tr>
     <tr><td class="num">9</td><td class="name">FOUNDRY</td><td>isometric 2.5D</td><td>the workflow's stations</td><td>now, and flow rate</td><td>click and drag</td><td>desktop</td><td class="verb">unblock</td></tr>
+    <tr><td class="num">10</td><td class="name">ROOM</td><td>3D, body scale</td><td>architecture, or your own hands</td><td>now</td><td>walking and reaching</td><td>a headset, or a table</td><td class="verb">judge</td></tr>
   </tbody>
 </table>
 </div>
 
+<style>
+  .cap-scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table.cap { border-collapse: collapse; width: 100%; min-width: 880px; font-size: 13px; }
+  table.cap th, table.cap td { padding: 9px 13px; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  table.cap thead th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 500; border-bottom: 1px solid var(--rule);
+  }
+  table.cap tr.band td {
+    background: var(--sunk); font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint); padding: 7px 13px;
+  }
+  table.cap td.what { font-weight: 600; color: var(--ink); width: 26%; }
+  table.cap td.now { color: var(--ink-soft); width: 40%; }
+  table.cap td.hard { color: var(--ink-faint); }
+  table.cap code { font-size: .85em; }
+
+  .cov-scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); margin-top: 8px; }
+  table.cov { border-collapse: collapse; width: 100%; min-width: 900px; font-size: 12px; }
+  table.cov th, table.cov td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--rule-soft); }
+  table.cov thead th {
+    font-family: var(--mono); font-size: 9.5px; letter-spacing: .05em; color: var(--ink-faint);
+    font-weight: 500; border-bottom: 1px solid var(--rule); line-height: 1.3;
+  }
+  table.cov td.nm, table.cov th.nm { text-align: left; font-family: var(--mono); font-weight: 600; color: var(--ink); white-space: nowrap; }
+  table.cov td.vd { text-align: left; color: var(--ink-soft); font-size: 12px; white-space: nowrap; }
+  table.cov tbody tr:hover { background: var(--sunk); }
+  table.cov .m { font-size: 14px; line-height: 1; }
+  .m-full { color: var(--status-done); }
+  .m-part { color: var(--severity-medium); }
+  .m-hand { color: var(--status-pending); }
+  .m-no   { color: var(--severity-critical); }
+  .cov-key { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-soft); margin-top: 12px; }
+  .cov-key b { font-family: var(--mono); font-size: 14px; margin-right: 5px; }
+</style>
+
+<h2 class="section">What a replacement has to carry</h2>
+<p class="section-sub">
+  The ten below are not view modes bolted onto the cockpit — each is pitched as <strong>the whole application</strong>, the only window you would open. So each has to answer for everything the cockpit does today. This is that list, read off the routes, the endpoints and the obligation registry rather than remembered.
+</p>
+<div class="cap-scroll" data-design-region="capabilities">
+<table class="cap">
+  <thead><tr><th>capability</th><th>how the cockpit does it today</th><th>the part a replacement gets wrong</th></tr></thead>
+  <tbody>
+    <tr class="band"><td colspan="3">Read</td></tr>
+    <tr><td class="what">Render a note</td><td class="now">Markdown with frontmatter, callouts, resolved <code>[[wikilinks]]</code>, backlinks, and checkboxes you can tick from the page</td><td class="hard">Building a second renderer. A second Markdown parser is a second thing to keep in step (<code>ISS-0151</code>)</td></tr>
+    <tr><td class="what">Move around 1537 notes</td><td class="now">Nav tree by kind, <code>⌘P</code> search, back / forward, centre tabs, pins, find-in-page</td><td class="hard">Offering one clever way in and no boring one. Search is how people actually arrive</td></tr>
+    <tr><td class="what">Stay honest while it changes</td><td class="now">SSE live reload; the window states when it is older than the code and never reloads under you</td><td class="hard">A surface with animation state cannot silently re-render. It has to say what moved</td></tr>
+    <tr class="band"><td colspan="3">Govern</td></tr>
+    <tr><td class="what">Show what is owed</td><td class="now">Obligations beside their subject (<code>ADR-0020</code>), count always on screen, the registry's own verb</td><td class="hard">Inventing a verb. <code>Approve</code>, <code>Triage</code>, <code>Decide</code>, <code>Write</code>, <code>Run</code>, <code>Push</code> are read, never made up (<code>ISS-0153</code>)</td></tr>
+    <tr><td class="what">Discharge it</td><td class="now">Twenty-odd write endpoints; the human-only ones refused server-side to any agent (<code>REQ-0026</code>)</td><td class="hard">Making a verb easy that should be deliberate. A door that leads nowhere teaches the reader it works</td></tr>
+    <tr><td class="what">Review, accept, release, publish</td><td class="now">Review queue and verdicts; the checks view and the per-platform ledger; release contents, prepare and verify; unpushed commits with <code>Push</code>, deploy remotes refused</td><td class="hard">Treating these as one flow. They are four, with four different people-shaped moments in them</td></tr>
+    <tr><td class="what">Report the validator</td><td class="now">Findings as rows, in the surface, not only at pre-commit</td><td class="hard">Hiding a failure to keep a nice-looking screen nice-looking</td></tr>
+    <tr class="band"><td colspan="3">Operate</td></tr>
+    <tr><td class="what">Agent sessions</td><td class="now">Live state per session, dispatch, follow-agent-navigation, the attention list, the undocumented-work flag</td><td class="hard">Showing agents as content rather than as something happening <em>now</em>, that you may need to stop</td></tr>
+    <tr><td class="what">The terminal</td><td class="now"><code>ttyd</code> in a panel at <code>⌘`</code>, bound to <code>127.0.0.1</code> only, one per workspace, fixed dark surface</td><td class="hard">Decorating it. It is a real shell — a themed novelty version of it is worse than none</td></tr>
+    <tr><td class="what">History and the inbox</td><td class="now">What changed state and when; untriaged external material staged outside <code>docs/</code></td><td class="hard">Dropping the inbox because it is unglamorous. It is where things arrive</td></tr>
+    <tr class="band"><td colspan="3">Scale</td></tr>
+    <tr><td class="what">The fleet</td><td class="now">Twelve workspaces, one sidecar each, the rail; a cross-repo link travels as a payload because a sidecar cannot resolve another repo's URL (<code>FEAT-0093</code>)</td><td class="hard">Assuming one process can see everything. None of them can</td></tr>
+    <tr><td class="what">The write path</td><td class="now">Every write behind the same guards, whatever surface asked for it</td><td class="hard">A new front door with its own, weaker lock</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 class="section">Five of them can be the whole thing</h2>
+<p class="section-sub">
+  Holding each design against that list produces the most useful result in this document, and it is not the one I expected: <strong>four of the ten cannot be a replacement and should not pretend to be.</strong> PULSE has no reading surface, DECK refuses navigation on purpose, BROADSHEET is printed, and ROOM cannot host a terminal. Saying so is worth more than ten designs that all claim to do everything.
+</p>
+<div class="cov-scroll" data-design-region="coverage">
+<table class="cov">
+  <thead><tr>
+    <th class="nm">design</th><th>read a<br>note</th><th>find<br>anything</th><th>see what<br>is owed</th><th>discharge<br>it</th><th>the<br>terminal</th><th>agent<br>sessions</th><th>12<br>repos</th><th>history</th><th style="text-align:left">so it is…</th>
+  </tr></thead>
+  <tbody>
+    <tr><td class="nm">ORBIT</td><td class="m m-hand">○</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="m m-hand">○</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="vd">a replacement</td></tr>
+    <tr><td class="nm">ATLAS</td><td class="m m-hand">○</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="m m-hand">○</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="vd">a replacement</td></tr>
+    <tr><td class="nm">REEL</td><td class="m m-hand">○</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="m m-hand">○</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="vd">a replacement, but not your only window</td></tr>
+    <tr><td class="nm">PULSE</td><td class="m m-no">✕</td><td class="m m-no">✕</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="vd">a companion — a second screen</td></tr>
+    <tr><td class="nm">ASK</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="vd">a replacement — and the most complete</td></tr>
+    <tr><td class="nm">DECK</td><td class="m m-part">◐</td><td class="m m-no">✕</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-no">✕</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-no">✕</td><td class="vd">a companion — a phone</td></tr>
+    <tr><td class="nm">LEDGER</td><td class="m m-hand">○</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="m m-hand">○</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="vd">a replacement</td></tr>
+    <tr><td class="nm">BROADSHEET</td><td class="m m-part">◐</td><td class="m m-no">✕</td><td class="m m-part">◐</td><td class="m m-no">✕</td><td class="m m-no">✕</td><td class="m m-no">✕</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="vd">a companion — paper</td></tr>
+    <tr><td class="nm">FOUNDRY</td><td class="m m-hand">○</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="vd">a replacement</td></tr>
+    <tr><td class="nm">ROOM</td><td class="m m-no">✕</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="m m-full">●</td><td class="m m-no">✕</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="m m-part">◐</td><td class="vd">a companion — a room you visit</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="cov-key">
+  <span><b class="m-full">●</b>carries it natively</span>
+  <span><b class="m-part">◐</b>carries it, in a changed shape</span>
+  <span><b class="m-hand">○</b>hands off to the document pane it keeps</span>
+  <span><b class="m-no">✕</b>cannot, and says so rather than faking it</span>
+</div>
+<p class="section-sub" style="margin-top:20px">
+  <strong>The ○ column is the honest part.</strong> Five of these keep the cockpit's existing reader and route to it — a graph, a map, a table and a factory floor are all bad places to read 1500 words of Markdown, and building a second renderer to prove otherwise is the mistake <code>ISS-0151</code> already names. What changes in those five is <em>everything around</em> the document, which is most of the application.
+</p>
+
 <!-- ============================ 1 · ORBIT ============================ -->
 <style>
+  /* ---- shared: the "whole application" block used by all nine plates ---- */
+  .appblock {
+    display: grid; grid-template-columns: 1fr 306px; gap: 32px;
+    margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--rule);
+  }
+  .appblock h4 {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 500; margin: 0 0 12px;
+  }
+  .app-copy p { margin: 0 0 11px; font-size: 13.8px; line-height: 1.58; color: var(--ink-soft); }
+  .app-copy p b { color: var(--ink); }
+  .app-copy p:last-child { margin-bottom: 0; }
+  .wf {
+    position: relative; height: 206px; border: 1px solid var(--rule); background: var(--sunk);
+    overflow: hidden; font-family: var(--mono); font-size: 8px; color: var(--ink-faint);
+  }
+  .wf i {
+    position: absolute; border: 1px solid var(--rule); background: var(--surface);
+    display: grid; place-items: center; text-align: center; font-style: normal; padding: 2px 3px; line-height: 1.35;
+  }
+  .wf i.field { background: var(--paper); border-style: dashed; }
+  .wf i.doc  { color: var(--ink); border-color: var(--ink-faint); }
+  .wf i.term { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .wf i.owed { border-color: var(--severity-high); color: var(--severity-high); }
+  .wf i.thin { border-style: dashed; }
+  .wf-cap { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin-top: 7px; }
+  @media (max-width: 860px) { .appblock { grid-template-columns: 1fr; } }
+
+  /* ---- ORBIT: three treatments of one view ---- */
   .m-orbit {
-    /* Implementation dark-scheme values, verbatim from base.css. The :root
-       light block above is what palette parity compares (first wins). */
     --status-active:    hsl(140 32% 60%);
     --status-pending:   hsl(220 14% 65%);
     --status-done:      hsl(160 28% 60%);
     --status-archived:  hsl(0 0% 58%);
     --status-blocked:   hsl(5 50% 65%);
     --status-reference: hsl(180 24% 60%);
-    position: relative; background: #05070C; height: 480px; color: #C9D2E0;
+    --hud-bg: rgb(10 14 22 / .8); --hud-ink: #C6D0DE; --hud-faint: #69768A;
+    --hud-line: #232C3C; --hud-dim: #4E5A6C; --hud-rule: 4px;
+    position: relative; background: #04060B; height: 520px; color: var(--hud-ink);
+    transition: background .5s ease;
+  }
+  .m-orbit[data-treat="glass"] {
+    --hud-bg: rgb(2 18 26 / .74); --hud-ink: #A8E8F8; --hud-faint: #4E93A8;
+    --hud-line: #14586B; --hud-dim: #2F6D80;
+    background: #010A10;
+    /* The instrument wash, so the legend matches the field. Note what it
+       costs: four of the six bands land inside 25 degrees of hue. */
+    --status-done:      hsl(182 78% 62%);
+    --status-pending:   hsl(198 78% 68%);
+    --status-active:    hsl(176 78% 58%);
+    --status-archived:  hsl(150 30% 55%);
+    --status-reference: hsl(187 78% 64%);
+    --status-blocked:   hsl(8 85% 62%);
+  }
+  .m-orbit[data-treat="blocks"] {
+    --hud-bg: rgb(255 252 246 / .86); --hud-ink: #2E2417; --hud-faint: #7A6A52;
+    --hud-line: #CFC0A4; --hud-dim: #9A8A70;
+    background: #E9E0CE; color: var(--hud-ink);
+    /* Painted wood. `done` is the bare material, because 70% of the corpus
+       is finished and a city painted mostly one colour is a city with no
+       colour. The live statuses are the painted blocks. */
+    --status-done:      hsl(38 34% 64%);
+    --status-active:    hsl(140 36% 52%);
+    --status-pending:   hsl(214 28% 60%);
+    --status-archived:  hsl(35 10% 60%);
+    --status-reference: hsl(180 28% 54%);
+    --status-blocked:   hsl(6 56% 57%);
   }
   .m-orbit canvas { display: block; width: 100%; height: 100%; cursor: grab; }
   .m-orbit canvas:active { cursor: grabbing; }
-  .orbit-hud {
-    position: absolute; inset: 0; pointer-events: none;
-    font-family: var(--mono); font-size: 11px;
+  .orbit-hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--mono); font-size: 11px; }
+  .orbit-toggle {
+    position: absolute; top: 15px; left: 50%; transform: translateX(-50%); display: flex;
+    background: var(--hud-bg); border: 1px solid var(--hud-line); border-radius: 5px; overflow: hidden;
+    pointer-events: auto; backdrop-filter: blur(6px);
   }
-  .orbit-search {
-    position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
-    background: rgb(12 16 24 / .82); border: 1px solid #263041; border-radius: 5px;
-    padding: 8px 14px; width: 330px; color: #7C8798; display: flex; justify-content: space-between;
-    backdrop-filter: blur(6px);
+  .orbit-toggle button {
+    font: inherit; font-size: 10px; letter-spacing: .13em; padding: 7px 14px; border: 0;
+    background: transparent; color: var(--hud-faint); cursor: pointer; white-space: nowrap;
   }
-  .orbit-stat { position: absolute; top: 18px; left: 20px; line-height: 1.9; color: #6D7A8C; }
-  .orbit-stat b { color: #C9D2E0; font-weight: 500; }
+  .orbit-toggle button + button { border-left: 1px solid var(--hud-line); }
+  .orbit-toggle button[aria-pressed="true"] { background: var(--hud-ink); color: #04060B; }
+  .m-orbit[data-treat="blocks"] .orbit-toggle button[aria-pressed="true"] { color: #FFFCF6; }
+  .orbit-stat { position: absolute; top: 15px; left: 20px; line-height: 1.9; color: var(--hud-faint); }
+  .orbit-stat b { color: var(--hud-ink); font-weight: 500; }
+  .orbit-mode { color: var(--hud-ink); }
   .orbit-legend { position: absolute; bottom: 16px; left: 20px; line-height: 1.85; }
   .orbit-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; }
-  .orbit-legend span { color: #7C8798; }
+  .m-orbit[data-treat="glass"] .orbit-legend i { border-radius: 0; }
+  .m-orbit[data-treat="blocks"] .orbit-legend i { border-radius: 1px; }
+  .orbit-legend span { color: var(--hud-faint); }
   .orbit-callout {
-    position: absolute; right: 20px; top: 60px; width: 288px;
-    background: rgb(12 16 24 / .9); border: 1px solid #263041; border-left: 2px solid var(--status-done);
-    border-radius: 4px; padding: 13px 15px; line-height: 1.55;
+    position: absolute; right: 20px; top: 58px; width: 286px; background: var(--hud-bg);
+    border: 1px solid var(--hud-line); border-left: 2px solid var(--status-done);
+    border-radius: 4px; padding: 13px 15px; line-height: 1.55; backdrop-filter: blur(6px);
   }
   .orbit-callout .oc-id { color: var(--status-done); font-size: 12px; }
-  .orbit-callout .oc-title { color: #DCE3EC; font-family: var(--body); font-size: 12.5px; margin: 5px 0 9px; }
-  .orbit-callout .oc-edge { color: #7C8798; border-top: 1px dashed #263041; padding-top: 9px; }
-  .orbit-callout .oc-edge em { color: #A9B6C7; font-family: var(--body); font-style: normal; }
-  .orbit-keys { position: absolute; bottom: 16px; right: 20px; color: #566274; text-align: right; line-height: 1.9; }
+  .orbit-callout .oc-title { color: var(--hud-ink); font-family: var(--body); font-size: 12.5px; margin: 5px 0 9px; }
+  .orbit-callout .oc-edge { color: var(--hud-faint); border-top: 1px dashed var(--hud-line); padding-top: 9px; }
+  .orbit-callout .oc-edge em { color: var(--hud-ink); font-family: var(--body); font-style: normal; }
+  .orbit-callout .oc-note { margin-top: 7px; color: var(--hud-dim); }
+  .orbit-keys { position: absolute; bottom: 16px; right: 20px; color: var(--hud-dim); text-align: right; line-height: 1.9; }
+  .treat-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 22px; border-top: 1px solid var(--rule); }
+  .treat-notes > div { padding: 16px 20px 4px 0; }
+  .treat-notes > div + div { padding-left: 20px; border-left: 1px solid var(--rule-soft); }
+  .treat-notes h5 { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; margin: 0 0 3px; color: var(--ink); }
+  .treat-notes .sub { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); margin-bottom: 9px; }
+  .treat-notes p { margin: 0 0 9px; font-size: 13.4px; line-height: 1.55; color: var(--ink-soft); }
+  .treat-notes b { color: var(--ink); }
+  @media (max-width: 860px) {
+    .treat-notes { grid-template-columns: 1fr; }
+    .treat-notes > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule-soft); padding-top: 14px; }
+  }
 </style>
 
 <section class="plate" data-design-region="orbit">
   <div class="plate-head">
     <span class="plate-num">01</span>
     <span class="plate-name">ORBIT</span>
-    <span class="plate-tag">the links, as a solid you fly through</span>
+    <span class="plate-tag">three ways to be inside the corpus</span>
   </div>
   <p class="plate-lede">
-    <strong>16148 wikilinks over 1537 notes is a structure nobody in this project has ever seen.</strong> The cockpit resolves one link when you click it and lists backlinks at the foot of a note — the local view of a shape that has never been drawn whole. ORBIT draws the whole thing and gives you no list at all: you steer, and the corpus has an inside. Colour is the status band, straight off <code>statuses.py</code>, so the first thing the shape tells you is that this record is overwhelmingly finished work with a live crust on it.
+    <strong>16148 wikilinks over 1537 notes is a structure nobody in this project has ever seen.</strong> The cockpit resolves one link when you click it and lists backlinks at the foot of a note — the local view of a shape never drawn whole. ORBIT draws it and gives you no list at all: you steer, and the corpus has an inside. As a whole application it keeps the cockpit's reader for reading and replaces everything around it. As a <em>look</em> it can go three genuinely different ways, and the toggle below is the real decision — they disagree about what the view is claiming, not just about colour.
   </p>
 
-  <div class="screen m-orbit" data-design-region="orbit-mock">
+  <div class="screen m-orbit" data-treat="constellation" data-design-region="orbit-mock">
     <canvas id="orbit-canvas"></canvas>
     <div class="orbit-hud">
+      <div class="orbit-toggle" role="group" aria-label="Treatment">
+        <button type="button" data-t="constellation" aria-pressed="true">CONSTELLATION</button>
+        <button type="button" data-t="glass" aria-pressed="false">GLASS</button>
+        <button type="button" data-t="blocks" aria-pressed="false">BLOCKS</button>
+      </div>
       <div class="orbit-stat">
         <b>1537</b> notes &nbsp;·&nbsp; <b>16148</b> links<br>
         <b>2206</b> distinct targets<br>
-        cluster: <b>PHASE-038</b> · 42 notes
+        <span class="orbit-mode" id="orbit-mode">drifting · the sky does the work</span>
       </div>
-      <div class="orbit-search"><span>⌘K &nbsp; fly to a note…</span><span>↩</span></div>
       <div class="orbit-callout">
         <div class="oc-id">FEAT-0143 · done</div>
         <div class="oc-title">The fleet runs one validator</div>
         <div class="oc-edge">
           edge → <span style="color:var(--status-blocked)">ISS-0209</span><br>
           <em>“ISS-0209 estimated a per-repo reconciliation; it was two rules.”</em>
-          <div style="margin-top:7px;color:#566274">the sentence that made the link</div>
+          <div class="oc-note" id="orbit-oc-note">the sentence that made the link</div>
         </div>
       </div>
       <div class="orbit-legend">
@@ -323,26 +500,73 @@
         <div><i style="background:var(--status-blocked)"></i><span>blocked / failing</span></div>
         <div><i style="background:var(--status-archived)"></i><span>superseded / retired</span></div>
       </div>
-      <div class="orbit-keys">drag to turn · scroll to close in<br>double-click a node to land on it</div>
+      <div class="orbit-keys" id="orbit-keys">drag to turn · scroll to close in<br>double-click a node to land on it</div>
     </div>
   </div>
-  <div class="screen-cap">Drag the field. Node colour is the status band; node size is inbound links; clusters are phases. Hovering an <em>edge</em> — not a node — surfaces the sentence in the source note that contains the wikilink, which is the one thing a graph view normally throws away.</div>
+  <div class="screen-cap">Three buttons, one dataset, one palette — the status bands are the implementation's in all three. What changes is the <strong>claim</strong>: a sky you are lost in, an instrument you are operating, or an object on a table you are looking at from outside.</div>
+
+  <div class="treat-notes" data-design-region="orbit-treatments">
+    <div>
+      <h5>CONSTELLATION</h5>
+      <div class="sub">what I had in mind first</div>
+      <p><b>Astronomical, and quiet.</b> Points of light in near-black, filaments so faint you read them as texture, depth by haze. No chrome at all — the sky is the interface, and the only UI is the small type in the corners.</p>
+      <p>It argues that the corpus is <b>vast and mostly settled</b>, which is true: 70% of it is terminal work. The risk is that it is beautiful and undifferentiated — every region looks like every other region, and "beautiful, then never opened again" is the standard fate of this view.</p>
+    </div>
+    <div>
+      <h5>GLASS</h5>
+      <div class="sub">the Minority Report reading</div>
+      <p><b>An instrument, not a scene.</b> Cyan on black, nodes as glass plates rather than points, brackets and reticles, billboarded panels floating at depth, a scan sweep, tick rules down the edges. Everything looks like it is being <em>operated</em>.</p>
+      <p>It argues that the corpus is a <b>live system you are working</b>. It also carries the most risk of the three: this is a costume, and a governance tool that looks like a film prop invites you to trust the graphic rather than the data.</p>
+      <p><b>It costs a distinction, and the mock shows it.</b> Washing every band toward one instrument colour puts four of the six statuses inside 25 degrees of hue — so <code>blocked</code> is held out as the single alarm red, and <code>archived</code> is desaturated to keep it readable. Two of the six survive as themselves. That is a real loss on a surface whose first job is to say what state something is in.</p>
+    </div>
+    <div>
+      <h5>BLOCKS</h5>
+      <div class="sub">a made thing on a table</div>
+      <p><b>Opaque wooden solids on a lit floor</b>, stacked into districts by phase, height by inbound links, casting real shadows. Warm, physical, and lit rather than glowing.</p>
+      <p><b>Finished work is the bare wood.</b> 70% of this corpus is terminal, so painting it would produce a city of one colour; instead <code>done</code> is the unpainted material and only the live statuses are painted blocks. The city is mostly beech with a scatter of red and green, which is what the record actually looks like.</p>
+      <p>It argues that the record is <b>a made object with weight</b>, and occlusion becomes honest information — a block behind another really is hidden. The cost is the edges: 16148 filaments do not survive an opaque scene, so the link callout, ORBIT's best idea, goes with them.</p>
+    </div>
+  </div>
+
+  <div class="appblock" data-design-region="orbit-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> there is no chrome — the field fills the window and nothing else is on screen. That is the bet: 1537 notes have a shape, and you arrive by recognising where you are rather than by reading a tree.</p>
+      <p><b>The document</b> is not reinvented. Landing on a node opens the cockpit's existing reader in a panel over the field, with wikilinks, backlinks and tickable checkboxes intact. Dismiss it and you are back where you were flying, not back at a home screen.</p>
+      <p><b>The verbs</b> stay with their subject. A node that owes something wears a halo and the count sits in the corner — but you discharge it on the note, because a verdict made without the note around it is a verdict made without its context.</p>
+      <p><b>The terminal</b> is a slab that materialises in front of the field on <code>⌘`</code>, dark and rectangular against the depth, deliberately <em>not</em> styled to match. It is a real shell; the field dims behind it and stops moving. In BLOCKS it reads as a workbench drawer pulled out over the table — same panel, different furniture.</p>
+      <p><b>The fleet</b> is the honest weak point. Twelve repos means twelve fields, and one sky containing all of them needs a process that can see every repo — exactly what <code>FEAT-0093</code> says does not exist. The rail survives, as twelve distant lights you jump between.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="field" style="left:2%;top:2%;width:96%;height:96%"></i>
+        <i style="left:31%;top:6%;width:38%;height:11%">⌘K &nbsp;fly to…</i>
+        <i class="doc" style="left:57%;top:22%;width:40%;height:52%">the note<br>— the cockpit's<br>own reader —</i>
+        <i class="owed" style="left:4%;top:6%;width:22%;height:11%">8 owed · haloed</i>
+        <i class="term" style="left:4%;top:76%;width:50%;height:20%">⌘` &nbsp;ttyd · 127.0.0.1</i>
+        <i class="thin" style="left:57%;top:78%;width:40%;height:18%">rail · 12 fields</i>
+      </div>
+      <div class="wf-cap">at rest, and mid-landing — the field is the whole window</div>
+    </div>
+  </div>
 
   <div class="strip">
     <div data-design-region="orbit-navigation">
       <h4>Navigation</h4>
-      <p>There is no tree, no list and no back button. You <strong>fly</strong>: drag to turn the field, scroll to close in, double-click to land on a note and open it. <code>⌘K</code> flies the camera rather than jumping the view, so you keep your bearings — the note arrives from a direction.</p>
-      <p class="keys"><kbd>drag</kbd> turn <kbd>scroll</kbd> zoom <kbd>⇧</kbd> isolate a cluster <kbd>\</kbd> dim everything terminal</p>
+      <p>No tree, no list, no back button in the usual sense. You <strong>fly</strong>: drag to turn, scroll to close in, double-click to land. <code>⌘K</code> flies the camera rather than cutting, so a note arrives from a direction and you keep your bearings.</p>
+      <p>BLOCKS changes even this — you <em>orbit an object on a table</em> rather than moving through a volume, which is easier to hold in your head and much harder to get lost in.</p>
     </div>
     <div data-design-region="orbit-data">
       <h4>Data it needs</h4>
-      <p><strong>Exists:</strong> <code>wikilinks.py</code> already resolves every link target, and the index holds every note's frontmatter. Status bands come from <code>statuses.py</code>, which is already the single vocabulary.</p>
-      <p><strong>New:</strong> one endpoint returning the whole edge list, and the character offset of each link so the containing sentence can be pulled for the edge callout. Layout must be computed once and cached — a 16k-edge simulation cannot run on every open.</p>
+      <p><strong>Exists:</strong> <code>wikilinks.py</code> resolves every target; the index holds every note's frontmatter; status bands come from <code>statuses.py</code>.</p>
+      <p><strong>New:</strong> the whole edge list in one payload with each link's character offset — <code>TASK-0592</code> — and a layout computed once and kept, <code>TASK-0593</code>, which is the harder half and the one that decides whether the field is worth learning.</p>
+      <p>Filed as <strong>FEAT-0144</strong>, since you asked for this one to be real.</p>
     </div>
     <div class="objection" data-design-region="orbit-objection">
       <h4>The objection</h4>
-      <p><strong>Graph views are famously beautiful and famously useless.</strong> Obsidian's is the standard example: people open it, say "wow", and never navigate with it. The honest question is whether ORBIT ever answers a question you actually have.</p>
-      <p>Its one candidate answer is <em>structural</em>: which notes nothing links to, and which clusters are joined by a single edge. That is a real query about this corpus — and it is also a query a table could answer without any of this.</p>
+      <p><strong>Graph views are famously beautiful and famously useless.</strong> Obsidian's is the standard example: people open it, say "wow", and never navigate with it.</p>
+      <p>Its candidate answer is <em>structural</em> — what nothing links to, which clusters hang by a single edge, where a note sits two hops out. The first is a query a table could answer. The other two are not, and that is the whole case.</p>
+      <p><strong>The treatment carries its own risk.</strong> GLASS is the one to watch: the look is borrowed from a film about a system that was confidently wrong.</p>
     </div>
   </div>
 </section>
@@ -353,50 +577,110 @@
   const ctx = cv.getContext('2d');
   const host = cv.parentElement;
   const cs = getComputedStyle(host);
-  const BANDS = [
-    { c: cs.getPropertyValue('--status-done').trim(),      w: .70 },
-    { c: cs.getPropertyValue('--status-pending').trim(),   w: .12 },
-    { c: cs.getPropertyValue('--status-active').trim(),    w: .06 },
-    { c: cs.getPropertyValue('--status-archived').trim(),  w: .06 },
-    { c: cs.getPropertyValue('--status-reference').trim(), w: .04 },
-    { c: cs.getPropertyValue('--status-blocked').trim(),   w: .02 },
-  ];
-  // Deterministic: the same corpus must draw the same shape every time.
+  const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const TOKENS = ['--status-done', '--status-pending', '--status-active',
+                  '--status-archived', '--status-reference', '--status-blocked'];
+  const WEIGHT = [.70, .12, .06, .06, .04, .02];
+  const RAW = TOKENS.map(n => cs.getPropertyValue(n).trim());
+  const HSL = RAW.map(v => {
+    const m = /hsl\(\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/.exec(v);
+    return m ? [+m[1], +m[2], +m[3]] : [0, 0, 50];
+  });
+  const shade = (i, dl, ds) => 'hsl(' + HSL[i][0] + ' ' + Math.max(0, HSL[i][1] + (ds || 0)) + '% ' +
+                               Math.max(4, Math.min(96, HSL[i][2] + dl)) + '%)';
+  // GLASS pulls every band toward one instrument colour but keeps the hue, so a
+  // blocked node is still the blocked node.
+  // done, pending, active, archived, reference, blocked
+  const WOOD = [[38, 34, 64], [214, 28, 60], [140, 36, 52], [35, 10, 60], [180, 28, 54], [6, 56, 57]];
+  const woodOf = (i, dl) => 'hsl(' + WOOD[i][0] + ' ' + WOOD[i][1] + '% ' +
+                            Math.max(6, Math.min(94, WOOD[i][2] + dl)) + '%)';
+  const GLASS_H = [182, 198, 176, 150, 187, 8];
+  const GLASS_S = [78, 78, 78, 30, 78, 85];
+  const glassOf = (i, l) => 'hsl(' + GLASS_H[i] + ' ' + GLASS_S[i] + '% ' + l + '%)';
+
   let seed = 20260905;
   const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
-  const pick = () => { let r = rnd(), a = 0; for (const b of BANDS) { a += b.w; if (r < a) return b.c; } return BANDS[0].c; };
+  const pickBand = () => { let r = rnd(), a = 0; for (let i = 0; i < WEIGHT.length; i++) { a += WEIGHT[i]; if (r < a) return i; } return 0; };
 
+  // one corpus, three arrangements ------------------------------------
   const CLUSTERS = [];
   for (let i = 0; i < 8; i++) {
-    const t = (i / 8) * Math.PI * 2;
-    CLUSTERS.push({ x: Math.cos(t) * 268 + (rnd() - .5) * 70, y: (rnd() - .5) * 230, z: Math.sin(t) * 268 + (rnd() - .5) * 70 });
+    const a = (i / 8) * Math.PI * 2;
+    CLUSTERS.push({ x: Math.cos(a) * 268 + (rnd() - .5) * 70, y: (rnd() - .5) * 230, z: Math.sin(a) * 268 + (rnd() - .5) * 70 });
   }
   const NODES = [];
   for (let i = 0; i < 640; i++) {
-    const c = CLUSTERS[i % 8];
-    const s = 46 + rnd() * 62;
+    const c = CLUSTERS[i % 8], s = 46 + rnd() * 62;
     NODES.push({
       x: c.x + (rnd() - .5) * s * 2, y: c.y + (rnd() - .5) * s * 2, z: c.z + (rnd() - .5) * s * 2,
-      c: pick(), r: .8 + rnd() * rnd() * 3.4, k: i % 8,
+      b: pickBand(), r: .8 + rnd() * rnd() * 3.4,
     });
   }
   const EDGES = [];
   for (let i = 0; i < 1150; i++) {
     const a = (rnd() * NODES.length) | 0;
-    const near = rnd() < .82;
-    let b = near ? (a + 1 + ((rnd() * 40) | 0)) % NODES.length : (rnd() * NODES.length) | 0;
+    const b = rnd() < .82 ? (a + 1 + ((rnd() * 40) | 0)) % NODES.length : (rnd() * NODES.length) | 0;
     if (a !== b) EDGES.push([a, b]);
   }
+  const PANELS = [
+    { x: -190, y: -120, z: 60,  w: 150, h: 92, t: 'FEAT-0143', s: 'DONE', l: ['13 tasks', 'fleet validator', '1086 → 0 errors'] },
+    { x: 210,  y: 40,   z: -80, w: 140, h: 78, t: 'ISS-0209',  s: 'OPEN 11d', l: ['acceptance gate', 'reaches no repo'] },
+    { x: -40,  y: 150,  z: -180, w: 156, h: 86, t: 'PHASE-041', s: 'CLOSED', l: ['5 of 6 criteria', 'fleet: one validator'] },
+  ];
+  const BLOCKS = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const cx = Math.cos(a) * 250, cz = Math.sin(a) * 250;
+    const n = 26 + ((rnd() * 12) | 0);
+    for (let k = 0; k < n; k++) {
+      const w = 15 + ((rnd() * 3) | 0) * 7;
+      BLOCKS.push({
+        x: cx + (rnd() - .5) * 190, z: cz + (rnd() - .5) * 190,
+        w: w, d: w, h: 14 + ((rnd() * rnd() * 5) | 0) * 22, b: pickBand(),
+      });
+    }
+  }
 
-  let ry = .4, rx = -.18, zoom = 1, drag = null;
+  const MODES = {
+    constellation: { mode: 'drifting · the sky does the work', keys: 'drag to turn · scroll to close in<br>double-click a node to land on it', oc: 'the sentence that made the link' },
+    glass:         { mode: 'operating · 3 panes pinned',       keys: 'drag to turn · scroll to close in<br>throw a pane aside to dismiss it',   oc: 'the sentence that made the link' },
+    blocks:        { mode: 'orbiting · edges dropped',         keys: 'drag to turn the table · scroll to close in<br>a block behind another is genuinely hidden', oc: 'no edge to hover — the trade blocks make' },
+  };
+
+  let treat = 'constellation';
+  let ry = .4, rx = -.18, zoom = 1, drag = null, sweep = 0;
+  const modeLabel = document.getElementById('orbit-mode');
+  const keys = document.getElementById('orbit-keys');
+  const ocNote = document.getElementById('orbit-oc-note');
+  host.querySelectorAll('.orbit-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      treat = btn.getAttribute('data-t');
+      host.setAttribute('data-treat', treat);
+      host.querySelectorAll('.orbit-toggle button').forEach(o => o.setAttribute('aria-pressed', String(o === btn)));
+      if (treat === 'blocks') { ry = .5; rx = .55; } else { ry = .4; rx = -.18; }
+      zoom = 1;
+      modeLabel.textContent = MODES[treat].mode;
+      keys.innerHTML = MODES[treat].keys;
+      ocNote.textContent = MODES[treat].oc;
+      if (STILL) requestAnimationFrame(frame);
+    });
+  });
+
   cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, ry, rx }; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener('pointerup', () => { drag = null; });
   cv.addEventListener('pointermove', e => {
     if (!drag) return;
     ry = drag.ry + (e.clientX - drag.x) * .006;
-    rx = Math.max(-1.1, Math.min(1.1, drag.rx + (e.clientY - drag.y) * .005));
+    const lo = treat === 'blocks' ? .12 : -1.1, hi = treat === 'blocks' ? 1.2 : 1.1;
+    rx = Math.max(lo, Math.min(hi, drag.rx + (e.clientY - drag.y) * .005));
+    if (STILL) requestAnimationFrame(frame);
   });
-  cv.addEventListener('wheel', e => { e.preventDefault(); zoom = Math.max(.55, Math.min(2.4, zoom * (1 - e.deltaY * .0012))); }, { passive: false });
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoom = Math.max(.55, Math.min(2.4, zoom * (1 - e.deltaY * .0012)));
+    if (STILL) requestAnimationFrame(frame);
+  }, { passive: false });
 
   let W = 0, H = 0, dpr = 1;
   function size() {
@@ -408,44 +692,184 @@
   size();
   new ResizeObserver(size).observe(host);
 
-  const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const P = new Array(NODES.length);
-  function frame() {
-    if (!drag && !STILL) ry += .0016;
-    ctx.clearRect(0, 0, W, H);
+  function project() {
     const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
     const f = 560 * zoom, cxp = W / 2, cyp = H / 2;
-    for (let i = 0; i < NODES.length; i++) {
-      const n = NODES[i];
-      let x = n.x * cy - n.z * sy, z = n.x * sy + n.z * cy;
-      let y = n.y * cx - z * sx; z = n.y * sx + z * cx;
-      const d = z + 640;
-      const s = f / Math.max(d, 60);
-      P[i] = { x: cxp + x * s, y: cyp + y * s, s, d };
-    }
-    ctx.lineWidth = .55;
+    const one = (px, py, pz) => {
+      let x = px * cy - pz * sy, z = px * sy + pz * cy;
+      let y = py * cx - z * sx; z = py * sx + z * cx;
+      const d = z + 640, s = f / Math.max(d, 60);
+      return { x: cxp + x * s, y: cyp + y * s, s, d };
+    };
+    for (let i = 0; i < NODES.length; i++) P[i] = one(NODES[i].x, NODES[i].y, NODES[i].z);
+    return one;
+  }
+
+  function drawConstellation() {
+    project();
+    ctx.lineWidth = .5;
     for (const [a, b] of EDGES) {
       const p = P[a], q = P[b];
-      const al = Math.max(0, Math.min(.24, (1 - (p.d + q.d) / 2600) * .3));
+      const al = Math.max(0, Math.min(.18, (1 - (p.d + q.d) / 2600) * .24));
       if (al <= .01) continue;
-      ctx.strokeStyle = 'rgba(126,158,196,' + al.toFixed(3) + ')';
+      ctx.strokeStyle = 'rgba(120,150,190,' + al.toFixed(3) + ')';
       ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
     }
     const order = P.map((p, i) => i).sort((a, b) => P[b].d - P[a].d);
     for (const i of order) {
-      const p = P[i], n = NODES[i];
-      const r = Math.max(.5, n.r * p.s);
-      const al = Math.max(.16, Math.min(1, 1.5 - p.d / 1100));
-      ctx.globalAlpha = al;
-      ctx.fillStyle = n.c;
+      const p = P[i], n = NODES[i], r = Math.max(.45, n.r * p.s);
+      const al = Math.max(.14, Math.min(1, 1.5 - p.d / 1100));
+      ctx.globalAlpha = al * .13; ctx.fillStyle = RAW[n.b];
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 4.2, 0, 6.284); ctx.fill();
+      ctx.globalAlpha = al; ctx.fillStyle = RAW[n.b];
       ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.284); ctx.fill();
-      if (r > 2.6) { ctx.globalAlpha = al * .16; ctx.beginPath(); ctx.arc(p.x, p.y, r * 3.2, 0, 6.284); ctx.fill(); }
     }
     ctx.globalAlpha = 1;
+  }
+
+  function drawGlass() {
+    const one = project();
+    // routed filaments, brighter and squarer than the sky's
+    ctx.lineWidth = .6;
+    for (const [a, b] of EDGES) {
+      const p = P[a], q = P[b];
+      const al = Math.max(0, Math.min(.3, (1 - (p.d + q.d) / 2600) * .34));
+      if (al <= .015) continue;
+      ctx.strokeStyle = 'rgba(96,214,246,' + al.toFixed(3) + ')';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + (q.x - p.x) * .5, p.y);
+      ctx.lineTo(q.x, q.y); ctx.stroke();
+    }
+    const order = P.map((p, i) => i).sort((a, b) => P[b].d - P[a].d);
+    for (const i of order) {
+      const p = P[i], n = NODES[i], r = Math.max(1.1, n.r * p.s * 1.15);
+      const al = Math.max(.18, Math.min(1, 1.5 - p.d / 1100));
+      ctx.globalAlpha = al * .9;
+      ctx.fillStyle = glassOf(n.b, 62);
+      ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+      if (r > 3) {
+        ctx.globalAlpha = al * .55; ctx.strokeStyle = glassOf(n.b, 82); ctx.lineWidth = .8;
+        const k = r * 2.1;
+        ctx.beginPath();
+        ctx.moveTo(p.x - k, p.y - k + 3); ctx.lineTo(p.x - k, p.y - k); ctx.lineTo(p.x - k + 3, p.y - k);
+        ctx.moveTo(p.x + k - 3, p.y + k); ctx.lineTo(p.x + k, p.y + k); ctx.lineTo(p.x + k, p.y + k - 3);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+    // billboarded panes: they face you, as they do in the film
+    for (const pn of PANELS) {
+      const c = one(pn.x, pn.y, pn.z);
+      const w = pn.w * c.s, h = pn.h * c.s;
+      const al = Math.max(.12, Math.min(.85, 1.4 - c.d / 1200));
+      ctx.globalAlpha = al;
+      ctx.fillStyle = 'rgba(18,74,96,.5)';
+      ctx.fillRect(c.x - w / 2, c.y - h / 2, w, h);
+      ctx.strokeStyle = 'rgba(122,226,255,.75)'; ctx.lineWidth = 1;
+      ctx.strokeRect(c.x - w / 2, c.y - h / 2, w, h);
+      ctx.fillStyle = 'rgba(122,226,255,.16)';
+      ctx.fillRect(c.x - w / 2, c.y - h / 2, w, 15 * c.s);
+      if (w > 60) {
+        ctx.fillStyle = 'rgba(190,242,255,.95)';
+        ctx.font = (10 * c.s).toFixed(1) + 'px ui-monospace, monospace';
+        ctx.fillText(pn.t, c.x - w / 2 + 6 * c.s, c.y - h / 2 + 11 * c.s);
+        ctx.fillStyle = 'rgba(122,226,255,.7)';
+        ctx.fillText(pn.s, c.x + w / 2 - ctx.measureText(pn.s).width - 6 * c.s, c.y - h / 2 + 11 * c.s);
+        ctx.fillStyle = 'rgba(150,214,236,.8)';
+        ctx.font = (8.5 * c.s).toFixed(1) + 'px ui-monospace, monospace';
+        pn.l.forEach((ln, k) => ctx.fillText(ln, c.x - w / 2 + 6 * c.s, c.y - h / 2 + (28 + k * 12) * c.s));
+      }
+    }
+    ctx.globalAlpha = 1;
+    // reticle on whatever is nearest the centre — the thing you are working
+    let best = 0, bd = 1e9;
+    for (let i = 0; i < P.length; i++) {
+      const dx = P[i].x - W / 2, dy = P[i].y - H / 2, dd = dx * dx + dy * dy + P[i].d * .4;
+      if (dd < bd) { bd = dd; best = i; }
+    }
+    const t = P[best], k = 26;
+    ctx.strokeStyle = 'rgba(140,236,255,.9)'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(t.x - k, t.y - k + 8); ctx.lineTo(t.x - k, t.y - k); ctx.lineTo(t.x - k + 8, t.y - k);
+    ctx.moveTo(t.x + k - 8, t.y - k); ctx.lineTo(t.x + k, t.y - k); ctx.lineTo(t.x + k, t.y - k + 8);
+    ctx.moveTo(t.x + k, t.y + k - 8); ctx.lineTo(t.x + k, t.y + k); ctx.lineTo(t.x + k - 8, t.y + k);
+    ctx.moveTo(t.x - k + 8, t.y + k); ctx.lineTo(t.x - k, t.y + k); ctx.lineTo(t.x - k, t.y + k - 8);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(140,236,255,.85)';
+    ctx.font = '9px ui-monospace, monospace';
+    ctx.fillText('TRACK', t.x - k, t.y - k - 6);
+    // rules down the edges, a slow sweep, and scanlines over everything
+    ctx.strokeStyle = 'rgba(90,190,220,.28)'; ctx.lineWidth = 1;
+    for (let y = 40; y < H * .62; y += 16) {
+      const long = (y / 16) % 4 === 0;
+      ctx.beginPath(); ctx.moveTo(10, y); ctx.lineTo(10 + (long ? 12 : 6), y);
+      ctx.moveTo(W - 10, y); ctx.lineTo(W - 10 - (long ? 12 : 6), y); ctx.stroke();
+    }
+    if (!STILL) {
+      sweep = (sweep + 1.1) % (H + 120);
+      const g = ctx.createLinearGradient(0, sweep - 120, 0, sweep);
+      g.addColorStop(0, 'rgba(120,225,255,0)'); g.addColorStop(1, 'rgba(120,225,255,.07)');
+      ctx.fillStyle = g; ctx.fillRect(0, sweep - 120, W, 120);
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.16)';
+    for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+  }
+
+  function drawBlocks() {
+    const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
+    const f = 690 * zoom, cxp = W / 2, cyp = H / 2 + 58;
+    const proj = (x, y, z) => {
+      const X = x * cy - z * sy; let Z = x * sy + z * cy;
+      const Y = y * cx - Z * sx; Z = y * sx + Z * cx;
+      const d = Z + 980, s = f / Math.max(d, 60);
+      return [cxp + X * s, cyp + Y * s, d];
+    };
+    const quad = (pts, fill) => {
+      ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+    };
+    const G = 470;
+    quad([proj(-G, 0, -G), proj(G, 0, -G), proj(G, 0, G), proj(-G, 0, G)], '#DCCFB4');
+    ctx.strokeStyle = 'rgba(120,100,70,.18)'; ctx.lineWidth = 1;
+    for (let g = -G; g <= G; g += 65) {
+      let a = proj(g, 0, -G), b = proj(g, 0, G);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+      a = proj(-G, 0, g); b = proj(G, 0, g);
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+    }
+    const drawn = BLOCKS.map(bl => ({ bl, d: proj(bl.x, 0, bl.z)[2] })).sort((a, b) => b.d - a.d);
+    for (const { bl } of drawn) {
+      const x0 = bl.x - bl.w / 2, x1 = bl.x + bl.w / 2;
+      const z0 = bl.z - bl.d / 2, z1 = bl.z + bl.d / 2;
+      quad([proj(x0 + 10, 0, z0 + 12), proj(x1 + 10, 0, z0 + 12), proj(x1 + 10, 0, z1 + 12), proj(x0 + 10, 0, z1 + 12)],
+           'rgba(90,72,44,.16)');
+      const A = proj(x0, -bl.h, z0), B = proj(x1, -bl.h, z0), C = proj(x1, -bl.h, z1), D = proj(x0, -bl.h, z1);
+      const a = proj(x0, 0, z0), b = proj(x1, 0, z0), c = proj(x1, 0, z1), d = proj(x0, 0, z1);
+      const sides = [
+        { q: [a, b, B, A], sh: -12, dd: (a[2] + b[2]) / 2 },
+        { q: [b, c, C, B], sh: -22, dd: (b[2] + c[2]) / 2 },
+        { q: [c, d, D, C], sh: -4,  dd: (c[2] + d[2]) / 2 },
+        { q: [d, a, A, D], sh: -16, dd: (d[2] + a[2]) / 2 },
+      ].sort((m, n) => n.dd - m.dd);
+      for (const s of sides) quad(s.q, woodOf(bl.b, s.sh));
+      quad([A, B, C, D], woodOf(bl.b, 9));
+      ctx.strokeStyle = 'rgba(60,45,25,.28)'; ctx.lineWidth = .8;
+      ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.lineTo(C[0], C[1]); ctx.lineTo(D[0], D[1]); ctx.closePath(); ctx.stroke();
+    }
+  }
+
+  function frame() {
+    if (!drag && !STILL) ry += treat === 'blocks' ? .0011 : .0015;
+    ctx.clearRect(0, 0, W, H);
+    if (treat === 'blocks') drawBlocks();
+    else if (treat === 'glass') drawGlass();
+    else drawConstellation();
     if (!STILL || drag) requestAnimationFrame(frame);
   }
   frame();
-  if (STILL) { cv.addEventListener('pointerdown', () => requestAnimationFrame(frame)); cv.addEventListener('pointermove', () => { if (drag) requestAnimationFrame(frame); }); }
+  if (STILL) cv.addEventListener('pointerdown', () => requestAnimationFrame(frame));
 })();
 </script>
 
@@ -521,6 +945,28 @@
     <div class="atlas-panel atlas-mini"><svg id="atlas-mini" width="120" height="58" aria-hidden="true"></svg></div>
   </div>
   <div class="screen-cap">Drag to pan, scroll to zoom; the inset keeps the whole territory in view. Regions are this repo's real phases, settlements its real notes. The hatched band is the <strong>June silence</strong> — one note created in June against 180 in May and 313 in July — which is the kind of fact no note-scoped, phase-scoped or queue-scoped surface can show, because a silence belongs to none of them.</div>
+
+  <div class="appblock" data-design-region="atlas-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> the map fills the window, the inset holds the whole territory, and the address panel names the region you are looking at. Nothing else is on screen.</p>
+      <p><b>The document</b> docks to the right as a field office: the note in the cockpit's own renderer, the map dimmed but <em>not moved</em>. Losing your place is the one thing a map may never do.</p>
+      <p><b>The verbs</b> are pins. A district with owed work carries a marker cluster with a count, and zooming in resolves it into individual pins — which is the map's native answer to "obligations live with their subject", since a pin is <em>at</em> the thing.</p>
+      <p><b>The terminal</b> rises from the bottom edge as a drawer, the way a maps application shows directions: full width, fixed dark, half the height. The map stays put above it.</p>
+      <p><b>The fleet is this design's best feature.</b> Twelve repos are an archipelago, and the cross-repo links that <code>FEAT-0093</code> has to carry as payloads become shipping lanes between islands. One picture, twelve sovereign sidecars — the only design here where the fleet's real architecture and the metaphor agree.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="field" style="left:2%;top:2%;width:96%;height:96%"></i>
+        <i style="left:4%;top:5%;width:26%;height:12%">you are here · PHASE-028</i>
+        <i class="owed" style="left:36%;top:26%;width:16%;height:13%">◉ 8 owed</i>
+        <i class="doc" style="left:60%;top:5%;width:37%;height:56%">field office<br>— the note —</i>
+        <i class="term" style="left:3%;top:66%;width:55%;height:30%">⌘` &nbsp;drawer · ttyd</i>
+        <i class="thin" style="left:60%;top:66%;width:37%;height:30%">inset · 12 islands</i>
+      </div>
+      <div class="wf-cap">the map never moves under you</div>
+    </div>
+  </div>
 
   <div class="strip">
     <div data-design-region="atlas-navigation">
@@ -826,6 +1272,28 @@
   </div>
   <div class="screen-cap">Drag anywhere on the timeline to scrub; the left panel is rebuilt from the date under the head. The blue histogram is real: notes created per month, <strong>180 / 1 / 313 / 634</strong> from May to August. That single-note June is the shape of a five-week gap, and it is invisible in every other view this project has.</div>
 
+  <div class="appblock" data-design-region="reel-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> the tracks fill the window and the inspector on the left is the state at the playhead. There is no home screen; there is a moment in time you are standing at.</p>
+      <p><b>The document</b> opens above the timeline, which shrinks to a strip but never disappears. Reading a note while its clip stays visible is the whole argument — you see what else was happening that week.</p>
+      <p><b>The verbs</b> ride the clips. An obligation is a notch on the clip that owes it, and discharging it marks the clip, so the timeline doubles as the record of when each judgment was actually made.</p>
+      <p><b>The terminal is a track, and this is the best terminal integration of the ten.</b> Your shell and the record share one axis: a <code>git commit</code> lands as a clip beside the notes it changed, a failing test lands beside the task it blocks. The console pane is still <code>ttyd</code>, still loopback — but its history is <em>on the timeline</em>, which is where you were already looking to ask "what happened here?"</p>
+      <p><b>The fleet</b> is a track group per repo, collapsed by default. Twelve expanded at once is unreadable, and admitting that is better than a picture that only works with three.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="doc" style="left:2%;top:3%;width:62%;height:44%">the note — with its clip still on screen</i>
+        <i style="left:66%;top:3%;width:32%;height:44%">inspector<br>state at the playhead</i>
+        <i class="thin" style="left:2%;top:51%;width:96%;height:10%">ruler · May → Sep</i>
+        <i style="left:2%;top:63%;width:96%;height:9%">phases · features · issues</i>
+        <i class="owed" style="left:2%;top:74%;width:96%;height:9%">obligations · notched clips</i>
+        <i class="term" style="left:2%;top:85%;width:96%;height:11%">⌘` &nbsp;console track — commits land on the same axis</i>
+      </div>
+      <div class="wf-cap">the timeline never leaves the screen</div>
+    </div>
+  </div>
+
   <div class="strip">
     <div data-design-region="reel-navigation">
       <h4>Navigation</h4>
@@ -1105,6 +1573,28 @@
   </div>
   <div class="screen-cap">Every field shown is one the agent-hook payload already carries. The alarm is the existing <code>undocumented</code> flag given a voice: <strong>a session editing code with no task note is the one failure this project's whole document-first rule exists to prevent</strong>, and right now it is a small grey word in a status strip.</div>
 
+  <div class="appblock" data-design-region="pulse-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> there are lanes and nothing else. No document, no tree, no search — and this is the plate where the coverage table's two ✕ marks live.</p>
+      <p><b>The document is somebody else's job.</b> PULSE will not render a note; it opens the cockpit on the other screen. Trying to make a wall display into a reader is how a good ambient surface becomes a bad application.</p>
+      <p><b>The verbs are its strength.</b> Approve, stop, take over, mute — one key each, no confirmation dialog, because the whole point is acting inside the ten seconds where acting still matters. Everything deliberate is deliberately absent.</p>
+      <p><b>The terminal is native, and uniquely so.</b> A session <em>is</em> a shell, so <code>T</code> expands its lane into the live <code>ttyd</code> for that workspace, already attached to what the agent is doing. Every other design here bolts a terminal on; this one already had it.</p>
+      <p><b>The fleet is native too.</b> One lane per repo is the design, not an adaptation — twelve lanes is what a fleet looks like when you are supervising rather than reading.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i style="left:2%;top:4%;width:96%;height:11%">3 sessions · 2 running · 1 waiting</i>
+        <i style="left:2%;top:19%;width:96%;height:14%">lane · claude · project-os-cockpit</i>
+        <i class="term" style="left:2%;top:36%;width:96%;height:16%">lane expanded → the live shell (T)</i>
+        <i style="left:2%;top:55%;width:96%;height:14%">lane · codex · xngr</i>
+        <i class="owed" style="left:2%;top:72%;width:96%;height:11%">⚠ 14 min of edits, no task note</i>
+        <i style="left:2%;top:86%;width:96%;height:10%">A approve &nbsp; S stop &nbsp; T take over &nbsp; M mute</i>
+      </div>
+      <div class="wf-cap">no document, and it says so</div>
+    </div>
+  </div>
+
   <div class="strip">
     <div data-design-region="pulse-navigation">
       <h4>Navigation</h4>
@@ -1274,6 +1764,28 @@
   </div>
   <div class="screen-cap">The answer shown is real and checkable: the zero-<code>yaml.dump</code> measurement is in <code>ledger.py</code>'s module docstring today. <strong>The shelf is the part that is not a chat app</strong> — pinned citations compose into a draft note, so asking a question ends in the record rather than in a transcript nobody keeps.</div>
 
+  <div class="appblock" data-design-region="ask-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> there is a prompt, a thread tree, and the shelf. The corpus is not displayed at all until you ask — which is the appeal at 1537 notes and the risk for anyone new, who has no idea what can be asked.</p>
+      <p><b>The document arrives as citations.</b> An answer is prose plus cards; opening a card opens the real note in a pane, in the cockpit's renderer. It is ◐ rather than ● because between you and the note there is now a paraphrase, and <code>DESIGN.md</code>'s first rule is that this surface must not say something false without saying so.</p>
+      <p><b>The verbs need a guard the other designs do not.</b> "Approve FEAT-0143" typed into a prompt is a write behind a conversational front door, and <code>REQ-0026</code>'s human-only rule was written for exactly this. So a human-only verb <em>must</em> render the note and its evidence before the button appears — the chat may propose, never complete.</p>
+      <p><b>The terminal is the sharpest version of that problem.</b> The assistant can run commands and show the transcript inline, which is genuinely the most fluent shell integration here — and a shell behind a prompt is a second write path with a weaker lock. The honest build keeps a raw <code>ttyd</code> pane the human drives, and lets the assistant <em>propose</em> commands into it.</p>
+      <p><b>The fleet is free.</b> One question spans twelve repos, because retrieval does not care which sidecar owns a note.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="thin" style="left:2%;top:3%;width:20%;height:93%">threads<br>· forks ·</i>
+        <i style="left:25%;top:3%;width:47%;height:36%">answer + citations</i>
+        <i class="doc" style="left:25%;top:43%;width:47%;height:30%">the cited note<br>— real renderer —</i>
+        <i class="term" style="left:25%;top:77%;width:47%;height:19%">⌘` &nbsp;shell pane · the human drives</i>
+        <i class="owed" style="left:75%;top:3%;width:23%;height:44%">the shelf<br>pinned → draft note</i>
+        <i style="left:75%;top:51%;width:23%;height:45%">model · ⌘K</i>
+      </div>
+      <div class="wf-cap">the chat proposes; the note completes</div>
+    </div>
+  </div>
+
   <div class="strip">
     <div data-design-region="ask-navigation">
       <h4>Navigation</h4>
@@ -1363,6 +1875,27 @@
     <div class="deck-toast" id="deck-toast"></div>
   </div>
   <div class="screen-cap">Click a verb, or use the arrow keys. The four cards are real obligations this repo owes right now — a stale verdict, an untriaged issue eleven days open, this design's own review, and three unpushed commits in a fleet repo.</div>
+
+  <div class="appblock" data-design-region="deck-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> there is one card, and no way to see the queue behind it. Everything below is a consequence of that single decision.</p>
+      <p><b>The document is the card.</b> A card carries the whole subject — the note's text, its evidence, the reviewer's words — and a card that cannot is a card that opens the note instead. That rule is what keeps this from violating <code>ADR-0020</code> outright, and it is still an argument rather than a settled point.</p>
+      <p><b>The verbs are the entire application.</b> Four directions, one undo, no confirmation. It is the only design here where discharging is faster than deciding, which is both the appeal and the hazard.</p>
+      <p><b>There is no terminal, and there should not be.</b> This is a phone in a hand at the end of the day. A shell here would be a shell you cannot type in.</p>
+      <p><b>The fleet is invisible and correct.</b> Cards arrive from all twelve repos interleaved by urgency; you never choose a workspace, because choosing is the thing this design removes.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="thin" style="left:24%;top:2%;width:52%;height:6%">7 of 19 · no list, no search</i>
+        <i class="doc" style="left:22%;top:11%;width:56%;height:62%">the card<br>= the whole subject<br><span style="opacity:.6">or it opens the note</span></i>
+        <i class="owed" style="left:22%;top:77%;width:56%;height:12%">→ discharge &nbsp; ← later &nbsp; ↑ escalate</i>
+        <i style="left:4%;top:40%;width:14%;height:16%">↩ undo</i>
+        <i style="left:82%;top:40%;width:14%;height:16%">12 repos<br>interleaved</i>
+      </div>
+      <div class="wf-cap">one card, four directions, no shell</div>
+    </div>
+  </div>
 
   <div class="strip">
     <div data-design-region="deck-navigation">
@@ -1531,6 +2064,28 @@
   </div>
   </div>
   <div class="screen-cap">Click a column header to re-sort. Nothing here is invented: these are real notes at their real statuses, and <code>days owed</code> is the kind of derived column a table gets for free and a purpose-built view never has.</div>
+
+  <div class="appblock" data-design-region="ledger-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> there is a table and a rail of saved views. It is the least atmospheric screen in this document and the one most likely to be open all day.</p>
+      <p><b>The document is a preview pane</b> below the grid, running the cockpit's renderer — the same relationship a database client has with a row. Arrow down the rows and the note follows; that is a genuinely good reading experience for triage, and a bad one for a design dossier.</p>
+      <p><b>The verbs are columns and a bulk bar.</b> What is owed is a sortable column, which is the one place this design beats every other: <em>"everything owed, oldest first, across twelve repos"</em> is two clicks and no view had to be built for it. The bulk bar goes through the same server-side guards a single edit does, or it is a second front door with a weaker lock.</p>
+      <p><b>The terminal is a console pane</b> at the foot of the window, exactly where a data tool puts one, and it fits: this is already the surface for people who would rather type. Loopback, fixed dark, unchanged.</p>
+      <p><b>The fleet is one table.</b> 7.4k rows and a repo column — no rail, no switching, no per-workspace state. For querying, that is strictly better than twelve sidecars pretending to be one.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="thin" style="left:2%;top:3%;width:16%;height:70%">saved<br>views</i>
+        <i style="left:20%;top:3%;width:78%;height:8%">filters · group by · 7.4k rows</i>
+        <i style="left:20%;top:13%;width:78%;height:30%">the grid — every note a row</i>
+        <i class="owed" style="left:20%;top:45%;width:78%;height:7%">owed · a sortable column</i>
+        <i class="doc" style="left:20%;top:54%;width:78%;height:19%">preview — the cockpit's renderer</i>
+        <i class="term" style="left:2%;top:77%;width:96%;height:19%">⌘` &nbsp;console pane · where a data tool puts one</i>
+      </div>
+      <div class="wf-cap">a grid, a preview, a console</div>
+    </div>
+  </div>
 
   <div class="strip">
     <div data-design-region="ledger-navigation">
@@ -1756,6 +2311,29 @@
   </div>
   <div class="screen-cap">Every story, correction and obituary on this page is a real note in this repository this week. <strong>The corrections are the point:</strong> three documented cases where the record said something false, currently readable only inside the files that were wrong.</div>
 
+  <div class="appblock" data-design-region="broadsheet-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> there is a page. There is no session, no state and no cursor, and everything below follows from that.</p>
+      <p><b>The document is an excerpt.</b> A story quotes the note and names its ID; the note itself lives elsewhere. On paper the ID is the link — you type it into the cockpit — which is worse than clicking and is the price of a surface that works with the machine off.</p>
+      <p><b>The verbs are absent, and that is the honest answer.</b> Print cannot act. The paper can <em>report</em> that six issues want an owner and that 61 verdicts are unanswered; it cannot let you clear one. Any version that pretends otherwise is a web page wearing a newspaper costume.</p>
+      <p><b>No terminal. Ever.</b> The other nine argue about how to host a shell; this one is the only place where the answer is simply no.</p>
+      <p><b>The fleet is a page per repo</b>, or a fleet edition with twelve columns of numbers — and a weekly paper is genuinely the right shape for twelve repos, because nobody opens twelve cockpits on a Monday morning.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="thin" style="left:2%;top:3%;width:96%;height:12%">THE PROJECT-OS RECORD · week 36</i>
+        <i class="doc" style="left:2%;top:18%;width:60%;height:44%">lead story — excerpt + note ID</i>
+        <i class="owed" style="left:65%;top:18%;width:33%;height:26%">corrections</i>
+        <i style="left:65%;top:47%;width:33%;height:15%">weather · obituaries</i>
+        <i style="left:2%;top:66%;width:60%;height:16%">situations vacant · 6 issues</i>
+        <i style="left:65%;top:66%;width:33%;height:16%">the week in numbers</i>
+        <i class="thin" style="left:2%;top:86%;width:96%;height:10%">no verbs · no terminal · works with the machine off</i>
+      </div>
+      <div class="wf-cap">a page, and nothing it can do</div>
+    </div>
+  </div>
+
   <div class="strip">
     <div data-design-region="broadsheet-navigation">
       <h4>Navigation</h4>
@@ -1841,6 +2419,30 @@
     </div>
   </div>
   <div class="screen-cap">The line runs; the pile grows. This is the one view where the bottleneck is a <em>place</em> rather than a number in a column, and where "we are shipping fine" and "we are shipping fine because nothing is being reviewed" look completely different.</div>
+
+  <div class="appblock" data-design-region="foundry-application">
+    <div class="app-copy">
+      <h4>The whole application</h4>
+      <p><b>At rest</b> you are looking at the floor: five stations, the belts between them, and whatever has stopped moving. The readout is throughput, not counts.</p>
+      <p><b>The document</b> opens when you click a parcel — the note in the cockpit's renderer, in a panel that keeps the floor visible behind it, because the reason you opened it was where it was stuck.</p>
+      <p><b>The verbs are the most direct and the most dangerous here.</b> Dragging a parcel to the next station <em>is</em> a status transition: gesture and write are the same act. That is wonderful for triage and appalling for a verdict, so the human-only verbs must refuse the drag and open the note instead — the floor may move work, never judge it.</p>
+      <p><b>The terminal is the control room</b>: a booth on the floor you walk into, holding that workspace's shell. It is a nice fit and a slightly forced one — the shell has no natural station, since it is how the work gets done rather than a place the work passes through.</p>
+      <p><b>The fleet is twelve lines in one hall</b>, or one line per repo with a switcher. Twelve at once is where the metaphor starts to cost more than it explains.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="field" style="left:2%;top:2%;width:96%;height:52%"></i>
+        <i style="left:4%;top:8%;width:17%;height:14%">intake</i>
+        <i style="left:24%;top:14%;width:17%;height:14%">plan</i>
+        <i style="left:44%;top:20%;width:17%;height:14%">build</i>
+        <i class="owed" style="left:64%;top:26%;width:17%;height:20%">review · 61</i>
+        <i style="left:84%;top:34%;width:13%;height:14%">release</i>
+        <i class="doc" style="left:2%;top:58%;width:52%;height:38%">the parcel's note — floor still visible</i>
+        <i class="term" style="left:57%;top:58%;width:41%;height:38%">the control room<br>⌘` &nbsp;this workspace's shell</i>
+      </div>
+      <div class="wf-cap">drag = transition, except where it must not</div>
+    </div>
+  </div>
 
   <div class="strip">
     <div data-design-region="foundry-navigation">
@@ -1991,6 +2593,399 @@
 })();
 </script>
 
+<!-- ============================ 10 · ROOM ============================ -->
+<style>
+  .m-room {
+    --r-ink: #E8E2D6; --r-faint: #9A9284; --r-line: #3A342B;
+    position: relative; background: #0B0A08; height: 520px; color: var(--r-ink);
+    transition: background .5s ease;
+  }
+  .m-room[data-treat="gesture"] { --r-ink: #A8E8F8; --r-faint: #4E93A8; --r-line: #14586B; background: #01080C; }
+  .m-room[data-treat="table"]   { --r-ink: #EDE3D2; --r-faint: #A2937C; --r-line: #4C4339; background: #2A2622; }
+  .m-room canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  .m-room canvas:active { cursor: grabbing; }
+  .room-hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--mono); font-size: 11px; }
+  .room-toggle {
+    position: absolute; top: 15px; left: 50%; transform: translateX(-50%); display: flex;
+    background: rgb(0 0 0 / .5); border: 1px solid var(--r-line); border-radius: 5px; overflow: hidden;
+    pointer-events: auto; backdrop-filter: blur(6px);
+  }
+  .room-toggle button {
+    font: inherit; font-size: 10px; letter-spacing: .13em; padding: 7px 14px; border: 0;
+    background: transparent; color: var(--r-faint); cursor: pointer; white-space: nowrap;
+  }
+  .room-toggle button + button { border-left: 1px solid var(--r-line); }
+  .room-toggle button[aria-pressed="true"] { background: var(--r-ink); color: #0B0A08; }
+  .room-stat { position: absolute; top: 15px; left: 20px; line-height: 1.9; color: var(--r-faint); }
+  .room-stat b { color: var(--r-ink); font-weight: 500; }
+  .room-keys { position: absolute; bottom: 16px; right: 20px; color: var(--r-faint); text-align: right; line-height: 1.9; }
+  .room-scale {
+    position: absolute; bottom: 16px; left: 20px; color: var(--r-faint); line-height: 1.9;
+  }
+  .room-scale b { color: var(--r-ink); font-weight: 500; }
+</style>
+
+<section class="plate" data-design-region="room">
+  <div class="plate-head">
+    <span class="plate-num">10</span>
+    <span class="plate-name">ROOM</span>
+    <span class="plate-tag">the record at body scale</span>
+  </div>
+  <p class="plate-lede">
+    <strong>This one was cut, and then asked for.</strong> It sat in the not-drawn list with the reason "the hardware is not on the desk, and a headset view whose advantage over ORBIT is <em>bigger</em> is not a different application" — which was too quick. Standing up <em>is</em> a different application: at body scale the corpus stops being a picture you look at and becomes a place you are in, with a behind you, and things you have to turn around to see. That changes what you notice. It also changes almost nothing about reading a note, which is the honest limit. Three treatments below; they are not skins, they disagree about <strong>where you are</strong>.
+  </p>
+
+  <div class="screen m-room" data-treat="stacks" data-design-region="room-mock">
+    <canvas id="room-canvas"></canvas>
+    <div class="room-hud">
+      <div class="room-toggle" role="group" aria-label="Treatment">
+        <button type="button" data-t="stacks" aria-pressed="true">THE STACKS</button>
+        <button type="button" data-t="gesture" aria-pressed="false">GESTURE ROOM</button>
+        <button type="button" data-t="table" aria-pressed="false">BUILD TABLE</button>
+      </div>
+      <div class="room-stat">
+        <b>1537</b> notes &nbsp;·&nbsp; <b>43</b> phases<br>
+        <span id="room-mode">walking · 8 bays ahead</span>
+      </div>
+      <div class="room-scale" id="room-scale">eye height <b>1.65 m</b> · you are inside it</div>
+      <div class="room-keys" id="room-keys">drag to look around<br>the corpus continues behind you</div>
+    </div>
+  </div>
+  <div class="screen-cap">Drag to look around. All three put the same 1537 notes in a physical space and differ on the question a headset actually answers: <strong>are you inside the record, operating it, or standing over it?</strong></div>
+
+  <div class="treat-notes" data-design-region="room-treatments">
+    <div>
+      <h5>THE STACKS</h5>
+      <div class="sub">what I had in mind, drawn properly this time</div>
+      <p><b>You walk down a hall.</b> Each bay is a phase; the documents are lit panels on the walls at reading height; the far end of the hall is the far end of the project. Depth is chronology — walk forward and you walk into last spring.</p>
+      <p>Its argument is <b>scale you can feel</b>. 1537 notes is an abstraction on a screen and a long corridor in a room, and the length of that corridor is the only honest picture of the corpus anyone has had. Its weakness is that it is a metaphor with nothing under it: a hall is not how the notes are organised, and any bay you walk into could equally have been a list.</p>
+    </div>
+    <div>
+      <h5>GESTURE ROOM</h5>
+      <div class="sub">the Minority Report reading</div>
+      <p><b>You stand still and the record comes to you.</b> Panes hang in an arc at arm's length; you pull one closer, push one away, throw one aside. Nothing is on a wall — the arrangement is yours, and it collapses when you leave.</p>
+      <p>Its argument is <b>manipulation over navigation</b>, and it is the treatment that fits this project's actual work: comparing four notes at once, which no flat screen does well. Its weakness is the famous one — <b>gorilla arm</b>. The film never showed anyone doing that for six hours, and the review backlog is a six-hour job.</p>
+    </div>
+    <div>
+      <h5>BUILD TABLE</h5>
+      <div class="sub">play blocks, at room scale</div>
+      <p><b>The record is a model on a table and you walk around it.</b> Same wooden blocks as ORBIT, now at 1:1 in a room: you lean in, pick a block up, turn it over, set it back. Someone else can stand on the other side.</p>
+      <p>Its argument is <b>the only one of the three with a second person in it</b>. A table is a shared object; a headset view of a corridor is not. If this project's problem is that judgment sits with one human, a surface built for two people around a model is the one that changes something. It is also the least immersive, which is probably why it is the most usable.</p>
+    </div>
+  </div>
+
+  <div class="appblock" data-design-region="room-application">
+    <div class="app-copy">
+      <h4>The whole application — and where it stops</h4>
+      <p><b>At rest</b> you are standing in it. There is no window, no rail, no tab bar; the fleet's twelve repos are twelve doors, or twelve tables in one workshop.</p>
+      <p><b>The document is the wall.</b> This is where the honesty is needed: <b>reading 1500 words of Markdown in a headset is worse than reading it on a laptop</b>, and no amount of design fixes that. The Stacks can show a note as a lit panel and you can read a heading and a status from it, but the reader you would actually use is still the flat one.</p>
+      <p><b>The verbs work well, and this is the surprise.</b> Approve, triage, defer and decide are one-gesture acts, and a gesture is a good fit for a verdict: pick it up, look at it, put it in one of two places. The Build Table's version — sliding a block across to the other side — is the clearest <em>discharge</em> gesture in this whole document.</p>
+      <p><b>The terminal cannot come.</b> A shell is a keyboard surface; a virtual keyboard at body scale is a joke, and passing through a real one means you are looking at a desk through a headset. So ROOM is the one design here that must say plainly: <b>the terminal stays on the machine</b>, and you take the headset off to use it.</p>
+      <p><b>Which is why it is a companion, not a replacement.</b> It cannot host the reader or the shell. What it can host is the part of the work that is judgment rather than typing.</p>
+    </div>
+    <div>
+      <div class="wf">
+        <i class="field" style="left:2%;top:2%;width:96%;height:60%"></i>
+        <i class="doc" style="left:6%;top:10%;width:26%;height:40%">wall panel<br>id · title · status<br><span style="opacity:.6">not the reader</span></i>
+        <i class="owed" style="left:37%;top:10%;width:26%;height:40%">owed · in reach<br>one gesture each</i>
+        <i class="thin" style="left:68%;top:10%;width:26%;height:40%">12 doors<br>/ 12 tables</i>
+        <i class="term" style="left:2%;top:68%;width:96%;height:28%">⌘` &nbsp;the terminal does not come with you — headset off, keyboard on</i>
+      </div>
+      <div class="wf-cap">the room is the whole window — and the one thing it refuses</div>
+    </div>
+  </div>
+
+  <div class="strip">
+    <div data-design-region="room-navigation">
+      <h4>Navigation</h4>
+      <p>You turn your head, and you walk. The Stacks navigates by <strong>going somewhere</strong>; the Gesture Room does not navigate at all, it <strong>arranges</strong>; the Build Table navigates by <strong>walking around a thing</strong> — three different verbs that a flat screen renders identically as "scroll".</p>
+      <p>Search survives in all three as voice or a summoned pane. Nothing else from the cockpit's chrome does.</p>
+    </div>
+    <div data-design-region="room-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> the whole corpus, and the same layout work <code>TASK-0593</code> describes for ORBIT — a room needs stable positions even more than a screen does, because you remember rooms.</p>
+      <p><strong>New:</strong> a WebXR surface, a hand-tracking interaction layer, and a text-rendering approach that stays legible at 1.5 metres. Also a decision this repo has never had to make: what a <em>second person</em> in the session is allowed to do.</p>
+    </div>
+    <div class="objection" data-design-region="room-objection">
+      <h4>The objection</h4>
+      <p><strong>The original cut still mostly stands.</strong> The hardware is not on the desk, the terminal cannot come, the reader is worse, and the sessions are twenty minutes long because of the headset, not because of the work.</p>
+      <p>What changed my mind is narrower than the pitch: <strong>the Build Table is a two-person surface</strong>, and every governance decision in this project currently has exactly one person available to make it. That is worth a prototype on its own — and it does not need a headset, only a table and a projector.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const cv = document.getElementById('room-canvas');
+  const ctx = cv.getContext('2d');
+  const host = cv.parentElement;
+  const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let seed = 4242;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+
+  const BAYS = ['PHASE-041', 'PHASE-038', 'PHASE-037', 'PHASE-030', 'PHASE-028', 'PHASE-027', 'PHASE-026', 'PHASE-023'];
+  const PANES = [
+    { a: -0.40, r: 3.0, y: 1.80, w: .50, h: .34, t: 'FEAT-0143', s: 'DONE',   l: ['13 tasks', '1086 → 0 errors'] },
+    { a: -0.10, r: 2.4, y: 1.60, w: .56, h: .40, t: 'ISS-0209',  s: 'OPEN',   l: ['acceptance gate', 'reaches no repo', '11 days'] },
+    { a:  0.26, r: 2.8, y: 1.74, w: .50, h: .34, t: 'ADR-0037',  s: 'ACCEPTED', l: ['a verdict', 'is an event'] },
+    { a:  0.56, r: 3.4, y: 1.52, w: .46, h: .30, t: 'PHASE-041', s: 'CLOSED', l: ['5 of 6 criteria'] },
+    { a: -0.74, r: 3.6, y: 1.44, w: .44, h: .30, t: 'REQ-0026',  s: 'MET',    l: ['no agent writes', 'a verdict'] },
+    { a:  0.92, r: 3.5, y: 1.86, w: .44, h: .30, t: 'ISS-0260',  s: 'OPEN',   l: ['unparseable', 'frontmatter'] },
+  ];
+  // the block model, re-used from ORBIT and put on a real table
+  const MODEL = [];
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const cx = Math.cos(a) * .52, cz = Math.sin(a) * .52;
+    for (let k = 0; k < 14; k++) {
+      const w = .045 + ((rnd() * 3) | 0) * .022;
+      MODEL.push({ x: cx + (rnd() - .5) * .42, z: cz + (rnd() - .5) * .42, w: w, h: .05 + ((rnd() * rnd() * 5) | 0) * .075, b: (rnd() < .70 ? 0 : 1 + ((rnd() * 5) | 0)) });
+    }
+  }
+  const WOOD = [[38, 34, 64], [214, 28, 60], [140, 36, 52], [35, 10, 60], [180, 28, 54], [6, 56, 57]];
+  const woodOf = (i, dl) => 'hsl(' + WOOD[i][0] + ' ' + WOOD[i][1] + '% ' + Math.max(6, Math.min(94, WOOD[i][2] + dl)) + '%)';
+
+  let treat = 'stacks', yaw = 0, drag = null, t0 = 0;
+  const MODES = {
+    stacks:  { m: 'walking · 8 bays ahead', k: 'drag to look around<br>the corpus continues behind you', s: 'eye height <b>1.65 m</b> · you are inside it' },
+    gesture: { m: 'standing · 6 panes in reach', k: 'drag to look around<br>reach, pull, throw aside', s: 'reach <b>0.7 m</b> · nothing is on a wall' },
+    table:   { m: 'standing over it · 112 blocks', k: 'drag to walk around the table<br>someone can stand opposite', s: 'table <b>1.6 m</b> across · two people fit' },
+  };
+  const modeEl = document.getElementById('room-mode');
+  const keysEl = document.getElementById('room-keys');
+  const scaleEl = document.getElementById('room-scale');
+  host.querySelectorAll('.room-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      treat = btn.getAttribute('data-t');
+      host.setAttribute('data-treat', treat);
+      host.querySelectorAll('.room-toggle button').forEach(o => o.setAttribute('aria-pressed', String(o === btn)));
+      yaw = 0;
+      modeEl.textContent = MODES[treat].m;
+      keysEl.innerHTML = MODES[treat].k;
+      scaleEl.innerHTML = MODES[treat].s;
+      if (STILL) requestAnimationFrame(frame);
+    });
+  });
+  cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, yaw }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointerup', () => { drag = null; });
+  cv.addEventListener('pointermove', e => {
+    if (!drag) return;
+    yaw = Math.max(-.9, Math.min(.9, drag.yaw + (e.clientX - drag.x) * -.0032));
+    if (STILL) requestAnimationFrame(frame);
+  });
+
+  let W = 0, H = 0, dpr = 1, EYE = 1.65, F = 900;
+  const HORIZON = { stacks: .5, gesture: .5, table: .26 };
+  function size() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = host.clientWidth; H = host.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    F = W * .78;
+  }
+  size();
+  new ResizeObserver(size).observe(host);
+
+  // first person: camera at the origin, looking down +z, yaw only
+  function proj(x, y, z, eye) {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const X = x * c + z * s, Z = -x * s + z * c;
+    if (Z < .08) return null;
+    const hz = H * HORIZON[treat];
+    return [W / 2 + (X / Z) * F, hz - ((y - (eye === undefined ? EYE : eye)) / Z) * F, Z];
+  }
+  const poly = (pts, fill, stroke, lw) => {
+    if (pts.some(p => !p)) return;
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
+  };
+  const label = (txt, p, px, col, align) => {
+    if (!p) return;
+    const s = px * F / p[2];
+    if (s < 7) return;
+    ctx.fillStyle = col; ctx.font = s.toFixed(1) + 'px ui-monospace, monospace';
+    ctx.textAlign = align || 'left';
+    ctx.fillText(txt, p[0], p[1]);
+    ctx.textAlign = 'left';
+  };
+
+  function drawStacks() {
+    const CH = 3.4, WX = 3.0, FAR = 26;
+    ctx.fillStyle = '#0B0A08'; ctx.fillRect(0, 0, W, H);
+    // floor and ceiling
+    poly([proj(-WX, 0, FAR), proj(WX, 0, FAR), proj(WX, 0, .3), proj(-WX, 0, .3)], '#1A1611');
+    poly([proj(-WX, CH, FAR), proj(WX, CH, FAR), proj(WX, CH, .3), proj(-WX, CH, .3)], '#100E0B');
+    // the vanishing glow: the far end of the project
+    const v = proj(0, 1.6, FAR);
+    if (v) {
+      const g = ctx.createRadialGradient(v[0], v[1], 2, v[0], v[1], 190);
+      g.addColorStop(0, 'rgba(196,152,80,.20)'); g.addColorStop(1, 'rgba(196,152,80,0)');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    for (let i = BAYS.length - 1; i >= 0; i--) {
+      const z0 = 2.6 + i * 2.9, z1 = z0 + 2.4;
+      for (const side of [-1, 1]) {
+        const x = side * WX;
+        poly([proj(x, 0, z0), proj(x, CH, z0), proj(x, CH, z1), proj(x, 0, z1)],
+             side < 0 ? '#221D16' : '#1E1A14');
+        // an alcove of documents at reading height
+        const inset = side * (WX - .06);
+        for (let k = 0; k < 3; k++) {
+          const dz0 = z0 + .3 + k * .68, dz1 = dz0 + .5;
+          const y0 = 1.05, y1 = 1.95;
+          const warm = i < 3 ? 'rgba(238,214,164,.92)' : 'rgba(216,190,142,.62)';
+          poly([proj(inset, y0, dz0), proj(inset, y1, dz0), proj(inset, y1, dz1), proj(inset, y0, dz1)],
+               warm, 'rgba(120,96,58,.9)', 1);
+        }
+        // light pool on the floor under the bay
+        const a = proj(side * (WX - .1), .002, z0 + .2), b = proj(side * (WX - 1.5), .002, z0 + .5),
+              c = proj(side * (WX - 1.5), .002, z1 - .2), d = proj(side * (WX - .1), .002, z1);
+        poly([a, b, c, d], 'rgba(206,164,96,.10)');
+        label(BAYS[i], proj(inset, 2.26, z0 + .45), .105, 'rgba(232,214,178,.95)');
+      }
+    }
+    // a person, for scale — the whole argument of this treatment
+    const fz = 7.4, fp = proj(-1.5, 0, fz), ft = proj(-1.5, 1.72, fz);
+    if (fp && ft) {
+      ctx.fillStyle = 'rgba(12,10,8,.92)';
+      const wdt = (ft[1] - fp[1]) * -.17;
+      ctx.fillRect(fp[0] - wdt / 2, ft[1], wdt, fp[1] - ft[1]);
+      ctx.beginPath(); ctx.arc(fp[0], ft[1] - wdt * .34, wdt * .32, 0, 6.284); ctx.fill();
+    }
+  }
+
+  function drawGesture() {
+    ctx.fillStyle = '#01080C'; ctx.fillRect(0, 0, W, H);
+    // a floor grid, so you are standing rather than floating
+    ctx.strokeStyle = 'rgba(60,170,210,.16)'; ctx.lineWidth = 1;
+    for (let g = -6; g <= 6; g++) {
+      const a = proj(g * .8, 0, .5), b = proj(g * .8, 0, 14);
+      if (a && b) { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+    }
+    for (let z = 1; z <= 14; z += 1) {
+      const a = proj(-5, 0, z), b = proj(5, 0, z);
+      if (a && b) { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+    }
+    const drawn = PANES.map(pn => {
+      const x = Math.sin(pn.a) * pn.r, z = Math.cos(pn.a) * pn.r;
+      return { pn, x, z, p: proj(x, pn.y, z) };
+    }).filter(o => o.p).sort((a, b) => b.p[2] - a.p[2]);
+    for (const o of drawn) {
+      const { pn, p } = o;
+      const w = pn.w * F / p[2], h = pn.h * F / p[2];
+      const held = pn.t === 'ISS-0209';
+      ctx.globalAlpha = Math.max(.25, Math.min(.9, 2.4 / p[2]));
+      poly([[p[0] - w / 2, p[1] - h / 2], [p[0] + w / 2, p[1] - h / 2], [p[0] + w / 2, p[1] + h / 2], [p[0] - w / 2, p[1] + h / 2]],
+           held ? 'rgba(20,88,112,.62)' : 'rgba(14,62,80,.46)', 'rgba(122,226,255,.8)', held ? 1.6 : 1);
+      ctx.fillStyle = 'rgba(122,226,255,.16)';
+      ctx.fillRect(p[0] - w / 2, p[1] - h / 2, w, Math.min(18, h * .22));
+      ctx.globalAlpha = 1;
+      const s = Math.max(7, Math.min(15, 15 * 2.2 / p[2]));
+      ctx.font = s.toFixed(1) + 'px ui-monospace, monospace';
+      ctx.fillStyle = 'rgba(198,244,255,.95)';
+      ctx.fillText(pn.t, p[0] - w / 2 + 7, p[1] - h / 2 + s + 2);
+      ctx.fillStyle = 'rgba(122,226,255,.75)';
+      ctx.textAlign = 'right'; ctx.fillText(pn.s, p[0] + w / 2 - 7, p[1] - h / 2 + s + 2); ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(150,214,236,.8)';
+      ctx.font = (s * .82).toFixed(1) + 'px ui-monospace, monospace';
+      pn.l.forEach((ln, k) => ctx.fillText(ln, p[0] - w / 2 + 7, p[1] - h / 2 + s * 2.4 + k * s * 1.15));
+      if (held) {
+        ctx.strokeStyle = 'rgba(150,240,255,.95)'; ctx.lineWidth = 1.6;
+        const k = 9, L = w / 2 + 7, T = h / 2 + 7;
+        ctx.beginPath();
+        ctx.moveTo(p[0] - L, p[1] - T + k); ctx.lineTo(p[0] - L, p[1] - T); ctx.lineTo(p[0] - L + k, p[1] - T);
+        ctx.moveTo(p[0] + L - k, p[1] - T); ctx.lineTo(p[0] + L, p[1] - T); ctx.lineTo(p[0] + L, p[1] - T + k);
+        ctx.moveTo(p[0] + L, p[1] + T - k); ctx.lineTo(p[0] + L, p[1] + T); ctx.lineTo(p[0] + L - k, p[1] + T);
+        ctx.moveTo(p[0] - L + k, p[1] + T); ctx.lineTo(p[0] - L, p[1] + T); ctx.lineTo(p[0] - L, p[1] + T - k);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(150,240,255,.9)'; ctx.font = '10px ui-monospace, monospace';
+        ctx.fillText('HELD · triage', p[0] - L, p[1] - T - 7);
+      }
+    }
+    // hands, at the bottom of your own view
+    for (const sgn of [-1, 1]) {
+      const hx = W / 2 + sgn * W * .19, hy = H + 6, px = hx - sgn * 14, py = hy - 78;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(150,240,255,.5)'; ctx.fillStyle = 'rgba(90,200,235,.13)';
+      ctx.lineWidth = 1.6; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.beginPath();                                   // forearm into palm
+      ctx.moveTo(hx - sgn * 20, hy); ctx.lineTo(px - sgn * 20, py + 10);
+      ctx.quadraticCurveTo(px - sgn * 16, py - 16, px + sgn * 6, py - 12);
+      ctx.lineTo(px + sgn * 18, py + 6); ctx.lineTo(hx + sgn * 12, hy);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      for (let f = 0; f < 4; f++) {                      // fingers, half-curled
+        const bx = px - sgn * (12 - f * 9), by = py - 8 - f * 2;
+        ctx.beginPath(); ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo(bx - sgn * 5, by - 22 - f * 3, bx + sgn * 3, by - 34 - f * 4);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawTable() {
+    const EYEH = 1.62, TOP = .78, TZ = 3.15;
+    ctx.fillStyle = '#2A2622'; ctx.fillRect(0, 0, W, H);
+    // back wall and a shelf of the other eleven repos
+    poly([proj(-6, 0, 9, EYEH), proj(6, 0, 9, EYEH), proj(6, 3.2, 9, EYEH), proj(-6, 3.2, 9, EYEH)], '#332E28');
+    for (let s = 0; s < 2; s++) {
+      const y = 1.35 + s * .62;
+      poly([proj(-3.2, y, 8.9, EYEH), proj(3.2, y, 8.9, EYEH), proj(3.2, y + .05, 8.9, EYEH), proj(-3.2, y + .05, 8.9, EYEH)], '#4A4238');
+      for (let k = 0; k < 6; k++) {
+        const x = -2.9 + k * 1.0;
+        poly([proj(x, y + .05, 8.88, EYEH), proj(x + .5, y + .05, 8.88, EYEH), proj(x + .5, y + .42, 8.88, EYEH), proj(x, y + .42, 8.88, EYEH)],
+             woodOf(k % 6, -6));
+      }
+    }
+    label('the other eleven — one table each', proj(-3.4, 2.62, 8.88, EYEH), .10, 'rgba(200,188,168,.8)');
+    // the table
+    // floor first — it is behind the table, and painting it after hides it
+    poly([proj(-6, 0, 9, EYEH), proj(6, 0, 9, EYEH), proj(6, 0, .4, EYEH), proj(-6, 0, .4, EYEH)], '#231F1B');
+    poly([proj(-.95, TOP, TZ - .95, EYEH), proj(.95, TOP, TZ - .95, EYEH), proj(.95, TOP, TZ + .95, EYEH), proj(-.95, TOP, TZ + .95, EYEH)], '#C6B190');
+    poly([proj(-.95, TOP, TZ - .95, EYEH), proj(.95, TOP, TZ - .95, EYEH), proj(.95, TOP - .07, TZ - .95, EYEH), proj(-.95, TOP - .07, TZ - .95, EYEH)], '#9C8968');
+    // the model
+    const drawn = MODEL.map(b => ({ b, d: Math.hypot(b.x, b.z + TZ - 0) })).sort((a, b) => b.d - a.d);
+    for (const { b } of drawn) {
+      const x0 = b.x - b.w / 2, x1 = b.x + b.w / 2, z0 = TZ + b.z - b.w / 2, z1 = TZ + b.z + b.w / 2;
+      const A = proj(x0, TOP + b.h, z0, EYEH), B = proj(x1, TOP + b.h, z0, EYEH),
+            C = proj(x1, TOP + b.h, z1, EYEH), D = proj(x0, TOP + b.h, z1, EYEH);
+      const a = proj(x0, TOP, z0, EYEH), bb = proj(x1, TOP, z0, EYEH),
+            c = proj(x1, TOP, z1, EYEH), d = proj(x0, TOP, z1, EYEH);
+      poly([proj(x0 + .02, TOP + .001, z0 + .03, EYEH), proj(x1 + .02, TOP + .001, z0 + .03, EYEH),
+            proj(x1 + .02, TOP + .001, z1 + .03, EYEH), proj(x0 + .02, TOP + .001, z1 + .03, EYEH)], 'rgba(80,64,40,.2)');
+      poly([a, bb, B, A], woodOf(b.b, -12));
+      poly([bb, c, C, B], woodOf(b.b, -20));
+      poly([d, a, A, D], woodOf(b.b, -16));
+      poly([A, B, C, D], woodOf(b.b, 9), 'rgba(60,45,25,.3)', .8);
+    }
+    // the other person's hand, reaching in from across the table
+    const h1 = proj(.46, TOP + .34, TZ + .86, EYEH), h2 = proj(.20, TOP + .07, TZ + .22, EYEH);
+    if (h1 && h2) {
+      ctx.strokeStyle = 'rgba(232,214,188,.82)'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(h1[0], h1[1]); ctx.lineTo(h2[0], h2[1]); ctx.stroke();
+      ctx.lineCap = 'butt';
+      ctx.fillStyle = 'rgba(150,138,120,.9)'; ctx.font = '10px ui-monospace, monospace';
+      ctx.fillText('someone else, deciding', h1[0] + 10, h1[1] - 6);
+    }
+  }
+
+  function frame() {
+    if (!drag && !STILL) { t0 += .006; yaw = Math.sin(t0) * .12; }
+    ctx.clearRect(0, 0, W, H);
+    if (treat === 'gesture') drawGesture();
+    else if (treat === 'table') drawTable();
+    else drawStacks();
+    if (!STILL || drag) requestAnimationFrame(frame);
+  }
+  frame();
+  if (STILL) cv.addEventListener('pointerdown', () => requestAnimationFrame(frame));
+})();
+</script>
+
 <!-- ============================ closing ============================ -->
 <style>
   .nd { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 34px; border-top: 1px solid var(--rule); }
@@ -2018,8 +3013,8 @@
   .aside-find p:last-child { margin: 0; }
 </style>
 
-<h2 class="section">Seven more, considered and not drawn</h2>
-<p class="section-sub">Each was a candidate for one of the nine slots. The reason it lost is more useful than the concept.</p>
+<h2 class="section">Six more, considered and not drawn</h2>
+<p class="section-sub">Each was a candidate for a slot. The reason it lost is more useful than the concept — and one of the original seven, <strong>room-scale VR</strong>, was cut here, challenged, and is now plate 10. The cut was too quick, which is the argument for writing these down rather than just not drawing them.</p>
 <div class="nd" data-design-region="not-drawn">
   <div>
     <h5>Sonification</h5>
@@ -2032,10 +3027,6 @@
   <div>
     <h5>The detective board</h5>
     <p>A freeform canvas where <em>you</em> pin notes and draw the string — the only layout model none of the nine uses, since every one of them decides the arrangement for you. <em>Cut narrowly, and it is the strongest of the seven. The doubt: the corpus already has an authored link graph, and hand-drawn string would quietly compete with <code>related:</code>.</em></p>
-  </div>
-  <div>
-    <h5>Room-scale / VR</h5>
-    <p>Walk through the corpus at body scale. <em>Cut because the hardware is not on the desk, and 3D already appears twice in the nine. A headset view whose advantage over ORBIT is "bigger" is not a different application.</em></p>
   </div>
   <div>
     <h5>The pager</h5>
@@ -2079,8 +3070,8 @@
 </div>
 
 <div style="margin-top:64px;padding-top:18px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11px;color:var(--ink-faint);display:flex;gap:20px;flex-wrap:wrap">
-  <span>DES-0013</span><span>proposal · nothing accepted</span><span>PHASE-028 · Borrowed capability</span>
-  <span>50 regions</span><span style="margin-left:auto">figures measured 2026-09-05</span>
+  <span>DES-0013 · rev 2</span><span>proposal · ORBIT filed as FEAT-0144</span><span>PHASE-028 · Borrowed capability</span>
+  <span>ten plates · 69 regions</span><span style="margin-left:auto">figures measured 2026-09-05</span>
 </div>
 
 </div>
