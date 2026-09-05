@@ -343,7 +343,7 @@
 </div>
 
 <div class="try" style="border-left-color:var(--status-active)">
-  <b>Try the desk.</b> Click a card to lift it out of the field; ⇧click another to add it. They stack with their headers always readable, the field behind dims but stays legible, and what is joined to the note you are holding lights up where it already is. <code>×</code> puts one back, <code>⌥×</code> closes the others, <code>esc</code> clears the desk.
+  <b>Try the desk.</b> <b>Every click adds</b> — no modifier, nothing is ever replaced by accident. Notes stack with their headers always readable, and <b>what is joined to the note you are holding comes to the front band at full size</b>, so you can read it and click it onto the desk too. <code>×</code> puts one back, <code>⌥×</code> closes the others, <code>esc</code> clears the desk. Switch workspace on the ring: the desk stays, and each note keeps the repo it came from.
 </div>
 
 <div class="try">
@@ -547,7 +547,7 @@
       if (act === 'behind') return putBehind(n);
       if (act === 'close') return closeOne(n.id);
       if (act === 'pin') return openOn(n, true);
-      openOn(n, e.shiftKey);
+      openOn(n);
     });
     if (n.k === 'phase') el.classList.add('phase');
     inner.appendChild(el);
@@ -604,17 +604,30 @@
     return out;
   }
 
+  function focusKin() {
+    if (!desk.length) return new Set();
+    const n = byId.get(desk[desk.length - 1].id);
+    if (!n) return new Set();
+    return new Set([...(n.l || []), ...(INBOUND.get(n.id) || [])].filter(id => byId.has(id)));
+  }
   function assign() {
     const subject = NOTES.filter(view.about);
+    const near = focusKin();
+    const onDesk = new Set(desk.map(d => d.id));
     const front = [], mid = [], quiet = [];
+    // While a note is held, the front band belongs to what is joined to it —
+    // at full size and full detail, so they are readable rather than merely
+    // outlined. They stay FIELD cards: click one and it joins the desk.
+    NOTES.forEach(n => { if (near.has(n.id) && !onDesk.has(n.id)) front.push(n); });
     subject.forEach((n, i) => {
+      if (near.has(n.id) || onDesk.has(n.id)) return;
       if (pushed.has(n.id)) quiet.push(n);
-      else if (view.owed(n, i)) front.push(n);
+      else if (!desk.length && view.owed(n, i)) front.push(n);
       else if (view.lead === 'phase' && n.k === 'phase') mid.push(n);
       else if (TERMINAL.has(n.s)) quiet.push(n);
       else mid.push(n);
     });
-    NOTES.filter(n => !view.about(n)).forEach(n => quiet.push(n));
+    NOTES.filter(n => !view.about(n) && !near.has(n.id) && !onDesk.has(n.id)).forEach(n => quiet.push(n));
     const S = slots();
     front.splice(S.front.length).forEach(n => mid.push(n));
     SLOT.clear();
@@ -652,6 +665,8 @@
     }
     document.getElementById('viewnote').innerHTML = view.note;
     document.getElementById('nFront').textContent = front.length;
+    document.querySelector('.bands div:first-child').lastChild.textContent =
+      desk.length ? ' joined to what you are holding' : ' ahead of you — needs you';
     document.getElementById('nMid').textContent = Math.min(mid.length, S.mid.length);
     document.getElementById('nDeep').textContent = NOTES.length - front.length - Math.min(mid.length, S.mid.length);
     document.getElementById('tabA').textContent = view.id;
@@ -688,7 +703,7 @@
       // out of sight. What is joined to the note you are holding comes back to
       // full strength instead of being pulled out of position.
       const k = kin.get(n.id) || 0;
-      const dim = desk.length ? (k ? 1 : .34) : 1;
+      const dim = desk.length ? (k ? 1 : .3) : 1;
       el.style.opacity = String((sl.b === 'quiet' ? .5 : sl.b === 'mid' ? .94 : 1) * (0.28 + 0.72*fade) * dim);
       if (onDesk.has(n.id)) el.classList.add('lifted');
       else if (k > 1) el.classList.add('kin-shared');
@@ -728,7 +743,7 @@
     render(false);
   });
   stage.addEventListener('pointerup', () => {
-    if (look && moved < 4 && desk.length) sweep();
+    /* a background click no longer sweeps — too destructive by accident */
     look = null; render(true);
   });
   document.addEventListener('keydown', e => {
@@ -756,11 +771,13 @@
   const desk = [];                       // last element is the focused one
   let dz = 3000;
 
-  function openOn(n, add) {
+  // Click ADDS to the desk. Clicking one already on it raises it. Nothing is
+  // ever replaced by accident, and no modifier is needed for the main act.
+  function openOn(n) {
     if (desk.some(d => d.id === n.id)) { bringToTop(n.id); return; }
-    if (!add && desk.length) sweep();
     const i = desk.length;
-    desk.push(makeWin(n, 220 + i * 30, 118 + i * 34));
+    desk.push(makeWin(n, 220 + (i % 6) * 30, 112 + (i % 6) * 34));
+    yaw = 0;                    // picking a note up turns you to face its kin
     bringToTop(n.id);
   }
   function makeWin(n, x, y) {
@@ -770,6 +787,7 @@
     el.style.borderLeftColor = kc(n.k, 58);
     el.innerHTML =
       '<div class="nw-head"><span class="nid">' + n.id + '</span>' +
+      '<span style="color:var(--cy-dim)">' + REPOS[ringAt][0].replace('project-os-', 'p-os-') + '</span>' +
       '<span class="nst" style="color:var(--status-' + band(n.s) + ')">' + (n.s || '\u2014') + '</span>' +
       '<button type="button" data-a="fold" title="Collapse to its header">\u2013</button>' +
       '<button type="button" data-a="close" title="Back to the field \u00B7 \u2325 closes the others">\u00D7</button></div>' +
@@ -832,12 +850,13 @@
     w.el.style.zIndex = String(++dz);
     desk.splice(desk.indexOf(w), 1); desk.push(w);
     desk.forEach(d => d.el.classList.toggle('top', d === w));
-    render(true);
+    yaw = 0;                    // the front band is now this note's kin
+    assign(); render(true);
   }
   function closeOne(id) {
     const i = desk.findIndex(d => d.id === id); if (i < 0) return;
     desk[i].el.remove(); desk.splice(i, 1);
-    if (desk.length) bringToTop(desk[desk.length - 1].id); else { clearWires(); render(true); }
+    if (desk.length) bringToTop(desk[desk.length - 1].id); else { clearWires(); assign(); render(true); }
   }
   function closeOthers(id) { desk.slice().forEach(d => { if (d.id !== id) closeOne(d.id); }); }
   function sweep() { desk.slice().forEach(d => closeOne(d.id)); }
@@ -952,7 +971,7 @@
     if (!hit) { q.value = ''; q.placeholder = 'no note matches — try FEAT-0143'; return; }
     const sl = SLOT.get(hit.id);
     if (sl) { yaw = sl.th; render(true); }      // fly, do not cut
-    setTimeout(() => openOn(hit, false), STILL ? 0 : 420);
+    setTimeout(() => openOn(hit), STILL ? 0 : 420);
     q.blur();
   });
   document.addEventListener('keydown', e => {
@@ -1039,7 +1058,7 @@
           (n.s || '\u2014') + '</td><td>' + esc(n.t.slice(0, 46)) + '</td></tr>').join('') + '</table>';
         b.addEventListener('click', ev => {
           const tr = ev.target.closest('tr');
-          if (tr && byId.has(tr.dataset.id)) openOn(byId.get(tr.dataset.id), false);
+          if (tr && byId.has(tr.dataset.id)) openOn(byId.get(tr.dataset.id));
         });
       } });
   }
@@ -1142,7 +1161,12 @@
     s.className = 'ring-slab';
     s.innerHTML = '<div class="rn">' + r[0].replace('project-os-', 'p-os-') + '</div>' +
       (r[1] ? '<div class="ro">' + r[1] + ' owed</div>' : '<div class="ro" style="color:var(--cy-dim)">quiet</div>');
-    s.addEventListener('click', e => { e.stopPropagation(); ringAt = i; drawRing(); });
+    s.addEventListener('click', e => {
+      e.stopPropagation(); ringAt = i; drawRing();
+      // the desk survives the switch: what you picked up is yours, not the
+      // workspace's. Each note keeps the repo tag it was lifted from.
+      if (desk.length) paintDesk();
+    });
     ringInner.appendChild(s);
   });
   function drawRing() {
@@ -1627,12 +1651,12 @@
     </tr>
     <tr>
       <td class="v">"how does that work with the associated notes?"</td>
-      <td><strong>Neighbours are never opened. They light up where they already are.</strong> The focused desk note draws threads to its neighbours <em>in the field</em>, which do not move</td>
-      <td>Five notes × twelve neighbours would be sixty cards competing for the desk. Instead the count on the desk is exactly what you put there, and <strong>only the focused note draws threads</strong> — so the picture stays readable however many are open</td>
+      <td><strong>The front band becomes the neighbourhood.</strong> While you hold a note, its neighbours take the front band — full size, full detail, readable — and picking the note up turns you to face them</td>
+      <td>The front plane means <em>what wants you</em>. While you are holding something, what wants you is what is joined to it, so the axis already had the right meaning. They stay <strong>field</strong> cards: click one and it joins the desk, so five notes never drag sixty onto it. Only the focused note claims the band, so the picture stays readable however many are open</td>
     </tr>
     <tr>
       <td class="v">"and how does closing work?"</td>
-      <td><strong>Three verbs, none destructive.</strong> <code>×</code> puts one back; <code>⌥×</code> closes the others; <code>esc</code> or <em>sweep</em> clears the desk</td>
+      <td><strong>Three verbs, none destructive — and adding needs no modifier.</strong> Every click adds; <code>×</code> puts one back; <code>⌥×</code> closes the others; <code>esc</code> or <em>sweep</em> clears the desk. A click on the background does nothing, because sweeping a desk by accident is unforgivable</td>
       <td>Closing is not a state change — nothing was recorded when you opened it. So no confirmation, no undo needed beyond opening it again, and the ghosted slot tells you exactly where it goes back to</td>
     </tr>
   </tbody>
@@ -1660,7 +1684,8 @@
 </div>
 <div class="warnbox">
   <h4>What I would still argue about</h4>
-  <p><strong>Whether the desk should persist across workspaces.</strong> It survives view switches, which is clearly right. Surviving a workspace switch means notes from two repos on one desk — useful for the fleet work, and a violation of the one-sidecar-per-repo boundary <code>FEAT-0093</code> draws. I have left it per-workspace, which is the conservative answer and possibly the wrong one.</p>
+  <p><strong>The desk survives a workspace switch</strong> — Edwin's call, and on reflection clearly right. What you picked up is yours, not the workspace's; a fleet job like "this issue in <code>your-trainer</code> against the ADR in <code>project-os</code>" is exactly the case the current cockpit cannot serve at all.</p>
+  <p>It does not violate <code>FEAT-0093</code>, and the distinction matters: the desk holds notes from several repos, but <strong>each note's content still comes from its own sidecar</strong>. No process is querying across repos — the desk is a place to put things, not a joined index. Each card carries its repo tag so you always know which record you are reading.</p>
   <p><strong>And whether a stack should be nameable.</strong> "The notes for answering this review" is a real object with a lifetime, and a saved desk is one keystroke from being a saved query — which is a different feature wearing this one's clothes. I have not built it, deliberately.</p>
 </div>
 
