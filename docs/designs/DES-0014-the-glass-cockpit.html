@@ -89,7 +89,9 @@
     pointer-events: auto;
     will-change: transform; backface-visibility: hidden;
   }
-  .card:hover { background: rgb(16 56 70 / .8); }
+  .card:hover { background: rgb(16 56 70 / .88); border-color: var(--cy);
+                box-shadow: 0 0 0 1px rgb(127 228 255 / .22), 0 8px 26px rgb(0 0 0 / .5); }
+  .card { transition-timing-function: cubic-bezier(.2,.9,.24,1.06); }
   .card .cid { font-size: 9.5px; letter-spacing: .04em; display: flex; justify-content: space-between; gap: 6px; }
   .card .cid b { font-weight: 500; }
   .card .ct { color: #D6F2FB; font-size: 10.5px; line-height: 1.35; margin-top: 4px; max-height: 28px; overflow: hidden; }
@@ -110,11 +112,10 @@
   .fog { position: absolute; inset: 0; pointer-events: none; z-index: 1500;
          background: radial-gradient(56% 68% at 56% 46%, rgb(4 9 13 / 0) 0%,
                      rgb(4 9 13 / .42) 66%, rgb(4 9 13 / .82) 100%); }
-  .stage[data-render="cheap"] .card.deep { filter: none; }
-  .stage[data-render="cheap"] .card.deep .ct { display: none; }
-  .stage[data-render="cheap"] .card.deep .face { display: none; }
-  .stage[data-render="cheap"] .card.deep { width: 116px; padding: 4px 7px 5px; }
-  .stage[data-render="cheap"] .card.mid .face { display: none; }
+  .stage[data-render="cheap"] .card.deep { filter: none; width: 146px; padding: 5px 8px 6px; }
+  .stage[data-render="cheap"] .card.deep .ct { display: none; }   /* the title is the costly part */
+  .stage[data-render="cheap"] .card.deep .face { margin-top: 4px; }
+  .stage[data-render="cheap"] .card.deep .bar { height: 5px; }
   .stage[data-render="blur"] .fog { opacity: .35; }
   .rendersw { position: absolute; left: 8px; bottom: 12px; z-index: 4000; font-family: var(--mono);
               font-size: 9.5px; color: var(--cy-dim); background: rgb(3 16 22 / .82);
@@ -624,6 +625,10 @@
       if (openSet.has(n.id)) continue;                       // opened cards are placed by openOn
       el.style.transition = anim === false ? 'none' : '';
       const phi = norm(sl.th - yaw);
+      // a wave rather than a jump: what you are facing settles first, the
+      // periphery follows. Free — it is a delay, not more work.
+      el.style.transitionDelay = anim === false ? '0ms'
+        : Math.min(170, Math.abs(phi) / DEG * 1.9).toFixed(0) + 'ms';
       const kk = PERSP / (PERSP + Math.cos(phi)*sl.d);
       const cx = centreX(SW) + Math.sin(phi)*sl.d*kk, hw = 99*kk;
       const vis = Math.abs(phi) < 78*DEG && cx - hw > RAIL - 30 && cx + hw < SW - HUD + 60;
@@ -725,6 +730,7 @@
       el.className = 'card focused pinned';
       el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
       el.style.transform = 'translate(' + (spread - 160) + 'px,-136px) scale(1.18)';
+      el.style.transitionDelay = '0ms';
       el.style.zIndex = '3000';
     });
     // Neighbours flank the open card in two columns rather than ringing it.
@@ -751,6 +757,7 @@
       el.className = 'card owed';
       el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
       el.style.transform = 'translate(' + (cx - 93) + 'px,' + cy + 'px) scale(' + K_RING + ')';
+      el.style.transitionDelay = (60 + k * 26) + 'ms';
       el.style.zIndex = '2600';
     });
     for (const m of NOTES) {
@@ -1445,8 +1452,9 @@
   <tbody>
     <tr><td class="v">cards on screen</td><td>55</td><td>55</td><td>same field, same slots</td></tr>
     <tr><td class="v">cards running a blur pass</td><td><strong style="color:var(--severity-critical)">52</strong></td><td><strong style="color:var(--status-done)">0</strong></td><td>each one is an offscreen buffer, filtered and composited back</td></tr>
-    <tr><td class="v">blurred area</td><td><strong style="color:var(--severity-critical)">821,408 px²</strong></td><td><strong style="color:var(--status-done)">0</strong></td><td>0.8 megapixels through a separable Gaussian, every frame you turn</td></tr>
-    <tr><td class="v">glyphs rasterised</td><td>4,299</td><td><strong>1,109</strong></td><td><strong>74% less text</strong> — a far card that is blurred past reading still pays to lay out and paint its title</td></tr>
+    <tr><td class="v">blurred area</td><td><strong style="color:var(--severity-critical)">288,726 px²</strong></td><td><strong style="color:var(--status-done)">0</strong></td><td>0.29 megapixels through a separable Gaussian, every frame you turn</td></tr>
+    <tr><td class="v">glyphs rasterised</td><td>4,299</td><td><strong>1,819</strong></td><td><strong>58% less text</strong> — the far card drops its <em>title</em>, which is the long unreadable-at-distance part</td></tr>
+    <tr><td class="v">cards still showing progress / severity</td><td>55</td><td><strong>55</strong></td><td><strong>the cheap version loses nothing that carries signal.</strong> A progress bar is a rectangle and a severity chip is one word; both survive distance. Only the sentence goes</td></tr>
   </tbody>
 </table>
 </div>
@@ -1454,6 +1462,7 @@
   <h4>The measurement changed my mind about the look, not just the cost</h4>
   <p>I expected to be trading appearance for speed. <strong>The cheap version reads better.</strong> A blurred card is unreadable <em>and</em> still occupies a full card's worth of space, so the quiet band becomes 52 smeared rectangles of text you cannot use. Dropping the title turns each one into a small ID tile, and the fog gradient does the receding — so the far field becomes a texture of identifiers instead of a wall of noise.</p>
   <p>That is aerial perspective, which is how distance actually looks: things lose contrast and detail, they do not go out of focus. <strong>Blur was simulating a camera, and there is no camera here.</strong></p>
+  <p><strong>Rev 5 got the detail level backwards and rev 6 fixed it.</strong> Distance was dropping the <em>face</em> — the progress bar and the severity chip — and keeping the title. That is exactly wrong: a bar is a rectangle and a chip is one word, both of which survive being small, while a sentence does not. The far field now reads as identifier, status and progress, which is more information than the blurred version carried and less work than either.</p>
   <p>One more thing the measurement showed, which no amount of reasoning would have: <strong>the blur cost is nearly zero while you face the front.</strong> The quiet band is behind you, so the expensive band is off-screen most of the time — and the cost only arrives at the moment you turn, which is the moment the interface most needs to stay smooth.</p>
 </div>
 
@@ -1476,6 +1485,28 @@
   <h4>What I still cannot tell you</h4>
   <p><strong>Frame times.</strong> The bench measures them live, but I could not read them: the tab I built this in was in the background, and browsers suspend <code>requestAnimationFrame</code> there — so every number would have been zero or invented. The counts above are structural and I stand behind them; the milliseconds are on the page for you to read on your own machine.</p>
   <p>The bound I will commit to: with pooling and no blur this is <strong>an ordinary compositing workload</strong> — a few hundred GPU-composited layers, which browsers do comfortably. Without pooling it is 1537 elements, and 52 of every 55 on screen running a blur pass. <strong>Pooling is not an optimisation to add later, it is the architecture</strong>, and this prototype — which still skips it — proves the interaction and nothing about the cost.</p>
+</div>
+
+<h2 class="section">Keeping it alive while pooling</h2>
+<p class="section-sub">
+  Pooling costs animation, and a field that snaps is a dead field. But the two are only in conflict if you pool the wrong band — and <strong>the animation budget is bounded by the visible arc, not by the corpus.</strong> Fifty cards moving is nothing; you never have fifteen hundred on screen.
+</p>
+<div class="gwrap" data-design-region="alive">
+<table class="g">
+  <thead><tr><th>rule</th><th>what it protects</th></tr></thead>
+  <tbody>
+    <tr><td class="v">pool only the far band</td><td><strong>The near bands are never recycled.</strong> The front holds ~12 and the mid ~40 — bound to their notes for as long as they are near, so they animate freely between views. The quiet band is where the thousand live and where nobody follows an individual card. You get full motion exactly where it is watched, and pooling exactly where the count is</td></tr>
+    <tr><td class="v">recycle only off-screen</td><td>A card about to animate is on screen by definition, so it is never a recycling candidate. This is what makes the rule above safe rather than hopeful</td></tr>
+    <tr><td class="v">cross-fade, never cross-morph</td><td>When a recycle is unavoidable, sliding element #37 from <code>FEAT-0143</code>'s position to <code>ISS-0260</code>'s is a lie about a note that never moved. Fade it out as one and in as the other — 120ms, opacity only, compositor-only</td></tr>
+    <tr><td class="v">FLIP for view switches</td><td>Measure first and last positions, apply the inverted transform, then play. The standard technique, and it works with a pool as long as identity is stable within the frame — which rule two guarantees</td></tr>
+    <tr><td class="v">stagger, do not synchronise</td><td>Cards settle in a wave from where you are facing outward. <strong>This is in the prototype now</strong> and costs nothing at all — it is a <code>transition-delay</code>, not extra work. Everything arriving at once reads as a jump; the same motion staggered reads as a field settling</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>Why this is not a compromise</h4>
+  <p>Transform and opacity transitions run on the compositor — they do not touch layout or paint. <strong>The cost is per animating element on screen, and the arc caps that at about 55.</strong> So the honest position is not "pool and accept a dead interface"; it is that the interface can only ever animate what you can see, and pooling changes nothing about that number.</p>
+  <p>What pooling genuinely removes is the <em>continuity</em> of a card that leaves and returns. Turn 180° and back, and the card that comes into view may be a different element than the one that left. Nobody can perceive that — but it means you cannot rely on element identity for anything that must persist, which is the rule already stated: opened and pinned cards live outside the pool.</p>
 </div>
 
 <h2 class="section">What pooling actually means here</h2>
