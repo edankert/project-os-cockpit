@@ -106,6 +106,20 @@ The prototype holds 80 cards. This repo has 1537 notes and `your-trainer` has mo
 
 **The honest bound:** with pooling and no blur this is an ordinary compositing workload. Without pooling it is 1537 blurred elements and will not hold 60fps on a laptop. So **pooling is not an optimisation to add later, it is the architecture** — and this prototype, which skips it, proves the interaction and nothing about the cost.
 
+## The bug that made this untestable twice
+
+Edwin could not open a note in rev 1 or rev 2. Two different causes, and the second is worth recording because it is a property of the technique rather than a slip.
+
+**Rev 1:** quiet cards carried `pointer-events: none`. `FEAT-0143` is `done`, therefore always in the quiet band, therefore unclickable in every view. Fixed by making anything visible clickable.
+
+**Rev 2:** the fix did not work, and my own test said it did. **`.field-inner` is a flat box at z = 0 with `inset: 0`, and every card sits at negative z — so the parent's own plane is in front of all of them and swallows every click.** Nothing in the field was ever reachable by a mouse.
+
+It survived because I verified with `element.click()`, which **dispatches a click event directly and never hit-tests**. The check passed, the interface did not work, and the difference between those two is the whole reason the check was worthless. Reproducing with a real pointer sequence showed `pointerdown` landing on `field-inner` at the exact centre of a card.
+
+The fix is one line — `pointer-events: none` on the perspective container and its inner plane, `auto` on the cards — and the lesson is a build rule:
+
+> **A `preserve-3d` container is an invisible pane in front of everything it contains.** Any depth interface must make its containers pointer-transparent, and must verify input with real pointer events, because synthetic `.click()` bypasses exactly the layer that breaks.
+
 ## What this does not change
 
 The **write path**, the **verbs** and the **guards** are the cockpit's, unchanged. A human-only verdict is still refused server-side to an agent ([[REQ-0026]]); the registry still owns the verb ([[ISS-0153]]); obligations still live with their subject ([[ADR-0020]]) — the front plane is *where the subject is*, not a central queue.
@@ -151,7 +165,8 @@ So the version I would defend is not the whole cockpit. It is **a twelfth view i
 ## Revisions
 
 - 2026-09-05 — written; the eleven arrangements, the console slab, the carousel, the ring, the focus ring
-- 2026-09-05 — **rev 2.** Fixed the bug that made the whole thing untestable: quiet cards carried `pointer-events: none`, so `FEAT-0143` — which is `done`, therefore always quiet — could not be opened at all. Every card you can see is now clickable, and the search box works: type an ID and the field flies to it. Added per-type card faces with real phase progress bars, phases as cards leading their own sectors, multiple consoles, list panels, files, pulse, the Orbit arrangement, multi-card open, and the sector ordering that stops finished work occupying the visible columns. New sections on many monitors and on whether it would run.
+- 2026-09-05 — **rev 3.** The click still did not work: `.field-inner` is a flat plane at z=0 in front of every card, and it ate every pointer event. Containers are now pointer-transparent. Recorded as a build rule, because `element.click()` passed while the interface was unusable.
+- 2026-09-05 — **rev 2.** Fixed the first half of that bug: quiet cards carried `pointer-events: none`, so `FEAT-0143` — which is `done`, therefore always quiet — could not be opened at all. Every card you can see is now clickable, and the search box works: type an ID and the field flies to it. Added per-type card faces with real phase progress bars, phases as cards leading their own sectors, multiple consoles, list panels, files, pulse, the Orbit arrangement, multi-card open, and the sector ordering that stops finished work occupying the visible columns. New sections on many monitors and on whether it would run.
 - 2026-09-05 — the field became a cylinder you turn in, after Edwin asked whether it would. The quiet band moved from *far and dimmed* to *behind you*, which is a different claim and a better one; a compass keeps the count on screen so nothing is silently lost.
 
 ## Review

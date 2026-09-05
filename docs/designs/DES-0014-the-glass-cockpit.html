@@ -79,13 +79,14 @@
       radial-gradient(120% 90% at 50% 40%, #072230 0%, #04090D 62%, #01050A 100%);
     color: var(--cy); font-family: var(--mono); font-size: 11px; user-select: none;
   }
-  .field { position: absolute; inset: 0; perspective: 900px; perspective-origin: 56% 46%; }
-  .field-inner { position: absolute; inset: 0; transform-style: preserve-3d; }
+  .field { position: absolute; inset: 0; perspective: 900px; perspective-origin: 56% 46%; pointer-events: none; }
+  .field-inner { position: absolute; inset: 0; transform-style: preserve-3d; pointer-events: none; }
   .card {
     position: absolute; left: 50%; top: 46%; width: 186px; padding: 7px 9px 8px;
     border: 1px solid var(--cy-line); background: rgb(8 30 40 / .62);
     border-left-width: 2px; border-radius: 2px; cursor: pointer;
     transition: transform .55s cubic-bezier(.22,.8,.28,1), opacity .55s, filter .55s, background .3s;
+    pointer-events: auto;
     will-change: transform; backface-visibility: hidden;
   }
   .card:hover { background: rgb(16 56 70 / .8); }
@@ -276,6 +277,10 @@
     <tr><td class="v">deep field</td><td>the quiet: terminal work, suppressed items</td><td><code>suppressed_group</code>, appended last (TASK-0425)</td><td>small, dim, blurred — present, not gone</td></tr>
   </tbody>
 </table>
+</div>
+
+<div class="try" style="border-left-color:var(--status-active)">
+  <b>Fixed in rev 3 —</b> cards are now actually clickable. The perspective container was a flat plane at z=0 sitting in front of every card and swallowing every pointer event; <code>element.click()</code> passed the whole time because it never hit-tests. Click any card, or type an ID in the search box.
 </div>
 
 <div class="try">
