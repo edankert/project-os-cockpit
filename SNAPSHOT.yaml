@@ -56,7 +56,7 @@ counters:
   # DES was absent until 2026-07-30 despite DES-0001..0003 existing (ISS-0068):
   # nothing guarded design ID allocation and the validator does not check for a
   # missing counter. Upstream ships `DES: 0`.
-  DES: 13
+  DES: 14
   CHG:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
@@ -3925,6 +3925,13 @@ items:
   releases: {}
 
   designs:
+    DES-0014:
+      file: "docs/designs/DES-0014-The-Glass-Cockpit.md"
+      title: "The glass cockpit — depth is priority, every view is a re-arrangement rather than a page, and the console is furniture that floats over the notes"
+      status: proposed
+      owner: user:edwin
+      phase: "[[PHASE-028-Borrowed-Capability]]"
+      note: "DES-0013's GLASS treatment taken seriously as a whole application, headset dropped on Edwin's instruction: desktop, mouse and keyboard, one window. THE MECHANIC IS THE FINDING -- nav_payload already prepends _needs_you_group to all eleven modes and appends suppressed_group to most, so every view is ALREADY three bands and a list can only express that by vertical position (which is why ADR-0025 had to be written). Depth carries it instead: front plane = owed, mid = the view's subject, deep field = the quiet 70%. A view switch is a re-arrangement, not a navigation, so you watch a note change importance. Console is furniture (drag, resize, translucent) and the layout treats it as an OBSTACLE that cards flow around. Consoles and agent sessions share one carousel; the twelve repos are the same mechanic at a different radius. Selecting a note brings its linked neighbours into a ring. Hue is left to say only what a note IS -- depth carries priority -- which is this design's answer to the four-hues-in-25-degrees cost DES-0013 recorded."
     DES-0013:
       file: "docs/designs/DES-0013-Nine-Ways-To-Read-The-Record.md"
       title: "Nine ways to read the record, and a tenth that was cut and then asked for — whole applications over one corpus"

@@ -15,7 +15,7 @@ features:
 requirements: []
 issues: []
 depends: ["[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-026-The-Returning-Human]]"]
-related: ["[[PHASE-027-The-Standing-Worker]]", "[[RISK-0005-The-Write-Surface]]", "[[DES-0013-Nine-Ways-To-Read-The-Record]]"]
+related: ["[[PHASE-027-The-Standing-Worker]]", "[[RISK-0005-The-Write-Surface]]", "[[DES-0013-Nine-Ways-To-Read-The-Record]]", "[[DES-0014-The-Glass-Cockpit]]"]
 tags: [external, remote, survey]
 ---
 
