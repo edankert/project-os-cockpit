@@ -88,6 +88,10 @@
   }
 
   * { box-sizing: border-box; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
   body {
     margin: 0;
     background: var(--paper);
@@ -404,9 +408,10 @@
   size();
   new ResizeObserver(size).observe(host);
 
+  const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const P = new Array(NODES.length);
   function frame() {
-    if (!drag) ry += .0016;
+    if (!drag && !STILL) ry += .0016;
     ctx.clearRect(0, 0, W, H);
     const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
     const f = 560 * zoom, cxp = W / 2, cyp = H / 2;
@@ -437,9 +442,10 @@
       if (r > 2.6) { ctx.globalAlpha = al * .16; ctx.beginPath(); ctx.arc(p.x, p.y, r * 3.2, 0, 6.284); ctx.fill(); }
     }
     ctx.globalAlpha = 1;
-    requestAnimationFrame(frame);
+    if (!STILL || drag) requestAnimationFrame(frame);
   }
   frame();
+  if (STILL) { cv.addEventListener('pointerdown', () => requestAnimationFrame(frame)); cv.addEventListener('pointermove', () => { if (drag) requestAnimationFrame(frame); }); }
 })();
 </script>
 
@@ -1127,10 +1133,12 @@
   const LINE = cs.getPropertyValue('--p-line').trim();
   const RATE = [.34, .015, .22];        // waiting lanes go quiet; that is the signal
   const AMP  = [1, .28, .62];
+  const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const buf = canvases.map(() => new Array(300).fill(0));
   let sd = 7717;
   const rnd = () => (sd = (sd * 1103515245 + 12345) % 2147483648) / 2147483648;
   let tick = 0;
+  if (STILL) buf.forEach((b, k) => { for (let i = 0; i < b.length; i++) b[i] = (rnd() < RATE[k] ? (.25 + rnd() * .75) : rnd() * .06) * AMP[k]; });
   function frame() {
     tick++;
     canvases.forEach((cv, k) => {
@@ -1139,7 +1147,7 @@
       if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
       const ctx = cv.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      if (tick % 2 === 0) {
+      if (tick % 2 === 0 && !STILL) {
         const b = buf[k];
         b.shift();
         b.push(rnd() < RATE[k] ? (.25 + rnd() * .75) * AMP[k] : rnd() * .06 * AMP[k]);
@@ -1160,7 +1168,7 @@
       ctx.fillStyle = COL[k]; ctx.fill();
       ctx.globalAlpha = 1;
     });
-    requestAnimationFrame(frame);
+    if (!STILL) requestAnimationFrame(frame);
   }
   frame();
 })();
@@ -1934,10 +1942,10 @@
   // jam light over RELEASE
   const jx = iso(595, 0, 0);
   svg.appendChild(el('rect', { x: jx[0] - 1.5, y: jx[1] - 74, width: 3, height: 62, fill: C('--f-steel-d') }));
+  const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const bulb = el('circle', { cx: jx[0], cy: jx[1] - 80, r: 7, fill: C('--f-jam') });
   svg.appendChild(bulb);
-  const anim = el('animate', { attributeName: 'opacity', values: '1;.35;1', dur: '2.2s', repeatCount: 'indefinite' });
-  bulb.appendChild(anim);
+  if (!STILL) bulb.appendChild(el('animate', { attributeName: 'opacity', values: '1;.35;1', dur: '2.2s', repeatCount: 'indefinite' }));
   const jt = el('text', { x: jx[0] + 14, y: jx[1] - 77, class: 'sc' }); jt.textContent = 'waiting for a person'; labels.appendChild(jt);
 
   svg.appendChild(labels);
@@ -1976,8 +1984,9 @@
     for (let i = parcels.length - 1; i >= 0; i--) {
       if (parcels[i].x > 670) { moving.removeChild(parcels[i].g); parcels.splice(i, 1); }
     }
-    requestAnimationFrame(frame);
+    if (!STILL) requestAnimationFrame(frame);
   }
+  if (STILL) { for (let i = 0; i < parcels.length; i++) parcels[i].x = HEAD - i * 20; }
   requestAnimationFrame(frame);
 })();
 </script>
