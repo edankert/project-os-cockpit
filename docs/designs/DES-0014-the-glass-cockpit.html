@@ -520,7 +520,9 @@
     b.type = 'button'; b.textContent = v.label;
     b.setAttribute('aria-pressed', String(v === view));
     b.addEventListener('click', e => {
-      e.stopPropagation(); view = v;
+      e.stopPropagation();
+      useDeskFor(v.id);                   // stash this view's desk, restore that one's
+      view = v;
       rail.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
       assign(); render(true); syncPanels();
     });
@@ -567,7 +569,9 @@
   const norm = a => { while (a > Math.PI) a -= 2*Math.PI; while (a < -Math.PI) a += 2*Math.PI; return a; };
   function slabRects() {
     const s = stage.getBoundingClientRect();
-    return [...panels.children].map(el => {
+    const boxes = [...panels.children];
+    for (const d of desk) boxes.push(d.el);     // a note window blocks slots too
+    return boxes.filter(el => el.offsetParent !== null).map(el => {
       const r = el.getBoundingClientRect();
       return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
     });
@@ -768,7 +772,14 @@
   // lifting a note out of the field; its slot stays behind, ghosted.
   const deskEl = document.getElementById('desk');
   const deskBar = document.getElementById('deskbar');
-  const desk = [];                       // last element is the focused one
+  const desks = new Map();               // view id -> its own desk
+  let desk = [];                         // the current view's; last = focused
+  function useDeskFor(id) {
+    desks.set(view.id, desk);
+    desk = desks.get(id) || [];
+    for (const el of deskEl.children) el.style.display = 'none';
+    desk.forEach(d => { d.el.style.display = ''; });
+  }
   let dz = 3000;
 
   // Click ADDS to the desk. Clicking one already on it raises it. Nothing is
@@ -827,7 +838,7 @@
       el.style.top = Math.max(44, Math.min(d.s.height - 56, e.clientY - d.s.top - d.dy)) + 'px';
       drawWires();
     });
-    head.addEventListener('pointerup', () => { if (d) { d = null; keepHeadersVisible(rec, 0); drawWires(); } });
+    head.addEventListener('pointerup', () => { if (d) { d = null; keepHeadersVisible(rec, 0); assign(); render(true); } });
   }
   // Overlap is allowed anywhere EXCEPT over another note's header. A stack of
   // any depth stays addressable, because every note in it still shows its id.
@@ -876,9 +887,13 @@
     if (!desk.length) return;
     const top = desk[desk.length - 1];
     const shared = [...kinship().values()].filter(v => v > 1).length;
-    deskBar.innerHTML = '<span><b>' + desk.length + '</b> on the desk</span>' +
+    const elsewhere = [...desks.entries()]
+      .filter(([k, v]) => k !== view.id && v.length)
+      .map(([k, v]) => v.length + ' on ' + k);
+    deskBar.innerHTML = '<span><b>' + desk.length + '</b> on the ' + view.label.toLowerCase() + ' desk</span>' +
       '<span>focused <b>' + top.id + '</b></span>' +
-      (desk.length > 1 ? '<span><b>' + shared + '</b> notes joined to more than one</span>' : '') +
+      (desk.length > 1 ? '<span><b>' + shared + '</b> joined to more than one</span>' : '') +
+      (elsewhere.length ? '<span style="color:var(--cy-dim)">' + elsewhere.join(' \u00B7 ') + '</span>' : '') +
       '<button type="button" data-d="tidy">tidy</button>' +
       '<button type="button" data-d="sweep">sweep</button>' +
       '<span>esc clears \u00B7 \u2325\u00D7 closes the others</span>';
@@ -1629,8 +1644,8 @@
   </div>
   <div>
     <h4>The desk</h4>
-    <p>The notes you picked up. <strong>It survives view switches, because you put them there and the view has no opinion about that.</strong> Switch from Issues to Publication and your five notes stay exactly where you left them.</p>
-    <p>That is the payoff, and it is something the current cockpit's tabs only half do.</p>
+    <p>The notes you picked up — <strong>one desk per view</strong>. Switch to Issues and you get the Issues desk; switch back and Publication's five notes are exactly where you left them, untouched.</p>
+    <p>It survives a <em>workspace</em> switch, though, and the difference is the whole rule: <strong>the desk belongs to the job, the view is the job, and the workspace is only which repo you happen to be looking at.</strong></p>
   </div>
   <div>
     <h4>So "opening" is lifting</h4>
@@ -1646,7 +1661,7 @@
   <tbody>
     <tr>
       <td class="v">"the notes behind will need to be more visible"</td>
-      <td><strong>Overlap anywhere except a header.</strong> Drag a note wherever you like; if it would cover another's header strip it snaps below it</td>
+      <td><strong>Overlap anywhere except a header — and the field flows around the desk.</strong> Drag a note where you like; if it would cover another's header it snaps below. Note windows also count as obstacles, so no promoted neighbour is ever dealt underneath one</td>
       <td>Every note in a stack of any depth still shows its <strong>id, status and face</strong> — so it is always readable and always clickable. Click a header and that note comes to the top. A stack of eight is eight headers and one body</td>
     </tr>
     <tr>
@@ -1684,7 +1699,9 @@
 </div>
 <div class="warnbox">
   <h4>What I would still argue about</h4>
-  <p><strong>The desk survives a workspace switch</strong> — Edwin's call, and on reflection clearly right. What you picked up is yours, not the workspace's; a fleet job like "this issue in <code>your-trainer</code> against the ADR in <code>project-os</code>" is exactly the case the current cockpit cannot serve at all.</p>
+  <p><strong>One desk per view, surviving workspace switches.</strong> Rev 7 had this backwards — it kept one desk across every view, which turns switching into clutter you have to clean up. Edwin: <em>"each view should allow for its own selected notes"</em>, and he is right, because the two boundaries are not the same kind of thing.</p>
+  <p><strong>The view is the job.</strong> Triaging issues, closing a phase, preparing a release — different work, different notes, and the notes for one job have no business on another job's desk. <strong>The workspace is not a job</strong>, it is which repo you are looking at, so a job that spans repos is ordinary. That is why the desk survives one boundary and not the other.</p>
+  <p>It still does not violate <code>FEAT-0093</code>: the desk holds notes from several repos, but <strong>each note's content still comes from its own sidecar</strong>. No process queries across repos — the desk is a place to put things, not a joined index. Each card carries its repo tag, and the desk bar names any other view holding notes, so nothing is silently left behind.</p>
   <p>It does not violate <code>FEAT-0093</code>, and the distinction matters: the desk holds notes from several repos, but <strong>each note's content still comes from its own sidecar</strong>. No process is querying across repos — the desk is a place to put things, not a joined index. Each card carries its repo tag so you always know which record you are reading.</p>
   <p><strong>And whether a stack should be nameable.</strong> "The notes for answering this review" is a real object with a lifetime, and a saved desk is one keystroke from being a saved query — which is a different feature wearing this one's clothes. I have not built it, deliberately.</p>
 </div>
