@@ -100,6 +100,37 @@
   .card.focused .cbody { display: block; }
   #wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3200; }
 
+
+  /* ---- rev 2: panels, faces, lists, files ---- */
+  .slab.pin { box-shadow: 0 18px 60px rgb(0 0 0 / .55), 0 0 0 1px var(--cy); }
+  .slab-head .sh-btn { border: 1px solid var(--cy-line); border-radius: 2px; padding: 1px 6px;
+                       color: var(--cy); cursor: pointer; font-size: 9.5px; background: transparent; font-family: inherit; }
+  .slab-head .sh-btn:hover { border-color: var(--cy); }
+  .slab-body table { border-collapse: collapse; width: 100%; font-size: 10px; }
+  .slab-body td { padding: 2px 6px 2px 0; white-space: nowrap; color: #9FD4E6; }
+  .slab-body td.i { color: var(--cy); }
+  .slab-body tr:hover td { background: rgb(20 70 88 / .5); cursor: pointer; }
+  .slab-body .tree { line-height: 1.75; }
+  .slab-body .tree .d { color: var(--cy); cursor: pointer; }
+  .slab-body .tree .f { color: #7FB6C9; padding-left: 14px; }
+  .slab-body .lane { display: grid; grid-template-columns: 118px 1fr 84px; gap: 8px; align-items: center;
+                     padding: 3px 0; border-bottom: 1px solid rgb(18 69 90 / .55); }
+  .slab-body .lane canvas { width: 100%; height: 22px; display: block; }
+  .slab-body .lane .nm { color: #D6F2FB; }
+  .slab-body .lane .gz { color: var(--cy-dim); text-align: right; }
+  .card .face { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 9px; color: var(--cy-dim); }
+  .card .bar { flex: 1; height: 4px; background: rgb(18 69 90 / .8); border-radius: 2px; overflow: hidden; }
+  .card .bar i { display: block; height: 100%; background: var(--status-done); }
+  .card .sev { border: 1px solid currentColor; border-radius: 2px; padding: 0 4px; }
+  .card.phase { border-left-width: 3px; }
+  .card.pinned { box-shadow: 0 0 0 1px var(--cy), 0 10px 30px rgb(0 0 0 / .5); }
+  .topstrip input.q { background: rgb(8 30 40 / .8); border: 1px solid var(--cy-line); border-radius: 3px;
+                      color: var(--cy); font: inherit; padding: 3px 9px; width: 200px; }
+  .topstrip input.q::placeholder { color: var(--cy-dim); }
+  .topstrip .vbtn { border: 1px solid var(--cy-line); border-radius: 3px; padding: 2px 8px; color: var(--cy);
+                    background: transparent; font: inherit; font-size: 10.5px; cursor: pointer; }
+  .topstrip .vbtn:hover { border-color: var(--cy); }
+
   /* view rail */
   .rail { position: absolute; left: 8px; top: 152px; width: 132px; padding: 0 0 10px; z-index: 4000;
           }
@@ -259,14 +290,17 @@
   <nav class="rail" id="rail" aria-label="Views"></nav>
 
   <div class="topstrip">
-    <span class="pill">⌘K search</span>
+    <input class="q" id="q" type="search" placeholder="⌘K  fly to a note…" aria-label="Search notes">
     <span class="k">←  →</span>
     <span class="tab on" id="tabA">overview</span>
-    <span class="tab" id="tabB">FEAT-0143</span>
+    <span class="tab" id="tabB">—</span>
+    <button class="vbtn" id="asList" type="button">as list</button>
+    <button class="vbtn" id="addConsole" type="button">+ console</button>
+    <button class="vbtn" id="openFiles" type="button">files</button>
+    <button class="vbtn" id="openPulse" type="button">pulse</button>
     <span class="grow"></span>
     <span class="pill">inbox · 2</span>
     <span class="pill warn">validator · 2 warnings</span>
-    <span class="k">⌘` console</span>
   </div>
 
   <div class="ring" data-design-region="ring">
@@ -274,31 +308,10 @@
     <div class="ring-inner" id="ringInner"></div>
   </div>
 
-
   <div class="bands">
     <div><b id="nFront">0</b> ahead of you — needs you</div>
     <div><b id="nMid">0</b> around you — the subject</div>
     <div><b id="nDeep">0</b> behind you — the quiet</div>
-  </div>
-
-  <div class="viewnote" id="viewnote"></div>
-
-  <div class="carousel" data-design-region="carousel">
-    <div class="car-inner" id="carInner"></div>
-    <div class="car-lab">CONSOLES &amp; SESSIONS — front one drives the slab</div>
-  </div>
-
-  <div class="slab" id="slab" data-design-region="console" style="left:36%;top:63%;width:430px;height:212px">
-    <div class="slab-head" id="slabHead">
-      <span class="dot"></span>
-      <span id="slabTitle">project-os-cockpit · shell</span>
-      <span class="slab-op" style="margin-left:auto">
-        <span class="dim">opacity</span>
-        <input id="slabOp" type="range" min="20" max="95" value="50" aria-label="Console opacity">
-      </span>
-    </div>
-    <div class="slab-body" id="slabBody"></div>
-    <div class="slab-grip" id="slabGrip" title="Resize"></div>
   </div>
 
   <div class="compass" id="compass" aria-hidden="true">
@@ -310,7 +323,17 @@
       <button type="button" id="lookBack">behind ↻</button>
     </div>
   </div>
-  <div class="hintline" id="hint">drag the background to turn · the quiet is behind you<br>click a card to open it with its links · esc to release</div>
+
+  <div class="viewnote" id="viewnote"></div>
+
+  <div class="carousel" data-design-region="carousel">
+    <div class="car-inner" id="carInner"></div>
+    <div class="car-lab">CONSOLES &amp; SESSIONS — click to bring forward · ⇧click to deal a second slab</div>
+  </div>
+
+  <div id="panels"></div>
+
+  <div class="hintline" id="hint">drag the background to turn · the quiet is behind you<br>click any card to open it · ⇧click to pin a second one</div>
 </div>
 <div class="stage-cap">Every card is a real note in this repository, at its real status, with its real links. Card colour is the note <em>type</em>; <strong>depth</strong> carries priority, which is how this design avoids the cost the glass palette otherwise pays — DES-0013 measured it washing four of six status bands into 25 degrees of hue.</div>
 </div>
@@ -318,70 +341,102 @@
 <script>
 (function () {
   const NOTES = [{"id":"FEAT-0144","t":"The corpus has an inside","s":"planned","k":"feature","ph":"","sev":"","l":["DES-0013","TASK-0592","TASK-0593","TASK-0594","TASK-0595","TASK-0596"]},{"id":"FEAT-0143","t":"The fleet runs one validator","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0037","ADR-0040","FEAT-0142","TASK-0587","TASK-0588","TASK-0589"]},{"id":"FEAT-0142","t":"A release says what is in it","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0035","ADR-0037","ADR-0039","ADR-0040"]},{"id":"FEAT-0141","t":"The contract says it upstream","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0038","ADR-0039"]},{"id":"FEAT-0140","t":"Sections are derived, not filed","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0034","ADR-0039","DES-0012","REQ-0059","REQ-0060"]},{"id":"FEAT-0139","t":"The suite is the verdict","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0037","ADR-0038","REQ-0058"]},{"id":"FEAT-0138","t":"Coverage is observed, not declared","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0037","DES-0012","FEAT-0131","FEAT-0134","REQ-0057"]},{"id":"FEAT-0137","t":"One outcome vocabulary, written down once","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0034","ADR-0037","REQ-0056"]},{"id":"FEAT-0136","t":"The cockpit reads and writes the ledger","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0035","ADR-0037","REQ-0055"]},{"id":"FEAT-0135","t":"Everything downstream is a query","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0034","ADR-0037","DES-0012","FEAT-0136"]},{"id":"FEAT-0134","t":"The check note sheds the verdict","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0034","ADR-0037","DES-0012","FEAT-0138"]},{"id":"FEAT-0133","t":"The ledger is a file","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0035","ADR-0037","FEAT-0134","FEAT-0135","FEAT-0136"]},{"id":"FEAT-0132","t":"A feature gets its acceptance tests by rule, not by being asked","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0036","DES-0012","REQ-0059"]},{"id":"FEAT-0131","t":"The suite is refined","s":"done","k":"feature","ph":"","sev":"","l":["ADR-0039","DES-0012"]},{"id":"ISS-0278","t":"CLAUDE.md states the stale-verdict backlog as 49 notes; it is 70, and the ","s":"triage","k":"issue","ph":"","sev":"low","l":["DES-0013"]},{"id":"ISS-0277","t":"Nothing detects a stale, divergent or incomplete tools/cockpit","s":"open","k":"issue","ph":"","sev":"medium","l":[]},{"id":"ISS-0276","t":"21 tests still assert over a fixed character window, an idiom that has now","s":"open","k":"issue","ph":"","sev":"low","l":["ISS-0275"]},{"id":"ISS-0275","t":"Five tests failed and none of them had found a defect","s":"fixed","k":"issue","ph":"","sev":"medium","l":["ISS-0274","ISS-0276"]},{"id":"ISS-0274","t":"The inbox refuses every file type outside a seventeen-suffix list, and tha","s":"fixed","k":"issue","ph":"","sev":"medium","l":[]},{"id":"ISS-0273","t":"Cursor sessions do not receive tools/instructions/WRITING.md, because the ","s":"triage","k":"issue","ph":"","sev":"low","l":[]},{"id":"ISS-0271","t":"Five UI and server tasks joined a `done`, already-reviewed feature about m","s":"triage","k":"issue","ph":"","sev":"medium","l":["FEAT-0143","TASK-0587","TASK-0588","TASK-0589","TASK-0590","TASK-0591"]},{"id":"ISS-0270","t":"The gate figures do not reproduce and two declared filings do not exist","s":"triage","k":"issue","ph":"","sev":"medium","l":["TASK-0591"]},{"id":"ISS-0269","t":"A retired check sheds the obligation and keeps the credit","s":"triage","k":"issue","ph":"","sev":"medium","l":["FEAT-0143","REQ-0059","TASK-0591"]},{"id":"ISS-0268","t":"The platform scoping stops at the derived view","s":"triage","k":"issue","ph":"","sev":"medium","l":["FEAT-0142","TASK-0587"]},{"id":"ISS-0267","t":"`~tests/<TST>/run` and `~accept/<FEAT>` are still evicted","s":"triage","k":"issue","ph":"","sev":"medium","l":["ISS-0266","TASK-0589"]},{"id":"ISS-0266","t":"Five mutants survive the guards written for them","s":"triage","k":"issue","ph":"","sev":"high","l":["TASK-0587","TASK-0588","TASK-0589","TASK-0590"]},{"id":"TASK-0596","t":"The treatment is chosen, not assumed","s":"backlog","k":"task","ph":"","sev":"","l":["DES-0013","TASK-0594"]},{"id":"TASK-0595","t":"Landing opens the note in the reader that already exists, so the field nev","s":"backlog","k":"task","ph":"","sev":"","l":["FEAT-0144"]},{"id":"TASK-0594","t":"The field renders and flies","s":"backlog","k":"task","ph":"","sev":"","l":["DES-0013","FEAT-0144","TASK-0596"]},{"id":"TASK-0593","t":"The layout is computed once and kept","s":"backlog","k":"task","ph":"","sev":"","l":["DES-0013","FEAT-0144"]},{"id":"TASK-0592","t":"The whole edge list is one payload","s":"backlog","k":"task","ph":"","sev":"","l":["DES-0013","FEAT-0144"]},{"id":"TASK-0591","t":"A retired check leaves the walk and the gate, and keeps its record in the ","s":"done","k":"task","ph":"","sev":"","l":["ISS-0269","ISS-0270"]},{"id":"TASK-0590","t":"The check-write endpoints re-index before they answer, so a mark is readab","s":"done","k":"task","ph":"","sev":"","l":["ISS-0266","ISS-0270"]},{"id":"TASK-0589","t":"A view knows which pages it owns, so refreshing the navigator stops evicti","s":"done","k":"task","ph":"","sev":"","l":["ISS-0266","ISS-0267"]},{"id":"TASK-0588","t":"A write on `~checks` repaints without re-reading the address, so the reade","s":"done","k":"task","ph":"","sev":"","l":["ISS-0266"]},{"id":"TASK-0587","t":"A release's derived contents are its own platform's","s":"done","k":"task","ph":"","sev":"","l":["ADR-0040","DES-0012","FEAT-0142","ISS-0266","ISS-0268","ISS-0270"]},{"id":"TST-0081","t":"The drift check fails when the fleet falls behind","s":"active","k":"test","ph":"","sev":"","l":["FEAT-0143"]},{"id":"TST-0080","t":"The backlink reconciliation writes only what the notes declare","s":"active","k":"test","ph":"","sev":"","l":["FEAT-0143"]},{"id":"TST-0079","t":"Every source file parses under the oldest Python the project claims","s":"active","k":"test","ph":"","sev":"","l":["FEAT-0138"]},{"id":"TST-0078","t":"The element xterm is opened into carries no padding","s":"active","k":"test","ph":"","sev":"","l":[]},{"id":"TST-0043","t":"A release can be finished","s":"active","k":"test","ph":"","sev":"","l":[]},{"id":"TST-0042","t":"TESTING.md rule 3 made performable","s":"retired","k":"test","ph":"","sev":"","l":["ADR-0036","DES-0012"]},{"id":"ADR-0040","t":"A release selects its features, and a check that cannot be walked is excus","s":"accepted","k":"decision","ph":"","sev":"","l":["ADR-0035","ADR-0037","FEAT-0142"]},{"id":"ADR-0039","t":"Three sections, derived and not filed","s":"accepted","k":"decision","ph":"","sev":"","l":["ADR-0034","ADR-0037","ADR-0038","DES-0012","FEAT-0138"]},{"id":"ADR-0038","t":"An automated test records that it is automated, not whether it passed","s":"accepted","k":"decision","ph":"","sev":"","l":["ADR-0034","ADR-0037","ADR-0039","DES-0012","FEAT-0138","REQ-0057"]},{"id":"ADR-0037","t":"A verdict is an event in a per-release, single-platform ledger","s":"accepted","k":"decision","ph":"","sev":"","l":["ADR-0034","ADR-0035","ADR-0036","DES-0012","FEAT-0132","REL-0001"]},{"id":"ADR-0036","t":"The acceptance sweep is withdrawn","s":"accepted","k":"decision","ph":"","sev":"","l":["DES-0012","FEAT-0132"]},{"id":"ADR-0035","t":"A release page reports what holds it; the mark is recorded where the check","s":"accepted","k":"decision","ph":"","sev":"","l":["ADR-0034"]},{"id":"ADR-0034","t":"Three axes, not one word","s":"accepted","k":"decision","ph":"","sev":"","l":["ADR-0033"]},{"id":"ADR-0033","t":"A manual test is an acceptance test","s":"superseded","k":"decision","ph":"","sev":"","l":["ADR-0034"]},{"id":"DES-0014","t":"The glass cockpit","s":"proposed","k":"design","ph":"","sev":"","l":["DES-0013"]},{"id":"DES-0013","t":"Nine ways to read the record, and a tenth that was cut and then asked for","s":"proposed","k":"design","ph":"","sev":"","l":["FEAT-0144","TASK-0596"]},{"id":"DES-0012","t":"Tests in two flows","s":"accepted","k":"design","ph":"","sev":"","l":["ADR-0034","ADR-0035"]},{"id":"DES-0011","t":"Publication is an obligation","s":"accepted","k":"design","ph":"","sev":"","l":[]},{"id":"DES-0010","t":"The desk shows what it owes","s":"superseded","k":"design","ph":"","sev":"","l":[]},{"id":"REQ-0060","t":"A check that is not a standing behaviour claim names the issue it verifies","s":"implemented","k":"requirement","ph":"","sev":"","l":["ADR-0039","FEAT-0140"]},{"id":"REQ-0059","t":"A check's section is derived from what it covers and who executes it, neve","s":"implemented","k":"requirement","ph":"","sev":"","l":["ADR-0039","FEAT-0140"]},{"id":"REQ-0058","t":"An automated test carries no verdict","s":"implemented","k":"requirement","ph":"","sev":"","l":["ADR-0038","FEAT-0139"]},{"id":"REQ-0057","t":"Coverage is observed from a run and never declared on a note","s":"implemented","k":"requirement","ph":"","sev":"","l":["ADR-0037","DES-0012","FEAT-0138"]},{"id":"REQ-0056","t":"One outcome vocabulary, defined in one document, and a check that fails wh","s":"implemented","k":"requirement","ph":"","sev":"","l":["ADR-0034","ADR-0037","FEAT-0137"]},{"id":"REQ-0055","t":"No cockpit surface reads a verdict from a note or writes one onto a note","s":"implemented","k":"requirement","ph":"","sev":"","l":["ADR-0035","ADR-0037","FEAT-0136"]},{"id":"RISK-0007","t":"Remote workspace trust boundary","s":"open","k":"risk","ph":"","sev":"","l":["RISK-0005"]},{"id":"RISK-0006","t":"The unattended worker","s":"open","k":"risk","ph":"","sev":"high","l":["REL-0001","RISK-0005"]},{"id":"RISK-0005","t":"The write surface","s":"closed","k":"risk","ph":"","sev":"high","l":["REL-0001"]},{"id":"RISK-0004","t":"Hook injection modifies agent CLI configuration surfaces","s":"open","k":"risk","ph":"","sev":"medium","l":[]},{"id":"PHASE-999","t":"Future / Unphased","s":"planned","k":"phase","ph":"","sev":"","l":[]},{"id":"PHASE-041","t":"The gate runs where the checks are, and the fleet stops drifting","s":"done","k":"phase","ph":"","sev":"","l":["ADR-0037","ADR-0040","FEAT-0142","FEAT-0143","TST-0081"]},{"id":"PHASE-040","t":"An agent session is not a terminal","s":"planned","k":"phase","ph":"","sev":"","l":[]},{"id":"PHASE-039","t":"A test says who executes it, and every section is derived","s":"done","k":"phase","ph":"","sev":"","l":["ADR-0034","ADR-0037","ADR-0038","ADR-0039","DES-0012","FEAT-0138"]},{"id":"PHASE-038","t":"A verdict is an event","s":"done","k":"phase","ph":"","sev":"","l":["ADR-0034","ADR-0037","DES-0012","FEAT-0132","FEAT-0133","FEAT-0134"]},{"id":"PHASE-037","t":"The release page and the tests view report at the granularity the reader i","s":"done","k":"phase","ph":"","sev":"","l":["ADR-0034","ADR-0035","ADR-0036","ADR-0039","ADR-0040","DES-0012"]},{"id":"PHASE-036","t":"Three axes","s":"done","k":"phase","ph":"","sev":"","l":["ADR-0033","ADR-0034"]},{"id":"PHASE-035","t":"The testing model","s":"done","k":"phase","ph":"","sev":"","l":["REL-0001","TST-0043"]},{"id":"CHG-20260902-The-Inbox-Takes-Any-File-Type","t":"The inbox takes any file type, the per-item cap goes to 250 MB, and the ju","s":"merged","k":"change","ph":"","sev":"","l":["ISS-0274"]},{"id":"CHG-20260902-Five-Failing-Tests-Were-Measuring-The-Wrong-Thing","t":"The suite is green: five failures were tests measuring by proxy, and the p","s":"merged","k":"change","ph":"","sev":"","l":["ISS-0274","ISS-0275","ISS-0276"]},{"id":"CHG-20260831-Writing-Rules-Reach-The-Fleet","t":"A new instruction file tells agents how to write prose a reader can follow","s":"merged","k":"change","ph":"","sev":"","l":["ISS-0273"]},{"id":"CHG-20260829","t":"The fleet runs one validator","s":"merged","k":"change","ph":"","sev":"","l":["FEAT-0143","TST-0080","TST-0081"]},{"id":"CHG-20260825-The-Console-Stops-Clipping-Its-Last-Line","t":"The console stops clipping its last line","s":"merged","k":"change","ph":"","sev":"","l":["TST-0078"]},{"id":"CHG-20260821-Three-Silences-Get-A-Voice","t":"A held-back feature says why, an orphaned surface is reported, and a verdi","s":"merged","k":"change","ph":"","sev":"","l":["ADR-0035","ADR-0040","FEAT-0142"]},{"id":"REL-0001","t":"The human has levers, and every surface says what it owes","s":"released","k":"release","ph":"","sev":"","l":["RISK-0005","RISK-0006"]}];
+  const PHASES = {"PHASE-001":{"s":"done","t":15,"d":15,"n":"MVP"},"PHASE-002":{"s":"done","t":61,"d":58,"n":"Project-os adapter"},"PHASE-003":{"s":"superseded","t":1,"d":1,"n":"Downstream pilot"},"PHASE-004":{"s":"done","t":10,"d":9,"n":"Embedded terminal"},"PHASE-005":{"s":"done","t":10,"d":9,"n":"Desktop shell (Electron + Python sidecar)"},"PHASE-006":{"s":"done","t":65,"d":60,"n":"Native cockpit UI (TypeScript rewrite)"},"PHASE-007":{"s":"done","t":140,"d":134,"n":"Agent instrumentation (hooks-aware terminal)"},"PHASE-008":{"s":"done","t":21,"d":19,"n":"State & review surfaces"},"PHASE-009":{"s":"done","t":43,"d":43,"n":"Design surfaces"},"PHASE-010":{"s":"done","t":26,"d":25,"n":"Surface ownership"},"PHASE-011":{"s":"done","t":15,"d":14,"n":"Unproven claims become visible"},"PHASE-012":{"s":"done","t":4,"d":4,"n":"Attention in the strip "},"PHASE-013":{"s":"done","t":12,"d":12,"n":"Fleet surfaces "},"PHASE-014":{"s":"done","t":6,"d":6,"n":"The project inbox "},"PHASE-015":{"s":"done","t":3,"d":3,"n":"Record hygiene "},"PHASE-016":{"s":"done","t":22,"d":22,"n":"The overview answers questions "},"PHASE-017":{"s":"superseded","t":0,"d":0,"n":"History as document events "},"PHASE-018":{"s":"superseded","t":0,"d":0,"n":"History you can reach and traverse "},"PHASE-019":{"s":"superseded","t":0,"d":0,"n":"Overview legibility "},"PHASE-020":{"s":"done","t":7,"d":7,"n":"A clipboard that works the same way everywhere"},"PHASE-021":{"s":"done","t":4,"d":4,"n":"Git is not the user's job "},"PHASE-022":{"s":"done","t":31,"d":30,"n":"Completed work gets quieter, never absent "},"PHASE-023":{"s":"done","t":26,"d":26,"n":"Levers for the human "},"PHASE-024":{"s":"done","t":20,"d":20,"n":"Acceptance witnessed "},"PHASE-025":{"s":"done","t":18,"d":18,"n":"Design before code "},"PHASE-026":{"s":"done","t":18,"d":18,"n":"The returning human "},"PHASE-027":{"s":"done","t":27,"d":27,"n":"The standing worker "},"PHASE-028":{"s":"active","t":11,"d":0,"n":"Borrowed capability "},"PHASE-029":{"s":"planned","t":11,"d":3,"n":"One tool, two front doors "},"PHASE-030":{"s":"done","t":69,"d":69,"n":"Obligations go home "},"PHASE-031":{"s":"planned","t":1,"d":0,"n":"The supervised week "},"PHASE-032":{"s":"done","t":12,"d":12,"n":"The reasoning is recorded "},"PHASE-033":{"s":"planned","t":16,"d":1,"n":"The workspace is not always local "},"PHASE-034":{"s":"done","t":81,"d":68,"n":"Three phases, and publication is the third "},"PHASE-035":{"s":"done","t":60,"d":56,"n":"The testing model "},"PHASE-036":{"s":"done","t":25,"d":25,"n":"Three axes "},"PHASE-037":{"s":"done","t":99,"d":98,"n":"The release page and the tests view report at "},"PHASE-038":{"s":"done","t":38,"d":38,"n":"A verdict is an event "},"PHASE-039":{"s":"done","t":28,"d":28,"n":"A test says who executes it, and every section"},"PHASE-040":{"s":"planned","t":0,"d":0,"n":"An agent session is not a terminal "},"PHASE-041":{"s":"done","t":23,"d":21,"n":"The gate runs where the checks are, and the fl"},"PHASE-999":{"s":"planned","t":27,"d":0,"n":"Future / Unphased"}};
   const stage = document.getElementById('stage');
   const inner = document.getElementById('fieldInner');
   const wires = document.getElementById('wires');
+  const panels = document.getElementById('panels');
   const SVGNS = 'http://www.w3.org/2000/svg';
   const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const PERSP = 900, DEG = Math.PI / 180;
-  const RAIL = 150, HUD = 200;              // chrome the field must stay clear of
+  const PERSP = 900, DEG = Math.PI / 180, RAIL = 150, HUD = 200;
   const centreX = w => RAIL + (w - RAIL - HUD) / 2;
 
   const TERMINAL = new Set(['done','fixed','merged','resolved','implemented','met','complete','passing',
-                            'published','released','closed','accepted','verified','fulfilled',
-                            'obsolete','retired','cancelled','superseded','declined','reverted','deprecated','reconciled']);
+    'published','released','closed','accepted','verified','fulfilled','obsolete','retired','cancelled',
+    'superseded','declined','reverted','deprecated','reconciled']);
   const LIVE = new Set(['active','doing','in-progress','review','next','mitigating','ready']);
   const OWED = new Set(['open','triage','backlog','todo','planned','proposed','draft','pending','blocked','failing','reopened']);
-  const KIND_HUE = { feature: 188, issue: 12, task: 176, test: 148, decision: 262,
-                     design: 300, requirement: 208, risk: 32, phase: 92, change: 224, release: 52 };
-  const kindColour = (k, l) => 'hsl(' + (KIND_HUE[k] || 190) + ' 62% ' + l + '%)';
+  const KIND_HUE = { feature:188, issue:12, task:176, test:148, decision:262, design:300,
+                     requirement:208, risk:32, phase:92, change:224, release:52 };
+  const kc = (k, l) => 'hsl(' + (KIND_HUE[k] || 190) + ' 62% ' + l + '%)';
+  const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const band = s =>
+    ['done','fixed','merged','resolved','implemented','met','complete','passing','published','released','closed','verified','fulfilled'].includes(s) ? 'done' :
+    ['active','doing','in-progress','review','next','mitigating','ready','accepted'].includes(s) ? 'active' :
+    ['blocked','failing','reopened'].includes(s) ? 'blocked' :
+    ['obsolete','retired','cancelled','superseded','declined','reverted','deprecated','reconciled'].includes(s) ? 'archived' :
+    ['reference','deferred'].includes(s) ? 'reference' : 'pending';
+
+  // ---- what a CLOSED card shows, per note type ------------------------
+  // A phase carries a progress bar because a phase is the one note type whose
+  // whole meaning is "how far through are we"; an issue carries severity
+  // because that is what decides whether you read it now.
+  function face(n) {
+    if (n.k === 'phase') {
+      const ph = PHASES[n.id];
+      if (!ph || !ph.t) return '<div class="face">no children</div>';
+      const pct = Math.round(ph.d / ph.t * 100);
+      return '<div class="face"><span>' + ph.d + '/' + ph.t + '</span>' +
+             '<span class="bar"><i style="width:' + pct + '%"></i></span><span>' + pct + '%</span></div>';
+    }
+    if (n.k === 'issue' || n.k === 'risk')
+      return '<div class="face"><span class="sev" style="color:var(--severity-' + (n.sev || 'low') + ')">' +
+             (n.sev || 'unset') + '</span><span>' + (n.ph || 'no phase') + '</span></div>';
+    if (n.k === 'test')
+      return '<div class="face"><span>covers ' + (n.l.length || 0) + '</span><span>' + (n.ph || 'no phase') + '</span></div>';
+    if (n.k === 'release' || n.k === 'change')
+      return '<div class="face"><span>' + n.l.length + ' items</span></div>';
+    return '<div class="face"><span>' + (n.ph || 'no phase') + '</span><span>' + n.l.length + ' links</span></div>';
+  }
 
   const VIEWS = [
-    { id: 'overview', label: 'Overview',
-      note: '<b>Everything, sorted by how much it wants you.</b> The only view with no subject of its own — the front arc is the whole point.',
-      about: () => true, owed: n => OWED.has(n.s), group: n => n.k },
-    { id: 'intent', label: 'Intent',
-      note: '<b>What this project is.</b> Decisions, designs, requirements, risks. Proposals and open questions swing to the front.',
-      about: n => ['decision','design','requirement','risk'].includes(n.k),
-      owed: n => ['proposed','draft','open','mitigating'].includes(n.s), group: n => n.k },
-    { id: 'features', label: 'Features',
-      note: '<b>Grouped by phase</b>, as <code>_features_groups</code> does it — each phase gets its own sector of the arc.',
-      about: n => ['feature','requirement'].includes(n.k),
-      owed: n => !TERMINAL.has(n.s), group: n => n.ph || 'no phase' },
-    { id: 'tasks', label: 'Tasks',
-      note: '<b>Tasks under their feature.</b> Doing and backlog ahead of you; done is behind you.',
-      about: n => n.k === 'task', owed: n => !TERMINAL.has(n.s), group: n => n.ph || 'no phase' },
-    { id: 'issues', label: 'Issues',
-      note: '<b>By severity, then risks the same way</b> — <code>_issues_groups</code>. Severity sets the sector; open and triage set the distance.',
-      about: n => ['issue','risk'].includes(n.k), owed: n => OWED.has(n.s), group: n => n.sev || 'unset' },
-    { id: 'tests', label: 'Tests',
-      note: '<b>Every TST by what it needs.</b> Anything owed a run is in front — the view that gathers rather than receives.',
-      about: n => ['test','feature'].includes(n.k),
-      owed: n => n.k === 'test' && !TERMINAL.has(n.s), group: n => n.k === 'test' ? 'tests' : 'covered' },
-    { id: 'publication', label: 'Publication',
-      note: '<b>How far the work has travelled</b> — committed, pushed, deployed, released. Unpublished work is in front, because publishing is a person\u2019s act.',
-      about: n => ['release','change','feature'].includes(n.k),
-      owed: n => n.k === 'release' && !TERMINAL.has(n.s), group: n => n.k },
-    { id: 'review', label: 'Review',
-      note: '<b>What owes a verdict, and what owes an answer to one.</b> A verdict is the reviewer\u2019s; this view never clears it for them.',
-      about: n => ['feature','design','test','issue'].includes(n.k),
-      owed: n => ['proposed','review','open'].includes(n.s), group: n => n.k },
-    { id: 'active', label: 'Active',
-      note: '<b>In flight, across every type.</b> The smallest field of the eleven — most of the corpus is behind you here.',
-      about: n => LIVE.has(n.s) || OWED.has(n.s),
-      owed: n => LIVE.has(n.s), group: n => LIVE.has(n.s) ? 'doing' : 'next' },
-    { id: 'library', label: 'Library',
-      note: '<b>The durable documents.</b> Nothing here is owed, so the front arc is nearly empty — and an empty front arc is a true statement, not a broken screen.',
-      about: n => ['decision','design','change','release'].includes(n.k),
-      owed: n => n.s === 'proposed', group: n => n.k },
-    { id: 'recent', label: 'Recent',
-      note: '<b>Newest first, whatever it is.</b> The one view where distance is age rather than obligation — and it says so rather than letting you assume.',
-      about: () => true, owed: (n, i) => i < 8, group: n => n.k },
+    { id:'overview', label:'Overview',
+      note:'<b>Everything, sorted by how much it wants you.</b> Phases sit in the mid field with their progress on the card.',
+      about:()=>true, owed:n=>OWED.has(n.s), group:n=>n.k },
+    { id:'intent', label:'Intent',
+      note:'<b>What this project is.</b> Decisions, designs, requirements, risks. Proposals and open questions swing to the front.',
+      about:n=>['decision','design','requirement','risk'].includes(n.k),
+      owed:n=>['proposed','draft','open','mitigating'].includes(n.s), group:n=>n.k },
+    { id:'features', label:'Features',
+      note:'<b>Grouped by phase</b> — each phase gets a sector, and <b>the phase card leads it</b> with its real progress bar.',
+      about:n=>['feature','requirement','phase'].includes(n.k),
+      owed:n=>n.k!=='phase' && !TERMINAL.has(n.s), group:n=>n.ph||(n.k==='phase'?n.id:'no phase'), lead:'phase' },
+    { id:'tasks', label:'Tasks',
+      note:'<b>Tasks under their feature.</b> Doing and backlog ahead of you; done is behind you.',
+      about:n=>['task','phase'].includes(n.k), owed:n=>n.k==='task'&&!TERMINAL.has(n.s),
+      group:n=>n.ph||(n.k==='phase'?n.id:'no phase'), lead:'phase' },
+    { id:'issues', label:'Issues',
+      note:'<b>By severity, then risks the same way.</b> Severity sets the sector; open and triage set the distance.',
+      about:n=>['issue','risk'].includes(n.k), owed:n=>OWED.has(n.s), group:n=>n.sev||'unset' },
+    { id:'tests', label:'Tests',
+      note:'<b>Every TST by what it needs.</b> Anything owed a run is in front — the view that gathers rather than receives.',
+      about:n=>['test','feature'].includes(n.k), owed:n=>n.k==='test'&&!TERMINAL.has(n.s),
+      group:n=>n.k==='test'?'tests':'covered' },
+    { id:'publication', label:'Publication',
+      note:'<b>How far the work has travelled.</b> Unpublished work is in front, because publishing is a person\u2019s act.',
+      about:n=>['release','change','feature'].includes(n.k), owed:n=>n.k==='release'&&!TERMINAL.has(n.s), group:n=>n.k },
+    { id:'review', label:'Review',
+      note:'<b>What owes a verdict, and what owes an answer to one.</b> A verdict is the reviewer\u2019s; this view never clears it.',
+      about:n=>['feature','design','test','issue'].includes(n.k),
+      owed:n=>['proposed','review','open'].includes(n.s), group:n=>n.k },
+    { id:'active', label:'Active',
+      note:'<b>In flight, across every type.</b> The smallest field of the thirteen — most of the corpus is behind you here.',
+      about:n=>LIVE.has(n.s)||OWED.has(n.s)||n.k==='phase', owed:n=>LIVE.has(n.s),
+      group:n=>LIVE.has(n.s)?'doing':'next' },
+    { id:'orbit', label:'Orbit',
+      note:'<b>The link field.</b> Distance is how connected a note is, not what it owes — the well-linked pull to the centre and every visible edge is drawn.',
+      about:()=>true, owed:n=>n.l.length>=4, group:n=>n.k, orbit:true },
+    { id:'files', label:'Files',
+      note:'<b>The library became a file browser.</b> Directories are cards; opening one deals its files. <b>files</b> in the top strip opens the real tree.',
+      about:n=>['decision','design','change','release','requirement'].includes(n.k),
+      owed:n=>n.s==='proposed', group:n=>n.k, files:true },
+    { id:'recent', label:'Recent',
+      note:'<b>Newest first, whatever it is.</b> The one view where distance is age rather than obligation — and it says so.',
+      about:()=>true, owed:(n,i)=>i<8, group:n=>n.k },
   ];
 
   const rail = document.getElementById('rail');
-  const rh = document.createElement('div'); rh.className = 'rail-h'; rh.textContent = 'VIEWS';
-  rail.appendChild(rh);
+  rail.innerHTML = '<div class="rail-h">VIEWS</div>';
   let view = VIEWS[0];
   VIEWS.forEach(v => {
     const b = document.createElement('button');
@@ -390,90 +445,82 @@
     b.addEventListener('click', e => {
       e.stopPropagation(); view = v;
       rail.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
-      focused = null; assign(); render(true);
+      openSet.clear(); assign(); render(true); syncPanels();
     });
     rail.appendChild(b);
   });
 
   const els = new Map(), SLOT = new Map();
-  function esc(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
-  function band(s) {
-    if (['done','fixed','merged','resolved','implemented','met','complete','passing','published','released','closed','verified','fulfilled'].includes(s)) return 'done';
-    if (['active','doing','in-progress','review','next','mitigating','ready','accepted'].includes(s)) return 'active';
-    if (['blocked','failing','reopened'].includes(s)) return 'blocked';
-    if (['obsolete','retired','cancelled','superseded','declined','reverted','deprecated','reconciled'].includes(s)) return 'archived';
-    if (['reference','deferred'].includes(s)) return 'reference';
-    return 'pending';
-  }
   for (const n of NOTES) {
     const el = document.createElement('div');
     el.className = 'card';
-    el.style.borderLeftColor = kindColour(n.k, 58);
+    el.style.borderLeftColor = kc(n.k, 58);
     el.innerHTML =
-      '<div class="cid"><b style="color:' + kindColour(n.k, 68) + '">' + n.id + '</b>' +
+      '<div class="cid"><b style="color:' + kc(n.k, 68) + '">' + n.id + '</b>' +
       '<span style="color:var(--status-' + band(n.s) + ')">' + (n.s || '\u2014') + '</span></div>' +
-      '<div class="ct">' + esc(n.t) + '</div>' +
-      '<div class="cbody">The note opens here in the cockpit\u2019s own renderer — wikilinks, backlinks and tickable checkboxes intact. ' +
-      'A second Markdown parser is the mistake ISS-0151 names, and glass is not a reason to make one.<br><br>' +
-      '<span style="color:#5FA9C4">' + n.k + ' · ' + (n.ph || 'no phase') + ' · ' + n.l.length + ' outbound links</span>' +
-      '<div class="cact"><span data-act="behind">put behind me \u21BB</span><span data-act="open">open note</span></div></div>';
+      '<div class="ct">' + esc(n.t) + '</div>' + face(n) +
+      '<div class="cbody">The note opens here in the cockpit\u2019s own renderer — wikilinks, backlinks and tickable ' +
+      'checkboxes intact. A second Markdown parser is the mistake ISS-0151 names, and glass is not a reason to make one.' +
+      '<br><br><span style="color:#5FA9C4">' + n.k + ' · ' + (n.ph || 'no phase') + ' · ' + n.l.length + ' outbound links</span>' +
+      '<div class="cact"><span data-act="behind">put behind me \u21BB</span><span data-act="pin">pin beside \u2295</span>' +
+      '<span data-act="close">close</span></div></div>';
     el.addEventListener('click', e => {
       e.stopPropagation();
       const act = e.target && e.target.dataset && e.target.dataset.act;
-      if (act === 'behind') { putBehind(n); return; }
-      focusOn(n);
+      if (act === 'behind') return putBehind(n);
+      if (act === 'close') return closeOne(n.id);
+      if (act === 'pin') return openOn(n, true);
+      openOn(n, e.shiftKey);
     });
+    if (n.k === 'phase') el.classList.add('phase');
     inner.appendChild(el);
     els.set(n.id, el);
   }
 
   const INBOUND = new Map();
-  for (const n of NOTES) for (const t of n.l) {
-    if (!INBOUND.has(t)) INBOUND.set(t, []);
-    INBOUND.get(t).push(n.id);
+  for (const n of NOTES) for (const x of n.l) {
+    if (!INBOUND.has(x)) INBOUND.set(x, []);
+    INBOUND.get(x).push(n.id);
   }
+  const byId = new Map(NOTES.map(n => [n.id, n]));
 
-  const slab = document.getElementById('slab');
-  function slabRect() {
-    const s = stage.getBoundingClientRect(), r = slab.getBoundingClientRect();
-    return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
-  }
-
-  // ---- placement on a cylinder: angle, distance, height ---------------
-  // theta 0 is straight ahead. The quiet band is placed BEHIND you, which is
-  // the point Edwin raised: it is not dimmed clutter, it is out of sight.
   const pushed = new Set();
-  let yaw = 0, focused = null;
-  function norm(a) { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; }
+  const openSet = new Map();          // id -> {ring:[ids]}
+  let yaw = 0;
+  const norm = a => { while (a > Math.PI) a -= 2*Math.PI; while (a < -Math.PI) a += 2*Math.PI; return a; };
+  function slabRects() {
+    const s = stage.getBoundingClientRect();
+    return [...panels.children].map(el => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height };
+    });
+  }
 
-  // Slots are a cylindrical grid with a guaranteed angular pitch, so two cards
-  // can never land on top of each other. Pitch is derived from card width at
-  // the band's radius: arc length must exceed the card's on-screen width.
   function slots() {
     const out = { front: [], mid: [], quiet: [] };
     for (let row = 0; row < 4; row++)
       for (let col = -1; col <= 1; col++)
-        out.front.push({ th: col * 37 * DEG, d: 380, y: -170 + row * 113, rank: Math.abs(col) });
+        out.front.push({ th: col*37*DEG, d: 380, y: -170 + row*113, rank: Math.abs(col) });
     for (const side of [-1, 1])
       for (let col = 0; col < 5; col++)
         for (let row = 0; row < 4; row++)
-          out.mid.push({ th: side * (50 + col * 23) * DEG, d: 620, y: -176 + row * 128, rank: col });
+          out.mid.push({ th: side*(50 + col*23)*DEG, d: 620, y: -176 + row*128, rank: col });
     for (let ring = 0; ring < 2; ring++)
       for (let col = -3; col <= 3; col++)
         for (let row = 0; row < 5; row++)
-          out.quiet.push({ th: (180 + col * 18) * DEG, d: 720 + ring * 170, y: -205 + row * 130 });
+          out.quiet.push({ th: (180 + col*18)*DEG, d: 720 + ring*170, y: -205 + row*130 });
     out.front.sort((p, q) => p.rank - q.rank || p.y - q.y);
     out.mid.sort((p, q) => p.rank - q.rank || Math.abs(p.th) - Math.abs(q.th));
-    const s = stage.getBoundingClientRect(), r = slabRect();
+    const s = stage.getBoundingClientRect(), rects = slabRects();
     const free = sl => {
       const phi = norm(sl.th - yaw);
-      if (Math.abs(phi) > 78 * DEG) return true;          // out of sight anyway
-      const z = -Math.cos(phi) * sl.d, k = PERSP / (PERSP - z);
-      const cx = centreX(s.width) + Math.sin(phi) * sl.d * k, cy = s.height * .46 + sl.y * k;
-      const hw = 99 * k, hh = 34 * k;
-      if (cx - hw < RAIL || cx + hw > s.width - HUD + 40) return false;   // would sit under the chrome
-      return !(cx + hw > r.x - 10 && cx - hw < r.x + r.w + 10 &&
-               cy + hh > r.y - 8 && cy - hh < r.y + r.h + 8);
+      if (Math.abs(phi) > 78*DEG) return true;
+      const z = -Math.cos(phi)*sl.d, k = PERSP/(PERSP - z);
+      const cx = centreX(s.width) + Math.sin(phi)*sl.d*k, cy = s.height*.46 + sl.y*k;
+      const hw = 99*k, hh = 36*k;
+      if (cx - hw < RAIL || cx + hw > s.width - HUD + 40) return false;
+      return !rects.some(r => cx + hw > r.x - 10 && cx - hw < r.x + r.w + 10 &&
+                              cy + hh > r.y - 8 && cy - hh < r.y + r.h + 8);
     };
     out.front = out.front.filter(free);
     out.mid = out.mid.filter(free);
@@ -486,32 +533,40 @@
     subject.forEach((n, i) => {
       if (pushed.has(n.id)) quiet.push(n);
       else if (view.owed(n, i)) front.push(n);
+      else if (view.lead === 'phase' && n.k === 'phase') mid.push(n);
       else if (TERMINAL.has(n.s)) quiet.push(n);
       else mid.push(n);
     });
     NOTES.filter(n => !view.about(n)).forEach(n => quiet.push(n));
-
     const S = slots();
     front.splice(S.front.length).forEach(n => mid.push(n));
-
     SLOT.clear();
     front.forEach((n, i) => SLOT.set(n.id, Object.assign({ b: 'front' }, S.front[i])));
 
-    // the mid field keeps the view's own grouping: one contiguous run of
-    // columns per group, nearest group first
     const groups = new Map();
     for (const n of mid) {
       const g = String(view.group(n) || '\u2014');
       if (!groups.has(g)) groups.set(g, []);
       groups.get(g).push(n);
     }
+    // a phase leads its own sector, so the progress bar is the first thing in it
+    for (const [, arr] of groups)
+      arr.sort((x, y) => (y.k === 'phase') - (x.k === 'phase'));
+    // Only the nearest two columns a side are inside the visible arc, so the
+    // sectors are dealt in order of how much live work they hold. A sector of
+    // finished work in the nearest column is a wasted column.
+    const live = arr => arr.filter(n => !TERMINAL.has(n.s)).length;
+    const ordered = [...groups.entries()].sort((a, b) =>
+      live(b[1]) - live(a[1]) || b[1].length - a[1].length);
     let mi = 0;
-    for (const [, arr] of groups) {
+    for (const [, arr] of ordered) {
       for (const n of arr) {
         if (mi < S.mid.length) SLOT.set(n.id, Object.assign({ b: 'mid' }, S.mid[mi++]));
         else quiet.push(n);
       }
-      mi = Math.ceil(mi / 4) * 4;                 // next group starts a fresh column
+      // a big sector earns its own column; a one-note sector gets a gap, or
+      // eight small sectors consume every visible column and show four cards
+      if (arr.length >= 3) mi = Math.ceil(mi / 4) * 4; else mi += 1;
     }
     let qi = 0;
     for (const n of quiet) {
@@ -531,28 +586,32 @@
     for (const n of NOTES) {
       const el = els.get(n.id), sl = SLOT.get(n.id);
       if (!sl) continue;
+      if (openSet.has(n.id)) continue;                       // opened cards are placed by openOn
       el.style.transition = anim === false ? 'none' : '';
       const phi = norm(sl.th - yaw);
-      const kk = PERSP / (PERSP + Math.cos(phi) * sl.d);
-      const cx = centreX(SW) + Math.sin(phi) * sl.d * kk, hw = 99 * kk;
-      const vis = Math.abs(phi) < 78 * DEG && cx - hw > RAIL - 30 && cx + hw < SW - HUD + 60;
+      const kk = PERSP / (PERSP + Math.cos(phi)*sl.d);
+      const cx = centreX(SW) + Math.sin(phi)*sl.d*kk, hw = 99*kk;
+      const vis = Math.abs(phi) < 78*DEG && cx - hw > RAIL - 30 && cx + hw < SW - HUD + 60;
       if (!vis) { el.style.opacity = '0'; el.style.pointerEvents = 'none'; behind++; continue; }
-      const d = sl.d, th = phi, lift = 0;
-      const x = Math.sin(th) * d, z = -Math.cos(th) * d;
-      const fade = Math.max(0, Math.min(1, (78 * DEG - Math.abs(phi)) / (26 * DEG)));
-      el.style.pointerEvents = sl.b === 'quiet' ? 'none' : 'auto';
-      el.className = 'card' + (sl.b === 'front' ? ' owed' : '') + (sl.b === 'quiet' ? ' deep' : '');
-      el.style.transform = 'translate3d(' + (x - 93 + (centreX(SW) - SW / 2)) + 'px,' + (sl.y + lift) + 'px,' + z + 'px)';
-      el.style.opacity = String((sl.b === 'quiet' ? .42 : sl.b === 'mid' ? .94 : 1) * (0.25 + 0.75 * fade));
-      el.style.filter = sl.b === 'quiet' ? 'blur(1.1px)' : 'none';
+      const x = Math.sin(phi)*sl.d, z = -Math.cos(phi)*sl.d;
+      const fade = Math.max(0, Math.min(1, (78*DEG - Math.abs(phi)) / (26*DEG)));
+      // every card you can SEE, you can OPEN — the quiet band was unclickable
+      // in rev 1, which is why FEAT-0143 could not be opened at all
+      el.style.pointerEvents = 'auto';
+      el.className = 'card' + (n.k === 'phase' ? ' phase' : '') +
+                     (sl.b === 'front' ? ' owed' : '') + (sl.b === 'quiet' ? ' deep' : '');
+      el.style.transform = 'translate3d(' + (x - 93 + (centreX(SW) - SW/2)) + 'px,' + sl.y + 'px,' + z + 'px)';
+      el.style.opacity = String((sl.b === 'quiet' ? .5 : sl.b === 'mid' ? .94 : 1) * (0.28 + 0.72*fade));
+      el.style.filter = sl.b === 'quiet' ? 'blur(.7px)' : 'none';
       el.style.zIndex = String(2000 + Math.round(z));
     }
     document.getElementById('behindCount').textContent = behind;
     drawCompass();
-    if (focused) drawWires();
+    placeOpen();
+    drawWires();
+    if (view.orbit) drawOrbitEdges(); else if (!openSet.size) clearWires();
   }
 
-  // ---- compass: which way you are facing, and what is behind you ------
   const comp = document.getElementById('compass');
   function drawCompass() {
     const deg = ((yaw / DEG) % 360 + 360) % 360;
@@ -562,12 +621,10 @@
       deg < 45 || deg > 315 ? 'facing what needs you' :
       deg > 135 && deg < 225 ? 'facing the quiet' : 'facing the mid field';
   }
-
-  function turn(by) { yaw += by; if (!focused) render(); }
+  function turn(by) { yaw += by; render(); }
   document.getElementById('lookAhead').addEventListener('click', e => { e.stopPropagation(); yaw = 0; render(); });
   document.getElementById('lookBack').addEventListener('click', e => { e.stopPropagation(); yaw = Math.PI; render(); });
 
-  // drag the background to turn; a click that did not drag releases focus
   let look = null, moved = 0;
   stage.addEventListener('pointerdown', e => {
     if (e.target.closest('.slab, .rail, .carousel, .ring, .card, .topstrip, button, input')) return;
@@ -577,175 +634,331 @@
   stage.addEventListener('pointermove', e => {
     if (!look) return;
     moved = Math.max(moved, Math.abs(e.clientX - look.x));
-    yaw = look.yaw - (e.clientX - look.x) * .0042;
+    yaw = look.yaw - (e.clientX - look.x)*.0042;
     render(false);
   });
   stage.addEventListener('pointerup', () => {
-    if (look && moved < 4) unfocus();
+    if (look && moved < 4) closeAll();
     look = null; render(true);
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') unfocus();
-    if (e.key === 'ArrowLeft') { turn(-14 * DEG); }
-    if (e.key === 'ArrowRight') { turn(14 * DEG); }
+    if (e.target.tagName === 'INPUT') return;
+    if (e.key === 'Escape') closeAll();
+    if (e.key === 'ArrowLeft') turn(-14*DEG);
+    if (e.key === 'ArrowRight') turn(14*DEG);
   });
 
-  // ---- putting something behind you ----------------------------------
   function putBehind(n) {
-    pushed.add(n.id);
-    focused = null;
+    pushed.add(n.id); openSet.delete(n.id);
     assign(); render(true);
     document.getElementById('hint').innerHTML =
       '<b style="color:var(--cy)">' + n.id + '</b> is behind you now — turn to find it<br>' +
       pushed.size + ' put away by hand this session';
   }
 
-  // ---- focus ----------------------------------------------------------
-  function clearWires() { while (wires.firstChild) wires.removeChild(wires.firstChild); }
-  let ring = [];
-  function focusOn(n) {
-    focused = n;
-    yaw = 0;
+  // ---- opening: one, or several side by side --------------------------
+  function openOn(n, add) {
+    if (!add) openSet.clear();
+    if (openSet.has(n.id)) return;
     const near = new Set([...(n.l || []), ...(INBOUND.get(n.id) || [])]);
-    ring = [...near].filter(id => els.has(id));
-    const centre = els.get(n.id);
-    for (const m of NOTES) {
-      const el = els.get(m.id);
-      if (m.id === n.id) continue;
-      const i = ring.indexOf(m.id);
-      if (i >= 0) {
-        const a = (i / Math.max(ring.length, 1)) * Math.PI * 2 - Math.PI / 2;
-        const R = Math.min(340, 170 + ring.length * 13);
-        el.className = 'card owed';
-        el.style.opacity = '1'; el.style.filter = 'none'; el.style.pointerEvents = 'auto';
-        el.style.transform = 'translate3d(' + (Math.cos(a) * R * 1.55 - 93) + 'px,' + (Math.sin(a) * R * .74) + 'px,-40px)';
-        el.style.zIndex = '2600';
-      } else {
-        el.className = 'card deep';
-        el.style.opacity = '.08'; el.style.filter = 'blur(2.6px)'; el.style.pointerEvents = 'none';
-        el.style.transform = 'translate3d(-93px,0,-1100px)';
-        el.style.zIndex = '0';
-      }
+    openSet.set(n.id, { ring: [...near].filter(id => els.has(id) && !openSet.has(id)) });
+    if (openSet.size === 1) yaw = 0;
+    render(true);
+    document.getElementById('tabB').textContent = [...openSet.keys()].join(' + ');
+    const total = [...openSet.values()].reduce((a, o) => a + o.ring.length, 0);
+    document.getElementById('hint').innerHTML =
+      '<b style="color:var(--cy)">' + openSet.size + ' open</b> · ' + total + ' linked notes pulled in<br>' +
+      '\u21E7click another card to add it · esc to release';
+  }
+  function closeOne(id) { openSet.delete(id); render(true); if (!openSet.size) closeAll(); }
+  function closeAll() {
+    if (!openSet.size) return;
+    openSet.clear(); clearWires();
+    document.getElementById('tabB').textContent = '\u2014';
+    document.getElementById('hint').innerHTML = 'drag the background to turn · the quiet is behind you<br>click any card to open it · \u21E7click to pin a second one';
+    render(true);
+  }
+  function placeOpen() {
+    if (!openSet.size) return;
+    const ids = [...openSet.keys()], n = ids.length;
+    const inRing = new Set();
+    ids.forEach(id => openSet.get(id).ring.forEach(r => inRing.add(r)));
+    ids.forEach((id, i) => {
+      const el = els.get(id);
+      const spread = n === 1 ? 0 : (i - (n - 1)/2) * 360;
+      el.className = 'card focused pinned';
+      el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
+      el.style.transform = 'translate3d(' + (spread - 160) + 'px,-136px,150px)';
+      el.style.zIndex = '3000';
+    });
+    let k = 0;
+    const R = Math.min(340, 170 + inRing.size*10);
+    for (const rid of inRing) {
+      if (openSet.has(rid)) continue;
+      const a = (k++ / Math.max(inRing.size, 1))*Math.PI*2 - Math.PI/2;
+      const el = els.get(rid);
+      el.className = 'card owed';
+      el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
+      el.style.transform = 'translate3d(' + (Math.cos(a)*R*1.7 - 93) + 'px,' + (Math.sin(a)*R*.8) + 'px,-60px)';
+      el.style.zIndex = '2600';
     }
-    centre.className = 'card focused';
-    centre.style.opacity = '1'; centre.style.filter = 'none'; centre.style.pointerEvents = 'auto';
-    centre.style.transform = 'translate3d(-160px,-136px,150px)';
-    centre.style.zIndex = '3000';
-    document.getElementById('tabB').textContent = n.id;
-    document.getElementById('hint').innerHTML = '<b style="color:var(--cy)">' + n.id + '</b> and its ' + ring.length +
-      ' linked notes, pulled in<br>esc, or click the background, to release';
-    drawWires();
+    for (const m of NOTES) {
+      if (openSet.has(m.id) || inRing.has(m.id)) continue;
+      const el = els.get(m.id);
+      el.className = 'card deep' + (m.k === 'phase' ? ' phase' : '');
+      el.style.opacity = '.07'; el.style.filter = 'blur(2.4px)'; el.style.pointerEvents = 'none';
+      el.style.zIndex = '0';
+    }
+  }
+
+  // ---- wires ----------------------------------------------------------
+  function clearWires() { while (wires.firstChild) wires.removeChild(wires.firstChild); }
+  function wire(x1, y1, x2, y2, col, w) {
+    const ln = document.createElementNS(SVGNS, 'path');
+    ln.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + ((x1+x2)/2) + ' ' + y1 + ',' + ((x1+x2)/2) + ' ' + y2 + ',' + x2 + ' ' + y2);
+    ln.setAttribute('fill', 'none'); ln.setAttribute('stroke', col); ln.setAttribute('stroke-width', w || '1');
+    wires.appendChild(ln);
   }
   let wireTimer = null;
   function paintWires() {
     clearWires();
-    if (!focused) return;
+    if (!openSet.size) return;
     const s = stage.getBoundingClientRect();
-    const c = els.get(focused.id).getBoundingClientRect();
-    const x1 = c.left - s.left + c.width / 2, y1 = c.top - s.top + c.height / 2;
-    for (const other of ring) {
-      const el = els.get(other);
-      if (!el) continue;
-      const o = el.getBoundingClientRect();
-      const x2 = o.left - s.left + o.width / 2, y2 = o.top - s.top + o.height / 2;
-      const ln = document.createElementNS(SVGNS, 'path');
-      ln.setAttribute('d', 'M' + x1 + ' ' + y1 + ' C' + ((x1 + x2) / 2) + ' ' + y1 + ',' +
-                            ((x1 + x2) / 2) + ' ' + y2 + ',' + x2 + ' ' + y2);
-      ln.setAttribute('fill', 'none');
-      ln.setAttribute('stroke', 'rgba(127,228,255,.45)');
-      ln.setAttribute('stroke-width', '1');
-      wires.appendChild(ln);
+    for (const [id, o] of openSet) {
+      const c = els.get(id).getBoundingClientRect();
+      const x1 = c.left - s.left + c.width/2, y1 = c.top - s.top + c.height/2;
+      for (const r of o.ring) {
+        const el = els.get(r); if (!el) continue;
+        const b2 = el.getBoundingClientRect();
+        wire(x1, y1, b2.left - s.left + b2.width/2, b2.top - s.top + b2.height/2, 'rgba(127,228,255,.45)');
+      }
     }
   }
   function drawWires() {
     clearTimeout(wireTimer);
-    if (!focused) { clearWires(); return; }
+    if (!openSet.size) return;
     const t0 = performance.now();
-    const tick = () => {
-      paintWires();
-      if (focused && performance.now() - t0 < 900) wireTimer = setTimeout(tick, 50);
-    };
+    const tick = () => { paintWires(); if (openSet.size && performance.now() - t0 < 900) wireTimer = setTimeout(tick, 50); };
     tick();
   }
-  function unfocus() {
-    if (!focused) return;
-    focused = null; clearTimeout(wireTimer); clearWires();
-    document.getElementById('hint').innerHTML = 'drag the background to turn · the quiet is behind you<br>click a card to open it with its links · esc to release';
-    document.getElementById('tabB').textContent = 'FEAT-0143';
-    render(true);
+  function drawOrbitEdges() {
+    if (openSet.size) return;
+    clearWires();
+    const s = stage.getBoundingClientRect();
+    const seen = new Map();
+    for (const n of NOTES) {
+      const el = els.get(n.id);
+      if (el.style.opacity === '0') continue;
+      const r = el.getBoundingClientRect();
+      seen.set(n.id, [r.left - s.left + r.width/2, r.top - s.top + r.height/2]);
+    }
+    let drawn = 0;
+    for (const n of NOTES) {
+      const a = seen.get(n.id); if (!a) continue;
+      for (const x of n.l) {
+        const b2 = seen.get(x); if (!b2 || drawn > 160) continue;
+        wire(a[0], a[1], b2[0], b2[1], 'rgba(110,200,232,.22)');
+        drawn++;
+      }
+    }
   }
 
-  // ---- the console slab ------------------------------------------------
-  const head = document.getElementById('slabHead'), grip = document.getElementById('slabGrip');
-  let dragS = null, resS = null;
-  head.addEventListener('pointerdown', e => {
-    const r = slab.getBoundingClientRect(), s = stage.getBoundingClientRect();
-    dragS = { dx: e.clientX - r.left, dy: e.clientY - r.top, s };
-    head.setPointerCapture(e.pointerId); e.stopPropagation();
+  // ---- search: type an id, fly to it ----------------------------------
+  const q = document.getElementById('q');
+  q.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key !== 'Enter') return;
+    const term = q.value.trim().toLowerCase();
+    if (!term) return;
+    const hit = NOTES.find(n => n.id.toLowerCase() === term) ||
+                NOTES.find(n => n.id.toLowerCase().startsWith(term)) ||
+                NOTES.find(n => n.t.toLowerCase().includes(term));
+    if (!hit) { q.value = ''; q.placeholder = 'no note matches — try FEAT-0143'; return; }
+    const sl = SLOT.get(hit.id);
+    if (sl) { yaw = sl.th; render(true); }      // fly, do not cut
+    setTimeout(() => openOn(hit, false), STILL ? 0 : 420);
+    q.blur();
   });
-  head.addEventListener('pointermove', e => {
-    if (!dragS) return;
-    const s = dragS.s;
-    slab.style.left = Math.max(140, Math.min(s.width - slab.offsetWidth - 8, e.clientX - s.left - dragS.dx)) + 'px';
-    slab.style.top = Math.max(44, Math.min(s.height - slab.offsetHeight - 8, e.clientY - s.top - dragS.dy)) + 'px';
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); q.focus(); q.select(); }
   });
-  head.addEventListener('pointerup', () => { if (dragS) { dragS = null; if (!focused) { assign(); render(true); } } });
-  grip.addEventListener('pointerdown', e => {
-    const r = slab.getBoundingClientRect();
-    resS = { x: e.clientX, y: e.clientY, w: r.width, h: r.height };
-    grip.setPointerCapture(e.pointerId); e.stopPropagation();
+
+  // ---- panels: consoles, lists, files, pulse --------------------------
+  const RUNNING = [
+    { n:'project-os-cockpit', s:'shell · idle', live:false,
+      body:['<span class="dim">$</span> <span class="p">bash tools/scripts/validate-docs.sh</span>','validate-docs: OK',
+            '<span class="dim">$</span> <span class="p">git log --oneline -1</span>','9f01d65 DES-0014 \u2026','<span class="dim">$</span> \u2588'] },
+    { n:'claude · 3f2a', s:'writing · renderer.ts', live:true,
+      body:['<span class="dim">hook</span> PreToolUse Edit','renderer.ts +41 \u221212','context 64% · $2.41 · 38m','<span class="p">writing\u2026</span> \u2588'] },
+    { n:'codex · xngr', s:'reading · 41 files', live:true,
+      body:['<span class="dim">grep</span> \u00D714 <span class="dim">read</span> \u00D727','no writes yet','context 22% · $0.33 · 11m','<span class="p">reading\u2026</span> \u2588'] },
+    { n:'your-trainer', s:'waiting · approval', live:false,
+      body:['<span style="color:var(--severity-medium)">asked to push to origin</span>','idle 4m 12s','3 commits unpushed','<span class="dim">A</span> approve  <span class="dim">S</span> stop'] },
+    { n:'your-health', s:'shell · idle', live:false, body:['<span class="dim">$</span> \u2588'] },
+  ];
+  let pz = 4500, pn = 0;
+  function makePanel(opts) {
+    const el = document.createElement('div');
+    el.className = 'slab';
+    el.style.cssText = 'left:' + opts.x + 'px;top:' + opts.y + 'px;width:' + opts.w + 'px;height:' + opts.h + 'px;z-index:' + (++pz);
+    el.innerHTML =
+      '<div class="slab-head"><span class="dot" style="background:' + (opts.live ? 'var(--status-active)' : 'var(--cy-dim)') + '"></span>' +
+      '<span class="t">' + esc(opts.title) + '</span>' +
+      '<span class="slab-op" style="margin-left:auto"><span class="dim">opacity</span>' +
+      '<input type="range" min="20" max="95" value="' + (opts.op || 55) + '" aria-label="Panel opacity">' +
+      '<button class="sh-btn" type="button" data-x>\u00D7</button></span></div>' +
+      '<div class="slab-body"></div><div class="slab-grip"></div>';
+    el.dataset.kind = opts.kind;
+    el.style.background = 'rgb(6 26 34 / ' + ((opts.op || 55)/100) + ')';
+    panels.appendChild(el);
+    const body = el.querySelector('.slab-body');
+    if (typeof opts.body === 'string') body.innerHTML = opts.body; else opts.body(body);
+    const head = el.querySelector('.slab-head'), grip = el.querySelector('.slab-grip');
+    el.addEventListener('pointerdown', () => { el.style.zIndex = String(++pz); }, true);
+    let dg = null, rs = null;
+    head.addEventListener('pointerdown', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
+      const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
+      dg = { dx: e.clientX - r.left, dy: e.clientY - r.top, s };
+      head.setPointerCapture(e.pointerId); e.stopPropagation();
+    });
+    head.addEventListener('pointermove', e => {
+      if (!dg) return;
+      el.style.left = Math.max(RAIL, Math.min(dg.s.width - el.offsetWidth - 8, e.clientX - dg.s.left - dg.dx)) + 'px';
+      el.style.top = Math.max(44, Math.min(dg.s.height - el.offsetHeight - 8, e.clientY - dg.s.top - dg.dy)) + 'px';
+    });
+    head.addEventListener('pointerup', () => { if (dg) { dg = null; assign(); render(true); } });
+    grip.addEventListener('pointerdown', e => {
+      const r = el.getBoundingClientRect();
+      rs = { x: e.clientX, y: e.clientY, w: r.width, h: r.height };
+      grip.setPointerCapture(e.pointerId); e.stopPropagation();
+    });
+    grip.addEventListener('pointermove', e => {
+      if (!rs) return;
+      el.style.width = Math.max(240, rs.w + (e.clientX - rs.x)) + 'px';
+      el.style.height = Math.max(110, rs.h + (e.clientY - rs.y)) + 'px';
+    });
+    grip.addEventListener('pointerup', () => { if (rs) { rs = null; assign(); render(true); } });
+    el.querySelector('input[type=range]').addEventListener('input', ev => {
+      el.style.background = 'rgb(6 26 34 / ' + (ev.target.value/100) + ')';
+    });
+    el.querySelector('[data-x]').addEventListener('click', ev => {
+      ev.stopPropagation(); el.remove(); assign(); render(true);
+    });
+    return el;
+  }
+  function consolePanel(i, offset) {
+    const r = RUNNING[i];
+    return makePanel({ kind:'console', title: r.n + ' · ' + r.s.split(' · ')[0], live: r.live,
+      x: 330 + (offset||0)*38, y: 448 + (offset||0)*24, w: 372, h: 176, op: 55,
+      body: r.body.join('<br>') });
+  }
+  function listPanel() {
+    const rows = NOTES.filter(view.about).sort((a, b) => (SLOT.get(a.id)?.b === 'front' ? -1 : 1));
+    return makePanel({ kind:'list', title: view.label.toLowerCase() + ' · as list · ' + rows.length + ' rows',
+      x: RAIL + 16, y: 84, w: 352, h: 272, op: 82,
+      body: b => {
+        b.innerHTML = '<table>' + rows.map(n =>
+          '<tr data-id="' + n.id + '"><td class="i">' + n.id + '</td><td style="color:var(--status-' + band(n.s) + ')">' +
+          (n.s || '\u2014') + '</td><td>' + esc(n.t.slice(0, 46)) + '</td></tr>').join('') + '</table>';
+        b.addEventListener('click', ev => {
+          const tr = ev.target.closest('tr');
+          if (tr && byId.has(tr.dataset.id)) openOn(byId.get(tr.dataset.id), false);
+        });
+      } });
+  }
+  const TREE = [['docs/features/', ['FEAT-0144-The-Corpus-Has-An-Inside.md', 'plan/PLAN.md', 'plan/tasks/ (5)']],
+                ['docs/issues/', ['ISS-0278-The-Recorded-Stale-Verdict-Count.md', 'ISS-0277-\u2026', '\u2026 277 files']],
+                ['docs/decisions/', ['ADR-0040-A-Release-Selects-Its-Features.md', '\u2026 32 files']],
+                ['docs/designs/', ['DES-0014-The-Glass-Cockpit.md', 'DES-0014-the-glass-cockpit.html', '\u2026 12 more']],
+                ['docs/phases/', ['PHASE-041-\u2026.md', '\u2026 42 files']],
+                ['SNAPSHOT.yaml', []], ['CONTEXT.md', []]];
+  function filesPanel() {
+    return makePanel({ kind:'files', title:'files · docs/ \u2014 1547 markdown files', x: RAIL + 16, y: 84, w: 344, h: 292, op: 84,
+      body: b => {
+        b.innerHTML = '<div class="tree">' + TREE.map(([d, fs]) =>
+          '<div class="d">\u25B8 ' + d + '</div>' + fs.map(f => '<div class="f">' + f + '</div>').join('')).join('') +
+          '</div><div style="margin-top:10px;border-top:1px solid var(--cy-line);padding-top:8px">' +
+          '<button class="sh-btn" type="button">open in Finder</button> ' +
+          '<button class="sh-btn" type="button">open a system browser panel</button></div>';
+      } });
+  }
+  function pulsePanel() {
+    return makePanel({ kind:'pulse', title:'pulse · 5 consoles and sessions', x: stage.clientWidth - HUD - 452, y: 84, w: 430, h: 178, op: 66,
+      body: b => {
+        b.innerHTML = RUNNING.map(r =>
+          '<div class="lane"><span class="nm">' + esc(r.n) + '</span><canvas></canvas>' +
+          '<span class="gz">' + (r.live ? 'live' : r.s.split(' · ')[1] || 'idle') + '</span></div>').join('');
+        const cvs = [...b.querySelectorAll('canvas')];
+        const bufs = cvs.map(() => new Array(90).fill(0));
+        let sd = 991;
+        const rnd = () => (sd = (sd*1103515245 + 12345) % 2147483648) / 2147483648;
+        const paint = () => {
+          if (!b.isConnected) return;
+          cvs.forEach((cv, i) => {
+            const w = cv.clientWidth || 200, h = 22;
+            if (cv.width !== w) { cv.width = w; cv.height = h; }
+            const ctx = cv.getContext('2d');
+            const arr = bufs[i];
+            if (!STILL) { arr.shift(); arr.push(RUNNING[i].live ? (rnd() < .4 ? rnd() : rnd()*.1) : rnd()*.05); }
+            ctx.clearRect(0, 0, w, h);
+            ctx.strokeStyle = RUNNING[i].live ? 'hsl(140 32% 60%)' : '#2C7A93';
+            ctx.lineWidth = 1; ctx.beginPath();
+            arr.forEach((v, k) => { const x = k/arr.length*w, y = h - 2 - v*(h - 5); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+            ctx.stroke();
+          });
+          if (!STILL) setTimeout(paint, 90);
+        };
+        paint();
+      } });
+  }
+  document.getElementById('asList').addEventListener('click', e => { e.stopPropagation(); listPanel(); assign(); render(true); });
+  document.getElementById('addConsole').addEventListener('click', e => {
+    e.stopPropagation();
+    consolePanel(carFront, panels.querySelectorAll('[data-kind=console]').length);
+    assign(); render(true);
   });
-  grip.addEventListener('pointermove', e => {
-    if (!resS) return;
-    slab.style.width = Math.max(260, resS.w + (e.clientX - resS.x)) + 'px';
-    slab.style.height = Math.max(120, resS.h + (e.clientY - resS.y)) + 'px';
-  });
-  grip.addEventListener('pointerup', () => { if (resS) { resS = null; if (!focused) { assign(); render(true); } } });
-  const op = document.getElementById('slabOp');
-  op.addEventListener('input', e => { slab.style.background = 'rgb(6 26 34 / ' + (e.target.value / 100) + ')'; });
-  op.addEventListener('pointerdown', e => e.stopPropagation());
-  op.addEventListener('click', e => e.stopPropagation());
+  document.getElementById('openFiles').addEventListener('click', e => { e.stopPropagation(); filesPanel(); assign(); render(true); });
+  document.getElementById('openPulse').addEventListener('click', e => { e.stopPropagation(); pulsePanel(); assign(); render(true); });
+  function syncPanels() {
+    [...panels.querySelectorAll('[data-kind=list]')].forEach(el => el.remove());
+  }
 
   // ---- carousel --------------------------------------------------------
-  const RUNNING = [
-    { n: 'project-os-cockpit', s: 'shell · idle', live: false,
-      body: ['<span class="dim">$</span> <span class="p">bash tools/scripts/validate-docs.sh</span>', 'validate-docs: OK', '<span class="dim">$</span> <span class="p">git log --oneline -1</span>', 'cde9f9d DES-0013 FEAT-0144 \u2026', '<span class="dim">$</span> \u2588'] },
-    { n: 'claude · 3f2a', s: 'writing · renderer.ts', live: true,
-      body: ['<span class="dim">hook</span> PreToolUse Edit', 'renderer.ts +41 \u221212', '<span class="dim">hook</span> PostToolUse', 'context 64% · $2.41 · 38m', '<span class="p">writing\u2026</span> \u2588'] },
-    { n: 'codex · xngr', s: 'reading · 41 files', live: true,
-      body: ['<span class="dim">grep</span> \u00D714 <span class="dim">read</span> \u00D727', 'no writes yet', 'context 22% · $0.33 · 11m', '<span class="p">reading\u2026</span> \u2588'] },
-    { n: 'your-trainer', s: 'waiting · approval', live: false,
-      body: ['<span style="color:var(--severity-medium)">asked to push to origin</span>', 'idle 4m 12s', '3 commits unpushed', '<span class="dim">A</span> approve  <span class="dim">S</span> stop'] },
-    { n: 'your-health', s: 'shell · idle', live: false, body: ['<span class="dim">$</span> \u2588'] },
-  ];
   const carInner = document.getElementById('carInner');
   let carFront = 0;
   RUNNING.forEach((r, i) => {
     const c = document.createElement('div');
     c.className = 'car-card';
-    c.innerHTML = '<div class="cn">' + r.n + '</div><div class="cs">' +
+    c.innerHTML = '<div class="cn">' + esc(r.n) + '</div><div class="cs">' +
       (r.live ? '<span style="color:var(--status-active)">\u25CF</span> ' : '<span style="color:var(--cy-dim)">\u25CB</span> ') + r.s + '</div>';
-    c.addEventListener('click', e => { e.stopPropagation(); carFront = i; drawCar(); });
+    c.addEventListener('click', e => {
+      e.stopPropagation();
+      if (e.shiftKey) { consolePanel(i, panels.querySelectorAll('[data-kind=console]').length); assign(); render(true); return; }
+      carFront = i; drawCar();
+      const first = panels.querySelector('[data-kind=console]');
+      if (first) {
+        first.querySelector('.t').textContent = RUNNING[i].n + ' · ' + RUNNING[i].s.split(' · ')[0];
+        first.querySelector('.slab-body').innerHTML = RUNNING[i].body.join('<br>');
+        first.querySelector('.dot').style.background = RUNNING[i].live ? 'var(--status-active)' : 'var(--cy-dim)';
+      } else consolePanel(i, 0);
+    });
     carInner.appendChild(c);
   });
   function drawCar() {
     for (let i = 0; i < carInner.children.length; i++) {
       const d = i - carFront, c = carInner.children[i];
-      c.style.transform = 'translate3d(' + (d * 44) + 'px,' + (Math.abs(d) * 7) + 'px,' + (-Math.abs(d) * 108) + 'px) rotateY(' + (-d * 26) + 'deg)';
-      c.style.opacity = String(Math.max(.22, 1 - Math.abs(d) * .3));
+      c.style.transform = 'translate3d(' + (d*44) + 'px,' + (Math.abs(d)*7) + 'px,' + (-Math.abs(d)*108) + 'px) rotateY(' + (-d*26) + 'deg)';
+      c.style.opacity = String(Math.max(.22, 1 - Math.abs(d)*.3));
       c.style.zIndex = String(50 - Math.abs(d));
       c.classList.toggle('front', i === carFront);
     }
-    const r = RUNNING[carFront];
-    document.getElementById('slabTitle').textContent = r.n + ' · ' + r.s.split(' · ')[0];
-    document.getElementById('slabBody').innerHTML = r.body.join('<br>');
   }
   drawCar();
 
-  // ---- workspace ring --------------------------------------------------
-  const REPOS = [['project-os-cockpit', 6], ['your-trainer', 3], ['project-os', 0], ['your-sudoku', 1],
-                 ['your-health', 0], ['xngr', 2], ['edankert.com', 0], ['articles', 4],
-                 ['project-os-dev', 1], ['bounce', 0], ['xmlhammer', 0], ['obsidian-supernote-sync', 0]];
+  const REPOS = [['project-os-cockpit',6],['your-trainer',3],['project-os',0],['your-sudoku',1],
+                 ['your-health',0],['xngr',2],['edankert.com',0],['articles',4],
+                 ['project-os-dev',1],['bounce',0],['xmlhammer',0],['obsidian-supernote-sync',0]];
   const ringInner = document.getElementById('ringInner');
   let ringAt = 0;
   REPOS.forEach((r, i) => {
@@ -757,24 +970,48 @@
     ringInner.appendChild(s);
   });
   function drawRing() {
-    const n = REPOS.length, step = 360 / n;
-    ringInner.style.transform = 'rotateY(' + (-ringAt * step) + 'deg)';
+    const n = REPOS.length, step = 360/n;
+    ringInner.style.transform = 'rotateY(' + (-ringAt*step) + 'deg)';
     for (let i = 0; i < n; i++) {
       const el = ringInner.children[i];
-      el.style.transform = 'rotateY(' + (i * step) + 'deg) translateZ(200px)';
+      el.style.transform = 'rotateY(' + (i*step) + 'deg) translateZ(200px)';
       el.classList.toggle('here', i === ringAt);
       const d = Math.min(Math.abs(i - ringAt), n - Math.abs(i - ringAt));
-      el.style.opacity = String(Math.max(.12, 1 - d * .34));
+      el.style.opacity = String(Math.max(.12, 1 - d*.34));
     }
   }
   drawRing();
 
+  consolePanel(0, 0);
   assign(); render(true);
-  new ResizeObserver(() => { if (!focused) { assign(); render(true); } }).observe(stage);
+  new ResizeObserver(() => { assign(); render(true); }).observe(stage);
 })();
 </script>
 
-<h2 class="section">The eleven views, as arrangements</h2>
+<h2 class="section">What the shape buys that a list cannot</h2>
+<p class="section-sub">
+  Rev 1 pitched depth as a better way to show the same things. That undersold it. <strong>A field with room in it makes several things possible that the current cockpit cannot do at all</strong> — not because it lacks the feature, but because a single stacked pane has nowhere to put a second one.
+</p>
+<div class="gwrap" data-design-region="unlocks">
+<table class="g">
+  <thead><tr><th>this becomes possible</th><th>why the current cockpit cannot</th><th>in the prototype</th></tr></thead>
+  <tbody>
+    <tr><td class="v">many consoles at once</td><td>one terminal panel; a second shell means a tab, and a tab means the first one is <em>gone</em> — you cannot watch two agents work</td><td><b>+ console</b>, or ⇧click a carousel card. Each slab drags, resizes and fades on its own</td></tr>
+    <tr><td class="v">lists, where a list is better</td><td>the pane is the list, so there is nowhere to put a spatial view beside it — it is one or the other</td><td><b>as list</b> opens the current view as a dense table. Click a row and the field flies to that note</td></tr>
+    <tr><td class="v">several notes open together</td><td>one document pane; comparing two notes means two windows or two trips</td><td>⇧click, or <b>pin beside</b> on an open card. They tile at the front plane and each keeps its own link ring</td></tr>
+    <tr><td class="v">a file browser that is not a metaphor</td><td>the Library view lists <em>note types</em>; the actual directory tree is not visible anywhere</td><td><b>files</b> — the real tree, and a button to hand off to the system browser</td></tr>
+    <tr><td class="v">live agents beside the record</td><td>the agents panel replaces the nav pane, so watching agents means not reading</td><td><b>pulse</b> — five lanes with live traces, floating over the field rather than replacing it</td></tr>
+    <tr><td class="v">the link graph as a view</td><td>no graph surface exists; links are resolved one click at a time</td><td><b>Orbit</b> in the rail: distance becomes connectedness and every visible edge is drawn</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>And the tension this immediately creates</h4>
+  <p>Open four panels in the prototype and the field empties out — the obstacle rule does its job and there is nowhere left to deal a card. <strong>Panels and the field compete for the same pixels</strong>, and on one monitor that competition has no good resolution.</p>
+  <p>That is not a bug to tune away. It is the argument for the next section.</p>
+</div>
+
+<h2 class="section">The views, as arrangements</h2>
 <p class="section-sub">
   Each row is a view the cockpit has today. <strong>Switching one is not a navigation</strong> — no page loads, no scroll position is lost, and the cards you were looking at do not disappear. They move. Watching <code>ISS-0260</code> travel from the front of Issues to the deep field of Library is a statement about that note that no pair of pages can make.
 </p>
@@ -791,7 +1028,8 @@
     <tr><td class="v">Publication</td><td>releases and changes</td><td>work that is committed but not published</td><td>released work</td></tr>
     <tr><td class="v">Review</td><td>anything that can carry a verdict</td><td>owed a verdict, or owing an answer to one</td><td>approved, and answered</td></tr>
     <tr><td class="v">Active</td><td>in flight, across every type</td><td>doing</td><td>everything else — this view is nearly all behind you</td></tr>
-    <tr><td class="v">Library</td><td>the durable documents</td><td>almost nothing, and it says so</td><td>the rest of the library</td></tr>
+    <tr><td class="v">Orbit</td><td>the link graph — <em>DES-0013's ORBIT, folded in</em></td><td>the well-connected: distance is how many notes join you, not what you owe</td><td>orphans, at the far edge, which is the one query this view answers that a table cannot</td></tr>
+    <tr><td class="v">Files</td><td><em>replaces Library</em> — the real directory tree</td><td>directories with unread or untriaged content</td><td>everything already filed</td></tr>
     <tr><td class="v">Recent</td><td>everything, newest first</td><td>the last week — <em>the one view where distance is age, not obligation</em></td><td>older than a month</td></tr>
   </tbody>
 </table>
@@ -879,6 +1117,78 @@
     <tr><td class="v">every write path</td><td>unchanged, behind the same server-side guards</td><td>a new front door with its own weaker lock is the failure <code>REQ-0026</code> exists to prevent</td></tr>
   </tbody>
 </table>
+</div>
+
+<h2 class="section">Cards say different things when they are closed</h2>
+<p class="section-sub">
+  A closed card had one job in rev 1 — carry an ID, a title and a status. That wastes the one thing a card has that a list row does not: <strong>area</strong>. So each note type now uses it for the thing you actually want to know about that type without opening it.
+</p>
+<div class="gwrap" data-design-region="faces">
+<table class="g">
+  <thead><tr><th>type</th><th>the closed card carries</th><th>because</th></tr></thead>
+  <tbody>
+    <tr><td class="v">phase</td><td><strong>a progress bar</strong> — done over total, and the percentage</td><td>a phase's whole meaning is "how far through are we". <code>PHASE-041</code> reads 21/23; <code>PHASE-028</code> reads 0/11; <code>PHASE-999</code> reads 0/27 and that is the parking lot showing its size</td></tr>
+    <tr><td class="v">issue / risk</td><td>severity chip and phase</td><td>severity is what decides whether you read it now, and it is the axis the Issues view already groups by</td></tr>
+    <tr><td class="v">test</td><td>how many notes it covers</td><td>a test with no <code>covers:</code> is the failure mode this repo has hit; showing the number makes zero visible</td></tr>
+    <tr><td class="v">release / change</td><td>item count</td><td>a release is a set, and its size is the question</td></tr>
+    <tr><td class="v">everything else</td><td>phase, and outbound link count</td><td>the two cheap facts that tell you whether opening it will lead anywhere</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>You were right that phases were missing</h4>
+  <p>Rev 1 grouped by phase everywhere and <strong>never showed a phase</strong>. The sector labels were phase IDs with no note behind them, which is exactly the "a number that says what it counts" rule this project already wrote down.</p>
+  <p>Now the phase note itself leads its own sector in Features and Tasks, with its real progress bar, and phases appear as cards in Overview and Active. The numbers in the prototype are measured from the corpus, not invented.</p>
+</div>
+
+<h2 class="section">Many monitors</h2>
+<p class="section-sub">
+  You are right that this wants more than one screen — and the panel-versus-field competition above is the proof. The proposal is not "the window can be dragged onto a second monitor". It is that <strong>the four surfaces have genuinely different refresh rates and attention costs</strong>, and each wants a screen of its own.
+</p>
+<div class="cols" data-design-region="monitors">
+  <div>
+    <h4>Screen 1 — the field</h4>
+    <p>The record, the view rail, the compass, the workspace ring. <strong>Nothing that scrolls, nothing that updates on its own.</strong> This is the screen you turn in.</p>
+    <p>Freed of panels, the front and mid bands get their full angular budget back — three columns a side instead of one.</p>
+  </div>
+  <div>
+    <h4>Screen 2 — the consoles</h4>
+    <p>Every shell and session, tiled rather than carouselled, because a second monitor has room to show five at once. <strong>Pulse is this screen at rest</strong>; a console expands out of a lane when you attach to it.</p>
+    <p>This is the screen that moves. Keeping it off the reading screen is the point.</p>
+  </div>
+  <div>
+    <h4>Screen 3 — the reader and the lists</h4>
+    <p>Opened notes and list panels. Where a list beats a field it gets a whole display, and the field stays a field.</p>
+    <p>A laptop alone collapses all three into one window, panels and all — which works, and is worse. The design should degrade to that, not be built for it.</p>
+  </div>
+</div>
+<div class="warnbox">
+  <h4>What multi-monitor actually costs to build</h4>
+  <p><strong>One state, several windows.</strong> Electron gives you extra <code>BrowserWindow</code>s cheaply; the hard part is that yaw, view, open set and pushed set now live in a process that no window owns. The shell already has this problem solved for workspaces — the main process holds the state and each renderer subscribes — so this extends an existing pattern rather than inventing one.</p>
+  <p>The genuinely new question is <strong>what "in front of you" means when there are three fronts</strong>. My answer: only screen 1 has a front plane. The others are surfaces, not fields, and they do not get a depth axis. Two screens both claiming to show what needs you is how a person ends up trusting neither.</p>
+</div>
+
+<h2 class="section">Would it actually run?</h2>
+<p class="section-sub">
+  The prototype holds 80 cards. This repo has 1537 notes, and <code>your-trainer</code> has more. So the honest answer needs numbers rather than confidence.
+</p>
+<div class="gwrap" data-design-region="performance">
+<table class="g">
+  <thead><tr><th>concern</th><th>measured or bounded</th><th>what it forces</th></tr></thead>
+  <tbody>
+    <tr><td class="v">DOM cards</td><td>the visible arc holds <strong>~40 cards</strong> at any yaw; 1537 elements is 38× more than can ever be seen</td><td><strong>Pool and recycle.</strong> Materialise ~120 card elements and rebind them as the yaw changes. This is a virtualised list in polar coordinates, and it is the single most important decision in the build</td></tr>
+    <tr><td class="v"><code>filter: blur()</code></td><td>the most expensive property in the prototype — it forces an offscreen pass per element, per frame, and the quiet band is where the count is highest</td><td><strong>Drop it.</strong> Depth already gives scale and the fog gives contrast; blur adds atmosphere and costs the frame budget. Rev 2 already reduced it from 2.4px to 0.7px and it should reach zero</td></tr>
+    <tr><td class="v">transforms</td><td><code>translate3d</code> is GPU-composited; 120 of them per frame is not a problem</td><td>keep <code>will-change: transform</code> on cards, and never animate <code>width</code>, <code>top</code> or <code>filter</code></td></tr>
+    <tr><td class="v">the wire overlay</td><td>Orbit draws up to 160 paths, capped in the prototype and visibly so</td><td>a single <code>&lt;canvas&gt;</code> rather than SVG paths once the count passes ~200, and the cap must be <em>stated on screen</em> rather than silently applied</td></tr>
+    <tr><td class="v">layout on every turn</td><td>slot assignment is O(notes); running it per frame while dragging is the obvious mistake</td><td><strong>Assign on view change and panel move; never on yaw.</strong> That is already how the prototype works, and it is why turning stays smooth while the card set stays stable</td></tr>
+    <tr><td class="v">the layout itself</td><td>a stable arrangement across sessions is not a render problem — it is <code>TASK-0593</code>'s problem, from the ORBIT feature</td><td>positions computed once and stored, with new notes taking a slot without moving neighbours. The same work serves both designs</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>The honest bound</h4>
+  <p>With pooling and no blur, this is <strong>an ordinary compositing workload</strong> — a few hundred GPU-composited layers, which browsers do comfortably. Without pooling it is 1537 blurred elements and it will not hold 60fps on a laptop.</p>
+  <p>So the performance answer is not "yes" or "no". It is: <strong>pooling is not an optimisation to add later, it is the architecture</strong>, and a prototype that skips it — like this one — proves the interaction and nothing about the cost.</p>
 </div>
 
 <h2 class="section">What is wrong with this</h2>

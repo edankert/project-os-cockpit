@@ -10,7 +10,7 @@ phase: "[[PHASE-028-Borrowed-Capability]]"
 owner: user:edwin
 created: 2026-09-05
 updated: "2026-09-05"
-source: ["Edwin 2026-09-05: 'I assume this view allows for 360 degree turn around, allowing to see and store less important items out of sight?'", "Edwin 2026-09-05: 'The minority report view could work ... I do not consider this to be a vr view ... instead I would like you to design each of the current sets of views for this, these views should be selectable and each view should concentrate on the same details and notes currently in that view, making some note-types and states more important then others (directly in view)'", "Edwin 2026-09-05: 'The console is a view which sits at the bottom middle but can be moved anywhere and can be made smaller/bigger if needed and all the notes can be arranged around the console ... maybe the console should be slightly transparent'", "Edwin 2026-09-05: 'the console and usage view in the left pane need a different approach, possibly for the console statuses show some carousel where the current active ones or selected ones can be moved to the front? Also the repo/project selection could be handled similarly'", "Edwin 2026-09-05: 'When selecting a note it opens up more fully and also somehow brings the associated notes into view'"]
+source: ["Edwin 2026-09-05, rev 2: 'That new design though would provide us with some huge new options ... multiple consoles for instance which would otherwise be hidden behind tabs and also we could still decide to have lists available ... we could now easily allow for multiple cards to be visible at once'", "Edwin 2026-09-05, rev 2: 'I was not able to open up feat-0143 and try out the selection/opening up functionality'", "Edwin 2026-09-05, rev 2: 'we could show different information on the closed cards, like progress bars for the phases (I didn't see phases in overview and other places even though we group by phase in lots of places?)'", "Edwin 2026-09-05, rev 2: 'nice to have the orbit glass view integrated in this, and the pulse view for the consoles/agents ... if we can make this a multi monitor application ... the library one, should probably turn into a file browser ... also consider the actual implementation and if this would be performant enough?'", "Edwin 2026-09-05: 'I assume this view allows for 360 degree turn around, allowing to see and store less important items out of sight?'", "Edwin 2026-09-05: 'The minority report view could work ... I do not consider this to be a vr view ... instead I would like you to design each of the current sets of views for this, these views should be selectable and each view should concentrate on the same details and notes currently in that view, making some note-types and states more important then others (directly in view)'", "Edwin 2026-09-05: 'The console is a view which sits at the bottom middle but can be moved anywhere and can be made smaller/bigger if needed and all the notes can be arranged around the console ... maybe the console should be slightly transparent'", "Edwin 2026-09-05: 'the console and usage view in the left pane need a different approach, possibly for the console statuses show some carousel where the current active ones or selected ones can be moved to the front? Also the repo/project selection could be handled similarly'", "Edwin 2026-09-05: 'When selecting a note it opens up more fully and also somehow brings the associated notes into view'"]
 asset: "DES-0014-the-glass-cockpit.html"
 implements: []
 supersedes: ""
@@ -58,6 +58,54 @@ Five consequences follow, and each answers one of Edwin's questions.
 
 **5. Selecting a note pulls its neighbourhood with it.** The card comes to the front plane and opens; every note it links to, and every note linking to it, flies into a ring around it; everything else recedes and dims. This is the corpus's 16148 wikilinks doing work in the reading surface rather than in a graph view nobody opens.
 
+## What the shape buys, which rev 1 undersold
+
+Rev 1 argued that depth shows the same things better. That was too small a claim. **A field with room in it makes several things possible that the cockpit cannot do at all** — not for want of a feature, but because one stacked pane has nowhere to put a second thing.
+
+- **Many consoles at once.** One terminal panel means a second shell is a tab, and a tab means the first is *gone*. You cannot watch two agents work. Here each console is a slab that drags, resizes and fades on its own, and the carousel deals a new one on ⇧click.
+- **Lists, where a list is better.** This is the answer to my own objection below. The pane *is* the list today, so a spatial view can only replace it. Here **as list** opens the current view as a dense table beside the field, and clicking a row flies the field to that note. Triage, which is a counting job, gets the surface that is good at counting.
+- **Several notes open at once.** ⇧click, or **pin beside**. They tile at the front plane and each keeps its own ring of links.
+- **A file browser rather than a metaphor.** The Library view listed *note types*; the actual directory tree was visible nowhere. It becomes **Files**, with a hand-off to the system browser.
+- **[[DES-0013]]'s ORBIT and PULSE fold in** as a view and a panel rather than separate applications — the link field becomes a thirteenth arrangement where distance is connectedness, and the agent lanes float over the field instead of replacing the nav pane.
+
+**And the tension that creates immediately.** Open four panels in the prototype and the field empties: the obstacle rule works, and there is nowhere left to deal a card. Panels and the field compete for the same pixels, and on one monitor that competition has no good answer. That is the argument for many monitors, not a bug to tune away.
+
+## Closed cards carry different things
+
+A closed card had one job in rev 1 — id, title, status — which wastes the one thing a card has that a list row does not: **area**.
+
+- **A phase carries a progress bar**, because a phase's whole meaning is *how far through are we*. Measured: `PHASE-041` is 21/23, `PHASE-028` is 0/11, `PHASE-999` is 0/27 and that is the parking lot showing its size.
+- **An issue or risk carries its severity chip**, because severity decides whether you read it now.
+- **A test carries how many notes it covers**, because a test covering nothing is a failure mode this repo has hit, and zero should be visible.
+- Everything else carries its phase and its outbound link count.
+
+**Edwin was right that phases were missing.** Rev 1 grouped by phase in four views and never rendered a phase: the sector labels were bare IDs with no note behind them, which is exactly the *"a number says what it counts"* rule this project already wrote down. The phase note now leads its own sector in Features and Tasks, and appears as a card in Overview and Active.
+
+## Many monitors
+
+The four surfaces have genuinely different refresh rates and attention costs, so each wants a screen.
+
+- **Screen 1 — the field.** The record, the rail, the compass, the ring. Nothing that scrolls, nothing that updates on its own. Freed of panels it gets its full angular budget back.
+- **Screen 2 — the consoles.** Every shell and session tiled rather than carouselled; PULSE is this screen at rest. This is the screen that *moves*, and keeping it off the reading screen is the point.
+- **Screen 3 — the reader and the lists.** Where a list beats a field, it gets a whole display.
+
+**What it costs to build:** one state, several windows. Extra `BrowserWindow`s are cheap; the work is that yaw, view, open set and pushed set stop belonging to any window. The shell already solves this for workspaces — main process holds state, renderers subscribe — so it extends a pattern rather than inventing one.
+
+**The genuinely new question is what "in front of you" means when there are three fronts.** My answer: only screen 1 has a front plane. The others are surfaces, not fields, and get no depth axis. Two screens both claiming to show what needs you is how someone ends up trusting neither.
+
+## Would it run
+
+The prototype holds 80 cards. This repo has 1537 notes and `your-trainer` has more, so the answer needs numbers.
+
+- **The visible arc holds about 40 cards at any yaw.** 1537 elements is 38× more than can ever be seen, so the build is **a virtualised list in polar coordinates**: pool roughly 120 card elements and rebind them as the yaw changes. This is the single most important decision in the implementation.
+- **`filter: blur()` has to go.** It forces an offscreen pass per element per frame, and the quiet band is where the count is highest. Depth already supplies scale and fog supplies contrast. Rev 2 cut it from 2.4px to 0.7px; it should reach zero.
+- **`translate3d` is GPU-composited** and a few hundred layers is ordinary. Never animate `width`, `top` or `filter`.
+- **Slot assignment runs on view change and panel move, never on yaw** — which is why turning stays smooth while the card set stays stable. It is O(notes) and must not enter the frame loop.
+- **The wire overlay** becomes a single canvas past ~200 edges, and any cap must be stated on screen rather than silently applied.
+- **A layout that survives restarts is [[TASK-0593]]'s problem**, already written for [[FEAT-0144]]. The same work serves both designs.
+
+**The honest bound:** with pooling and no blur this is an ordinary compositing workload. Without pooling it is 1537 blurred elements and will not hold 60fps on a laptop. So **pooling is not an optimisation to add later, it is the architecture** — and this prototype, which skips it, proves the interaction and nothing about the cost.
+
 ## What this does not change
 
 The **write path**, the **verbs** and the **guards** are the cockpit's, unchanged. A human-only verdict is still refused server-side to an agent ([[REQ-0026]]); the registry still owns the verb ([[ISS-0153]]); obligations still live with their subject ([[ADR-0020]]) — the front plane is *where the subject is*, not a central queue.
@@ -75,6 +123,10 @@ The **reader** is also the cockpit's. An opened card renders the note with the e
 - `ring` — the workspace picker
 - `focus` — selecting a note, and the neighbourhood that arrives with it
 - `chrome` — search, tabs, back/forward, the validator, the inbox: where the rest of the cockpit went
+- `unlocks` — what the shape makes possible that the current cockpit cannot do at all
+- `faces` — what a closed card carries, per note type
+- `monitors` — the three screens, and what one state across several windows costs
+- `performance` — the pooling argument, with the numbers it rests on
 - `objections` — what is wrong with this, including the two things depth is bad at
 - `chrome` is listed above; `views` carries the eleven arrangements as a table
 
@@ -99,6 +151,7 @@ So the version I would defend is not the whole cockpit. It is **a twelfth view i
 ## Revisions
 
 - 2026-09-05 — written; the eleven arrangements, the console slab, the carousel, the ring, the focus ring
+- 2026-09-05 — **rev 2.** Fixed the bug that made the whole thing untestable: quiet cards carried `pointer-events: none`, so `FEAT-0143` — which is `done`, therefore always quiet — could not be opened at all. Every card you can see is now clickable, and the search box works: type an ID and the field flies to it. Added per-type card faces with real phase progress bars, phases as cards leading their own sectors, multiple consoles, list panels, files, pulse, the Orbit arrangement, multi-card open, and the sector ordering that stops finished work occupying the visible columns. New sections on many monitors and on whether it would run.
 - 2026-09-05 — the field became a cylinder you turn in, after Edwin asked whether it would. The quiet band moved from *far and dimmed* to *behind you*, which is a different claim and a better one; a compass keeps the count on screen so nothing is silently lost.
 
 ## Review
