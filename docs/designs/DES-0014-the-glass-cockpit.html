@@ -104,6 +104,46 @@
   #wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2500; }
 
 
+
+  /* ---- rev 7: the desk ----
+     Two surfaces, not one. The FIELD is every note, arranged by the view's
+     rule, and it re-arranges when the view changes. The DESK is the notes you
+     picked up: it persists across view switches, because you put them there.
+     Opening = taking a note out of the field and onto the desk. */
+  .note-win {
+    position: absolute; z-index: 3000; width: 300px; border: 1px solid var(--cy-line);
+    border-left-width: 2px; border-radius: 3px; background: rgb(7 28 37 / .95);
+    box-shadow: 0 14px 40px rgb(0 0 0 / .55); display: flex; flex-direction: column;
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .note-win.top { border-color: var(--cy); box-shadow: 0 0 0 1px rgb(127 228 255 / .3), 0 18px 52px rgb(0 0 0 / .6); }
+  .nw-head { display: flex; align-items: center; gap: 7px; padding: 5px 8px; cursor: grab;
+             border-bottom: 1px solid var(--cy-line); font-size: 9.5px; }
+  .nw-head:active { cursor: grabbing; }
+  .nw-head .nid { color: var(--cy); font-weight: 500; }
+  .nw-head .nst { margin-left: auto; }
+  .nw-head button { font: inherit; font-size: 10px; background: transparent; border: 0; color: var(--cy-dim);
+                    cursor: pointer; padding: 0 3px; }
+  .nw-head button:hover { color: var(--cy); }
+  .nw-face { padding: 4px 8px 0; }
+  .nw-body { padding: 6px 9px 9px; font-size: 10.5px; line-height: 1.55; color: #9FD4E6; }
+  .nw-body .tt { color: #D6F2FB; font-family: var(--body); font-size: 12px; line-height: 1.35; margin-bottom: 6px; }
+  .nw-body .meta { color: #5FA9C4; margin-top: 7px; }
+  .note-win.collapsed .nw-body, .note-win.collapsed .nw-face { display: none; }
+  .note-win.collapsed { width: 210px; }
+  .card.lifted { border-style: dashed; opacity: .3 !important; }
+  .card.kin { border-color: var(--cy) !important; box-shadow: 0 0 0 1px rgb(127 228 255 / .35); }
+  .card.kin-shared { border-color: var(--severity-medium) !important;
+                     box-shadow: 0 0 0 1px hsl(45 55% 60% / .5); }
+  .deskbar { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 4200;
+             display: flex; gap: 10px; align-items: center; background: rgb(3 16 22 / .88);
+             border: 1px solid var(--cy-line); border-radius: 3px; padding: 5px 11px;
+             font-family: var(--mono); font-size: 10px; color: var(--cy-dim); backdrop-filter: blur(5px); }
+  .deskbar b { color: var(--cy); font-weight: 500; }
+  .deskbar button { font: inherit; font-size: 9.5px; border: 1px solid var(--cy-line); background: transparent;
+                    color: var(--cy); border-radius: 2px; padding: 2px 7px; cursor: pointer; }
+  .deskbar button:hover { border-color: var(--cy); }
+
   /* ---- rev 4: depth without blur ----
      Aerial perspective instead of a blur pass: a far card loses saturation and
      contrast, drops its title, and the whole field sits under one gradient.
@@ -303,7 +343,7 @@
 </div>
 
 <div class="try" style="border-left-color:var(--status-active)">
-  <b>Fixed in rev 3 —</b> cards are now actually clickable. The perspective container was a flat plane at z=0 sitting in front of every card and swallowing every pointer event; <code>element.click()</code> passed the whole time because it never hit-tests. Click any card, or type an ID in the search box.
+  <b>Try the desk.</b> Click a card to lift it out of the field; ⇧click another to add it. They stack with their headers always readable, the field behind dims but stays legible, and what is joined to the note you are holding lights up where it already is. <code>×</code> puts one back, <code>⌥×</code> closes the others, <code>esc</code> clears the desk.
 </div>
 
 <div class="try">
@@ -366,7 +406,9 @@
     <div class="car-lab">CONSOLES &amp; SESSIONS — click to bring forward · ⇧click to deal a second slab</div>
   </div>
 
+  <div id="desk"></div>
   <div id="panels"></div>
+  <div class="deskbar" id="deskbar" hidden></div>
 
   <div class="hintline" id="hint">drag the background to turn · the quiet is behind you<br>click any card to open it · ⇧click to pin a second one</div>
 </div>
@@ -480,7 +522,7 @@
     b.addEventListener('click', e => {
       e.stopPropagation(); view = v;
       rail.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
-      openSet.clear(); assign(); render(true); syncPanels();
+      assign(); render(true); syncPanels();
     });
     rail.appendChild(b);
   });
@@ -521,7 +563,6 @@
 
   let RENDER = 'cheap';
   const pushed = new Set();
-  const openSet = new Map();          // id -> {ring:[ids]}
   let yaw = 0;
   const norm = a => { while (a > Math.PI) a -= 2*Math.PI; while (a < -Math.PI) a += 2*Math.PI; return a; };
   function slabRects() {
@@ -618,11 +659,12 @@
 
   function render(anim) {
     const SW = stage.clientWidth;
+    const kin = kinship();
+    const onDesk = new Set(desk.map(d => d.id));
     let behind = 0;
     for (const n of NOTES) {
       const el = els.get(n.id), sl = SLOT.get(n.id);
       if (!sl) continue;
-      if (openSet.has(n.id)) continue;                       // opened cards are placed by openOn
       el.style.transition = anim === false ? 'none' : '';
       const phi = norm(sl.th - yaw);
       // a wave rather than a jump: what you are facing settles first, the
@@ -642,15 +684,22 @@
                      (sl.b === 'front' ? ' owed' : '') + (sl.b === 'mid' ? ' mid' : '') +
                      (sl.b === 'quiet' ? ' deep' : '');
       el.style.transform = 'translate(' + (sx - 93 + (centreX(SW) - SW/2)) + 'px,' + sy + 'px) scale(' + kk.toFixed(3) + ')';
-      el.style.opacity = String((sl.b === 'quiet' ? .5 : sl.b === 'mid' ? .94 : 1) * (0.28 + 0.72*fade));
+      // With notes on the desk the field steps back — but only to .34, never
+      // out of sight. What is joined to the note you are holding comes back to
+      // full strength instead of being pulled out of position.
+      const k = kin.get(n.id) || 0;
+      const dim = desk.length ? (k ? 1 : .34) : 1;
+      el.style.opacity = String((sl.b === 'quiet' ? .5 : sl.b === 'mid' ? .94 : 1) * (0.28 + 0.72*fade) * dim);
+      if (onDesk.has(n.id)) el.classList.add('lifted');
+      else if (k > 1) el.classList.add('kin-shared');
+      else if (k === 1) el.classList.add('kin');
       el.style.filter = (RENDER === 'blur' && sl.b === 'quiet') ? 'blur(1.4px)' : 'none';
       el.style.zIndex = String(2000 + Math.round(-Math.cos(phi)*sl.d));
     }
     document.getElementById('behindCount').textContent = behind;
     drawCompass();
-    placeOpen();
-    drawWires();
-    if (view.orbit) drawOrbitEdges(); else if (!openSet.size) clearWires();
+    paintDesk();
+    if (view.orbit && !desk.length) drawOrbitEdges(); else drawWires();
   }
 
   const comp = document.getElementById('compass');
@@ -679,95 +728,149 @@
     render(false);
   });
   stage.addEventListener('pointerup', () => {
-    if (look && moved < 4) closeAll();
+    if (look && moved < 4 && desk.length) sweep();
     look = null; render(true);
   });
   document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT') return;
-    if (e.key === 'Escape') closeAll();
+    if (e.key === 'Escape') sweep();
     if (e.key === 'ArrowLeft') turn(-14*DEG);
     if (e.key === 'ArrowRight') turn(14*DEG);
   });
 
   function putBehind(n) {
-    pushed.add(n.id); openSet.delete(n.id);
+    pushed.add(n.id); closeOne(n.id);
     assign(); render(true);
     document.getElementById('hint').innerHTML =
       '<b style="color:var(--cy)">' + n.id + '</b> is behind you now — turn to find it<br>' +
       pushed.size + ' put away by hand this session';
   }
 
-  // ---- opening: one, or several side by side --------------------------
+  // ---- the desk: notes you picked up ----------------------------------
+  // Two surfaces, not one. The FIELD is every note, arranged by the view's
+  // rule; it re-arranges when the view changes. The DESK is what you picked
+  // up, and it survives view switches because YOU put it there. Opening is
+  // lifting a note out of the field; its slot stays behind, ghosted.
+  const deskEl = document.getElementById('desk');
+  const deskBar = document.getElementById('deskbar');
+  const desk = [];                       // last element is the focused one
+  let dz = 3000;
+
   function openOn(n, add) {
-    if (!add) openSet.clear();
-    if (openSet.has(n.id)) return;
-    const near = new Set([...(n.l || []), ...(INBOUND.get(n.id) || [])]);
-    openSet.set(n.id, { ring: [...near].filter(id => els.has(id) && !openSet.has(id)) });
-    if (openSet.size === 1) yaw = 0;
-    render(true);
-    document.getElementById('tabB').textContent = [...openSet.keys()].join(' + ');
-    const total = [...openSet.values()].reduce((a, o) => a + o.ring.length, 0);
-    document.getElementById('hint').innerHTML =
-      '<b style="color:var(--cy)">' + openSet.size + ' open</b> · ' + total + ' linked notes pulled in<br>' +
-      '\u21E7click another card to add it · esc to release';
+    if (desk.some(d => d.id === n.id)) { bringToTop(n.id); return; }
+    if (!add && desk.length) sweep();
+    const i = desk.length;
+    desk.push(makeWin(n, 220 + i * 30, 118 + i * 34));
+    bringToTop(n.id);
   }
-  function closeOne(id) { openSet.delete(id); render(true); if (!openSet.size) closeAll(); }
-  function closeAll() {
-    if (!openSet.size) return;
-    openSet.clear(); clearWires();
-    document.getElementById('tabB').textContent = '\u2014';
-    document.getElementById('hint').innerHTML = 'drag the background to turn · the quiet is behind you<br>click any card to open it · \u21E7click to pin a second one';
-    render(true);
-  }
-  function placeOpen() {
-    if (!openSet.size) return;
-    const ids = [...openSet.keys()], n = ids.length;
-    const inRing = new Set();
-    ids.forEach(id => openSet.get(id).ring.forEach(r => inRing.add(r)));
-    ids.forEach((id, i) => {
-      const el = els.get(id);
-      const spread = n === 1 ? 0 : (i - (n - 1)/2) * 380;
-      el.className = 'card focused pinned';
-      el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
-      el.style.transform = 'translate(' + (spread - 160) + 'px,-136px) scale(1.18)';
-      el.style.transitionDelay = '0ms';
-      el.style.zIndex = '3000';
+  function makeWin(n, x, y) {
+    const el = document.createElement('div');
+    el.className = 'note-win';
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.style.borderLeftColor = kc(n.k, 58);
+    el.innerHTML =
+      '<div class="nw-head"><span class="nid">' + n.id + '</span>' +
+      '<span class="nst" style="color:var(--status-' + band(n.s) + ')">' + (n.s || '\u2014') + '</span>' +
+      '<button type="button" data-a="fold" title="Collapse to its header">\u2013</button>' +
+      '<button type="button" data-a="close" title="Back to the field \u00B7 \u2325 closes the others">\u00D7</button></div>' +
+      '<div class="nw-face">' + face(n) + '</div>' +
+      '<div class="nw-body"><div class="tt">' + esc(n.t) + '</div>' +
+      'The note renders here with the cockpit\u2019s own reader — wikilinks, backlinks, tickable checkboxes.' +
+      '<div class="meta">' + n.k + ' \u00B7 ' + (n.ph || 'no phase') + ' \u00B7 ' + n.l.length +
+      ' outbound \u00B7 ' + (INBOUND.get(n.id) || []).length + ' inbound</div></div>';
+    deskEl.appendChild(el);
+    const rec = { id: n.id, el: el, collapsed: false };
+    el.addEventListener('pointerdown', () => bringToTop(n.id), true);
+    el.querySelector('[data-a=close]').addEventListener('click', e => {
+      e.stopPropagation();
+      if (e.altKey) closeOthers(n.id); else closeOne(n.id);
     });
-    // Neighbours flank the open card in two columns rather than ringing it.
-    // A ring puts items above the card, forces long diagonal wires, and — as
-    // built in rev 4 — overlapped it, because the open card sits at z=+150 and
-    // the ring at z=-60, so field coordinates project at different scales.
-    // Columns clear it by construction: the open card's projected half-width
-    // decides where the columns start, and nothing is ever placed between them.
-    const K_OPEN = 1.18, K_RING = 0.94;
-    const openHalfPx = (n === 1 ? 160 : (n - 1) * 190 + 160) * K_OPEN;
-    const colX = openHalfPx + 93 * K_RING + 40;      // clear by construction
-    const ring = [...inRing].filter(id => !openSet.has(id));
-    const ROWS = [-176, -96, -16, 64, 144, 224];
-    ring.forEach((rid, k) => {
-      const side = k % 2 ? 1 : -1;
-      const row = (k / 2) | 0;
-      let cx, cy;
-      if (row < ROWS.length) { cx = side * colX; cy = ROWS[row]; }
-      else {                                    // a third bank, further out
-        const over = row - ROWS.length;
-        cx = side * (colX + 232); cy = ROWS[over % ROWS.length];
+    el.querySelector('[data-a=fold]').addEventListener('click', e => {
+      e.stopPropagation();
+      rec.collapsed = !rec.collapsed;
+      el.classList.toggle('collapsed', rec.collapsed);
+      e.target.textContent = rec.collapsed ? '+' : '\u2013';
+    });
+    dragWin(el, rec);
+    return rec;
+  }
+  function dragWin(el, rec) {
+    const head = el.querySelector('.nw-head');
+    let d = null;
+    head.addEventListener('pointerdown', e => {
+      if (e.target.tagName === 'BUTTON') return;
+      const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
+      d = { dx: e.clientX - r.left, dy: e.clientY - r.top, s };
+      head.setPointerCapture(e.pointerId); e.stopPropagation();
+    });
+    head.addEventListener('pointermove', e => {
+      if (!d) return;
+      el.style.left = Math.max(RAIL + 4, Math.min(d.s.width - el.offsetWidth - 8, e.clientX - d.s.left - d.dx)) + 'px';
+      el.style.top = Math.max(44, Math.min(d.s.height - 56, e.clientY - d.s.top - d.dy)) + 'px';
+      drawWires();
+    });
+    head.addEventListener('pointerup', () => { if (d) { d = null; keepHeadersVisible(rec, 0); drawWires(); } });
+  }
+  // Overlap is allowed anywhere EXCEPT over another note's header. A stack of
+  // any depth stays addressable, because every note in it still shows its id.
+  function keepHeadersVisible(rec, depth) {
+    if (depth > 8) return;
+    const mine = rec.el.getBoundingClientRect();
+    for (const o of desk) {
+      if (o === rec) continue;
+      const r = o.el.getBoundingClientRect();
+      const acrossX = mine.left < r.right - 10 && mine.right > r.left + 10;
+      const onHeader = mine.top > r.top - 26 && mine.top < r.top + 30;
+      if (acrossX && onHeader) {
+        rec.el.style.top = (parseFloat(rec.el.style.top) + (r.top + 34 - mine.top)) + 'px';
+        return keepHeadersVisible(rec, depth + 1);
       }
-      const el = els.get(rid);
-      el.className = 'card owed';
-      el.style.pointerEvents = 'auto'; el.style.opacity = '1'; el.style.filter = 'none';
-      el.style.transform = 'translate(' + (cx - 93) + 'px,' + cy + 'px) scale(' + K_RING + ')';
-      el.style.transitionDelay = (60 + k * 26) + 'ms';
-      el.style.zIndex = '2600';
-    });
-    for (const m of NOTES) {
-      if (openSet.has(m.id) || inRing.has(m.id)) continue;
-      const el = els.get(m.id);
-      el.className = 'card deep' + (m.k === 'phase' ? ' phase' : '');
-      el.style.opacity = '.06'; el.style.filter = 'blur(2.4px)'; el.style.pointerEvents = 'none';
-      el.style.zIndex = '0';
     }
   }
+  function bringToTop(id) {
+    const w = desk.find(d => d.id === id); if (!w) return;
+    w.el.style.zIndex = String(++dz);
+    desk.splice(desk.indexOf(w), 1); desk.push(w);
+    desk.forEach(d => d.el.classList.toggle('top', d === w));
+    render(true);
+  }
+  function closeOne(id) {
+    const i = desk.findIndex(d => d.id === id); if (i < 0) return;
+    desk[i].el.remove(); desk.splice(i, 1);
+    if (desk.length) bringToTop(desk[desk.length - 1].id); else { clearWires(); render(true); }
+  }
+  function closeOthers(id) { desk.slice().forEach(d => { if (d.id !== id) closeOne(d.id); }); }
+  function sweep() { desk.slice().forEach(d => closeOne(d.id)); }
+
+  // How many desk notes each field note is joined to. 1 = a neighbour of the
+  // focused note; 2+ = shared, which is the question you cannot ask today.
+  function kinship() {
+    const marks = new Map();
+    for (const d of desk) {
+      const n = byId.get(d.id); if (!n) continue;
+      new Set([...(n.l || []), ...(INBOUND.get(n.id) || [])]).forEach(k => marks.set(k, (marks.get(k) || 0) + 1));
+    }
+    return marks;
+  }
+  function paintDesk() {
+    deskBar.hidden = desk.length === 0;
+    if (!desk.length) return;
+    const top = desk[desk.length - 1];
+    const shared = [...kinship().values()].filter(v => v > 1).length;
+    deskBar.innerHTML = '<span><b>' + desk.length + '</b> on the desk</span>' +
+      '<span>focused <b>' + top.id + '</b></span>' +
+      (desk.length > 1 ? '<span><b>' + shared + '</b> notes joined to more than one</span>' : '') +
+      '<button type="button" data-d="tidy">tidy</button>' +
+      '<button type="button" data-d="sweep">sweep</button>' +
+      '<span>esc clears \u00B7 \u2325\u00D7 closes the others</span>';
+    deskBar.querySelector('[data-d=sweep]').addEventListener('click', e => { e.stopPropagation(); sweep(); });
+    deskBar.querySelector('[data-d=tidy]').addEventListener('click', e => {
+      e.stopPropagation();
+      desk.forEach((d, i) => { d.el.style.left = (220 + i * 30) + 'px'; d.el.style.top = (118 + i * 34) + 'px'; });
+      drawWires();
+    });
+  }
+
 
   // ---- wires ----------------------------------------------------------
   function clearWires() { while (wires.firstChild) wires.removeChild(wires.firstChild); }
@@ -789,30 +892,33 @@
   let wireTimer = null;
   function paintWires() {
     clearWires();
-    if (!openSet.size) return;
+    if (!desk.length) return;
     const s = stage.getBoundingClientRect();
-    for (const [id, o] of openSet) {
-      const c = els.get(id).getBoundingClientRect();
-      const ccx = c.left + c.width / 2, ccy = c.top + c.height / 2;
-      for (const r of o.ring) {
-        const el = els.get(r); if (!el) continue;
-        const b2 = el.getBoundingClientRect();
-        const ncx = b2.left + b2.width / 2, ncy = b2.top + b2.height / 2;
-        const a1 = edgePoint(c, ncx, ncy, 3);        // leaves the open card at its edge
-        const a2 = edgePoint(b2, ccx, ccy, 3);       // and meets the neighbour at its edge
-        wire(a1[0] - s.left, a1[1] - s.top, a2[0] - s.left, a2[1] - s.top, 'rgba(127,228,255,.5)');
-      }
+    // only the FOCUSED note draws its threads, so the picture stays readable
+    // however many are on the desk
+    const top = desk[desk.length - 1];
+    const n = byId.get(top.id); if (!n) return;
+    const near = new Set([...(n.l || []), ...(INBOUND.get(n.id) || [])]);
+    const c = top.el.getBoundingClientRect();
+    const ccx = c.left + c.width / 2, ccy = c.top + c.height / 2;
+    for (const r of near) {
+      const el = els.get(r);
+      if (!el || parseFloat(el.style.opacity || '0') < .05) continue;
+      const b2 = el.getBoundingClientRect();
+      const a1 = edgePoint(c, b2.left + b2.width / 2, b2.top + b2.height / 2, 2);
+      const a2 = edgePoint(b2, ccx, ccy, 2);
+      wire(a1[0] - s.left, a1[1] - s.top, a2[0] - s.left, a2[1] - s.top, 'rgba(127,228,255,.42)');
     }
   }
   function drawWires() {
     clearTimeout(wireTimer);
-    if (!openSet.size) return;
+    if (!desk.length) { clearWires(); return; }
     const t0 = performance.now();
-    const tick = () => { paintWires(); if (openSet.size && performance.now() - t0 < 900) wireTimer = setTimeout(tick, 50); };
+    const tick = () => { paintWires(); if (desk.length && performance.now() - t0 < 900) wireTimer = setTimeout(tick, 50); };
     tick();
   }
   function drawOrbitEdges() {
-    if (openSet.size) return;
+    if (desk.length) return;
     clearWires();
     const s = stage.getBoundingClientRect();
     const seen = new Map();
@@ -1485,6 +1591,77 @@
   <h4>What I still cannot tell you</h4>
   <p><strong>Frame times.</strong> The bench measures them live, but I could not read them: the tab I built this in was in the background, and browsers suspend <code>requestAnimationFrame</code> there — so every number would have been zero or invented. The counts above are structural and I stand behind them; the milliseconds are on the page for you to read on your own machine.</p>
   <p>The bound I will commit to: with pooling and no blur this is <strong>an ordinary compositing workload</strong> — a few hundred GPU-composited layers, which browsers do comfortably. Without pooling it is 1537 elements, and 52 of every 55 on screen running a blur pass. <strong>Pooling is not an optimisation to add later, it is the architecture</strong>, and this prototype — which still skips it — proves the interaction and nothing about the cost.</p>
+</div>
+
+<h2 class="section">The desk: as many notes as you need, stacked</h2>
+<p class="section-sub">
+  Opening a note used to mean "the field re-arranges around it", which does not survive a second note and does not survive at all past three. <strong>The fix is to stop treating it as one surface.</strong> There are two, and conflating them was the whole problem.
+</p>
+<div class="cols" data-design-region="desk">
+  <div>
+    <h4>The field</h4>
+    <p>Every note, arranged by the view's rule. <strong>It re-arranges when you switch views</strong>, because the arrangement is the view's opinion, not yours.</p>
+    <p>Nothing on it is "open". It is the place things are when you are not holding them.</p>
+  </div>
+  <div>
+    <h4>The desk</h4>
+    <p>The notes you picked up. <strong>It survives view switches, because you put them there and the view has no opinion about that.</strong> Switch from Issues to Publication and your five notes stay exactly where you left them.</p>
+    <p>That is the payoff, and it is something the current cockpit's tabs only half do.</p>
+  </div>
+  <div>
+    <h4>So "opening" is lifting</h4>
+    <p>A note is taken <em>out</em> of the field and put on the desk. <strong>Its slot stays behind, ghosted</strong> — a dashed outline where it came from — so you can see the hole and put it back.</p>
+    <p>Nothing is recorded. A note on the desk has no status, owes nothing, and closing it is not an action anyone needs to confirm.</p>
+  </div>
+</div>
+
+<h3 style="font-family:var(--display);font-weight:400;font-size:19px;margin:30px 0 8px">The three rules that make stacking work</h3>
+<div class="gwrap" data-design-region="desk-rules">
+<table class="g">
+  <thead><tr><th>the problem you raised</th><th>the rule</th><th>why it holds at any depth</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="v">"the notes behind will need to be more visible"</td>
+      <td><strong>Overlap anywhere except a header.</strong> Drag a note wherever you like; if it would cover another's header strip it snaps below it</td>
+      <td>Every note in a stack of any depth still shows its <strong>id, status and face</strong> — so it is always readable and always clickable. Click a header and that note comes to the top. A stack of eight is eight headers and one body</td>
+    </tr>
+    <tr>
+      <td class="v">"how does that work with the associated notes?"</td>
+      <td><strong>Neighbours are never opened. They light up where they already are.</strong> The focused desk note draws threads to its neighbours <em>in the field</em>, which do not move</td>
+      <td>Five notes × twelve neighbours would be sixty cards competing for the desk. Instead the count on the desk is exactly what you put there, and <strong>only the focused note draws threads</strong> — so the picture stays readable however many are open</td>
+    </tr>
+    <tr>
+      <td class="v">"and how does closing work?"</td>
+      <td><strong>Three verbs, none destructive.</strong> <code>×</code> puts one back; <code>⌥×</code> closes the others; <code>esc</code> or <em>sweep</em> clears the desk</td>
+      <td>Closing is not a state change — nothing was recorded when you opened it. So no confirmation, no undo needed beyond opening it again, and the ghosted slot tells you exactly where it goes back to</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>And the thing that only works because of the two surfaces</h4>
+  <p>With more than one note on the desk, the field marks <strong>notes joined to more than one of them</strong> in a different colour, and the desk bar counts them. Put three issues on the desk and the field answers <em>what do these have in common</em> — in the screenshot above, three notes share six.</p>
+  <p>That question is asked constantly during triage and close-out, and <strong>the current cockpit cannot answer it at all.</strong> It only works because the neighbours stayed in the field instead of being dragged onto the desk — the same decision that fixed the crowding.</p>
+</div>
+
+<h3 style="font-family:var(--display);font-weight:400;font-size:19px;margin:30px 0 8px">Why you would want several open — from this repo</h3>
+<div class="gwrap" data-design-region="desk-cases">
+<table class="g">
+  <thead><tr><th>the job</th><th>what is on the desk</th><th>what it costs today</th></tr></thead>
+  <tbody>
+    <tr><td class="v">answering a review</td><td>the design, the reviewer's verdict, and the notes the findings cite</td><td>four or five trips through one document pane, holding the findings in your head</td></tr>
+    <tr><td class="v">closing a phase</td><td>the phase note and every unresolved child, side by side</td><td><code>PHASE-041</code> closed on 5 of 6 criteria — that judgment needed the phase and the evidence visible together</td></tr>
+    <tr><td class="v">tracing a regression</td><td>the change note, the test that should have caught it, the task that introduced it</td><td>the strongest case, and the one the current pane makes genuinely hard</td></tr>
+    <tr><td class="v">writing a change note</td><td>the task, the issue it fixed, the feature it belongs to</td><td>you are synthesising three notes into a fourth, from memory</td></tr>
+    <tr><td class="v">comparing two proposals</td><td><code>DES-0013</code> and <code>DES-0014</code></td><td>two windows, or two trips</td></tr>
+    <tr><td class="v">"what do these share?"</td><td>three issues, and the field answers</td><td><strong>not possible today at all</strong></td></tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>What I would still argue about</h4>
+  <p><strong>Whether the desk should persist across workspaces.</strong> It survives view switches, which is clearly right. Surviving a workspace switch means notes from two repos on one desk — useful for the fleet work, and a violation of the one-sidecar-per-repo boundary <code>FEAT-0093</code> draws. I have left it per-workspace, which is the conservative answer and possibly the wrong one.</p>
+  <p><strong>And whether a stack should be nameable.</strong> "The notes for answering this review" is a real object with a lifetime, and a saved desk is one keystroke from being a saved query — which is a different feature wearing this one's clothes. I have not built it, deliberately.</p>
 </div>
 
 <h2 class="section">Keeping it alive while pooling</h2>

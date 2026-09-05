@@ -113,6 +113,29 @@ Rev 2 asserted blur was the expensive part. Rev 4 measured it, in both renderers
 
 **Rev 5 had the detail level backwards.** Distance was dropping the *face* — the progress bar and the severity chip — and keeping the title. Exactly wrong: a bar is a rectangle and a chip is one word, both of which survive being small; a sentence does not. The far field now reads as identifier, status and progress, which is *more* information than the blurred version carried and less work than either.
 
+## The desk, and the two surfaces
+
+Edwin: *"I think I want to be able to open as many notes as required and arrange them on top of each other ... I am not sure how that works with the associated notes and how that works with closing them."*
+
+He had not thought it out, and neither had I — rev 1's "opening re-arranges the field around the note" does not survive a second note and collapses at three. **The fix is to stop treating it as one surface.**
+
+- **The field** is every note, arranged by the view's rule. It re-arranges when the view changes, because the arrangement is the *view's* opinion.
+- **The desk** is what you picked up. It survives view switches, because *you* put it there and the view has no opinion about that.
+
+**So opening is lifting.** A note comes out of the field onto the desk and its slot stays behind, ghosted, so you can see the hole and put it back. Nothing is recorded: a note on the desk has no status and owes nothing.
+
+Three rules answer his three doubts.
+
+1. **Overlap anywhere except a header.** Drag a note where you like; if it would cover another's header strip it snaps below. Every note in a stack of any depth still shows its id, status and face — always readable, always clickable, and clicking a header brings it to the top. A stack of eight is eight headers and one body.
+2. **Neighbours are never opened — they light up where they already are.** Five notes × twelve neighbours would be sixty cards fighting for the desk. Instead the focused note draws threads to its neighbours *in the field*, which never move. Only the focused one draws, so the picture stays readable however many are open.
+3. **Closing is three verbs and none of them destructive.** `×` puts one back, `⌥×` closes the others, `esc` sweeps the desk. No confirmation, because nothing was recorded when it opened.
+
+**And one capability that only exists because of the split.** With more than one note on the desk, the field marks what is joined to *more than one of them*, and the desk bar counts it. Put three issues down and the field answers **what do these have in common** — a question asked constantly at triage and close-out, and one the current cockpit cannot answer at all. It works only because the neighbours stayed in the field.
+
+**Use cases, from this repo:** answering a review (the design, the verdict, the notes the findings cite); closing a phase (the phase and every unresolved child — `PHASE-041` closed on 5 of 6 criteria and that needed both visible); tracing a regression (the change note, the test that missed it, the task that caused it); writing a change note (synthesising three notes into a fourth); comparing two proposals.
+
+**What I would still argue about.** Whether the desk survives a *workspace* switch — useful for fleet work, and a violation of the one-sidecar-per-repo boundary [[FEAT-0093]] draws; I left it per-workspace, which is conservative and possibly wrong. And whether a stack should be nameable, since "the notes for answering this review" is a real object with a lifetime — but a saved desk is one step from a saved query, which is a different feature wearing this one's clothes. Deliberately not built.
+
 ## Keeping it alive while pooling
 
 Pooling costs animation, and a field that snaps is a dead field. The two only conflict if you pool the wrong band — and **the animation budget is bounded by the visible arc, not by the corpus.** Fifty cards moving is nothing; there are never fifteen hundred on screen.
@@ -224,6 +247,7 @@ So the version I would defend is not the whole cockpit. It is **a twelfth view i
 ## Revisions
 
 - 2026-09-05 — written; the eleven arrangements, the console slab, the carousel, the ring, the focus ring
+- 2026-09-05 — **rev 7.** The desk, after Edwin asked for many notes stacked and flagged that he had not thought through the neighbours or the closing. Split the one surface into two: the field re-arranges with the view, the desk holds what you picked up and survives view switches. Overlap allowed anywhere except a header, so a stack of any depth stays addressable; neighbours light up in the field rather than being pulled onto the desk; closing is three non-destructive verbs. The split produced a capability neither of us was looking for — with several notes down, the field marks what is joined to more than one of them, which answers *what do these share* and the current cockpit cannot.
 - 2026-09-05 — **rev 6.** Two things Edwin caught. The detail level was backwards: distance dropped the progress bar and kept the title, when a bar survives being small and a sentence does not — the far field now carries id, status and progress, which is more signal than the blurred version had. And the field had gone lifeless, so cards settle in a wave from where you are facing (a `transition-delay`, free), with the rules for keeping animation while pooling written down: pool only the far band, recycle only off-screen, cross-fade rather than cross-morph, FLIP on view switches. Corrected the blurred-area figure from 821,408 px² to 288,726 px² — the first was measured while transitions were frozen.
 - 2026-09-05 — **rev 5.** Fixed the two defects Edwin found, both design questions rather than polish: wires anchor at a card's edge on its neighbour's bearing, and neighbours flank the open card in columns that clear it by construction instead of ringing it. Replaced CSS `perspective` with an explicit `scale()` so the geometry is knowable rather than inferred. Added what pooling costs — animation between states, find-in-page, the accessibility tree, per-element state — and the recommendation to stop mocking and build the narrow read-only slice.
   **A correction:** I first concluded that `getBoundingClientRect` ignores perspective. It does not. Chrome freezes CSS transitions in a background tab, so every rect and computed style I read was the frozen start value. The explicit-scale change still stands on its own merits, but the reason I reached for it was wrong, and it is the same mistake as the `element.click()` one: measuring a browser UI in an environment that quietly lies.
