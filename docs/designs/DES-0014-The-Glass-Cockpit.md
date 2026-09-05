@@ -101,12 +101,29 @@ Rev 2 asserted blur was the expensive part. Rev 4 measured it, in both renderers
 | --- | --- | --- |
 | cards on screen | 55 | 55 |
 | cards running a blur pass | **52** | **0** |
-| blurred area | **821,408 px²** | **0** |
-| glyphs rasterised | 4,299 | **1,109** |
+| blurred area | **288,726 px²** | **0** |
+| glyphs rasterised | 4,299 | **1,819** |
+| cards still showing progress / severity | 55 | **55** |
+
+*(The blurred-area figure was reported as 821,408 px² in rev 4. That reading was taken while transitions were frozen, so the rects were unscaled. 288,726 px² is the corrected number.)*
 
 **The measurement changed the look, not just the cost.** I expected to trade appearance for speed. The cheap version reads *better*: a blurred card is unreadable and still pays for a full title, so the quiet band was 52 smeared rectangles of text nobody can use. Dropping the title turns each into a small ID tile and lets one gradient do the receding. That is aerial perspective — distance loses contrast and detail, it does not go out of focus. **Blur was simulating a camera, and there is no camera here.**
 
 **And one thing reasoning would not have found:** the blur cost is near zero while you face the front, because the quiet band is *behind you*. The expensive band is off-screen most of the time, and the cost arrives exactly when you turn — the moment the interface most needs to stay smooth.
+
+**Rev 5 had the detail level backwards.** Distance was dropping the *face* — the progress bar and the severity chip — and keeping the title. Exactly wrong: a bar is a rectangle and a chip is one word, both of which survive being small; a sentence does not. The far field now reads as identifier, status and progress, which is *more* information than the blurred version carried and less work than either.
+
+## Keeping it alive while pooling
+
+Pooling costs animation, and a field that snaps is a dead field. The two only conflict if you pool the wrong band — and **the animation budget is bounded by the visible arc, not by the corpus.** Fifty cards moving is nothing; there are never fifteen hundred on screen.
+
+- **Pool only the far band.** The front (~12) and mid (~40) are bound to their notes and never recycled, so they animate freely between views. The quiet band holds the thousand, and nobody follows an individual card there. Full motion where it is watched, pooling where the count is.
+- **Recycle only off-screen.** A card about to animate is on screen by definition, so it is never a recycling candidate. That is what makes the rule above safe rather than hopeful.
+- **Cross-fade, never cross-morph.** Sliding one element from one note's position to another's is a lie about a note that never moved. Fade out as A, in as B — 120ms, opacity only.
+- **FLIP for view switches.** Measure first and last, invert, play. Works with a pool as long as identity is stable within the frame, which the recycling rule guarantees.
+- **Stagger, do not synchronise.** Cards settle in a wave from where you are facing. This is in the prototype now and costs nothing — it is a `transition-delay`, not extra work. Everything arriving at once reads as a jump; the same motion staggered reads as a field settling.
+
+**Why this is not a compromise:** transform and opacity transitions run on the compositor and touch neither layout nor paint. The cost is per animating element *on screen*, and the arc caps that near 55. What pooling genuinely removes is the continuity of a card that leaves and returns — imperceptible, but it is why opened and pinned cards live outside the pool.
 
 The rest of the budget:
 
@@ -207,6 +224,7 @@ So the version I would defend is not the whole cockpit. It is **a twelfth view i
 ## Revisions
 
 - 2026-09-05 — written; the eleven arrangements, the console slab, the carousel, the ring, the focus ring
+- 2026-09-05 — **rev 6.** Two things Edwin caught. The detail level was backwards: distance dropped the progress bar and kept the title, when a bar survives being small and a sentence does not — the far field now carries id, status and progress, which is more signal than the blurred version had. And the field had gone lifeless, so cards settle in a wave from where you are facing (a `transition-delay`, free), with the rules for keeping animation while pooling written down: pool only the far band, recycle only off-screen, cross-fade rather than cross-morph, FLIP on view switches. Corrected the blurred-area figure from 821,408 px² to 288,726 px² — the first was measured while transitions were frozen.
 - 2026-09-05 — **rev 5.** Fixed the two defects Edwin found, both design questions rather than polish: wires anchor at a card's edge on its neighbour's bearing, and neighbours flank the open card in columns that clear it by construction instead of ringing it. Replaced CSS `perspective` with an explicit `scale()` so the geometry is knowable rather than inferred. Added what pooling costs — animation between states, find-in-page, the accessibility tree, per-element state — and the recommendation to stop mocking and build the narrow read-only slice.
   **A correction:** I first concluded that `getBoundingClientRect` ignores perspective. It does not. Chrome freezes CSS transitions in a background tab, so every rect and computed style I read was the frozen start value. The explicit-scale change still stands on its own merits, but the reason I reached for it was wrong, and it is the same mistake as the `element.click()` one: measuring a browser UI in an environment that quietly lies.
 - 2026-09-05 — **rev 4.** Measured the blur claim instead of repeating it, and it changed the design: facing the quiet band, blur runs on 52 of 55 visible cards over 821,408 px² and pays for 4,299 glyphs against 1,109. The cockpit now draws depth with fog and detail-by-distance, which is cheaper *and* more legible — a blurred card is unreadable and still costs a full title. Added a live A/B bench with the three techniques as switches, and a renderer toggle in the stage itself. Frame times are left for the reader's machine, and the artifact says why.
