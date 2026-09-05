@@ -1,0 +1,2077 @@
+<meta charset="utf-8">
+<title>Nine ways to read the record — nine applications over one corpus</title>
+<style>
+  /* ---------------------------------------------------------------
+     Status and severity tokens are the implementation's, verbatim from
+     src/project_os_cockpit/static/base.css. Light first: design_tokens
+     .read_tokens takes the FIRST declaration, so a dark-first artifact
+     would be compared against the wrong scheme.
+     Everything else below is this dossier's own chrome and specifies
+     nothing. See the note's ## Tokens section.
+     --------------------------------------------------------------- */
+  :root {
+    --status-active:    hsl(140 32% 38%);
+    --status-pending:   hsl(220 14% 48%);
+    --status-done:      hsl(160 28% 38%);
+    --status-archived:  hsl(0 0% 48%);
+    --status-blocked:   hsl(5 48% 46%);
+    --status-reference: hsl(180 24% 40%);
+    --status-default:   hsl(0 0% 45%);
+    --severity-critical: hsl(5 60% 46%);
+    --severity-high:     hsl(20 60% 46%);
+    --severity-medium:   hsl(45 55% 42%);
+    --severity-low:      hsl(0 0% 50%);
+
+    --paper:      #F7F7F5;
+    --surface:    #FFFFFF;
+    --sunk:       #EFEFEC;
+    --ink:        #16181C;
+    --ink-soft:   #444A54;
+    --ink-faint:  #767C87;
+    --rule:       #DCDCD6;
+    --rule-soft:  #EAEAE5;
+    --accent:     #2B4C7E;
+    --accent-soft:#E9EFF7;
+
+    --display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --status-active:    hsl(140 32% 60%);
+      --status-pending:   hsl(220 14% 65%);
+      --status-done:      hsl(160 28% 60%);
+      --status-archived:  hsl(0 0% 58%);
+      --status-blocked:   hsl(5 50% 65%);
+      --status-reference: hsl(180 24% 60%);
+      --status-default:   hsl(0 0% 60%);
+      --severity-critical: hsl(5 60% 65%);
+      --severity-high:     hsl(20 60% 65%);
+      --severity-medium:   hsl(45 55% 60%);
+      --severity-low:      hsl(0 0% 62%);
+
+      --paper:      #131519;
+      --surface:    #1A1D22;
+      --sunk:       #101216;
+      --ink:        #E7E9ED;
+      --ink-soft:   #B0B6C0;
+      --ink-faint:  #838A96;
+      --rule:       #2C313A;
+      --rule-soft:  #22262D;
+      --accent:     #8FB3E0;
+      --accent-soft:#1C2634;
+    }
+  }
+  :root[data-theme="dark"] {
+    --status-active:    hsl(140 32% 60%);
+    --status-pending:   hsl(220 14% 65%);
+    --status-done:      hsl(160 28% 60%);
+    --status-archived:  hsl(0 0% 58%);
+    --status-blocked:   hsl(5 50% 65%);
+    --status-reference: hsl(180 24% 60%);
+    --status-default:   hsl(0 0% 60%);
+    --severity-critical: hsl(5 60% 65%);
+    --severity-high:     hsl(20 60% 65%);
+    --severity-medium:   hsl(45 55% 60%);
+    --severity-low:      hsl(0 0% 62%);
+    --paper:      #131519;
+    --surface:    #1A1D22;
+    --sunk:       #101216;
+    --ink:        #E7E9ED;
+    --ink-soft:   #B0B6C0;
+    --ink-faint:  #838A96;
+    --rule:       #2C313A;
+    --rule-soft:  #22262D;
+    --accent:     #8FB3E0;
+    --accent-soft:#1C2634;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 15px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 28px 120px; }
+  a { color: var(--accent); }
+
+  /* ---- masthead ---- */
+  .masthead { padding: 64px 0 34px; border-bottom: 2px solid var(--ink); margin-bottom: 6px; }
+  .kicker {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 18px;
+  }
+  h1 {
+    font-family: var(--display); font-weight: 400; font-size: 46px;
+    line-height: 1.1; letter-spacing: -.015em; margin: 0 0 18px;
+  }
+  .standfirst { font-size: 18px; line-height: 1.55; color: var(--ink-soft); max-width: 74ch; margin: 0 0 22px; }
+  .standfirst strong { color: var(--ink); font-weight: 600; }
+  .byline {
+    display: flex; flex-wrap: wrap; gap: 10px 22px; font-family: var(--mono);
+    font-size: 11.5px; color: var(--ink-faint); padding-top: 6px;
+  }
+  .byline b { color: var(--ink-soft); font-weight: 500; }
+
+  .warn-strip {
+    margin: 26px 0 0; padding: 14px 18px; border-left: 3px solid var(--severity-medium);
+    background: var(--sunk); font-size: 14.5px; color: var(--ink-soft);
+  }
+  .warn-strip b { color: var(--ink); }
+
+  h2.section {
+    font-family: var(--display); font-weight: 400; font-size: 26px;
+    margin: 64px 0 10px; letter-spacing: -.01em;
+  }
+  .section-sub { color: var(--ink-faint); font-size: 14.5px; max-width: 76ch; margin: 0 0 22px; }
+
+  /* ---- the matrix ---- */
+  .matrix-scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--surface); }
+  table.matrix { border-collapse: collapse; width: 100%; min-width: 940px; font-size: 13px; }
+  table.matrix th, table.matrix td { padding: 10px 13px; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  table.matrix thead th {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 500; border-bottom: 1px solid var(--rule); white-space: nowrap;
+  }
+  table.matrix td.name { font-family: var(--mono); font-weight: 600; color: var(--ink); white-space: nowrap; }
+  table.matrix td.num { font-family: var(--mono); color: var(--ink-faint); }
+  table.matrix tbody tr:hover { background: var(--sunk); }
+  table.matrix td.verb { color: var(--accent); font-weight: 600; }
+
+  /* ---- plates ---- */
+  .plate { margin: 84px 0 0; scroll-margin-top: 20px; }
+  .plate-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 6px; flex-wrap: wrap; }
+  .plate-num {
+    font-family: var(--mono); font-size: 12px; color: var(--paper);
+    background: var(--ink); padding: 3px 9px; border-radius: 2px; letter-spacing: .06em;
+  }
+  .plate-name { font-family: var(--mono); font-size: 25px; font-weight: 600; letter-spacing: .04em; }
+  .plate-tag { font-family: var(--display); font-size: 21px; color: var(--ink-soft); font-style: italic; }
+  .plate-lede { max-width: 78ch; color: var(--ink-soft); margin: 0 0 22px; font-size: 15.5px; }
+  .plate-lede strong { color: var(--ink); font-weight: 600; }
+
+  .screen {
+    border: 1px solid var(--rule); border-radius: 3px; overflow: hidden;
+    background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / .05);
+  }
+  .screen-scroll { overflow-x: auto; }
+  .screen-cap {
+    font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+    padding: 9px 14px; border-top: 1px solid var(--rule-soft); background: var(--sunk);
+  }
+
+  /* ---- the three-column strip under each mock ---- */
+  .strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 26px; border-top: 1px solid var(--rule); }
+  .strip > div { padding: 18px 22px 6px 0; }
+  .strip > div + div { padding-left: 22px; border-left: 1px solid var(--rule-soft); }
+  .strip h4 {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 500; margin: 0 0 9px;
+  }
+  .strip p { margin: 0 0 10px; font-size: 13.6px; line-height: 1.55; color: var(--ink-soft); }
+  .strip strong { color: var(--ink); font-weight: 600; }
+  .strip code, .plate-lede code, .section-sub code, li code, td code {
+    font-family: var(--mono); font-size: .87em; background: var(--sunk);
+    padding: 1px 4px; border-radius: 2px; color: var(--ink);
+  }
+  .objection { border-left: 2px solid var(--severity-high) !important; padding-left: 20px !important; }
+  .objection h4 { color: var(--severity-high); }
+  .collides h4::after {
+    content: "collides with a decision"; margin-left: 8px; color: var(--severity-critical);
+    letter-spacing: .04em;
+  }
+  @media (max-width: 860px) {
+    .strip { grid-template-columns: 1fr; }
+    .strip > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule-soft); padding-top: 16px; }
+    h1 { font-size: 34px; }
+  }
+
+  .keys { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+  .keys kbd {
+    font-family: var(--mono); border: 1px solid var(--rule); border-bottom-width: 2px;
+    border-radius: 3px; padding: 1px 5px; margin-right: 2px; color: var(--ink); background: var(--surface);
+  }
+</style>
+
+<div class="wrap">
+
+<header class="masthead" data-design-region="masthead">
+  <div class="kicker">DES-0013 · proposal · PHASE-028 Borrowed capability · 2026-09-05</div>
+  <h1>Nine ways to read the record</h1>
+  <p class="standfirst">
+    The cockpit has one shape — three panes and a document in the middle — and it is the right shape for reading a record and discharging what it owes. <strong>These are nine other shapes the same corpus supports.</strong> Each is a separate application with its own navigation, not a theme over the existing one; the matrix below is how that claim is checked.
+  </p>
+  <div class="byline">
+    <span><b>1537</b> notes</span>
+    <span><b>16148</b> wikilinks</span>
+    <span><b>2206</b> distinct targets</span>
+    <span><b>12</b> repos in the fleet</span>
+    <span><b>70</b> notes owe a review response</span>
+    <span>every figure measured 2026-09-05</span>
+  </div>
+  <div class="warn-strip">
+    <b>Nothing here is accepted, and nothing is scheduled.</b> No feature, task or phase is allocated against any of the nine. Two of them argue against decisions this project has already taken — <b>ASK</b> against PHASE-028's own out-of-scope list, <b>DECK</b> against ADR-0020 — and each says so on its own plate. The mocks are drawn from measured corpus figures, so what they show is this repo, not a plausible repo.
+  </div>
+</header>
+
+<h2 class="section">They differ where it counts</h2>
+<p class="section-sub">
+  Six axes. Two designs sharing a row would be one design with two skins, so this table is the first thing to attack. The one that matters most is <em>who decides the layout</em>: an auto-laid graph, a fixed map, a queue that shows you one thing, and a table you arrange yourself are four genuinely different relationships with the same 1537 notes.
+</p>
+<div class="matrix-scroll" data-design-region="matrix">
+<table class="matrix">
+  <thead><tr>
+    <th>#</th><th>name</th><th>dimension</th><th>layout decided by</th><th>slice of time</th><th>primary input</th><th>venue</th><th>verb</th>
+  </tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td class="name">ORBIT</td><td>3D</td><td>the link graph, simulated</td><td>now</td><td>mouse flight</td><td>desktop, big screen</td><td class="verb">explore</td></tr>
+    <tr><td class="num">2</td><td class="name">ATLAS</td><td>2D</td><td>fixed coordinates, never move</td><td>now, with decay</td><td>pan and zoom</td><td>desktop or tablet</td><td class="verb">locate</td></tr>
+    <tr><td class="num">3</td><td class="name">REEL</td><td>2D, time on x</td><td>the calendar</td><td>all of it, scrubable</td><td>keyboard transport</td><td>desktop</td><td class="verb">reconstruct</td></tr>
+    <tr><td class="num">4</td><td class="name">PULSE</td><td>2D, fixed lanes</td><td>the running sessions</td><td>the last 90 seconds</td><td>glance, one key</td><td>second monitor</td><td class="verb">supervise</td></tr>
+    <tr><td class="num">5</td><td class="name">ASK</td><td>text</td><td>nobody — it is composed</td><td>whatever you ask about</td><td>typing</td><td>anywhere</td><td class="verb">interrogate</td></tr>
+    <tr><td class="num">6</td><td class="name">DECK</td><td>one card</td><td>the queue, not you</td><td>now, one item</td><td>swipe or arrow keys</td><td>phone or tablet</td><td class="verb">discharge</td></tr>
+    <tr><td class="num">7</td><td class="name">LEDGER</td><td>table</td><td>you, per view</td><td>any, by filter</td><td>keyboard and filters</td><td>desktop</td><td class="verb">query</td></tr>
+    <tr><td class="num">8</td><td class="name">BROADSHEET</td><td>print page</td><td>a typographic grid</td><td>last week</td><td>turning a page</td><td>paper, e-ink, email</td><td class="verb">read</td></tr>
+    <tr><td class="num">9</td><td class="name">FOUNDRY</td><td>isometric 2.5D</td><td>the workflow's stations</td><td>now, and flow rate</td><td>click and drag</td><td>desktop</td><td class="verb">unblock</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ============================ 1 · ORBIT ============================ -->
+<style>
+  .m-orbit {
+    /* Implementation dark-scheme values, verbatim from base.css. The :root
+       light block above is what palette parity compares (first wins). */
+    --status-active:    hsl(140 32% 60%);
+    --status-pending:   hsl(220 14% 65%);
+    --status-done:      hsl(160 28% 60%);
+    --status-archived:  hsl(0 0% 58%);
+    --status-blocked:   hsl(5 50% 65%);
+    --status-reference: hsl(180 24% 60%);
+    position: relative; background: #05070C; height: 480px; color: #C9D2E0;
+  }
+  .m-orbit canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  .m-orbit canvas:active { cursor: grabbing; }
+  .orbit-hud {
+    position: absolute; inset: 0; pointer-events: none;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .orbit-search {
+    position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+    background: rgb(12 16 24 / .82); border: 1px solid #263041; border-radius: 5px;
+    padding: 8px 14px; width: 330px; color: #7C8798; display: flex; justify-content: space-between;
+    backdrop-filter: blur(6px);
+  }
+  .orbit-stat { position: absolute; top: 18px; left: 20px; line-height: 1.9; color: #6D7A8C; }
+  .orbit-stat b { color: #C9D2E0; font-weight: 500; }
+  .orbit-legend { position: absolute; bottom: 16px; left: 20px; line-height: 1.85; }
+  .orbit-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; }
+  .orbit-legend span { color: #7C8798; }
+  .orbit-callout {
+    position: absolute; right: 20px; top: 60px; width: 288px;
+    background: rgb(12 16 24 / .9); border: 1px solid #263041; border-left: 2px solid var(--status-done);
+    border-radius: 4px; padding: 13px 15px; line-height: 1.55;
+  }
+  .orbit-callout .oc-id { color: var(--status-done); font-size: 12px; }
+  .orbit-callout .oc-title { color: #DCE3EC; font-family: var(--body); font-size: 12.5px; margin: 5px 0 9px; }
+  .orbit-callout .oc-edge { color: #7C8798; border-top: 1px dashed #263041; padding-top: 9px; }
+  .orbit-callout .oc-edge em { color: #A9B6C7; font-family: var(--body); font-style: normal; }
+  .orbit-keys { position: absolute; bottom: 16px; right: 20px; color: #566274; text-align: right; line-height: 1.9; }
+</style>
+
+<section class="plate" data-design-region="orbit">
+  <div class="plate-head">
+    <span class="plate-num">01</span>
+    <span class="plate-name">ORBIT</span>
+    <span class="plate-tag">the links, as a solid you fly through</span>
+  </div>
+  <p class="plate-lede">
+    <strong>16148 wikilinks over 1537 notes is a structure nobody in this project has ever seen.</strong> The cockpit resolves one link when you click it and lists backlinks at the foot of a note — the local view of a shape that has never been drawn whole. ORBIT draws the whole thing and gives you no list at all: you steer, and the corpus has an inside. Colour is the status band, straight off <code>statuses.py</code>, so the first thing the shape tells you is that this record is overwhelmingly finished work with a live crust on it.
+  </p>
+
+  <div class="screen m-orbit" data-design-region="orbit-mock">
+    <canvas id="orbit-canvas"></canvas>
+    <div class="orbit-hud">
+      <div class="orbit-stat">
+        <b>1537</b> notes &nbsp;·&nbsp; <b>16148</b> links<br>
+        <b>2206</b> distinct targets<br>
+        cluster: <b>PHASE-038</b> · 42 notes
+      </div>
+      <div class="orbit-search"><span>⌘K &nbsp; fly to a note…</span><span>↩</span></div>
+      <div class="orbit-callout">
+        <div class="oc-id">FEAT-0143 · done</div>
+        <div class="oc-title">The fleet runs one validator</div>
+        <div class="oc-edge">
+          edge → <span style="color:var(--status-blocked)">ISS-0209</span><br>
+          <em>“ISS-0209 estimated a per-repo reconciliation; it was two rules.”</em>
+          <div style="margin-top:7px;color:#566274">the sentence that made the link</div>
+        </div>
+      </div>
+      <div class="orbit-legend">
+        <div><i style="background:var(--status-done)"></i><span>done / fixed / merged</span></div>
+        <div><i style="background:var(--status-active)"></i><span>active / doing</span></div>
+        <div><i style="background:var(--status-pending)"></i><span>open / triage / backlog</span></div>
+        <div><i style="background:var(--status-blocked)"></i><span>blocked / failing</span></div>
+        <div><i style="background:var(--status-archived)"></i><span>superseded / retired</span></div>
+      </div>
+      <div class="orbit-keys">drag to turn · scroll to close in<br>double-click a node to land on it</div>
+    </div>
+  </div>
+  <div class="screen-cap">Drag the field. Node colour is the status band; node size is inbound links; clusters are phases. Hovering an <em>edge</em> — not a node — surfaces the sentence in the source note that contains the wikilink, which is the one thing a graph view normally throws away.</div>
+
+  <div class="strip">
+    <div data-design-region="orbit-navigation">
+      <h4>Navigation</h4>
+      <p>There is no tree, no list and no back button. You <strong>fly</strong>: drag to turn the field, scroll to close in, double-click to land on a note and open it. <code>⌘K</code> flies the camera rather than jumping the view, so you keep your bearings — the note arrives from a direction.</p>
+      <p class="keys"><kbd>drag</kbd> turn <kbd>scroll</kbd> zoom <kbd>⇧</kbd> isolate a cluster <kbd>\</kbd> dim everything terminal</p>
+    </div>
+    <div data-design-region="orbit-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> <code>wikilinks.py</code> already resolves every link target, and the index holds every note's frontmatter. Status bands come from <code>statuses.py</code>, which is already the single vocabulary.</p>
+      <p><strong>New:</strong> one endpoint returning the whole edge list, and the character offset of each link so the containing sentence can be pulled for the edge callout. Layout must be computed once and cached — a 16k-edge simulation cannot run on every open.</p>
+    </div>
+    <div class="objection" data-design-region="orbit-objection">
+      <h4>The objection</h4>
+      <p><strong>Graph views are famously beautiful and famously useless.</strong> Obsidian's is the standard example: people open it, say "wow", and never navigate with it. The honest question is whether ORBIT ever answers a question you actually have.</p>
+      <p>Its one candidate answer is <em>structural</em>: which notes nothing links to, and which clusters are joined by a single edge. That is a real query about this corpus — and it is also a query a table could answer without any of this.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const cv = document.getElementById('orbit-canvas');
+  const ctx = cv.getContext('2d');
+  const host = cv.parentElement;
+  const cs = getComputedStyle(host);
+  const BANDS = [
+    { c: cs.getPropertyValue('--status-done').trim(),      w: .70 },
+    { c: cs.getPropertyValue('--status-pending').trim(),   w: .12 },
+    { c: cs.getPropertyValue('--status-active').trim(),    w: .06 },
+    { c: cs.getPropertyValue('--status-archived').trim(),  w: .06 },
+    { c: cs.getPropertyValue('--status-reference').trim(), w: .04 },
+    { c: cs.getPropertyValue('--status-blocked').trim(),   w: .02 },
+  ];
+  // Deterministic: the same corpus must draw the same shape every time.
+  let seed = 20260905;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+  const pick = () => { let r = rnd(), a = 0; for (const b of BANDS) { a += b.w; if (r < a) return b.c; } return BANDS[0].c; };
+
+  const CLUSTERS = [];
+  for (let i = 0; i < 8; i++) {
+    const t = (i / 8) * Math.PI * 2;
+    CLUSTERS.push({ x: Math.cos(t) * 268 + (rnd() - .5) * 70, y: (rnd() - .5) * 230, z: Math.sin(t) * 268 + (rnd() - .5) * 70 });
+  }
+  const NODES = [];
+  for (let i = 0; i < 640; i++) {
+    const c = CLUSTERS[i % 8];
+    const s = 46 + rnd() * 62;
+    NODES.push({
+      x: c.x + (rnd() - .5) * s * 2, y: c.y + (rnd() - .5) * s * 2, z: c.z + (rnd() - .5) * s * 2,
+      c: pick(), r: .8 + rnd() * rnd() * 3.4, k: i % 8,
+    });
+  }
+  const EDGES = [];
+  for (let i = 0; i < 1150; i++) {
+    const a = (rnd() * NODES.length) | 0;
+    const near = rnd() < .82;
+    let b = near ? (a + 1 + ((rnd() * 40) | 0)) % NODES.length : (rnd() * NODES.length) | 0;
+    if (a !== b) EDGES.push([a, b]);
+  }
+
+  let ry = .4, rx = -.18, zoom = 1, drag = null;
+  cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, ry, rx }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointerup', () => { drag = null; });
+  cv.addEventListener('pointermove', e => {
+    if (!drag) return;
+    ry = drag.ry + (e.clientX - drag.x) * .006;
+    rx = Math.max(-1.1, Math.min(1.1, drag.rx + (e.clientY - drag.y) * .005));
+  });
+  cv.addEventListener('wheel', e => { e.preventDefault(); zoom = Math.max(.55, Math.min(2.4, zoom * (1 - e.deltaY * .0012))); }, { passive: false });
+
+  let W = 0, H = 0, dpr = 1;
+  function size() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = host.clientWidth; H = host.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  size();
+  new ResizeObserver(size).observe(host);
+
+  const P = new Array(NODES.length);
+  function frame() {
+    if (!drag) ry += .0016;
+    ctx.clearRect(0, 0, W, H);
+    const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
+    const f = 560 * zoom, cxp = W / 2, cyp = H / 2;
+    for (let i = 0; i < NODES.length; i++) {
+      const n = NODES[i];
+      let x = n.x * cy - n.z * sy, z = n.x * sy + n.z * cy;
+      let y = n.y * cx - z * sx; z = n.y * sx + z * cx;
+      const d = z + 640;
+      const s = f / Math.max(d, 60);
+      P[i] = { x: cxp + x * s, y: cyp + y * s, s, d };
+    }
+    ctx.lineWidth = .55;
+    for (const [a, b] of EDGES) {
+      const p = P[a], q = P[b];
+      const al = Math.max(0, Math.min(.24, (1 - (p.d + q.d) / 2600) * .3));
+      if (al <= .01) continue;
+      ctx.strokeStyle = 'rgba(126,158,196,' + al.toFixed(3) + ')';
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+    }
+    const order = P.map((p, i) => i).sort((a, b) => P[b].d - P[a].d);
+    for (const i of order) {
+      const p = P[i], n = NODES[i];
+      const r = Math.max(.5, n.r * p.s);
+      const al = Math.max(.16, Math.min(1, 1.5 - p.d / 1100));
+      ctx.globalAlpha = al;
+      ctx.fillStyle = n.c;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.284); ctx.fill();
+      if (r > 2.6) { ctx.globalAlpha = al * .16; ctx.beginPath(); ctx.arc(p.x, p.y, r * 3.2, 0, 6.284); ctx.fill(); }
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+</script>
+
+<!-- ============================ 2 · ATLAS ============================ -->
+<style>
+  .m-atlas {
+    --sea:      #C9D8DC;
+    --sea-deep: #B4C8CE;
+    --coast:    #6E7F82;
+    --land-done:    #E7E4D3;
+    --land-active:  #EFDFC2;
+    --land-planned: #DFE2E4;
+    --border:   #A79E86;
+    --map-ink:  #4A4638;
+    --map-faint:#8A8471;
+    position: relative; background: var(--sea); height: 560px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .m-atlas {
+      --sea: #0E1A22; --sea-deep: #0A141B; --coast: #3E5764;
+      --land-done: #1E2429; --land-active: #2B2A22; --land-planned: #1B1E22;
+      --border: #4A4636; --map-ink: #C3BCA6; --map-faint: #7A7462;
+    }
+  }
+  :root[data-theme="dark"] .m-atlas {
+    --sea: #0E1A22; --sea-deep: #0A141B; --coast: #3E5764;
+    --land-done: #1E2429; --land-active: #2B2A22; --land-planned: #1B1E22;
+    --border: #4A4636; --map-ink: #C3BCA6; --map-faint: #7A7462;
+  }
+  .m-atlas svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  .m-atlas svg:active { cursor: grabbing; }
+  .atlas-panel {
+    position: absolute; background: color-mix(in srgb, var(--sea) 80%, #fff 20%);
+    border: 1px solid var(--coast); font-family: var(--mono); font-size: 10.5px;
+    color: var(--map-ink); padding: 10px 12px; line-height: 1.8;
+  }
+  .atlas-legend { bottom: 14px; left: 14px; }
+  .atlas-legend i { display: inline-block; width: 11px; height: 9px; border: 1px solid var(--border); margin-right: 7px; vertical-align: 0; }
+  .atlas-addr { top: 14px; left: 14px; font-size: 11px; }
+  .atlas-addr b { font-weight: 600; }
+  .atlas-mini { bottom: 14px; right: 14px; padding: 6px; }
+  .m-atlas .lbl { font-family: var(--display); fill: var(--map-ink); pointer-events: none;
+    paint-order: stroke; stroke-width: 4px; stroke-linejoin: round; }
+  .m-atlas .sub { font-family: var(--mono); fill: var(--map-faint); font-size: 8.5px; letter-spacing: .08em; pointer-events: none; }
+  .m-atlas .town { cursor: pointer; }
+  .m-atlas .town:hover circle { r: 6; }
+  .m-atlas .town text { font-family: var(--mono); font-size: 9px; fill: var(--map-ink); pointer-events: none; }
+</style>
+
+<section class="plate" data-design-region="atlas">
+  <div class="plate-head">
+    <span class="plate-num">02</span>
+    <span class="plate-name">ATLAS</span>
+    <span class="plate-tag">land you learn by heart</span>
+  </div>
+  <p class="plate-lede">
+    ORBIT moves and ATLAS never does. <strong>Every note has a permanent address</strong>, computed once and then frozen: <code>FEAT-0143</code> is in the east, on the coast, next to the harbour where the fleet work landed, and it will be there next month and next year. That is the whole idea — a map you can remember, so finding something stops being a search and becomes a recollection. Regions are phases, and the map shows two things no list does: <strong>how much of the territory is old</strong>, drawn as fog, and where the record simply stops.
+  </p>
+
+  <div class="screen m-atlas" data-design-region="atlas-mock">
+    <svg id="atlas-svg" viewBox="0 0 1100 560" preserveAspectRatio="xMidYMid meet" aria-label="A cartographic map of the corpus"></svg>
+    <div class="atlas-panel atlas-addr">
+      <b>PHASE-028 · Borrowed capability</b><br>
+      <span style="color:var(--map-faint)">grid 41·N · 3 settlements · active</span>
+    </div>
+    <div class="atlas-panel atlas-legend">
+      <div><i style="background:var(--land-done)"></i>settled — phase done</div>
+      <div><i style="background:var(--land-active)"></i>in work — phase active</div>
+      <div><i style="background:var(--land-planned)"></i>surveyed, unbuilt</div>
+      <div><i style="background:repeating-linear-gradient(45deg,var(--map-faint),var(--map-faint) 1px,transparent 1px,transparent 3px)"></i>fog — nothing touched since June</div>
+      <div>⌂ note &nbsp; ⚑ new &nbsp; ⌇ risk &nbsp; ⌸ ruins</div>
+    </div>
+    <div class="atlas-panel atlas-mini"><svg id="atlas-mini" width="120" height="58" aria-hidden="true"></svg></div>
+  </div>
+  <div class="screen-cap">Drag to pan, scroll to zoom; the inset keeps the whole territory in view. Regions are this repo's real phases, settlements its real notes. The hatched band is the <strong>June silence</strong> — one note created in June against 180 in May and 313 in July — which is the kind of fact no note-scoped, phase-scoped or queue-scoped surface can show, because a silence belongs to none of them.</div>
+
+  <div class="strip">
+    <div data-design-region="atlas-navigation">
+      <h4>Navigation</h4>
+      <p>Pan and zoom, exactly like a map application, plus the two things maps have that graphs do not: <strong>a permanent address</strong> and <strong>an inset that never loses the whole</strong>. You navigate by remembering where a thing was, not by searching for what it is called.</p>
+      <p>Places can be bookmarked as coordinates, so "the corner where the release work is" is a link you can send someone.</p>
+    </div>
+    <div data-design-region="atlas-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> phases, every note's <code>phase:</code>, statuses, and <code>updated:</code> on every note — fog is just a date threshold over data the index already holds.</p>
+      <p><strong>New:</strong> a layout pass that assigns coordinates <em>and stores them</em>, plus the rule for what happens when a note is added: it must take a plot in its region without moving its neighbours, or the map's whole promise breaks.</p>
+    </div>
+    <div class="objection" data-design-region="atlas-objection">
+      <h4>The objection</h4>
+      <p><strong>Frozen coordinates rot.</strong> A corpus that grew 634 notes in a single month will overflow whatever plots it was given, and the moment the map re-flows to fit, every address a person memorised is wrong — worse than never having promised one.</p>
+      <p>The fix is real work, not a detail: plots must be allocated with room to grow, and a region that fills up has to spill into new land at the edge rather than re-drawing the interior.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const svg = document.getElementById('atlas-svg');
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+
+  let s = 424242;
+  const rnd = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
+
+  const MAP = ['.ABBC.', 'AADBCC', 'DDEEFC', '.DEEF.'];
+  const COLS = 6, ROWS = 4;
+  const REGION = {
+    A: { name: 'Levers for the Human',  sub: 'PHASE-023 · done',   fill: 'var(--land-done)',   fog: true },
+    B: { name: 'The Standing Worker',   sub: 'PHASE-027 · done',   fill: 'var(--land-done)' },
+    C: { name: 'Borrowed Capability',   sub: 'PHASE-028 · active', fill: 'var(--land-active)' },
+    D: { name: 'The Returning Human',   sub: 'PHASE-026 · done',   fill: 'var(--land-done)',   fog: true },
+    E: { name: 'A Verdict Is An Event', sub: 'PHASE-038 · done',   fill: 'var(--land-done)' },
+    F: { name: 'The Gate',              sub: 'PHASE-041 · done', fill: 'var(--land-done)' },
+  };
+  const at = (i, j) => (i < 0 || j < 0 || i >= COLS || j >= ROWS) ? '.' : MAP[j][i];
+
+  // Lattice with fixed jitter: the coastline must be identical on every load.
+  const X0 = 96, Y0 = 62, DX = 148, DY = 100;
+  const pts = [];
+  for (let j = 0; j <= ROWS; j++) { pts.push([]); for (let i = 0; i <= COLS; i++) pts[j].push([X0 + i * DX + (rnd() - .5) * 62, Y0 + j * DY + (rnd() - .5) * 54]); }
+  const P = (i, j) => pts[j][i];
+
+  // A shared edge is drawn once, and its wobble is a function of its endpoints,
+  // so a border never disagrees with itself.
+  function wobble(a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const nx = -dy, ny = dx, L = Math.hypot(dx, dy) || 1;
+    const h = Math.abs(Math.sin((a[0] + b[1]) * 12.9898) * 43758.5453) % 1;
+    let d = 'M' + a[0].toFixed(1) + ' ' + a[1].toFixed(1);
+    for (let k = 1; k <= 3; k++) {
+      const t = k / 3, o = k === 3 ? 0 : ((h * (k + 1)) % 1 - .5) * 9;
+      d += ' L' + (a[0] + dx * t + nx / L * o).toFixed(1) + ' ' + (a[1] + dy * t + ny / L * o).toFixed(1);
+    }
+    return d;
+  }
+
+  svg.appendChild(el('rect', { x: -400, y: -400, width: 2400, height: 1400, fill: 'var(--sea)' }));
+  const defs = el('defs', {});
+  defs.innerHTML =
+    '<pattern id="fogpat" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">' +
+    '<line x1="0" y1="0" x2="0" y2="7" stroke="var(--map-faint)" stroke-width="1.1" opacity=".5"/></pattern>' +
+    '<filter id="halo" x="-30%" y="-30%" width="160%" height="160%">' +
+    '<feGaussianBlur stdDeviation="9" result="b"/><feColorMatrix in="b" type="matrix" ' +
+    'values="0 0 0 0 0.25  0 0 0 0 0.34  0 0 0 0 0.36  0 0 0 .55 0"/></filter>';
+  svg.appendChild(defs);
+
+  const g = el('g', { id: 'atlas-world' });
+  svg.appendChild(g);
+
+  // sea texture: fixed wave ticks
+  for (let i = 0; i < 90; i++) {
+    const x = rnd() * 1100, y = rnd() * 560;
+    g.appendChild(el('path', { d: 'M' + x + ' ' + y + ' q6 -3 12 0 q6 3 12 0', fill: 'none', stroke: 'var(--sea-deep)', 'stroke-width': 1.2, opacity: .8 }));
+  }
+
+  const land = el('g', {}), halo = el('g', { filter: 'url(#halo)' });
+  g.appendChild(halo); g.appendChild(land);
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+    const r = at(i, j); if (r === '.') continue;
+    const poly = [P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1)].map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    halo.appendChild(el('polygon', { points: poly, fill: '#000' }));
+    land.appendChild(el('polygon', { points: poly, fill: REGION[r].fill }));
+    if (REGION[r].fog) land.appendChild(el('polygon', { points: poly, fill: 'url(#fogpat)' }));
+  }
+
+  // borders and coast
+  const lines = el('g', {}); g.appendChild(lines);
+  const edge = (a, b, coast) => lines.appendChild(el('path', {
+    d: wobble(a, b), fill: 'none',
+    stroke: coast ? 'var(--coast)' : 'var(--border)',
+    'stroke-width': coast ? 2.4 : 1.1,
+    'stroke-dasharray': coast ? '' : '5 4', opacity: coast ? 1 : .75,
+  }));
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+    const r = at(i, j); if (r === '.') continue;
+    const chk = (ni, nj, a, b) => { const n = at(ni, nj); if (n === '.') edge(a, b, true); else if (n !== r) edge(a, b, false); };
+    chk(i, j - 1, P(i, j), P(i + 1, j));
+    chk(i - 1, j, P(i, j), P(i, j + 1));
+    if (i === COLS - 1 || at(i + 1, j) === '.') chk(i + 1, j, P(i + 1, j), P(i + 1, j + 1));
+    if (j === ROWS - 1 || at(i, j + 1) === '.') chk(i, j + 1, P(i, j + 1), P(i + 1, j + 1));
+  }
+
+  // region labels at the centroid of each region's cells
+  const cen = {};
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+    const r = at(i, j); if (r === '.') continue;
+    const c = cen[r] || (cen[r] = { x: 0, y: 0, n: 0 });
+    c.x += (P(i, j)[0] + P(i + 1, j + 1)[0]) / 2; c.y += (P(i, j)[1] + P(i + 1, j + 1)[1]) / 2; c.n++;
+  }
+  for (const r in cen) {
+    const c = cen[r], x = c.x / c.n, y = c.y / c.n;
+    const t = el('text', { x: x, y: y, class: 'lbl', 'text-anchor': 'middle', 'font-size': 15,
+                           'letter-spacing': '.08em', stroke: REGION[r].fill });
+    t.textContent = REGION[r].name.toUpperCase(); g.appendChild(t);
+    const u = el('text', { x: x, y: y + 14, class: 'sub', 'text-anchor': 'middle' });
+    u.textContent = REGION[r].sub; g.appendChild(u);
+  }
+
+  // settlements — real notes, at fixed plots inside their region's cells
+  const TOWNS = [
+    [1.5, 0.5, 'REQ-0026', 5],  [0.5, 1.5, 'RISK-0005', 4], [1.6, 1.7, 'ADR-0009', 5],
+    [2.5, 0.4, 'FEAT-0074', 4], [3.55, 1.15, 'FEAT-0078', 3], [3.4, 1.7, 'FEAT-0075', 3],
+    [4.5, 0.5, 'FEAT-0079', 4], [4.5, 0.8, 'FEAT-0080', 3], [5.6, 2.5, 'DES-0013', 6],
+    [2.4, 1.6, 'FEAT-0072', 3], [0.4, 2.75, 'ISS-0126', 3],
+    [2.5, 2.4, 'FEAT-0133', 5], [3.5, 2.6, 'ADR-0037', 4], [2.5, 3.5, 'REQ-0052', 3],
+    [4.5, 2.4, 'FEAT-0143', 6], [4.4, 3.5, 'TASK-0579', 3],
+  ];
+  const towns = el('g', {}); g.appendChild(towns);
+  const plot = (ci, cj) => {
+    const i = Math.floor(ci), j = Math.floor(cj), fi = ci - i, fj = cj - j;
+    const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1);
+    return [a[0] + (b[0] - a[0]) * fi + (d[0] - a[0]) * fj, a[1] + (b[1] - a[1]) * fi + (d[1] - a[1]) * fj];
+  };
+  for (const [ci, cj, id, r] of TOWNS) {
+    const [x, y] = plot(ci, cj);
+    const gt = el('g', { class: 'town' }); gt.appendChild(el('title', {})).textContent = id;
+    gt.appendChild(el('circle', { cx: x, cy: y, r: r * .62, fill: 'var(--map-ink)', opacity: .82 }));
+    const tx = el('text', { x: x + 8, y: y + 3.5 }); tx.textContent = id; gt.appendChild(tx);
+    towns.appendChild(gt);
+  }
+
+  // roads: the paths people actually walk between notes
+  const road = (a, b, bow) => {
+    const p = plot(a[0], a[1]), q = plot(b[0], b[1]);
+    g.insertBefore(el('path', {
+      d: 'M' + p[0] + ' ' + p[1] + ' Q' + ((p[0] + q[0]) / 2 + bow) + ' ' + ((p[1] + q[1]) / 2 - bow) + ' ' + q[0] + ' ' + q[1],
+      fill: 'none', stroke: 'var(--map-ink)', 'stroke-width': 1.3, 'stroke-dasharray': '1 5', 'stroke-linecap': 'round', opacity: .5,
+    }), towns);
+  };
+  road([1.5, 0.5], [2.5, 0.4], 26); road([2.5, 0.4], [4.5, 2.4], -46);
+  road([2.5, 2.4], [4.5, 2.4], 26); road([1.6, 1.7], [2.5, 2.4], 18); road([5.6, 2.5], [4.5, 0.5], 40);
+
+  // marks: a risk, ruins, a surveyor's flag on the newest thing, an unsettled islet
+  const mark = (x, y, glyph, label, size) => {
+    const t = el('text', { x, y, class: 'lbl', 'font-size': size || 17, 'text-anchor': 'middle' }); t.textContent = glyph; g.appendChild(t);
+    const u = el('text', { x, y: y + 12, class: 'sub', 'text-anchor': 'middle' }); u.textContent = label; g.appendChild(u);
+  };
+  let p1 = plot(0.4, 1.8);  mark(p1[0], p1[1], '⌇⌇', 'THE WRITE SURFACE', 15);
+  let p2 = plot(1.5, 3.4);   mark(p2[0], p2[1], '⌸', 'PHASE-017–019 · absorbed');
+  let p3 = plot(5.6, 2.5);   mark(p3[0], p3[1] - 32, '⚑', 'surveyed 2026-09-05');
+  g.appendChild(el('path', { d: 'M690 502 q30 -18 60 0 q-5 23 -30 25 q-25 -2 -30 -25 z', fill: 'var(--land-planned)', stroke: 'var(--coast)', 'stroke-width': 1.6 }));
+  const isl = el('text', { x: 720, y: 545, class: 'sub', 'text-anchor': 'middle' }); isl.textContent = 'PHASE-999 · UNSETTLED'; g.appendChild(isl);
+  const sea = el('text', { x: 168, y: 528, class: 'lbl', 'font-size': 15, 'letter-spacing': '.35em', opacity: .55, 'font-style': 'italic', stroke: 'none' });
+  sea.textContent = 'THE UNWRITTEN'; g.appendChild(sea);
+
+  // compass + scale
+  const comp = el('g', { transform: 'translate(1032,86)' });
+  comp.appendChild(el('circle', { r: 20, fill: 'none', stroke: 'var(--map-ink)', 'stroke-width': 1, opacity: .6 }));
+  comp.appendChild(el('path', { d: 'M0 -22 L5 0 L0 22 L-5 0 Z', fill: 'var(--map-ink)', opacity: .75 }));
+  const n = el('text', { x: 0, y: -26, class: 'sub', 'text-anchor': 'middle' }); n.textContent = 'N'; comp.appendChild(n);
+  g.appendChild(comp);
+  const sc = el('g', { transform: 'translate(40,478)' });
+  sc.appendChild(el('path', { d: 'M0 0 h96 M0 -4 v8 M48 -3 v6 M96 -4 v8', stroke: 'var(--map-ink)', 'stroke-width': 1.2, fill: 'none', opacity: .7 }));
+  const st = el('text', { x: 0, y: 14, class: 'sub' }); st.textContent = '≈ 100 NOTES'; sc.appendChild(st);
+  g.appendChild(sc);
+
+  // pan + zoom by viewBox, with the inset tracking it
+  const mini = document.getElementById('atlas-mini');
+  const KX = 120 / 1100, KY = 58 / 560;
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+    if (at(i, j) === '.') continue;
+    mini.appendChild(el('polygon', {
+      points: [P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1)].map(p => (p[0] * KX).toFixed(1) + ',' + (p[1] * KY).toFixed(1)).join(' '),
+      fill: 'var(--map-faint)', opacity: .55,
+    }));
+  }
+  const vp = el('rect', { fill: 'none', stroke: 'var(--map-ink)', 'stroke-width': 1.2 });
+  mini.appendChild(vp);
+  const view = { x: 0, y: 0, w: 1100, h: 560 };
+  function apply() {
+    svg.setAttribute('viewBox', view.x + ' ' + view.y + ' ' + view.w + ' ' + view.h);
+    vp.setAttribute('x', view.x * KX); vp.setAttribute('y', view.y * KY);
+    vp.setAttribute('width', view.w * KX); vp.setAttribute('height', view.h * KY);
+  }
+  apply();
+  let dg = null;
+  svg.addEventListener('pointerdown', e => { dg = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointerup', () => { dg = null; });
+  svg.addEventListener('pointermove', e => {
+    if (!dg) return;
+    const k = view.w / svg.clientWidth;
+    view.x = dg.vx - (e.clientX - dg.x) * k; view.y = dg.vy - (e.clientY - dg.y) * k; apply();
+  });
+  svg.addEventListener('wheel', e => {
+    e.preventDefault();
+    const f = 1 + e.deltaY * .0014, nw = Math.max(360, Math.min(1500, view.w * f));
+    const nh = nw * (560 / 1100);
+    view.x += (view.w - nw) / 2; view.y += (view.h - nh) / 2;
+    view.w = nw; view.h = nh; apply();
+  }, { passive: false });
+})();
+</script>
+
+<!-- ============================ 3 · REEL ============================ -->
+<style>
+  .m-reel {
+    --r-bg: #16181D; --r-panel: #1D2026; --r-rule: #2B2F37; --r-ink: #D6DAE1;
+    --r-faint: #7A828F; --r-head: #E8A33D;
+    background: var(--r-bg); color: var(--r-ink); font-family: var(--mono); font-size: 11px;
+    display: grid; grid-template-columns: 232px 1fr; min-width: 900px;
+  }
+  .reel-inspector { background: var(--r-panel); border-right: 1px solid var(--r-rule); padding: 14px 16px; }
+  .reel-inspector h5 { margin: 0 0 3px; font-size: 10px; letter-spacing: .12em; color: var(--r-faint); font-weight: 500; text-transform: uppercase; }
+  .reel-tc { font-size: 19px; color: var(--r-head); letter-spacing: .02em; margin-bottom: 2px; }
+  .reel-tc-sub { color: var(--r-faint); margin-bottom: 16px; }
+  .reel-row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--r-rule); }
+  .reel-row span:first-child { color: var(--r-faint); }
+  .reel-row b { font-weight: 500; }
+  .reel-note { margin-top: 14px; color: var(--r-faint); line-height: 1.6; font-size: 10.5px; }
+  .reel-main { position: relative; overflow: hidden; }
+  .reel-transport { display: flex; align-items: center; gap: 14px; padding: 9px 14px; border-bottom: 1px solid var(--r-rule); color: var(--r-faint); }
+  .reel-transport b { color: var(--r-ink); font-weight: 500; }
+  .reel-btn { border: 1px solid var(--r-rule); border-radius: 3px; padding: 2px 8px; color: var(--r-ink); }
+  .reel-ruler { position: relative; height: 26px; border-bottom: 1px solid var(--r-rule); }
+  .reel-ruler div { position: absolute; top: 6px; color: var(--r-faint); border-left: 1px solid var(--r-rule); padding-left: 6px; height: 20px; }
+  .reel-hist { position: relative; height: 46px; border-bottom: 1px solid var(--r-rule); background: #13151A; }
+  .reel-hist i { position: absolute; bottom: 0; background: #3C6E8F; opacity: .85; }
+  .reel-hist em { position: absolute; font-style: normal; color: var(--severity-medium); font-size: 10px; bottom: 4px; }
+  .reel-track { position: relative; height: 30px; border-bottom: 1px solid var(--r-rule); }
+  .reel-track > label {
+    position: absolute; left: 8px; top: 8px; color: var(--r-faint); font-size: 9.5px;
+    letter-spacing: .1em; z-index: 3; text-transform: uppercase; pointer-events: none;
+    text-shadow: 0 0 6px var(--r-bg), 0 0 6px var(--r-bg);
+  }
+  .clip {
+    position: absolute; top: 6px; height: 18px; border-radius: 2px; font-size: 9.5px;
+    color: #0C0E12; padding: 2px 5px; overflow: hidden; white-space: nowrap; line-height: 15px;
+  }
+  .clip.thin { height: 8px; top: 11px; padding: 0; }
+  .reel-sel { position: absolute; top: 0; bottom: 0; background: rgb(232 163 61 / .09); border-left: 1px solid var(--r-head); border-right: 1px solid var(--r-head); pointer-events: none; z-index: 4; }
+  .reel-head { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--r-head); z-index: 5; pointer-events: none; }
+  .reel-head::before { content: ""; position: absolute; top: 0; left: -6px; border: 6px solid transparent; border-top-color: var(--r-head); border-bottom: 0; height: 0; }
+  .reel-scrub { position: absolute; inset: 0; cursor: ew-resize; z-index: 6; }
+  .reel-render { position: absolute; right: 12px; bottom: 10px; z-index: 7; background: var(--r-head); color: #16181D; padding: 5px 11px; border-radius: 3px; font-size: 10.5px; }
+</style>
+
+<section class="plate" data-design-region="reel">
+  <div class="plate-head">
+    <span class="plate-num">03</span>
+    <span class="plate-name">REEL</span>
+    <span class="plate-tag">the project as footage you can scrub</span>
+  </div>
+  <p class="plate-lede">
+    Every note carries <code>created:</code> and <code>updated:</code>, every change note is dated in its filename, and the snapshot has been committed on every change since January. <strong>That is enough to reconstruct what this project looked like on any past day</strong> — and no surface does it. REEL is a video editor's timeline over that: phases are tracks, work items are clips, and dragging the playhead rebuilds the left-hand panel as it stood at that instant. Select a span and it will write the change note for what happened inside it.
+  </p>
+
+  <div class="screen screen-scroll">
+  <div class="m-reel" data-design-region="reel-mock">
+    <aside class="reel-inspector">
+      <h5>state at playhead</h5>
+      <div class="reel-tc" id="reel-tc">2026-08-20</div>
+      <div class="reel-tc-sub" id="reel-tc-sub">Thursday · week 34</div>
+      <div class="reel-row"><span>focus.phase</span><b id="reel-phase">PHASE-037</b></div>
+      <div class="reel-row"><span>focus.task</span><b id="reel-task">TASK-0512</b></div>
+      <div class="reel-row"><span>notes created</span><b id="reel-notes">896</b></div>
+      <div class="reel-row"><span>open issues</span><b id="reel-open" style="color:var(--status-blocked)">11</b></div>
+      <div class="reel-row"><span>verdicts unanswered</span><b id="reel-verdict" style="color:var(--severity-high)">49</b></div>
+      <div class="reel-row"><span>phases active</span><b id="reel-active">3</b></div>
+      <div class="reel-note" id="reel-note">On this day the stale-verdict backlog was measured at 49 and written into <code style="background:none;color:var(--r-ink)">CLAUDE.md</code>. Scrub to today: it is 70.</div>
+    </aside>
+    <div class="reel-main">
+      <div class="reel-transport">
+        <span class="reel-btn">◀◀</span><span class="reel-btn">▶</span><span class="reel-btn">▶▶</span>
+        <span>in <b>2026-08-18</b> · out <b>2026-08-29</b> · <b>11 days</b> selected</span>
+        <span style="margin-left:auto">zoom <b>weeks</b> · <span class="keys"><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd></span></span>
+      </div>
+      <div id="reel-body" style="position:relative;padding-bottom:40px">
+        <div class="reel-ruler" id="reel-ruler"></div>
+        <div class="reel-hist" id="reel-hist"></div>
+        <div id="reel-tracks"></div>
+        <div class="reel-sel" id="reel-sel"></div>
+        <div class="reel-head" id="reel-headline" style="left:60%"></div>
+        <div class="reel-scrub" id="reel-scrub"></div>
+        <div class="reel-render">⌥R &nbsp;render CHG from selection</div>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div class="screen-cap">Drag anywhere on the timeline to scrub; the left panel is rebuilt from the date under the head. The blue histogram is real: notes created per month, <strong>180 / 1 / 313 / 634</strong> from May to August. That single-note June is the shape of a five-week gap, and it is invisible in every other view this project has.</div>
+
+  <div class="strip">
+    <div data-design-region="reel-navigation">
+      <h4>Navigation</h4>
+      <p>An editor's transport, borrowed whole: <code>J</code> back, <code>K</code> stop, <code>L</code> forward, hold to shuttle faster. <code>I</code> and <code>O</code> set in and out points. You navigate by <strong>time</strong>, never by name — the only view here where "the week the fleet migration happened" is a first-class address.</p>
+      <p>Selecting a span and pressing <code>⌥R</code> drafts the change note for everything inside it, which is the close-out step done from evidence rather than from memory.</p>
+    </div>
+    <div data-design-region="reel-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> every date the mock uses is in frontmatter today, and <code>git_state.py</code> already reads the commit history the clips would be cut against.</p>
+      <p><strong>New:</strong> a state-at-date query. Frontmatter records the <em>current</em> status, not when it changed, so the honest reconstruction has to come from <code>git log</code> over the notes — which is real work and the reason this is the most expensive of the nine.</p>
+    </div>
+    <div class="objection" data-design-region="reel-objection">
+      <h4>The objection</h4>
+      <p><strong>Nobody asks what the project looked like in July.</strong> Time-travel views are built more often than they are used, and this one is the costliest to build honestly.</p>
+      <p>The counter is the <em>span</em>, not the instant: "what happened between these two dates" is asked at every close-out and every release, and today it is answered by reading commit messages. If REEL is built, it should be built for the selection, and the scrub is a side effect.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const START = Date.UTC(2026, 4, 1), END = Date.UTC(2026, 8, 6);
+  const SPAN = END - START;
+  const pos = d => ((Date.UTC(d[0], d[1] - 1, d[2]) - START) / SPAN) * 100;
+  const S = v => v.toFixed(2) + '%';
+
+  const ruler = document.getElementById('reel-ruler');
+  [['May', 5], ['June', 6], ['July', 7], ['August', 8], ['September', 9]].forEach(([n, m]) => {
+    const d = document.createElement('div');
+    d.style.left = S(pos([2026, m, 1])); d.textContent = n; ruler.appendChild(d);
+  });
+
+  // Real: notes created per month (FEAT/TASK/ISS/CHG/ADR), measured 2026-09-05.
+  const HIST = [[5, 180], [6, 1], [7, 313], [8, 634], [9, 6]];
+  const hist = document.getElementById('reel-hist');
+  HIST.forEach(([m, n]) => {
+    const a = pos([2026, m, 1]), b = m === 9 ? 100 : pos([2026, m + 1, 1]);
+    const i = document.createElement('i');
+    i.style.left = S(a + .3); i.style.width = S(b - a - .6);
+    i.style.height = Math.max(1, (n / 634) * 40) + 'px';
+    hist.appendChild(i);
+    const t = document.createElement('em');
+    t.style.left = S(a + .8); t.textContent = n;
+    if (n === 1) { t.textContent = '1 note in June'; t.style.bottom = '14px'; }
+    hist.appendChild(t);
+  });
+
+  const C = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const TRACKS = [
+    { label: 'phases', clips: [
+      ['2026-05-08', '2026-07-20', 'PHASE-004 embedded terminal · standing', 'done'],
+      ['2026-07-25', '2026-07-30', 'PHASE-008 overview', 'done'],
+      ['2026-07-30', '2026-08-06', 'PHASE-016', 'done'],
+      ['2026-08-01', '2026-08-11', 'PHASE-026 returning human', 'done'],
+      ['2026-08-05', '2026-09-06', 'PHASE-028 borrowed capability · standing', 'active'],
+      ['2026-08-12', '2026-08-18', 'PHASE-030 obligations go home', 'done'],
+      ['2026-08-18', '2026-08-27', 'PHASE-038 a verdict is an event', 'done'],
+      ['2026-08-25', '2026-08-29', 'PHASE-041 the gate', 'done'],
+    ]},
+    { label: 'features', gen: [42, 'done', .10] },
+    { label: 'issues', gen: [38, 'mixed', .12] },
+    { label: 'changes', gen: [64, 'ref', .04] },
+    { label: 'agent sessions', gen: [90, 'pending', .03] },
+  ];
+  const BAND = { done: C('--status-done'), active: C('--status-active'), pending: C('--status-pending'), blocked: C('--status-blocked'), ref: C('--status-reference') };
+  let sd = 99991;
+  const rnd = () => (sd = (sd * 1103515245 + 12345) % 2147483648) / 2147483648;
+  // Density follows the real histogram, so the June gap appears in every track.
+  const WEIGHT = [[5, 180], [6, 1], [7, 313], [8, 634], [9, 6]];
+  const TOT = WEIGHT.reduce((a, b) => a + b[1], 0);
+  const sampleDay = () => {
+    let r = rnd() * TOT, m = 5;
+    for (const [mm, w] of WEIGHT) { if (r < w) { m = mm; break; } r -= w; }
+    const dim = m === 9 ? 5 : 30;
+    return [2026, m, 1 + Math.floor(rnd() * dim)];
+  };
+  const tracks = document.getElementById('reel-tracks');
+  for (const t of TRACKS) {
+    const row = document.createElement('div');
+    row.className = 'reel-track';
+    const lab = document.createElement('label'); lab.textContent = t.label; row.appendChild(lab);
+    if (t.clips) {
+      row.style.height = '74px';
+      const lanes = [];
+      for (const [a, b, name, band] of t.clips) {
+        const A = pos(a.split('-').map(Number)), B = pos(b.split('-').map(Number));
+        let ln = lanes.findIndex(end => A > end + 1.2);
+        if (ln < 0) { ln = lanes.length; lanes.push(0); }
+        lanes[ln] = Math.max(A + 1.2, B);
+        const c = document.createElement('div');
+        c.className = 'clip';
+        c.style.left = S(A); c.style.width = S(Math.max(1.2, B - A));
+        c.style.top = (6 + ln * 22) + 'px';
+        c.style.background = BAND[band]; c.textContent = name;
+        c.title = name;
+        row.appendChild(c);
+      }
+    } else {
+      const [n, kind, w] = t.gen;
+      for (let k = 0; k < n; k++) {
+        const d = sampleDay(), c = document.createElement('div');
+        c.className = 'clip thin';
+        c.style.left = S(pos(d));
+        c.style.width = S(w + rnd() * w * 2.4);
+        c.style.background = kind === 'mixed' ? (rnd() < .18 ? BAND.blocked : rnd() < .3 ? BAND.pending : BAND.done) : BAND[kind];
+        c.style.opacity = .85;
+        row.appendChild(c);
+      }
+    }
+    tracks.appendChild(row);
+  }
+
+  const sel = document.getElementById('reel-sel');
+  const a = pos([2026, 8, 18]), b = pos([2026, 8, 29]);
+  sel.style.left = S(a); sel.style.width = S(b - a);
+
+  // Scrub: the panel is rebuilt from the date under the head. The anchors are
+  // measured facts, linearly interpolated between.
+  const ANCH = {
+    notes:   [['2026-05-01', 0], ['2026-06-01', 180], ['2026-07-01', 181], ['2026-08-01', 494], ['2026-09-01', 1128], ['2026-09-06', 1134]],
+    verdict: [['2026-05-01', 0], ['2026-07-01', 12], ['2026-08-01', 28], ['2026-08-20', 49], ['2026-09-05', 70]],
+    open:    [['2026-05-01', 4], ['2026-07-01', 9], ['2026-08-01', 14], ['2026-08-20', 11], ['2026-09-05', 16]],
+  };
+  const PHASES = [['2026-05-01', 'PHASE-004', 'TASK-0061'], ['2026-07-25', 'PHASE-008', 'TASK-0203'],
+                  ['2026-08-01', 'PHASE-026', 'TASK-0388'], ['2026-08-12', 'PHASE-030', 'TASK-0441'],
+                  ['2026-08-18', 'PHASE-037', 'TASK-0512'], ['2026-08-25', 'PHASE-041', 'TASK-0579'],
+                  ['2026-09-01', 'PHASE-028', '—']];
+  const day = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10));
+  const interp = (k, t) => {
+    const A = ANCH[k];
+    if (t <= day(A[0][0])) return A[0][1];
+    for (let i = 1; i < A.length; i++) {
+      const p = day(A[i - 1][0]), q = day(A[i][0]);
+      if (t <= q) return Math.round(A[i - 1][1] + (A[i][1] - A[i - 1][1]) * (t - p) / (q - p));
+    }
+    return A[A.length - 1][1];
+  };
+  const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const body = document.getElementById('reel-body');
+  const head = document.getElementById('reel-headline');
+  const scrub = document.getElementById('reel-scrub');
+  function setAt(frac) {
+    frac = Math.max(0, Math.min(1, frac));
+    head.style.left = (frac * 100) + '%';
+    const t = START + SPAN * frac, d = new Date(t);
+    const iso = d.toISOString().slice(0, 10);
+    document.getElementById('reel-tc').textContent = iso;
+    const wk = Math.ceil(((t - Date.UTC(2026, 0, 1)) / 86400000 + 4) / 7);
+    document.getElementById('reel-tc-sub').textContent = DAYS[d.getUTCDay()] + ' · week ' + wk;
+    document.getElementById('reel-notes').textContent = interp('notes', t);
+    document.getElementById('reel-verdict').textContent = interp('verdict', t);
+    document.getElementById('reel-open').textContent = interp('open', t);
+    let ph = PHASES[0];
+    for (const p of PHASES) if (t >= day(p[0])) ph = p;
+    document.getElementById('reel-phase').textContent = ph[1];
+    document.getElementById('reel-task').textContent = ph[2];
+    document.getElementById('reel-active').textContent = t < day('2026-06-15') ? 1 : t < day('2026-08-01') ? 2 : 3;
+    const n = document.getElementById('reel-note');
+    if (iso >= '2026-06-01' && iso < '2026-07-01') n.innerHTML = 'Five weeks with one note in them. The record does not say why, and no surface but this one asks.';
+    else if (iso >= '2026-08-18' && iso <= '2026-08-29') n.innerHTML = 'Inside the selection: the verdict ledger and the fleet validator, eleven days, two phases closed.';
+    else n.innerHTML = 'Scrub anywhere. Every number here is interpolated between dates this repo actually measured.';
+  }
+  const frac = e => (e.clientX - body.getBoundingClientRect().left) / body.clientWidth;
+  let down = false;
+  scrub.addEventListener('pointerdown', e => { down = true; scrub.setPointerCapture(e.pointerId); setAt(frac(e)); });
+  scrub.addEventListener('pointerup', () => { down = false; });
+  scrub.addEventListener('pointermove', e => { if (down) setAt(frac(e)); });
+  setAt((day('2026-08-20') - START) / SPAN);
+})();
+</script>
+
+<!-- ============================ 4 · PULSE ============================ -->
+<style>
+  .m-pulse {
+    --p-bg: #07090C; --p-line: #1A1F26; --p-ink: #C8D2DE; --p-faint: #6A7787;
+    --p-live: #46D08A; --p-wait: #E8A33D; --p-cold: #4A5666;
+    background: var(--p-bg); color: var(--p-ink); font-family: var(--mono); font-size: 11.5px; min-width: 860px;
+  }
+  .pulse-top { display: flex; align-items: center; gap: 20px; padding: 12px 18px; border-bottom: 1px solid var(--p-line); }
+  .pulse-top .big { font-size: 17px; letter-spacing: .04em; }
+  .pulse-top .muted { color: var(--p-faint); }
+  .pulse-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 7px; }
+  .pulse-lane { display: grid; grid-template-columns: 210px 1fr 250px; border-bottom: 1px solid var(--p-line); align-items: center; }
+  .pulse-id { padding: 14px 16px; }
+  .pulse-id b { display: block; font-size: 13px; color: var(--p-ink); font-weight: 500; letter-spacing: .03em; }
+  .pulse-id span { color: var(--p-faint); display: block; }
+  .pulse-state { display: inline-block; margin-top: 7px; padding: 1px 8px; border-radius: 10px; font-size: 10px; letter-spacing: .09em; }
+  .pulse-trace { height: 74px; position: relative; }
+  .pulse-trace canvas { display: block; width: 100%; height: 100%; }
+  .pulse-trace em { position: absolute; left: 10px; top: 8px; font-style: normal; color: var(--p-faint); font-size: 10px;
+    text-shadow: 0 0 7px var(--p-bg), 0 0 7px var(--p-bg), 0 0 7px var(--p-bg); }
+  .pulse-gauges { padding: 12px 18px 12px 0; }
+  .pulse-g { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; }
+  .pulse-g label { color: var(--p-faint); width: 54px; font-size: 10px; letter-spacing: .06em; }
+  .pulse-bar { flex: 1; height: 7px; background: #12161C; border: 1px solid var(--p-line); position: relative; }
+  .pulse-bar i { position: absolute; left: 0; top: 0; bottom: 0; }
+  .pulse-g b { width: 44px; text-align: right; font-weight: 500; font-size: 10.5px; }
+  .pulse-alarm {
+    display: flex; align-items: center; gap: 12px; padding: 11px 18px;
+    background: #1E1207; border-top: 1px solid #4A2E10; color: var(--p-wait);
+  }
+  .pulse-alarm b { color: #FFD79A; font-weight: 500; }
+  .pulse-bar-actions { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--p-line); flex-wrap: wrap; }
+  .pulse-act { border: 1px solid var(--p-line); border-radius: 3px; padding: 5px 11px; color: var(--p-ink); }
+  .pulse-act u { text-decoration: none; color: var(--p-live); }
+</style>
+
+<section class="plate" data-design-region="pulse">
+  <div class="plate-head">
+    <span class="plate-num">04</span>
+    <span class="plate-name">PULSE</span>
+    <span class="plate-tag">an instrument wall for work you are not doing</span>
+  </div>
+  <p class="plate-lede">
+    The agent-hook feed already carries everything an instrument needs: which agent, which repo, which files, which notes, the prompt, the cost, the context window's <code>used_percentage</code>, and whether the session has been editing code with no task note open. <strong>Today that arrives as a one-line strip at the bottom of the cockpit.</strong> PULSE is the other extreme — a screen you do not read, you <em>monitor</em>, from across the room, while doing something else. Its unit is not the note. It is the session.
+  </p>
+
+  <div class="screen screen-scroll">
+  <div class="m-pulse" data-design-region="pulse-mock">
+    <div class="pulse-top">
+      <span class="big"><span class="pulse-dot" style="background:var(--p-live)"></span>3 sessions</span>
+      <span class="muted">2 running · 1 waiting for you · 0 stopped</span>
+      <span class="muted" style="margin-left:auto">$4.18 this hour &nbsp;·&nbsp; 14:22:07</span>
+    </div>
+
+    <div class="pulse-lane">
+      <div class="pulse-id">
+        <b>claude</b><span>project-os-cockpit</span>
+        <span class="pulse-state" style="background:#0D2A1C;color:var(--p-live)">WRITING · renderer.ts</span>
+      </div>
+      <div class="pulse-trace"><canvas data-trace="0"></canvas><em>Edit ×7 · Bash ×3 · Read ×22</em></div>
+      <div class="pulse-gauges">
+        <div class="pulse-g"><label>context</label><div class="pulse-bar"><i style="width:64%;background:var(--p-live)"></i></div><b>64%</b></div>
+        <div class="pulse-g"><label>cost</label><div class="pulse-bar"><i style="width:31%;background:var(--p-cold)"></i></div><b>$2.41</b></div>
+        <div class="pulse-g"><label>elapsed</label><div class="pulse-bar"><i style="width:48%;background:var(--p-cold)"></i></div><b>38m</b></div>
+      </div>
+    </div>
+
+    <div class="pulse-lane">
+      <div class="pulse-id">
+        <b>claude</b><span>your-trainer</span>
+        <span class="pulse-state" style="background:#2A1D07;color:var(--p-wait)">WAITING · approval</span>
+      </div>
+      <div class="pulse-trace"><canvas data-trace="1"></canvas><em>idle 4m 12s — asked to push to origin</em></div>
+      <div class="pulse-gauges">
+        <div class="pulse-g"><label>context</label><div class="pulse-bar"><i style="width:88%;background:var(--p-wait)"></i></div><b>88%</b></div>
+        <div class="pulse-g"><label>cost</label><div class="pulse-bar"><i style="width:61%;background:var(--p-cold)"></i></div><b>$1.44</b></div>
+        <div class="pulse-g"><label>elapsed</label><div class="pulse-bar"><i style="width:82%;background:var(--p-cold)"></i></div><b>1h 06m</b></div>
+      </div>
+    </div>
+
+    <div class="pulse-lane">
+      <div class="pulse-id">
+        <b>codex</b><span>xngr</span>
+        <span class="pulse-state" style="background:#0D2A1C;color:var(--p-live)">READING · 41 files</span>
+      </div>
+      <div class="pulse-trace"><canvas data-trace="2"></canvas><em>Grep ×14 · Read ×27 · no writes yet</em></div>
+      <div class="pulse-gauges">
+        <div class="pulse-g"><label>context</label><div class="pulse-bar"><i style="width:22%;background:var(--p-live)"></i></div><b>22%</b></div>
+        <div class="pulse-g"><label>cost</label><div class="pulse-bar"><i style="width:9%;background:var(--p-cold)"></i></div><b>$0.33</b></div>
+        <div class="pulse-g"><label>elapsed</label><div class="pulse-bar"><i style="width:14%;background:var(--p-cold)"></i></div><b>11m</b></div>
+      </div>
+    </div>
+
+    <div class="pulse-alarm">
+      <span>⚠</span><span><b>your-trainer</b> has been editing source for 14 minutes with no task note open — the record will not explain this commit.</span>
+      <span style="margin-left:auto">dismiss · open the repo</span>
+    </div>
+    <div class="pulse-bar-actions">
+      <span class="pulse-act"><u>A</u> approve the push</span>
+      <span class="pulse-act"><u>S</u> stop that session</span>
+      <span class="pulse-act"><u>T</u> take over the terminal</span>
+      <span class="pulse-act"><u>N</u> open the note it is writing</span>
+      <span class="pulse-act"><u>M</u> mute for 10 minutes</span>
+    </div>
+  </div>
+  </div>
+  <div class="screen-cap">Every field shown is one the agent-hook payload already carries. The alarm is the existing <code>undocumented</code> flag given a voice: <strong>a session editing code with no task note is the one failure this project's whole document-first rule exists to prevent</strong>, and right now it is a small grey word in a status strip.</div>
+
+  <div class="strip">
+    <div data-design-region="pulse-navigation">
+      <h4>Navigation</h4>
+      <p><strong>There is none, and that is the design.</strong> Nothing is nested, nothing scrolls, and no state is more than one keystroke away. It is built to be looked at from four feet away on a second monitor while you work on something else.</p>
+      <p>Interaction is <em>intervention</em>, never browsing: approve, stop, take over, mute. A verb that needs a second screen to complete does not belong here.</p>
+    </div>
+    <div data-design-region="pulse-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists, all of it.</strong> <code>agent_hooks.py</code> already records agent, session, prompts, files, <code>docs_notes</code>, cost, context percentage and the undocumented flag; the fleet already runs one sidecar per repo.</p>
+      <p><strong>New:</strong> only the aggregation — one socket carrying every workspace's sessions at once, rather than each sidecar knowing about its own.</p>
+    </div>
+    <div class="objection" data-design-region="pulse-objection">
+      <h4>The objection</h4>
+      <p><strong>An instrument wall for one person running two agents is cosplay.</strong> Most of this screen is empty most of the time, and a dashboard that is usually idle trains you to stop looking at it — which is worse than not having it when the one real alarm fires.</p>
+      <p>The honest version of PULSE may be much smaller: the alarm row alone, delivered as a notification, with no wall at all.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const canvases = Array.from(document.querySelectorAll('.m-pulse canvas'));
+  const host = document.querySelector('.m-pulse');
+  const cs = getComputedStyle(host);
+  const COL = [cs.getPropertyValue('--p-live').trim(), cs.getPropertyValue('--p-wait').trim(), cs.getPropertyValue('--p-live').trim()];
+  const LINE = cs.getPropertyValue('--p-line').trim();
+  const RATE = [.34, .015, .22];        // waiting lanes go quiet; that is the signal
+  const AMP  = [1, .28, .62];
+  const buf = canvases.map(() => new Array(300).fill(0));
+  let sd = 7717;
+  const rnd = () => (sd = (sd * 1103515245 + 12345) % 2147483648) / 2147483648;
+  let tick = 0;
+  function frame() {
+    tick++;
+    canvases.forEach((cv, k) => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = cv.clientWidth, h = cv.clientHeight;
+      if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (tick % 2 === 0) {
+        const b = buf[k];
+        b.shift();
+        b.push(rnd() < RATE[k] ? (.25 + rnd() * .75) * AMP[k] : rnd() * .06 * AMP[k]);
+      }
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = LINE; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, h - 8.5); ctx.lineTo(w, h - 8.5); ctx.stroke();
+      const b = buf[k], n = b.length, dx = w / n;
+      ctx.strokeStyle = COL[k]; ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = i * dx, y = h - 8 - b[i] * (h - 20);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = .16;
+      ctx.lineTo(w, h - 8); ctx.lineTo(0, h - 8); ctx.closePath();
+      ctx.fillStyle = COL[k]; ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+    requestAnimationFrame(frame);
+  }
+  frame();
+})();
+</script>
+
+<!-- ============================ 5 · ASK ============================ -->
+<style>
+  .m-ask {
+    display: grid; grid-template-columns: 190px 1fr 250px; min-width: 900px;
+    background: var(--surface); font-size: 13px; min-height: 470px;
+  }
+  .ask-threads { border-right: 1px solid var(--rule); padding: 14px 0; background: var(--sunk); }
+  .ask-threads h6 { margin: 0 14px 10px; font-family: var(--mono); font-size: 10px; letter-spacing: .11em; color: var(--ink-faint); text-transform: uppercase; font-weight: 500; }
+  .ask-thread { padding: 6px 14px; color: var(--ink-soft); font-size: 12.5px; line-height: 1.35; cursor: pointer; border-left: 2px solid transparent; }
+  .ask-thread.on { background: var(--surface); border-left-color: var(--accent); color: var(--ink); }
+  .ask-thread.child { padding-left: 28px; position: relative; color: var(--ink-faint); font-size: 12px; }
+  .ask-thread.child::before { content: "↳"; position: absolute; left: 15px; color: var(--ink-faint); }
+  .ask-conv { padding: 20px 26px; overflow: hidden; }
+  .ask-q { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .ask-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); margin-bottom: 16px; }
+  .ask-a { color: var(--ink-soft); line-height: 1.65; margin-bottom: 14px; }
+  .ask-a b { color: var(--ink); }
+  .cite {
+    font-family: var(--mono); font-size: 11px; background: var(--accent-soft); color: var(--accent);
+    border-radius: 3px; padding: 1px 5px; white-space: nowrap; cursor: pointer;
+  }
+  .ask-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 18px; }
+  .ask-card { border: 1px solid var(--rule); border-radius: 4px; padding: 10px 11px; font-size: 11.5px; background: var(--surface); }
+  .ask-card .k { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .ask-card .t { color: var(--ink); line-height: 1.4; }
+  .ask-fork {
+    border-top: 1px dashed var(--rule); margin-top: 4px; padding-top: 13px;
+    font-size: 12px; color: var(--ink-faint); display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .ask-chip { border: 1px solid var(--rule); border-radius: 12px; padding: 2px 10px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-soft); }
+  .ask-input { margin-top: 18px; border: 1px solid var(--border-strong, var(--rule)); border-radius: 6px; padding: 11px 13px; display: flex; gap: 10px; align-items: center; color: var(--ink-faint); }
+  .ask-shelf { border-left: 1px solid var(--rule); padding: 14px 15px; background: var(--sunk); }
+  .ask-shelf h6 { margin: 0 0 4px; font-family: var(--mono); font-size: 10px; letter-spacing: .11em; color: var(--ink-faint); text-transform: uppercase; font-weight: 500; }
+  .ask-shelf .hint { font-size: 11px; color: var(--ink-faint); margin-bottom: 12px; line-height: 1.4; }
+  .shelf-item { background: var(--surface); border: 1px solid var(--rule); border-radius: 4px; padding: 8px 10px; margin-bottom: 8px; font-size: 11.5px; }
+  .shelf-item .k { font-family: var(--mono); font-size: 10px; color: var(--ink-faint); }
+  .shelf-compose { width: 100%; margin-top: 6px; background: var(--accent); color: #fff; border: 0; border-radius: 4px; padding: 9px; font-size: 12px; font-family: var(--body); cursor: pointer; }
+</style>
+
+<section class="plate" data-design-region="ask">
+  <div class="plate-head">
+    <span class="plate-num">05</span>
+    <span class="plate-name">ASK</span>
+    <span class="plate-tag">the record, answering</span>
+  </div>
+  <p class="plate-lede">
+    <strong>1537 notes is past the size where a person can find an answer by reading.</strong> Half the corpus is reasoning — why the ledger is JSON, why the sweep was withdrawn, why a verdict is an event — and that reasoning is exactly what a new session, or a returning human, needs and cannot locate. ASK puts a prompt in front of it: the answer is prose with citations, every claim traceable to the note it came from, and the two moves borrowed from t3.codes are <strong>forking a thread</strong> and <strong>switching the model mid-conversation</strong> so two readings of the same question sit side by side.
+  </p>
+
+  <div class="screen screen-scroll">
+  <div class="m-ask" data-design-region="ask-mock">
+    <aside class="ask-threads">
+      <h6>threads</h6>
+      <div class="ask-thread on">Why is the ledger JSON and not YAML?</div>
+      <div class="ask-thread child">…answered again on opus</div>
+      <div class="ask-thread">What did PHASE-041 actually change?</div>
+      <div class="ask-thread">Which decisions has this repo reversed?</div>
+      <div class="ask-thread">What is owed on FEAT-0143?</div>
+      <div class="ask-thread child">…only the human-only ones</div>
+      <div class="ask-thread">Show me every rule about pushing</div>
+    </aside>
+
+    <div class="ask-conv">
+      <div class="ask-q">Why is the ledger JSON and not YAML?</div>
+      <div class="ask-meta">7 notes read · 1.2s · fable-5</div>
+      <div class="ask-a">
+        Because writing YAML would have been this repo's <b>first hand-rolled YAML writer</b>, on the one file CI appends to on every green build. The decision was measured rather than argued: <span class="cite">ledger.py</span> records that <code>yaml.dump</code> and <code>yaml.safe_dump</code> occur <b>zero</b> times in <code>src/</code> and <code>tools/scripts/</code> — PyYAML is a read-only dependency here, and every YAML file in the corpus is written by a person.
+      </div>
+      <div class="ask-a">
+        The second reason is YAML's implicit typing, which is a live hazard on a file of IDs, dates and short words: <code>no</code> becomes <code>False</code>, a bare date becomes a date object. <span class="cite">ADR-0037</span> settles it, and <span class="cite">ADR-0030</span> is the near-miss worth knowing about — it <em>rejected</em> a JSON file, on a distinction that does not reach this one.
+      </div>
+      <div class="ask-cards">
+        <div class="ask-card"><div class="k"><span>ADR-0037</span><span style="color:var(--status-done)">accepted</span></div><div class="t">A verdict is an event</div></div>
+        <div class="ask-card"><div class="k"><span>FEAT-0133</span><span style="color:var(--status-done)">done</span></div><div class="t">The ledger is the only place a verdict lives</div></div>
+        <div class="ask-card"><div class="k"><span>ADR-0030</span><span style="color:var(--status-archived)">superseded</span></div><div class="t">Acceptance checks are notes outside the test gates</div></div>
+      </div>
+      <div class="ask-fork">
+        <span>this thread was forked ·</span>
+        <span class="ask-chip">fable-5 · 1.2s</span><span>vs</span><span class="ask-chip">opus-5 · 4.8s</span>
+        <span style="margin-left:auto" class="keys"><kbd>⌥↵</kbd> fork here</span>
+      </div>
+      <div class="ask-input">
+        <span class="ask-chip">fable-5</span>
+        <span style="flex:1">Ask the record…</span>
+        <span class="keys"><kbd>⌘K</kbd> jump <kbd>⌥↵</kbd> fork <kbd>⇧⌘P</kbd> pin</span>
+      </div>
+    </div>
+
+    <aside class="ask-shelf">
+      <h6>the shelf</h6>
+      <div class="hint">Pinned cards outlive the thread. Three or more, and it will draft the note.</div>
+      <div class="shelf-item"><div class="k">ADR-0037</div>A verdict is an event</div>
+      <div class="shelf-item"><div class="k">ledger.py</div>zero yaml.dump calls in src/</div>
+      <div class="shelf-item"><div class="k">ISS-0206</div>A check cannot belong to a release</div>
+      <button class="shelf-compose">Draft an issue from 3 cards</button>
+    </aside>
+  </div>
+  </div>
+  <div class="screen-cap">The answer shown is real and checkable: the zero-<code>yaml.dump</code> measurement is in <code>ledger.py</code>'s module docstring today. <strong>The shelf is the part that is not a chat app</strong> — pinned citations compose into a draft note, so asking a question ends in the record rather than in a transcript nobody keeps.</div>
+
+  <div class="strip">
+    <div data-design-region="ask-navigation">
+      <h4>Navigation</h4>
+      <p>You type. There is no hierarchy to learn, which is the entire appeal at 1537 notes — and the entire risk, because a prompt with nothing on screen gives a newcomer no idea what can be asked.</p>
+      <p>The thread rail is the only structure, and it is a <strong>tree, not a list</strong>: forking at any answer is how you compare two readings instead of losing the first one.</p>
+    </div>
+    <div data-design-region="ask-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> the full corpus, the index, and the wikilink graph for expanding a citation into its neighbours.</p>
+      <p><strong>New:</strong> retrieval over the notes, a model call from the sidecar — which today has no outbound network path and deliberately so — and a rule for what an answer may claim. An answer that cites a note it did not read is exactly the failure <code>DESIGN.md</code>'s first line forbids.</p>
+    </div>
+    <div class="objection collides" data-design-region="ask-objection">
+      <h4>The objection</h4>
+      <p><strong>PHASE-028 already ruled this out, in writing.</strong> Its own out-of-scope list names "a conversation UI" among the things "T3 does well and the cockpit should not", on the ground that every hour spent building a harness is an hour not spent on the governance layer nobody else is building.</p>
+      <p>Proposing it anyway needs a reason that decision was wrong. The candidate: that phase was about <em>driving agents</em>, and this is about <em>reading the record</em> — a different thing that happens to share a text box. That may be a real distinction or a convenient one, and it is Edwin's call, not mine.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 6 · DECK ============================ -->
+<style>
+  .m-deck {
+    --d-felt: #2C3A34; --d-card: #FBFAF6; --d-ink: #1D2124; --d-soft: #5C646B; --d-rule: #E2DFD6;
+    background: var(--d-felt); min-height: 500px; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; padding: 34px 20px;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .m-deck { --d-felt: #1A211E; } }
+  :root[data-theme="dark"] .m-deck { --d-felt: #1A211E; }
+  .deck-count {
+    position: absolute; top: 18px; left: 22px; font-family: var(--mono); font-size: 11px;
+    color: #9FB0A8; letter-spacing: .08em;
+  }
+  .deck-count i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #4E5F58; margin-right: 4px; }
+  .deck-count i.on { background: #9FB0A8; }
+  .deck-stack { position: relative; width: 420px; height: 396px; }
+  .deck-card {
+    position: absolute; inset: 0; background: var(--d-card); color: var(--d-ink);
+    border-radius: 8px; padding: 26px 28px; box-shadow: 0 14px 34px rgb(0 0 0 / .34);
+    transition: transform .34s cubic-bezier(.3,.7,.3,1), opacity .34s;
+    display: flex; flex-direction: column;
+  }
+  .deck-kind { font-family: var(--mono); font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; color: #8A6B2E; margin-bottom: 16px; }
+  .deck-id { font-family: var(--mono); font-size: 12.5px; color: var(--d-soft); }
+  .deck-title { font-family: var(--display); font-size: 25px; line-height: 1.22; margin: 5px 0 16px; }
+  .deck-body { font-size: 13.5px; line-height: 1.62; color: var(--d-soft); }
+  .deck-body b { color: var(--d-ink); }
+  .deck-foot { margin-top: auto; border-top: 1px solid var(--d-rule); padding-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .deck-btn {
+    font-family: var(--mono); font-size: 11px; border: 1px solid var(--d-rule); border-radius: 4px;
+    padding: 7px 11px; cursor: pointer; background: #fff; color: var(--d-ink);
+  }
+  .deck-btn.primary { background: var(--d-ink); color: var(--d-card); border-color: var(--d-ink); }
+  .deck-btn u { text-decoration: none; opacity: .55; }
+  .deck-side {
+    position: absolute; right: 26px; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 11px; color: #9FB0A8; line-height: 2; max-width: 200px;
+  }
+  .deck-side kbd { border: 1px solid #4E5F58; border-radius: 3px; padding: 1px 5px; margin-right: 6px; }
+  .deck-toast {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: rgb(0 0 0 / .5); color: #DCE6E1; font-family: var(--mono); font-size: 11px;
+    padding: 7px 14px; border-radius: 20px; opacity: 0; transition: opacity .25s;
+  }
+</style>
+
+<section class="plate" data-design-region="deck">
+  <div class="plate-head">
+    <span class="plate-num">06</span>
+    <span class="plate-name">DECK</span>
+    <span class="plate-tag">one thing, then the next thing</span>
+  </div>
+  <p class="plate-lede">
+    Every other design here shows you <em>more</em>. DECK shows you <strong>less, on purpose</strong>: one obligation, filling the screen, with no way to see the queue behind it and no way to browse. You answer it or you defer it, and the next one comes up. The measured case for it is blunt — <strong>70 notes in this repo carry a reviewer's <code>changes-requested</code> and 61 of them are already at a terminal status</strong>, a backlog that grew by 21 in the sixteen days since it was last written down. That is not a discovery problem. Nobody is going to browse their way out of it.
+  </p>
+
+  <div class="screen m-deck" data-design-region="deck-mock">
+    <div class="deck-count" id="deck-count"></div>
+    <div class="deck-stack" id="deck-stack"></div>
+    <div class="deck-side">
+      <div><kbd>→</kbd>discharge</div>
+      <div><kbd>←</kbd>later</div>
+      <div><kbd>↑</kbd>escalate</div>
+      <div><kbd>↓</kbd>delegate</div>
+      <div><kbd>⌫</kbd>undo</div>
+      <div style="margin-top:14px;opacity:.7">no list. no search.<br>the queue decides.</div>
+    </div>
+    <div class="deck-toast" id="deck-toast"></div>
+  </div>
+  <div class="screen-cap">Click a verb, or use the arrow keys. The four cards are real obligations this repo owes right now — a stale verdict, an untriaged issue eleven days open, this design's own review, and three unpushed commits in a fleet repo.</div>
+
+  <div class="strip">
+    <div data-design-region="deck-navigation">
+      <h4>Navigation</h4>
+      <p><strong>None, deliberately.</strong> No list, no search, no back. The queue picks; you judge. It is the Superhuman/Things model, and its whole value is removing the decision about <em>what to look at</em>, which is where a backlog of 61 actually dies.</p>
+      <p>Sized for a phone or a tablet on the sofa, because the state it is designed for is "ten minutes, not at my desk".</p>
+    </div>
+    <div data-design-region="deck-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> <code>obligations.py</code> already computes what is owed and <code>approvals.py</code> already knows which verbs are human-only. The stale-verdict rule already ships as <code>REVIEW-STALE</code> in the validator.</p>
+      <p><strong>New:</strong> an ordering — the hard part. A queue that deals the wrong card first is worse than a list, because you cannot see past it to the one that mattered.</p>
+    </div>
+    <div class="objection collides" data-design-region="deck-objection">
+      <h4>The objection</h4>
+      <p><strong>ADR-0020 says obligations live with their subject, not in a central queue you visit.</strong> DECK is precisely the central queue that decision rejected, and the reason it was rejected still holds: a verdict made without the note around it is a verdict made without its context.</p>
+      <p>The narrow defence is that a card is not a queue-with-a-list — it can carry the whole subject, and a card that cannot is one that should open the note instead. Whether that satisfies ADR-0020 or evades it is the argument to have before anyone builds this.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const CARDS = [
+    { kind: 'a verdict is unanswered', id: 'ADR-0037 · accepted 2026-08-20',
+      title: 'A verdict is an event',
+      body: 'A reviewer wrote <b>changes-requested</b> on 19 August. The note reached <b>accepted</b> the next day and no <code>review_response</code> was ever recorded — so the record still shows an open objection against finished work.<br><br>You cannot clear someone else\'s verdict. You can say what was done about it.',
+      acts: [['Write the response', 1], ['Later', 0], ['Open the note', 0]] },
+    { kind: 'eleven days at triage', id: 'ISS-0260 · open · unowned',
+      title: 'Unparseable frontmatter is validated against a different note',
+      body: '<code>load_yaml</code> swallows the parse error and the lenient fallback answers, so a note that is not YAML is checked against a <b>different reading of itself</b>. It hid a defect through two green pre-commit runs.<br><br>Nobody owns it. It has been open since 29 August.',
+      acts: [['Take it', 1], ['Assign', 0], ['Later', 0]] },
+    { kind: 'a design awaits a person', id: 'DES-0013 · proposed',
+      title: 'Nine ways to read the record',
+      body: 'Offered for review today. <b>A design verdict is human-only</b> and enforced server-side by REQ-0026 — no agent can approve this, including the one that wrote it.<br><br>Nine plates. Two of them argue with decisions you have already taken.',
+      acts: [['Approve', 1], ['Request changes', 0], ['Later', 0]] },
+    { kind: 'work is finished and unpublished', id: 'your-trainer · 3 commits',
+      title: 'Nothing has been pushed since 29 August',
+      body: 'Three local commits, seven days old. <b>Publishing is a person\'s act</b> — the tool commits and never pushes on its own initiative.<br><br>This repo\'s remote is a normal forge, not one of the deploy remotes the fleet refuses.',
+      acts: [['Push', 1], ['Show the diff', 0], ['Later', 0]] },
+  ];
+  const stack = document.getElementById('deck-stack');
+  const count = document.getElementById('deck-count');
+  const toast = document.getElementById('deck-toast');
+  let top = 0, done = 0;
+
+  function render() {
+    stack.innerHTML = '';
+    for (let d = 2; d >= 0; d--) {
+      const c = CARDS[(top + d) % CARDS.length];
+      const el = document.createElement('div');
+      el.className = 'deck-card';
+      el.style.transform = 'translateY(' + (-d * 15) + 'px) scale(' + (1 - d * .052) + ')';
+      el.style.zIndex = 10 - d;
+      el.style.opacity = d === 2 ? .5 : 1;
+      el.innerHTML =
+        '<div class="deck-kind">' + c.kind + '</div>' +
+        '<div class="deck-id">' + c.id + '</div>' +
+        '<div class="deck-title">' + c.title + '</div>' +
+        '<div class="deck-body">' + c.body + '</div>' +
+        '<div class="deck-foot">' + c.acts.map(([t, p], i) =>
+          '<span class="deck-btn' + (p ? ' primary' : '') + '" data-act="' + t + '"><u>' + (i === 0 ? '→ ' : i === 1 ? '← ' : '') + '</u>' + t + '</span>').join('') + '</div>';
+      if (d === 0) el.querySelectorAll('[data-act]').forEach(b =>
+        b.addEventListener('click', () => advance(b.getAttribute('data-act'))));
+      stack.appendChild(el);
+    }
+    count.innerHTML = Array.from({ length: 4 }, (_, i) => '<i class="' + (i < done ? 'on' : '') + '"></i>').join('') +
+      ' &nbsp;' + Math.min(done + 1, 4) + ' of 4 · 12 more behind them';
+  }
+  let busy = false;
+  function advance(label) {
+    if (busy) return; busy = true;
+    const front = stack.lastChild;
+    front.style.transform = 'translateX(460px) rotate(9deg)';
+    front.style.opacity = '0';
+    toast.textContent = label + ' — ⌫ to undo';
+    toast.style.opacity = '1';
+    setTimeout(() => { toast.style.opacity = '0'; }, 2200);
+    setTimeout(() => { top = (top + 1) % CARDS.length; done = (done + 1) % 5; render(); busy = false; }, 300);
+  }
+  document.addEventListener('keydown', e => {
+    if (!stack.getBoundingClientRect().height) return;
+    const r = stack.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) return;
+    const m = { ArrowRight: 'Discharged', ArrowLeft: 'Deferred', ArrowUp: 'Escalated', ArrowDown: 'Delegated' }[e.key];
+    if (m) { e.preventDefault(); advance(m); }
+  });
+  render();
+})();
+</script>
+
+<!-- ============================ 7 · LEDGER ============================ -->
+<style>
+  .m-ledger { display: grid; grid-template-columns: 158px 1fr; min-width: 860px; background: var(--surface); font-size: 12px; }
+  .led-views { border-right: 1px solid var(--rule); background: var(--sunk); padding: 12px 0; }
+  .led-views h6 { margin: 0 12px 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .11em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+  .led-view { padding: 5px 12px; color: var(--ink-soft); cursor: pointer; font-size: 12px; border-left: 2px solid transparent; }
+  .led-view.on { background: var(--surface); border-left-color: var(--accent); color: var(--ink); font-weight: 600; }
+  .led-view span { float: right; color: var(--ink-faint); font-family: var(--mono); font-size: 10.5px; font-weight: 400; }
+  .led-chips { display: flex; gap: 7px; padding: 9px 12px; border-bottom: 1px solid var(--rule); align-items: center; flex-wrap: wrap; }
+  .led-chip { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--rule); border-radius: 3px; padding: 3px 8px; color: var(--ink-soft); background: var(--sunk); cursor: pointer; }
+  .led-chip b { color: var(--ink); font-weight: 600; }
+  .led-chip.add { border-style: dashed; color: var(--ink-faint); }
+  .m-ledger table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 11.5px; }
+  .m-ledger th {
+    text-align: left; padding: 7px 7px; border-bottom: 1px solid var(--rule); color: var(--ink-faint);
+    font-weight: 500; font-size: 10px; letter-spacing: .07em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  }
+  .m-ledger th:hover { color: var(--ink); }
+  .m-ledger th.sorted { color: var(--accent); }
+  .m-ledger td { padding: 5px 7px; border-bottom: 1px solid var(--rule-soft); white-space: nowrap; color: var(--ink-soft); }
+  .m-ledger tr:hover td { background: var(--sunk); }
+  .m-ledger td.t { font-family: var(--body); color: var(--ink); max-width: 230px; overflow: hidden; text-overflow: ellipsis; }
+  .m-ledger td.id { color: var(--accent); }
+  .m-ledger tr.grp td { background: var(--sunk); color: var(--ink-faint); font-size: 10px; letter-spacing: .09em; text-transform: uppercase; padding: 6px 9px; }
+  .m-ledger tr.sel td { background: var(--accent-soft); }
+  .led-num { text-align: right; }
+  .led-bulk {
+    display: flex; gap: 10px; align-items: center; padding: 9px 12px;
+    border-top: 1px solid var(--rule); background: var(--accent-soft); font-family: var(--mono); font-size: 11px; color: var(--ink);
+  }
+  .led-bulk b { color: var(--accent); }
+  .led-foot { padding: 8px 12px; font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); border-top: 1px solid var(--rule); display: flex; gap: 18px; flex-wrap: wrap; }
+</style>
+
+<section class="plate" data-design-region="ledger">
+  <div class="plate-head">
+    <span class="plate-num">07</span>
+    <span class="plate-name">LEDGER</span>
+    <span class="plate-tag">the one with no pictures</span>
+  </div>
+  <p class="plate-lede">
+    <strong>Eight of these nine designs answer a question somebody anticipated.</strong> This one answers the question nobody did. Every note is a row, every frontmatter field is a column, and any combination of them is two clicks away — including combinations no view will ever be built for, like <em>issues opened before August, still unowned, whose phase is closed</em>. It is the escape hatch, it will be the least beautiful thing in the project, and it is the design most likely to be used every day.
+  </p>
+
+  <div class="screen screen-scroll">
+  <div class="m-ledger" data-design-region="ledger-mock">
+    <aside class="led-views">
+      <h6>saved views</h6>
+      <div class="led-view on">owed and old <span>42</span></div>
+      <div class="led-view">terminal, verdict unanswered <span>61</span></div>
+      <div class="led-view">unowned issues <span>16</span></div>
+      <div class="led-view">nothing links to it <span>88</span></div>
+      <div class="led-view">gates REL-0001 <span>32</span></div>
+      <div class="led-view">fleet · all 12 repos <span>7.4k</span></div>
+      <h6 style="margin-top:16px">columns</h6>
+      <div class="led-view" style="color:var(--ink-faint)">+ any frontmatter key</div>
+    </aside>
+    <div>
+      <div class="led-chips">
+        <span class="led-chip">type <b>= issue, feature</b></span>
+        <span class="led-chip">status <b>≠ done, fixed</b></span>
+        <span class="led-chip">updated <b>&lt; 2026-08-01</b></span>
+        <span class="led-chip add">+ filter</span>
+        <span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink-faint)">group by <b style="color:var(--ink)">phase</b></span>
+      </div>
+      <div style="overflow-x:auto"><table id="led-table"></table></div>
+      <div class="led-bulk">
+        <b>3 selected</b><span>·</span>
+        <span>transition to…</span><span>assign owner…</span><span>add to phase…</span><span>copy as markdown</span><span>export CSV</span>
+        <span style="margin-left:auto" class="keys"><kbd>⌘A</kbd> all <kbd>⇧↓</kbd> extend</span>
+      </div>
+      <div class="led-foot">
+        <span>1537 rows · <b>42 match</b></span><span>sorted by <b>days owed</b> ↓</span><span>view “owed and old” saved 2026-09-01</span><span>⌘F to filter · ⌘⇧E to export</span>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div class="screen-cap">Click a column header to re-sort. Nothing here is invented: these are real notes at their real statuses, and <code>days owed</code> is the kind of derived column a table gets for free and a purpose-built view never has.</div>
+
+  <div class="strip">
+    <div data-design-region="ledger-navigation">
+      <h4>Navigation</h4>
+      <p>Cells and keyboard. Arrow keys move, <code>⌘F</code> filters, <code>⇧↓</code> extends a selection, <code>⌘⇧E</code> exports. Views are saved and named, so a question you asked once becomes a place you can go back to — the closest thing here to a bookmark.</p>
+      <p>It is the only one of the nine where <strong>you</strong> decide what the layout is.</p>
+    </div>
+    <div data-design-region="ledger-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> essentially all of it. The index parses every note's frontmatter already; this is a table over what is in memory.</p>
+      <p><strong>New:</strong> the write path is the risk, not the read path. Bulk transition across 42 rows is 42 chances to corrupt the record, and every one of them has to pass the same server-side guards a single edit does.</p>
+    </div>
+    <div class="objection" data-design-region="ledger-objection">
+      <h4>The objection</h4>
+      <p><strong>A general tool answers every question badly.</strong> A table that can express anything expresses nothing in particular — which is why the cockpit's opinionated views exist, and why "add a filter for that" is the answer that has quietly killed a hundred good products.</p>
+      <p>There is also a real hazard: bulk edit makes it <em>easy</em> to set forty statuses at once, and a status set in bulk is a status nobody thought about.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const ROWS = [
+    ['ISS-0277', 'Nothing detects a stale or broken vendored cockpit', 'issue', 'open', 'PHASE-999', '—', '2026-09-02', 3, 4],
+    ['ISS-0276', 'Twenty-one tests still measure a character distance', 'issue', 'open', 'PHASE-999', '—', '2026-09-02', 3, 6],
+    ['ISS-0260', 'Unparseable frontmatter is validated against a different note', 'issue', 'open', 'PHASE-999', '—', '2026-08-29', 7, 9],
+    ['ISS-0258', 'A release cannot derive what it broke', 'issue', 'open', 'PHASE-999', '—', '2026-08-29', 7, 5],
+    ['ISS-0257', 'The sync carries upstream’s build output', 'issue', 'open', 'PHASE-999', '—', '2026-08-29', 7, 3],
+    ['ISS-0254', 'The release guard enumerates spellings', 'issue', 'open', 'PHASE-041', '—', '2026-08-27', 9, 4],
+    ['ISS-0126', 'The write surface needs a decision before the worker runs', 'issue', 'deferred', 'PHASE-026', 'edwin', '2026-08-11', 25, 22],
+    ['FEAT-0079', 'Supervision from a phone', 'feature', 'planned', 'PHASE-028', 'edwin', '2026-08-05', 31, 11],
+    ['FEAT-0080', 'The harness survey', 'feature', 'planned', 'PHASE-028', 'edwin', '2026-08-05', 31, 8],
+    ['RISK-0006', 'The worker runs unsupervised', 'risk', 'mitigating', 'PHASE-031', 'edwin', '2026-08-05', 31, 7],
+    ['PHASE-031', 'The supervised week', 'phase', 'planned', '—', 'edwin', '2026-08-05', 31, 5],
+    ['PHASE-040', 'The agent session is not a terminal', 'phase', 'planned', '—', 'edwin', '2026-08-27', 9, 6],
+    ['DES-0003', 'Intent page and claims board', 'design', 'proposed', 'PHASE-023', 'edwin', '2026-07-28', 39, 12],
+    ['TST-0044', 'The overview reports a stale window', 'test', 'todo', 'PHASE-030', '—', '2026-07-21', 46, 3],
+  ];
+  const COLS = [['id', 0], ['title', 1], ['status', 3], ['owner', 5], ['updated', 6], ['days owed', 7], ['links', 8]];
+  const BAND = {
+    open: '--status-pending', planned: '--status-pending', proposed: '--status-pending', todo: '--status-pending',
+    deferred: '--status-reference', mitigating: '--status-active',
+  };
+  const table = document.getElementById('led-table');
+  let sort = 7, dir = -1;
+  function draw() {
+    const rows = ROWS.slice().sort((a, b) => {
+      const x = a[sort], y = b[sort];
+      return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * dir;
+    });
+    let html = '<thead><tr><th style="width:22px"></th>' + COLS.map(([n, i]) =>
+      '<th class="' + (i === sort ? 'sorted' : '') + '" data-c="' + i + '">' + n + (i === sort ? (dir < 0 ? ' ↓' : ' ↑') : '') + '</th>').join('') + '</tr></thead><tbody>';
+    let group = null;
+    for (const r of rows) {
+      if (r[4] !== group) { group = r[4]; html += '<tr class="grp"><td colspan="10">' + (group === '—' ? 'no phase' : group) + '</td></tr>'; }
+      const sel = ['ISS-0260', 'ISS-0258', 'ISS-0257'].includes(r[0]);
+      html += '<tr class="' + (sel ? 'sel' : '') + '"><td>' + (sel ? '☑' : '☐') + '</td>' +
+        '<td class="id">' + r[0] + '</td><td class="t" title="' + r[1] + '">' + r[1] + '</td>' +
+        '<td style="color:var(' + (BAND[r[3]] || '--status-default') + ')">' + r[3] + '</td>' +
+        '<td>' + r[5] + '</td><td>' + r[6] + '</td>' +
+        '<td class="led-num">' + r[7] + '</td><td class="led-num">' + r[8] + '</td></tr>';
+    }
+    table.innerHTML = html + '</tbody>';
+    table.querySelectorAll('th[data-c]').forEach(th => th.addEventListener('click', () => {
+      const c = +th.getAttribute('data-c');
+      if (c === sort) dir = -dir; else { sort = c; dir = c === 7 || c === 8 ? -1 : 1; }
+      draw();
+    }));
+  }
+  draw();
+})();
+</script>
+
+<!-- ============================ 8 · BROADSHEET ============================ -->
+<style>
+  .m-broad {
+    --b-paper: #F3F0E7; --b-ink: #14120E; --b-soft: #46433B; --b-rule: #C7C1B0; --b-faint: #7C7768;
+    background: var(--b-paper); color: var(--b-ink); padding: 30px 34px 34px;
+    font-family: var(--display); min-width: 880px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .m-broad { --b-paper: #14130F; --b-ink: #E9E5D9; --b-soft: #B6B1A2; --b-rule: #3A362C; --b-faint: #8B8676; }
+  }
+  :root[data-theme="dark"] .m-broad { --b-paper: #14130F; --b-ink: #E9E5D9; --b-soft: #B6B1A2; --b-rule: #3A362C; --b-faint: #8B8676; }
+  .b-masthead { text-align: center; border-bottom: 3px double var(--b-ink); padding-bottom: 9px; }
+  .b-masthead h2 { margin: 0; font-size: 44px; letter-spacing: .06em; font-weight: 400; line-height: 1; }
+  .b-masthead .motto { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--b-faint); margin-top: 7px; }
+  .b-dateline {
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .06em; color: var(--b-faint);
+    padding: 6px 0; border-bottom: 1px solid var(--b-rule); text-transform: uppercase;
+  }
+  .b-grid { display: grid; grid-template-columns: 1fr 232px; gap: 0; }
+  .b-main { padding: 16px 22px 0 0; border-right: 1px solid var(--b-rule); }
+  .b-rail { padding: 16px 0 0 22px; }
+  .b-kicker { font-family: var(--mono); font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--severity-critical); margin-bottom: 6px; }
+  .b-head { font-size: 33px; line-height: 1.08; margin: 0 0 8px; font-weight: 400; }
+  .b-deck { font-size: 15px; line-height: 1.4; color: var(--b-soft); font-style: italic; margin-bottom: 12px; }
+  .b-byline { font-family: var(--mono); font-size: 9.5px; letter-spacing: .1em; color: var(--b-faint); border-top: 1px solid var(--b-rule); border-bottom: 1px solid var(--b-rule); padding: 4px 0; margin-bottom: 12px; text-transform: uppercase; }
+  .b-cols { column-count: 3; column-gap: 20px; column-rule: 1px solid var(--b-rule); font-size: 12.5px; line-height: 1.52; color: var(--b-soft); text-align: justify; hyphens: auto; }
+  .b-cols p { margin: 0 0 9px; }
+  .b-cols p:first-child::first-letter { float: left; font-size: 44px; line-height: .82; padding: 3px 6px 0 0; color: var(--b-ink); }
+  .b-sub { font-family: var(--mono); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--b-ink); margin: 14px 0 5px; border-top: 2px solid var(--b-ink); padding-top: 5px; }
+  .b-box { border: 1px solid var(--b-rule); padding: 11px 13px; margin-bottom: 14px; }
+  .b-box h6 { margin: 0 0 7px; font-family: var(--mono); font-size: 9.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--b-ink); }
+  .b-box p, .b-box li { font-size: 11.5px; line-height: 1.48; color: var(--b-soft); margin: 0 0 7px; }
+  .b-box ul { margin: 0; padding-left: 15px; }
+  .b-box .src { font-family: var(--mono); font-size: 9.5px; color: var(--b-faint); }
+  .b-strip { display: grid; grid-template-columns: 1fr 268px; gap: 0 22px; margin-top: 6px; }
+  .b-strip .b-box ul { column-count: 2; column-gap: 20px; }
+  @media (max-width: 700px) { .b-strip { grid-template-columns: 1fr; } }
+  .b-nums { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 10.5px; }
+  .b-nums td { padding: 2.5px 0; border-bottom: 1px dotted var(--b-rule); color: var(--b-soft); }
+  .b-nums td:last-child { text-align: right; color: var(--b-ink); }
+  .b-foot { border-top: 3px double var(--b-ink); margin-top: 16px; padding-top: 8px; display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--mono); font-size: 9.5px; color: var(--b-faint); letter-spacing: .05em; }
+</style>
+
+<section class="plate" data-design-region="broadsheet">
+  <div class="plate-head">
+    <span class="plate-num">08</span>
+    <span class="plate-name">BROADSHEET</span>
+    <span class="plate-tag">the week, set in type, on paper</span>
+  </div>
+  <p class="plate-lede">
+    The one design here that is <strong>not an application at all</strong>. Every Monday the corpus is typeset into a page: what shipped, what broke, what the record got wrong, and what died. It arrives by email, prints on A3, and reads on an e-ink tablet with no server running. Its real argument is the <em>Corrections</em> box — this project has now formally corrected its own documentation three times, and those corrections are currently buried in the files they correct. A newspaper is the only format where being wrong last week is a standing column rather than an embarrassment.
+  </p>
+
+  <div class="screen screen-scroll">
+  <div class="m-broad" data-design-region="broadsheet-mock">
+    <div class="b-masthead">
+      <h2>The Project-OS Record</h2>
+      <div class="motto">What the repository did, and what it got wrong</div>
+    </div>
+    <div class="b-dateline">
+      <span>Vol. I · No. 36</span><span>project-os-cockpit</span>
+      <span>Week of 31 August – 6 September 2026</span>
+      <span>1537 notes · 16148 links</span><span>set 06:00, Monday</span>
+    </div>
+
+    <div class="b-grid">
+      <div class="b-main">
+        <div class="b-kicker">Verification</div>
+        <h1 class="b-head">Five failing tests were measuring the wrong thing</h1>
+        <div class="b-deck">A green suite is not evidence: the tests asserted a character distance, and the behaviour they were written to protect had moved on without them.</div>
+        <div class="b-byline">Filed 2 September · CHG-20260902 · twenty-one more still measure it · ISS-0276</div>
+        <div class="b-cols">
+          <p>The failures were real and the tests were wrong, which is the harder of the two cases to spot. Each of the five asserted a distance between characters rather than the behaviour that distance happened to produce, so a legitimate change to the surface broke them without breaking anything a reader would notice.</p>
+          <p>The repair was not to make them pass. Four were rewritten to assert the observable behaviour; one was deleted, on the ground that nothing it covered was still true. The sweep then found twenty-one more of the same shape, which have been filed rather than fixed — the fix is a day's work and the filing is honest about that.</p>
+          <p>The wider lesson is recorded in the same change note: a suite that goes green after an edit tells you the edit did not break the suite, and nothing more. Where the suite is the only evidence, that is the whole verification argument, and it is thinner than it looks.</p>
+        </div>
+
+        <div class="b-sub">Also this week</div>
+        <div class="b-cols" style="column-count:2">
+          <p><b>The inbox takes any file type.</b> Material dropped for triage is no longer restricted to text — a screenshot, an export or a log now lands intact, because the thing a person drops is rarely the thing a parser expects.</p>
+          <p><b>The writing rules reached the fleet.</b> Every repo now carries the same prose guidance, after a reader reported the documentation was pitched "at a very high level of abstraction". The rules are unglamorous: point first, one idea per sentence, gloss your own vocabulary.</p>
+          <p><b>The gate is installed everywhere and blocks nowhere.</b> Four repos migrated to the shared validator; acceptance checks now fire as warnings only, until the grandfather window closes on 20 November. Installing a gate and having it block are two different dates, and only one of them has happened.</p>
+        </div>
+
+        <div class="b-sub">Leader</div>
+        <div class="b-cols" style="column-count:2">
+          <p style="font-family:var(--display);font-size:14px">“The cockpit is how a person governs a project they did not write. It must not be able to say something false about that project without saying so.”</p>
+          <p>That sentence is assembled from four notes and quoted in the release. It is also the standard this page is held to. A weekly paper generated from the record is the easiest place in the project to say something false — it summarises, and a summary is a claim with its evidence removed.</p>
+          <p>So every line above carries the note it came from, nothing on this page was written by hand, and the Corrections column runs whether or not there is anything cheerful to put beside it. A paper that only prints the good weeks is an advertisement.</p>
+        </div>
+      </div>
+
+      <aside class="b-rail">
+        <div class="b-box" style="border-width:2px">
+          <h6>Corrections</h6>
+          <p>This paper described the cockpit as consumed through a thin shim in each repo's <code>tools/project-os-cockpit/</code>. <b>No such directory has ever existed in any fleet repo.</b> The shim was PHASE-003's plan; workspace discovery replaced the need before it was built. The claim stood for months and pointed every session at something that was not there.</p>
+          <p>A registry row listed PHASE-004 as <i>planned</i> against a note that has said <i>done</i> since 20 July.</p>
+          <p>The stale-verdict backlog was reported here as 49 notes on 20 August. <b>It is 70, and 61 of them are finished work.</b></p>
+          <span class="src">CLAUDE.md · PHASES.md · measured 5 Sep</span>
+        </div>
+
+        <div class="b-box">
+          <h6>Weather</h6>
+          <p><b>Clear in the working tree.</b> No validator errors; two warnings expected.</p>
+          <p>Fronts moving in: <b>18 Nov</b>, REVIEW-STALE hardens — 61 notes exposed. <b>20 Nov</b>, the acceptance gate stops warning and starts blocking in four repos.</p>
+        </div>
+
+        <div class="b-box">
+          <h6>Obituaries</h6>
+          <ul>
+            <li><b>PHASE-017, 018, 019.</b> Absorbed into PHASE-016 on 30 July, aged one day. Their notes survive them.</li>
+            <li><b>The sweep.</b> Withdrawn by ADR-0036 after it was found to answer a question nobody had asked.</li>
+            <li><b>ADR-0030's checks.</b> Retired by ADR-0031; one test type now, and acceptance is a level.</li>
+          </ul>
+        </div>
+
+      </aside>
+    </div>
+
+    <div class="b-strip">
+      <div class="b-box">
+          <h6>Situations vacant</h6>
+          <p class="src">Six issues seek an owner</p>
+          <ul>
+            <li>ISS-0260 — a note that is not YAML is validated against a different reading of itself. <i>Eleven days.</i></li>
+            <li>ISS-0277 — nothing detects a stale vendored cockpit.</li>
+            <li>ISS-0258 — a release cannot derive what it broke.</li>
+          </ul>
+        </div>
+
+      <div class="b-box">
+          <h6>The week in numbers</h6>
+          <table class="b-nums">
+            <tr><td>notes added</td><td>9</td></tr>
+            <tr><td>commits</td><td>14</td></tr>
+            <tr><td>issues opened</td><td>4</td></tr>
+            <tr><td>issues closed</td><td>1</td></tr>
+            <tr><td>phases active</td><td>1</td></tr>
+            <tr><td>unpushed commits</td><td>14</td></tr>
+          </table>
+        </div>
+    </div>
+
+    <div class="b-foot">
+      <span>Leader, p.2: “The cockpit is how a person governs a project they did not write.”</span>
+      <span style="margin-left:auto">Printed from the record. Nothing here was written by hand.</span>
+    </div>
+  </div>
+  </div>
+  <div class="screen-cap">Every story, correction and obituary on this page is a real note in this repository this week. <strong>The corrections are the point:</strong> three documented cases where the record said something false, currently readable only inside the files that were wrong.</div>
+
+  <div class="strip">
+    <div data-design-region="broadsheet-navigation">
+      <h4>Navigation</h4>
+      <p><strong>You turn a page.</strong> No state, no filters, no session — and therefore no way to avoid the parts you would have skipped. A newspaper's editorial judgment is a feature: something decided this was the lead, and you read the corrections because they are next to it.</p>
+      <p>It is the only design here that works with the machine off.</p>
+    </div>
+    <div data-design-region="broadsheet-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> change notes are already dated and titled like headlines; statuses, phases and the validator's forecast are all queryable today.</p>
+      <p><strong>New:</strong> the editing. Which of eleven changes is the lead, and which four are a paragraph, is a judgment — and a paper that leads with the wrong thing every week gets thrown away unopened.</p>
+    </div>
+    <div class="objection" data-design-region="broadsheet-objection">
+      <h4>The objection</h4>
+      <p><strong>It is a report, and this project already distrusts reports.</strong> A weekly summary is exactly the artifact that goes stale, gets skimmed, and then gets cited months later as though it were the record.</p>
+      <p>The mitigation has to be structural: every claim carries its note ID, the paper is generated and never hand-edited, and it is explicitly <em>not</em> a source — which is a discipline this repo has broken before.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 9 · FOUNDRY ============================ -->
+<style>
+  .m-foundry {
+    --f-floor: #E4E2DC; --f-floor2: #D8D5CD; --f-steel: #9A9E9F; --f-steel-d: #7C8082;
+    --f-steel-l: #B9BDBE; --f-ink: #23262A; --f-faint: #6B7076; --f-jam: #E8A33D;
+    background: var(--f-floor); position: relative; height: 384px; min-width: 900px; overflow: hidden;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .m-foundry {
+      --f-floor: #191C1F; --f-floor2: #14171A; --f-steel: #444B51; --f-steel-d: #333A40;
+      --f-steel-l: #5A6269; --f-ink: #DDE2E6; --f-faint: #8A9299;
+    }
+  }
+  :root[data-theme="dark"] .m-foundry {
+    --f-floor: #191C1F; --f-floor2: #14171A; --f-steel: #444B51; --f-steel-d: #333A40;
+    --f-steel-l: #5A6269; --f-ink: #DDE2E6; --f-faint: #8A9299;
+  }
+  .m-foundry svg { display: block; width: 100%; height: 100%; }
+  .m-foundry .st { font-family: var(--mono); font-size: 10.5px; fill: var(--f-ink); letter-spacing: .1em; }
+  .m-foundry .sc { font-family: var(--mono); font-size: 9.5px; fill: var(--f-faint); }
+  .f-readout {
+    position: absolute; bottom: 14px; left: 18px; font-family: var(--mono); font-size: 11px;
+    color: var(--f-ink); line-height: 1.85;
+  }
+  .f-readout b { font-size: 15px; }
+  .f-readout .lo { color: var(--severity-critical); }
+  .f-panel {
+    position: absolute; right: 18px; top: 16px; width: 236px; background: var(--surface);
+    border: 1px solid var(--rule); border-radius: 4px; padding: 12px 14px; font-size: 11.5px;
+  }
+  .f-panel h6 { margin: 0 0 3px; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+  .f-panel .big { font-family: var(--mono); font-size: 26px; color: var(--severity-critical); line-height: 1.2; }
+  .f-panel ul { margin: 8px 0 0; padding-left: 15px; color: var(--ink-soft); line-height: 1.5; }
+  .f-panel .note { margin-top: 9px; color: var(--ink-faint); font-size: 11px; line-height: 1.45; }
+</style>
+
+<section class="plate" data-design-region="foundry">
+  <div class="plate-head">
+    <span class="plate-num">09</span>
+    <span class="plate-name">FOUNDRY</span>
+    <span class="plate-tag">where the work is piling up</span>
+  </div>
+  <p class="plate-lede">
+    A project-os lifecycle is a <strong>production line</strong> — intake, planning, build, review, release — and every other view in this project shows you the items rather than the line. FOUNDRY shows the line: parcels travelling between stations, and a physical pile wherever they stop moving. Run it against this repo and the pile has one address. <strong>61 finished notes are queued at Review</strong>, which is not a backlog you would ever <em>see</em> in a list sorted by anything.
+  </p>
+
+  <div class="screen m-foundry" data-design-region="foundry-mock">
+    <svg id="foundry-svg" viewBox="0 0 1060 352" preserveAspectRatio="xMidYMid meet" aria-label="An isometric production line of the project-os lifecycle"></svg>
+    <div class="f-readout">
+      <div><b>14</b> in &nbsp; <b>9</b> out &nbsp; this week</div>
+      <div class="lo">work in progress <b>61</b> — rising</div>
+      <div style="color:var(--f-faint)">cycle time, intake → release: <b>19d</b></div>
+    </div>
+    <div class="f-panel">
+      <h6>Review · station 4</h6>
+      <div class="big">61</div>
+      <div style="color:var(--ink-soft)">parcels waiting, oldest 34 days</div>
+      <ul>
+        <li>60 need a <b>human</b> verdict</li>
+        <li>1 blocked on a failing check</li>
+        <li>0 can be cleared automatically</li>
+      </ul>
+      <div class="note">Nothing downstream is broken. The line is not starved — it is <b>blocked at one station</b>, and the station is a person.</div>
+    </div>
+  </div>
+  <div class="screen-cap">The line runs; the pile grows. This is the one view where the bottleneck is a <em>place</em> rather than a number in a column, and where "we are shipping fine" and "we are shipping fine because nothing is being reviewed" look completely different.</div>
+
+  <div class="strip">
+    <div data-design-region="foundry-navigation">
+      <h4>Navigation</h4>
+      <p>You watch first, then click a station to open its queue. Dragging a parcel to another station <strong>is</strong> a status transition — the gesture and the write are the same act, which is either the most direct interface here or the most dangerous.</p>
+      <p>Zoom goes to a station, never to an item; an individual note is a detail you leave the floor to read.</p>
+    </div>
+    <div data-design-region="foundry-data">
+      <h4>Data it needs</h4>
+      <p><strong>Exists:</strong> statuses map onto stations directly, and <code>obligations.py</code> already knows what is stuck and why.</p>
+      <p><strong>New:</strong> arrival and departure times per station — which is the same missing history REEL needs. Without it there is no cycle time, no flow rate, and the floor is just a pretty status chart.</p>
+    </div>
+    <div class="objection" data-design-region="foundry-objection">
+      <h4>The objection</h4>
+      <p><strong>A factory is the wrong metaphor for judgment.</strong> The Review station is "slow" because a human is deciding, and a screen that renders deliberation as a jam quietly argues that the fix is to clear the pile faster.</p>
+      <p>This project's whole thesis is that some steps must be a person. A view that makes those steps look like inefficiency is not neutral, and it would need to say so on its face.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+(function () {
+  const svg = document.getElementById('foundry-svg');
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (n, a) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); return e; };
+  const cs = getComputedStyle(document.querySelector('.m-foundry'));
+  const C = n => cs.getPropertyValue(n).trim();
+  const R = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  const OX = 56, OY = 88;
+  const iso = (x, y, z) => [OX + (x - y) * 0.92, OY + (x + y) * 0.22 - z];
+  const quad = (pts, fill, extra) => el('polygon', Object.assign({
+    points: pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), fill: fill,
+  }, extra || {}));
+
+  // floor
+  const F = [[-70, -190], [720, -190], [720, 190], [-70, 190]].map(([x, y]) => iso(x, y, 0));
+  svg.appendChild(quad(F, C('--f-floor2')));
+  for (let x = -70; x <= 720; x += 60) {
+    const a = iso(x, -190, 0), b = iso(x, 190, 0);
+    svg.appendChild(el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C('--f-steel'), 'stroke-width': .5, opacity: .25 }));
+  }
+
+  // belt
+  const belt = [[0, -16], [624, -16], [624, 16], [0, 16]].map(([x, y]) => iso(x, y, 6));
+  svg.appendChild(quad(belt, C('--f-steel')));
+  for (let x = 0; x <= 624; x += 22) {
+    const a = iso(x, -16, 6), b = iso(x, 16, 6);
+    svg.appendChild(el('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], stroke: C('--f-steel-d'), 'stroke-width': 1, opacity: .55 }));
+  }
+  const side = [[0, 16], [624, 16]].map(([x, y]) => iso(x, y, 6)).concat([[624, 16], [0, 16]].map(([x, y]) => iso(x, y, 0)));
+  svg.appendChild(quad(side, C('--f-steel-d')));
+
+  function box(x0, y0, w, d, h, top, left, right) {
+    const g = el('g', {});
+    const p = (x, y, z) => iso(x, y, z);
+    g.appendChild(quad([p(x0, y0 + d, 0), p(x0 + w, y0 + d, 0), p(x0 + w, y0 + d, h), p(x0, y0 + d, h)], left));
+    g.appendChild(quad([p(x0 + w, y0, 0), p(x0 + w, y0 + d, 0), p(x0 + w, y0 + d, h), p(x0 + w, y0, h)], right));
+    g.appendChild(quad([p(x0, y0, h), p(x0 + w, y0, h), p(x0 + w, y0 + d, h), p(x0, y0 + d, h)], top));
+    return g;
+  }
+
+  const dark = (c, pct) => 'color-mix(in srgb, ' + c + ' ' + pct + '%, #000)';
+
+  const STATIONS = [
+    [8, 'INTAKE', 'inbox · 2'], [148, 'PLAN', 'notes · 3'], [288, 'BUILD', 'in flight · 1'],
+    [428, 'REVIEW', '61 waiting'], [568, 'RELEASE', 'held'],
+  ];
+  const labels = el('g', {});
+  for (const [x, name, sub] of STATIONS) {
+    const jam = name === 'REVIEW';
+    svg.appendChild(box(x, -34, 54, 68, jam ? 40 : 32,
+      jam ? '#B6553F' : C('--f-steel-l'), jam ? '#7E3A2B' : C('--f-steel-d'), jam ? '#95483A' : C('--f-steel')));
+    const l = iso(x + 27, -40, jam ? 52 : 44);
+    const t = el('text', { x: l[0], y: l[1], class: 'st', 'text-anchor': 'middle' }); t.textContent = name;
+    const u = el('text', { x: l[0], y: l[1] + 12, class: 'sc', 'text-anchor': 'middle' }); u.textContent = sub;
+    labels.appendChild(t); labels.appendChild(u);
+  }
+
+  // two agents at BUILD
+  for (const dy of [-78, -96]) {
+    const a = iso(310, dy, 0);
+    svg.appendChild(el('ellipse', { cx: a[0], cy: a[1] + 2, rx: 9, ry: 4, fill: '#000', opacity: .12 }));
+    svg.appendChild(el('rect', { x: a[0] - 4, y: a[1] - 20, width: 8, height: 18, rx: 4, fill: R('--status-active') }));
+    svg.appendChild(el('circle', { cx: a[0], cy: a[1] - 25, r: 4.5, fill: R('--status-active') }));
+  }
+  const ag = iso(310, -118, 0);
+  const agt = el('text', { x: ag[0], y: ag[1] - 40, class: 'sc', 'text-anchor': 'middle' }); agt.textContent = '2 agents'; labels.appendChild(agt);
+
+  // the pile beside REVIEW — the parcels that stopped moving
+  const PILE = R('--status-done');
+  for (let r = 0; r < 5; r++) for (let c = 0; c < 6; c++) {
+    const h = 10 + ((r + c) % 3 === 0 ? 13 : 0);
+    svg.appendChild(box(408 + c * 15, 48 + r * 15, 13, 13, h, PILE, dark(PILE, 62), dark(PILE, 80)));
+  }
+  const pl = iso(452, 128, 0);
+  const plt = el('text', { x: pl[0], y: pl[1] + 6, class: 'sc', 'text-anchor': 'middle' }); plt.textContent = '61 · oldest 34 days'; labels.appendChild(plt);
+
+  // jam light over RELEASE
+  const jx = iso(595, 0, 0);
+  svg.appendChild(el('rect', { x: jx[0] - 1.5, y: jx[1] - 74, width: 3, height: 62, fill: C('--f-steel-d') }));
+  const bulb = el('circle', { cx: jx[0], cy: jx[1] - 80, r: 7, fill: C('--f-jam') });
+  svg.appendChild(bulb);
+  const anim = el('animate', { attributeName: 'opacity', values: '1;.35;1', dur: '2.2s', repeatCount: 'indefinite' });
+  bulb.appendChild(anim);
+  const jt = el('text', { x: jx[0] + 14, y: jx[1] - 77, class: 'sc' }); jt.textContent = 'waiting for a person'; labels.appendChild(jt);
+
+  svg.appendChild(labels);
+
+  // parcels: they advance until the one ahead stops, and the one at the head
+  // cannot enter REVIEW. That is the whole picture.
+  const moving = el('g', {}); svg.appendChild(moving);
+  const KINDS = [R('--status-done'), R('--status-pending'), R('--status-active'), R('--status-blocked')];
+  let sd = 31337;
+  const rnd = () => (sd = (sd * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const parcels = [];
+  function makeParcel(x) {
+    const k = KINDS[(rnd() * 4) | 0];
+    const g = box(0, -7, 14, 14, 11, k, dark(k, 62), dark(k, 80));
+    moving.appendChild(g);
+    const p = { x: x, g: g, pass: rnd() < .22 };
+    parcels.push(p);
+    return p;
+  }
+  for (let i = 0; i < 8; i++) makeParcel(-24 - i * 32);
+  let last = 0, spawnAt = 0;
+  const HEAD = 406;
+  function frame(ts) {
+    if (!last) last = ts;
+    const dt = Math.min((ts - last) / 1000, .05); last = ts;
+    if (ts > spawnAt) { spawnAt = ts + 1400 + rnd() * 900; if (parcels.length < 26) makeParcel(-40); }
+    parcels.sort((a, b) => b.x - a.x);
+    for (let i = 0; i < parcels.length; i++) {
+      const p = parcels[i];
+      let limit = p.pass ? 680 : HEAD;
+      if (i > 0) limit = Math.min(limit, parcels[i - 1].x - 20);
+      p.x = Math.min(limit, p.x + 46 * dt);
+      const t = iso(p.x, 0, 6);
+      p.g.setAttribute('transform', 'translate(' + (t[0] - OX).toFixed(1) + ',' + (t[1] - OY).toFixed(1) + ')');
+    }
+    for (let i = parcels.length - 1; i >= 0; i--) {
+      if (parcels[i].x > 670) { moving.removeChild(parcels[i].g); parcels.splice(i, 1); }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+
+<!-- ============================ closing ============================ -->
+<style>
+  .nd { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 34px; border-top: 1px solid var(--rule); }
+  .nd > div { padding: 16px 0; border-bottom: 1px solid var(--rule-soft); }
+  .nd h5 { margin: 0 0 5px; font-family: var(--mono); font-size: 12.5px; letter-spacing: .04em; color: var(--ink); font-weight: 600; }
+  .nd p { margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.55; }
+  .nd em { color: var(--ink-faint); font-style: normal; }
+  @media (max-width: 760px) { .nd { grid-template-columns: 1fr; } }
+  ol.build { counter-reset: b; list-style: none; padding: 0; margin: 0; }
+  ol.build li { position: relative; padding: 0 0 20px 46px; counter-increment: b; }
+  ol.build li::before {
+    content: counter(b); position: absolute; left: 0; top: 1px; width: 27px; height: 27px;
+    border-radius: 50%; background: var(--ink); color: var(--paper); display: grid; place-items: center;
+    font-family: var(--mono); font-size: 12px;
+  }
+  ol.build h5 { margin: 0 0 5px; font-size: 16px; font-family: var(--display); font-weight: 400; }
+  ol.build p { margin: 0; color: var(--ink-soft); font-size: 14px; line-height: 1.6; max-width: 74ch; }
+  ol.build b { color: var(--ink); }
+  .aside-find {
+    margin: 30px 0 0; border-left: 3px solid var(--severity-critical); background: var(--sunk);
+    padding: 18px 22px;
+  }
+  .aside-find h5 { margin: 0 0 7px; font-size: 15px; font-family: var(--display); font-weight: 400; }
+  .aside-find p { margin: 0 0 9px; font-size: 14px; color: var(--ink-soft); line-height: 1.6; max-width: 78ch; }
+  .aside-find p:last-child { margin: 0; }
+</style>
+
+<h2 class="section">Seven more, considered and not drawn</h2>
+<p class="section-sub">Each was a candidate for one of the nine slots. The reason it lost is more useful than the concept.</p>
+<div class="nd" data-design-region="not-drawn">
+  <div>
+    <h5>Sonification</h5>
+    <p>The repository as a score — a tone per commit, a chord per phase, dissonance when the validator fails. <em>Cut because sound carries about one bit and cannot be re-read. It is a notification channel wearing an interface's clothes.</em></p>
+  </div>
+  <div>
+    <h5>The ambient garden</h5>
+    <p>A second screen where the project grows or wilts with its health. <em>Cut on this project's own rule: a decorative surface cannot say "unknown", and DESIGN.md is explicit that unknown and fine are different sentences. A wilting plant is also a guilt machine, which is not governance.</em></p>
+  </div>
+  <div>
+    <h5>The detective board</h5>
+    <p>A freeform canvas where <em>you</em> pin notes and draw the string — the only layout model none of the nine uses, since every one of them decides the arrangement for you. <em>Cut narrowly, and it is the strongest of the seven. The doubt: the corpus already has an authored link graph, and hand-drawn string would quietly compete with <code>related:</code>.</em></p>
+  </div>
+  <div>
+    <h5>Room-scale / VR</h5>
+    <p>Walk through the corpus at body scale. <em>Cut because the hardware is not on the desk, and 3D already appears twice in the nine. A headset view whose advantage over ORBIT is "bigger" is not a different application.</em></p>
+  </div>
+  <div>
+    <h5>The pager</h5>
+    <p>Push notification, one-tap approve, nothing else. <em>Cut because FEAT-0079 already owns supervision from a phone. Drawing it here would restate a planned feature as though it were a new idea.</em></p>
+  </div>
+  <div>
+    <h5>The effort Sankey</h5>
+    <p>Ribbons showing where the work actually went, phase by phase. <em>Cut on data: nothing in this corpus records effort. The ribbons would be item counts drawn as though they were hours, which is a chart that lies about its own units.</em></p>
+  </div>
+  <div>
+    <h5>The blame reader</h5>
+    <p>A note rendered with every line tinted by when — and by which session — it was written. <em>Cut because it is a feature of the reader that exists, not an application beside it. It belongs in the cockpit's document pane, and it is a good idea there.</em></p>
+  </div>
+</div>
+
+<h2 class="section">If anything gets built</h2>
+<p class="section-sub">Nine proposals is not a plan, and picking is yours. This is the order I would argue for, and the reasoning is about cost and about what each one would <em>teach</em>, not about which is most interesting to draw.</p>
+<ol class="build" data-design-region="first-build">
+  <li>
+    <h5>LEDGER, because it is nearly free and it measures demand for the other eight</h5>
+    <p>Every field it needs is already parsed and in memory; it is a table over the index. Build it read-only — no bulk edit, none of the risk — and then <b>watch which saved views get used</b>. A view somebody re-runs weekly is a purpose-built surface waiting to be designed, and that is a far better way to choose among the other eight than my opinion or yours.</p>
+  </li>
+  <li>
+    <h5>REEL's selection, without REEL's scrub</h5>
+    <p>"What happened between these two dates" is asked at every close-out and every release, and today it is answered by reading commit messages. That half needs the <b>git-derived history</b> the expensive half also needs — so build the query, answer the real question with it, and only draw the timeline if the query turns out to be worth looking at.</p>
+  </li>
+  <li>
+    <h5>Then one exploratory one, chosen for the argument it settles</h5>
+    <p>ORBIT and ATLAS answer the same underlying question — <b>what is the shape of 16148 links</b> — and disagree about whether motion or permanence is the way to show it. Building either one settles that. Building both would be building the same thing twice, and the matrix at the top is where you check that claim.</p>
+  </li>
+  <li>
+    <h5>And two of them need a decision before a line is written</h5>
+    <p>ASK contradicts PHASE-028's out-of-scope list and DECK contradicts ADR-0020. Neither should be prototyped "to see how it feels" — that is how a recorded decision gets overturned by a demo rather than by an argument. <b>If either is worth building, the ADR changes first.</b></p>
+  </li>
+</ol>
+
+<div class="aside-find" data-design-region="incidental-finding">
+  <h5>One thing this exercise found that is not a design</h5>
+  <p>Drawing DECK and FOUNDRY needed a real number for the review backlog, so it was measured. <b>70 notes now carry a reviewer's <code>changes-requested</code>, and 61 of them are at a terminal status.</b> <code>CLAUDE.md</code> records that measurement as 49 and 43, taken on 20 August — so the backlog grew by 21 in sixteen days, and the file that describes the problem is now understating it.</p>
+  <p>That belongs in an issue, not in a design dossier, and it holds whether or not any of these nine is ever built.</p>
+</div>
+
+<div style="margin-top:64px;padding-top:18px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11px;color:var(--ink-faint);display:flex;gap:20px;flex-wrap:wrap">
+  <span>DES-0013</span><span>proposal · nothing accepted</span><span>PHASE-028 · Borrowed capability</span>
+  <span>50 regions</span><span style="margin-left:auto">figures measured 2026-09-05</span>
+</div>
+
+</div>

@@ -7,7 +7,7 @@ status: active
 order: 28
 owner: user:edwin
 created: 2026-08-05
-updated: 2026-08-05
+updated: 2026-09-05
 goal: "Adopt proven capability from adjacent tools rather than inventing it, and keep a standing survey of what else is worth taking — so the cockpit's effort goes into the governance thesis nobody else is building."
 features:
   - "[[FEAT-0079-Supervision-From-A-Phone]]"
@@ -15,7 +15,7 @@ features:
 requirements: []
 issues: []
 depends: ["[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-026-The-Returning-Human]]"]
-related: ["[[PHASE-027-The-Standing-Worker]]", "[[RISK-0005-The-Write-Surface]]"]
+related: ["[[PHASE-027-The-Standing-Worker]]", "[[RISK-0005-The-Write-Surface]]", "[[DES-0013-Nine-Ways-To-Read-The-Record]]"]
 tags: [external, remote, survey]
 ---
 
