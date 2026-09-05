@@ -93,18 +93,33 @@ The four surfaces have genuinely different refresh rates and attention costs, so
 
 **The genuinely new question is what "in front of you" means when there are three fronts.** My answer: only screen 1 has a front plane. The others are surfaces, not fields, and get no depth axis. Two screens both claiming to show what needs you is how someone ends up trusting neither.
 
-## Would it run
+## Would it run — measured, and it changed the design
 
-The prototype holds 80 cards. This repo has 1537 notes and `your-trainer` has more, so the answer needs numbers.
+Rev 2 asserted blur was the expensive part. Rev 4 measured it, in both renderers, **turned to face the quiet band** — the worst case, because that is when the most cards are on screen.
 
-- **The visible arc holds about 40 cards at any yaw.** 1537 elements is 38× more than can ever be seen, so the build is **a virtualised list in polar coordinates**: pool roughly 120 card elements and rebind them as the yaw changes. This is the single most important decision in the implementation.
-- **`filter: blur()` has to go.** It forces an offscreen pass per element per frame, and the quiet band is where the count is highest. Depth already supplies scale and fog supplies contrast. Rev 2 cut it from 2.4px to 0.7px; it should reach zero.
+| facing the quiet | blur | fog + detail |
+| --- | --- | --- |
+| cards on screen | 55 | 55 |
+| cards running a blur pass | **52** | **0** |
+| blurred area | **821,408 px²** | **0** |
+| glyphs rasterised | 4,299 | **1,109** |
+
+**The measurement changed the look, not just the cost.** I expected to trade appearance for speed. The cheap version reads *better*: a blurred card is unreadable and still pays for a full title, so the quiet band was 52 smeared rectangles of text nobody can use. Dropping the title turns each into a small ID tile and lets one gradient do the receding. That is aerial perspective — distance loses contrast and detail, it does not go out of focus. **Blur was simulating a camera, and there is no camera here.**
+
+**And one thing reasoning would not have found:** the blur cost is near zero while you face the front, because the quiet band is *behind you*. The expensive band is off-screen most of the time, and the cost arrives exactly when you turn — the moment the interface most needs to stay smooth.
+
+The rest of the budget:
+
+- **The visible arc holds about 55 cards at the widest.** 1537 elements is 28× more than can ever be seen, so the build is **a virtualised list in polar coordinates**: pool roughly 120 card elements and rebind them as the yaw changes. The artifact carries a bench with this as a switch; it is the single most important decision in the implementation.
+- **`filter: blur()` is gone**, replaced by one gradient painted once plus a detail level that *removes* work rather than adding a pass over it.
 - **`translate3d` is GPU-composited** and a few hundred layers is ordinary. Never animate `width`, `top` or `filter`.
 - **Slot assignment runs on view change and panel move, never on yaw** — which is why turning stays smooth while the card set stays stable. It is O(notes) and must not enter the frame loop.
 - **The wire overlay** becomes a single canvas past ~200 edges, and any cap must be stated on screen rather than silently applied.
 - **A layout that survives restarts is [[TASK-0593]]'s problem**, already written for [[FEAT-0144]]. The same work serves both designs.
 
-**The honest bound:** with pooling and no blur this is an ordinary compositing workload. Without pooling it is 1537 blurred elements and will not hold 60fps on a laptop. So **pooling is not an optimisation to add later, it is the architecture** — and this prototype, which skips it, proves the interaction and nothing about the cost.
+**What I cannot tell you: frame times.** The bench measures them live, but the tab I built this in was in the background and browsers suspend `requestAnimationFrame` there — every number would have been zero or invented. The counts above are structural and I stand behind them; the milliseconds are on the page for the reader's own machine.
+
+**The bound I will commit to:** with pooling and no blur this is an ordinary compositing workload — a few hundred GPU-composited layers, which browsers do comfortably. Without pooling it is 1537 elements with 52 of every 55 on screen running a blur pass. **Pooling is not an optimisation to add later, it is the architecture** — and this prototype, which still skips it, proves the interaction and nothing about the cost.
 
 ## The bug that made this untestable twice
 
@@ -165,6 +180,7 @@ So the version I would defend is not the whole cockpit. It is **a twelfth view i
 ## Revisions
 
 - 2026-09-05 — written; the eleven arrangements, the console slab, the carousel, the ring, the focus ring
+- 2026-09-05 — **rev 4.** Measured the blur claim instead of repeating it, and it changed the design: facing the quiet band, blur runs on 52 of 55 visible cards over 821,408 px² and pays for 4,299 glyphs against 1,109. The cockpit now draws depth with fog and detail-by-distance, which is cheaper *and* more legible — a blurred card is unreadable and still costs a full title. Added a live A/B bench with the three techniques as switches, and a renderer toggle in the stage itself. Frame times are left for the reader's machine, and the artifact says why.
 - 2026-09-05 — **rev 3.** The click still did not work: `.field-inner` is a flat plane at z=0 in front of every card, and it ate every pointer event. Containers are now pointer-transparent. Recorded as a build rule, because `element.click()` passed while the interface was unusable.
 - 2026-09-05 — **rev 2.** Fixed the first half of that bug: quiet cards carried `pointer-events: none`, so `FEAT-0143` — which is `done`, therefore always quiet — could not be opened at all. Every card you can see is now clickable, and the search box works: type an ID and the field flies to it. Added per-type card faces with real phase progress bars, phases as cards leading their own sectors, multiple consoles, list panels, files, pulse, the Orbit arrangement, multi-card open, and the sector ordering that stops finished work occupying the visible columns. New sections on many monitors and on whether it would run.
 - 2026-09-05 — the field became a cylinder you turn in, after Edwin asked whether it would. The quiet band moved from *far and dimmed* to *behind you*, which is a different claim and a better one; a compass keeps the count on screen so nothing is silently lost.

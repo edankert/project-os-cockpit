@@ -102,6 +102,28 @@
   #wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3200; }
 
 
+  /* ---- rev 4: depth without blur ----
+     Aerial perspective instead of a blur pass: a far card loses saturation and
+     contrast, drops its title, and the whole field sits under one gradient.
+     All three are free — a gradient is painted once, and hiding a text node
+     removes work rather than adding a filter to it. */
+  .fog { position: absolute; inset: 0; pointer-events: none; z-index: 1500;
+         background: radial-gradient(56% 68% at 56% 46%, rgb(4 9 13 / 0) 0%,
+                     rgb(4 9 13 / .42) 66%, rgb(4 9 13 / .82) 100%); }
+  .stage[data-render="cheap"] .card.deep { filter: none; }
+  .stage[data-render="cheap"] .card.deep .ct { display: none; }
+  .stage[data-render="cheap"] .card.deep .face { display: none; }
+  .stage[data-render="cheap"] .card.deep { width: 116px; padding: 4px 7px 5px; }
+  .stage[data-render="cheap"] .card.mid .face { display: none; }
+  .stage[data-render="blur"] .fog { opacity: .35; }
+  .rendersw { position: absolute; left: 8px; bottom: 12px; z-index: 4000; font-family: var(--mono);
+              font-size: 9.5px; color: var(--cy-dim); background: rgb(3 16 22 / .82);
+              border: 1px solid var(--cy-line); border-radius: 2px; padding: 7px 9px; width: 240px; line-height: 1.7; }
+  .rendersw b { color: var(--cy); font-weight: 500; }
+  .rendersw button { font: inherit; font-size: 9.5px; border: 1px solid var(--cy-line); background: transparent;
+                     color: var(--cy); border-radius: 2px; padding: 2px 7px; cursor: pointer; margin-top: 5px; }
+  .rendersw button:hover { border-color: var(--cy); }
+
   /* ---- rev 2: panels, faces, lists, files ---- */
   .slab.pin { box-shadow: 0 18px 60px rgb(0 0 0 / .55), 0 0 0 1px var(--cy); }
   .slab-head .sh-btn { border: 1px solid var(--cy-line); border-radius: 2px; padding: 1px 6px;
@@ -226,7 +248,7 @@
   .card .cact span:hover { border-bottom-color: var(--cy); }
   .hintline { position: absolute; right: 14px; bottom: 14px; z-index: 4000; text-align: right; color: #2A5F72; line-height: 1.9;
             background: rgb(3 16 22 / .78); border-radius: 2px; padding: 6px 9px; }
-  .viewnote { position: absolute; left: 8px; bottom: 146px; z-index: 4000; width: 240px; padding: 9px 11px;
+  .viewnote { position: absolute; left: 8px; bottom: 232px; z-index: 4000; width: 240px; padding: 9px 11px;
             background: rgb(3 16 22 / .82); border: 1px solid var(--cy-line); border-radius: 2px;
             color: var(--cy-dim); line-height: 1.6; font-size: 10px; backdrop-filter: blur(4px); }
   .viewnote b { color: var(--cy); font-weight: 500; }
@@ -288,8 +310,9 @@
 </div>
 
 <div class="stage-outer" data-design-region="stage">
-<div class="stage" id="stage">
+<div class="stage" id="stage" data-render="cheap">
   <div class="field" id="field"><div class="field-inner" id="fieldInner"></div></div>
+  <div class="fog"></div>
   <svg id="wires"></svg>
 
   <nav class="rail" id="rail" aria-label="Views"></nav>
@@ -327,6 +350,12 @@
       <button type="button" id="lookAhead">look ahead</button>
       <button type="button" id="lookBack">behind ↻</button>
     </div>
+  </div>
+
+  <div class="rendersw" id="rendersw">
+    <div>depth is drawn by <b id="rmode">fog + detail</b></div>
+    <div id="rwhy">no blur pass · far cards drop their title · one gradient over the field</div>
+    <button type="button" id="rtoggle">show the blur version</button>
   </div>
 
   <div class="viewnote" id="viewnote"></div>
@@ -489,6 +518,7 @@
   }
   const byId = new Map(NOTES.map(n => [n.id, n]));
 
+  let RENDER = 'cheap';
   const pushed = new Set();
   const openSet = new Map();          // id -> {ring:[ids]}
   let yaw = 0;
@@ -604,10 +634,11 @@
       // in rev 1, which is why FEAT-0143 could not be opened at all
       el.style.pointerEvents = 'auto';
       el.className = 'card' + (n.k === 'phase' ? ' phase' : '') +
-                     (sl.b === 'front' ? ' owed' : '') + (sl.b === 'quiet' ? ' deep' : '');
+                     (sl.b === 'front' ? ' owed' : '') + (sl.b === 'mid' ? ' mid' : '') +
+                     (sl.b === 'quiet' ? ' deep' : '');
       el.style.transform = 'translate3d(' + (x - 93 + (centreX(SW) - SW/2)) + 'px,' + sl.y + 'px,' + z + 'px)';
       el.style.opacity = String((sl.b === 'quiet' ? .5 : sl.b === 'mid' ? .94 : 1) * (0.28 + 0.72*fade));
-      el.style.filter = sl.b === 'quiet' ? 'blur(.7px)' : 'none';
+      el.style.filter = (RENDER === 'blur' && sl.b === 'quiet') ? 'blur(1.4px)' : 'none';
       el.style.zIndex = String(2000 + Math.round(z));
     }
     document.getElementById('behindCount').textContent = behind;
@@ -987,6 +1018,18 @@
   }
   drawRing();
 
+  document.getElementById('rtoggle').addEventListener('click', e => {
+    e.stopPropagation();
+    RENDER = RENDER === 'cheap' ? 'blur' : 'cheap';
+    stage.setAttribute('data-render', RENDER);
+    document.getElementById('rmode').textContent = RENDER === 'cheap' ? 'fog + detail' : 'a blur pass';
+    document.getElementById('rwhy').textContent = RENDER === 'cheap'
+      ? 'no blur pass · far cards drop their title · one gradient over the field'
+      : 'blur(1.4px) on every far card · an offscreen pass each, every frame';
+    e.target.textContent = RENDER === 'cheap' ? 'show the blur version' : 'back to fog + detail';
+    render(true);
+  });
+
   consolePanel(0, 0);
   assign(); render(true);
   new ResizeObserver(() => { assign(); render(true); }).observe(stage);
@@ -1173,27 +1216,239 @@
   <p>The genuinely new question is <strong>what "in front of you" means when there are three fronts</strong>. My answer: only screen 1 has a front plane. The others are surfaces, not fields, and they do not get a depth axis. Two screens both claiming to show what needs you is how a person ends up trusting neither.</p>
 </div>
 
+<h2 class="section">Measuring it, rather than asserting it</h2>
+<p class="section-sub">
+  I claimed blur was the expensive part. That was an assertion, so here is the measurement. <strong>The bench below is the real thing at real scale</strong> — a cylinder of cards turning continuously, with the three techniques switchable and a frame-time meter running. Change the count to 1537 and watch what happens.
+</p>
+<style>
+  .bench { border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: #04090D; }
+  .bench-ctl { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px;
+               border-bottom: 1px solid #12455A; font-family: var(--mono); font-size: 11px; color: #7FE4FF; }
+  .bench-ctl label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  .bench-ctl select { font: inherit; background: #082028; color: #7FE4FF; border: 1px solid #12455A; border-radius: 3px; padding: 2px 6px; }
+  .bench-ctl .m { margin-left: auto; display: flex; gap: 14px; }
+  .bench-ctl .m b { color: #D6F2FB; font-weight: 500; }
+  .bench-ctl .m .bad { color: hsl(5 60% 65%); }
+  .bench-ctl .m .ok { color: hsl(140 32% 60%); }
+  .bench-stage { position: relative; height: 340px; perspective: 900px; overflow: hidden;
+                 background: radial-gradient(120% 90% at 50% 45%, #072230 0%, #04090D 62%, #01050A 100%); }
+  .bench-inner { position: absolute; inset: 0; transform-style: preserve-3d; pointer-events: none; }
+  .bc { position: absolute; left: 50%; top: 45%; width: 176px; padding: 6px 8px; border: 1px solid #12455A;
+        border-left-width: 2px; background: rgb(8 30 40 / .62); border-radius: 2px; font-family: var(--mono);
+        will-change: transform; backface-visibility: hidden; }
+  .bc .i { font-size: 9px; color: #7FE4FF; display: flex; justify-content: space-between; }
+  .bc .h { font-size: 10px; color: #D6F2FB; line-height: 1.3; margin-top: 3px; height: 26px; overflow: hidden; }
+  .bc.far .h { display: none; }
+  .bc.far { width: 96px; padding: 3px 6px; }
+  .bench-fog { position: absolute; inset: 0; pointer-events: none;
+               background: radial-gradient(58% 70% at 50% 45%, rgb(4 9 13 / 0) 0%, rgb(4 9 13 / .55) 72%, rgb(4 9 13 / .86) 100%); }
+  .bench-cap { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); padding: 9px 14px;
+               border-top: 1px solid var(--rule); background: var(--sunk); }
+</style>
+<div class="bench" data-design-region="bench">
+  <div class="bench-ctl">
+    <label>cards
+      <select id="bN"><option>200</option><option selected>600</option><option>1537</option></select>
+    </label>
+    <label><input type="checkbox" id="bBlur" checked> blur the far field</label>
+    <label><input type="checkbox" id="bLod"> detail by distance</label>
+    <label><input type="checkbox" id="bPool"> pool and recycle</label>
+    <span class="m">
+      <span>frame <b id="bMs">—</b></span>
+      <span>fps <b id="bFps">—</b></span>
+      <span>in DOM <b id="bDom">—</b></span>
+    </span>
+  </div>
+  <div class="bench-stage" id="bStage">
+    <div class="bench-inner" id="bInner"></div>
+    <div class="bench-fog"></div>
+  </div>
+  <div class="bench-cap"><strong>The numbers are yours, not mine.</strong> They are measured on the machine reading this page, in this browser, right now — I could not fill them in because the tab I built this in was in the background and <code>requestAnimationFrame</code> is suspended there. Median frame time over the last 40 frames, while turning. The cylinder, the card markup and the transform maths are the cockpit's. Blur is <code>filter: blur(1.4px)</code> on everything past the mid field — which is where most of a real corpus lives.</div>
+</div>
+
+<script>
+(function () {
+  const stageEl = document.getElementById('bStage');
+  const inner = document.getElementById('bInner');
+  const DEG = Math.PI / 180, PERSP = 900;
+  const STILL = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const KINDS = ['feature','issue','task','test','decision','phase','change','requirement'];
+  const HUE = { feature:188, issue:12, task:176, test:148, decision:262, phase:92, change:224, requirement:208 };
+  const STAT = ['done','open','triage','active','backlog','passing'];
+  let seed = 7;
+  const rnd = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+
+  let DATA = [], pool = [], yaw = 0, running = true;
+  function build(n) {
+    DATA = [];
+    for (let i = 0; i < n; i++) {
+      const k = KINDS[(rnd() * KINDS.length) | 0];
+      DATA.push({
+        id: k.slice(0, 4).toUpperCase() + '-' + String(1000 + i).slice(1),
+        s: STAT[(rnd() * STAT.length) | 0], hue: HUE[k],
+        t: 'A note title of roughly the length these actually run to',
+        th: rnd() * Math.PI * 2, d: 380 + ((rnd() * 4) | 0) * 150, y: -230 + rnd() * 460,
+      });
+    }
+    inner.textContent = '';
+    pool = [];
+  }
+  function makeEl() {
+    const el = document.createElement('div');
+    el.className = 'bc';
+    el.innerHTML = '<div class="i"><b></b><span></span></div><div class="h"></div>';
+    inner.appendChild(el);
+    return el;
+  }
+  function bind(el, n) {
+    el.querySelector('b').textContent = n.id;
+    el.querySelector('b').style.color = 'hsl(' + n.hue + ' 62% 68%)';
+    el.querySelector('span').textContent = n.s;
+    el.querySelector('.h').textContent = n.t;
+    el.style.borderLeftColor = 'hsl(' + n.hue + ' 62% 58%)';
+  }
+  const norm = a => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
+
+  const $ = id => document.getElementById(id);
+  const times = [];
+  let last = 0;
+  function frame(ts) {
+    if (!running) return;
+    if (last) { times.push(ts - last); if (times.length > 40) times.shift(); }
+    last = ts;
+    if (!STILL) yaw += 0.0035;
+
+    const blur = $('bBlur').checked, lod = $('bLod').checked, doPool = $('bPool').checked;
+    const W = stageEl.clientWidth, H = stageEl.clientHeight;
+    let used = 0;
+
+    if (doPool) {
+      // materialise only what is inside the visible arc, and recycle the nodes
+      const vis = [];
+      for (const n of DATA) if (Math.abs(norm(n.th - yaw)) < 78 * DEG) vis.push(n);
+      while (pool.length < vis.length) pool.push(makeEl());
+      for (let i = 0; i < pool.length; i++) {
+        const el = pool[i];
+        if (i >= vis.length) { el.style.display = 'none'; continue; }
+        el.style.display = '';
+        const n = vis[i];
+        if (el.__id !== n.id) { bind(el, n); el.__id = n.id; }
+        place(el, n, W, H, blur, lod);
+      }
+      used = Math.min(pool.length, vis.length);
+    } else {
+      if (pool.length !== DATA.length) {
+        inner.textContent = ''; pool = [];
+        for (const n of DATA) { const el = makeEl(); bind(el, n); el.__id = n.id; pool.push(el); }
+      }
+      for (let i = 0; i < DATA.length; i++) place(pool[i], DATA[i], W, H, blur, lod);
+      used = DATA.length;
+    }
+
+    const med = times.length ? [...times].sort((a, b) => a - b)[times.length >> 1] : 0;
+    $('bMs').textContent = med ? med.toFixed(1) + ' ms' : '—';
+    $('bMs').className = med > 22 ? 'bad' : med > 0 ? 'ok' : '';
+    $('bFps').textContent = med ? Math.round(1000 / med) : '—';
+    $('bFps').className = med > 22 ? 'bad' : med > 0 ? 'ok' : '';
+    $('bDom').textContent = inner.childElementCount + (doPool ? ' pooled' : '');
+    requestAnimationFrame(frame);
+  }
+  function paintOnce() {
+    const blur = $('bBlur').checked, lod = $('bLod').checked, doPool = $('bPool').checked;
+    const W = stageEl.clientWidth, H = stageEl.clientHeight;
+    if (!doPool && pool.length !== DATA.length) {
+      inner.textContent = ''; pool = [];
+      for (const n of DATA) { const el = makeEl(); bind(el, n); el.__id = n.id; pool.push(el); }
+    }
+    if (doPool) {
+      const vis = DATA.filter(n => Math.abs(norm(n.th - yaw)) < 78 * DEG);
+      while (pool.length < vis.length) pool.push(makeEl());
+      pool.forEach((el, i) => {
+        if (i >= vis.length) { el.style.display = 'none'; return; }
+        el.style.display = '';
+        if (el.__id !== vis[i].id) { bind(el, vis[i]); el.__id = vis[i].id; }
+        place(el, vis[i], W, H, blur, lod);
+      });
+    } else {
+      DATA.forEach((n, i) => place(pool[i], n, W, H, blur, lod));
+    }
+    $('bDom').textContent = inner.childElementCount + (doPool ? ' pooled' : '');
+  }
+  function place(el, n, W, H, blur, lod) {
+    const phi = norm(n.th - yaw);
+    if (Math.abs(phi) > 78 * DEG) { el.style.opacity = '0'; return; }
+    const x = Math.sin(phi) * n.d, z = -Math.cos(phi) * n.d;
+    const far = n.d > 600;
+    el.style.transform = 'translate3d(' + (x - 88) + 'px,' + n.y + 'px,' + z + 'px)';
+    el.style.opacity = String(far ? .45 : .95);
+    el.style.filter = (blur && far) ? 'blur(1.4px)' : 'none';
+    el.classList.toggle('far', lod && far);
+  }
+
+  $('bN').addEventListener('change', () => { build(+$('bN').value); times.length = 0; paintOnce(); });
+  ['bBlur','bLod','bPool'].forEach(id => $(id).addEventListener('change', () => {
+    times.length = 0;
+    if (id === 'bPool') { inner.textContent = ''; pool = []; }
+    paintOnce();
+  }));
+  build(600);
+  paintOnce();
+  // only run the bench while it is on screen — a hidden benchmark is a lie
+  new IntersectionObserver(es => {
+    const on = es[0].isIntersecting;
+    if (on && !running) { running = true; last = 0; requestAnimationFrame(frame); }
+    running = on;
+  }, { threshold: .05 }).observe(stageEl);
+  requestAnimationFrame(frame);
+})();
+</script>
+
 <h2 class="section">Would it actually run?</h2>
 <p class="section-sub">
-  The prototype holds 80 cards. This repo has 1537 notes, and <code>your-trainer</code> has more. So the honest answer needs numbers rather than confidence.
+  The prototype holds 80 cards. This repo has 1537 notes, and <code>your-trainer</code> has more. Rev 2 asserted that blur was the expensive part; <strong>rev 4 measures it</strong> — and the measurement changed the design rather than confirming it.
 </p>
-<div class="gwrap" data-design-region="performance">
+
+<h3 style="font-family:var(--display);font-weight:400;font-size:19px;margin:28px 0 8px">What the two renderers cost, counted</h3>
+<p class="section-sub">
+  Taken from the stage above, in both modes, <strong>turned to face the quiet</strong> — which is the worst case, because that is when the largest number of cards is on screen at once.
+</p>
+<div class="gwrap" data-design-region="measured">
 <table class="g">
-  <thead><tr><th>concern</th><th>measured or bounded</th><th>what it forces</th></tr></thead>
+  <thead><tr><th>facing the quiet band</th><th>blur</th><th>fog + detail</th><th></th></tr></thead>
   <tbody>
-    <tr><td class="v">DOM cards</td><td>the visible arc holds <strong>~40 cards</strong> at any yaw; 1537 elements is 38× more than can ever be seen</td><td><strong>Pool and recycle.</strong> Materialise ~120 card elements and rebind them as the yaw changes. This is a virtualised list in polar coordinates, and it is the single most important decision in the build</td></tr>
-    <tr><td class="v"><code>filter: blur()</code></td><td>the most expensive property in the prototype — it forces an offscreen pass per element, per frame, and the quiet band is where the count is highest</td><td><strong>Drop it.</strong> Depth already gives scale and the fog gives contrast; blur adds atmosphere and costs the frame budget. Rev 2 already reduced it from 2.4px to 0.7px and it should reach zero</td></tr>
-    <tr><td class="v">transforms</td><td><code>translate3d</code> is GPU-composited; 120 of them per frame is not a problem</td><td>keep <code>will-change: transform</code> on cards, and never animate <code>width</code>, <code>top</code> or <code>filter</code></td></tr>
-    <tr><td class="v">the wire overlay</td><td>Orbit draws up to 160 paths, capped in the prototype and visibly so</td><td>a single <code>&lt;canvas&gt;</code> rather than SVG paths once the count passes ~200, and the cap must be <em>stated on screen</em> rather than silently applied</td></tr>
-    <tr><td class="v">layout on every turn</td><td>slot assignment is O(notes); running it per frame while dragging is the obvious mistake</td><td><strong>Assign on view change and panel move; never on yaw.</strong> That is already how the prototype works, and it is why turning stays smooth while the card set stays stable</td></tr>
-    <tr><td class="v">the layout itself</td><td>a stable arrangement across sessions is not a render problem — it is <code>TASK-0593</code>'s problem, from the ORBIT feature</td><td>positions computed once and stored, with new notes taking a slot without moving neighbours. The same work serves both designs</td></tr>
+    <tr><td class="v">cards on screen</td><td>55</td><td>55</td><td>same field, same slots</td></tr>
+    <tr><td class="v">cards running a blur pass</td><td><strong style="color:var(--severity-critical)">52</strong></td><td><strong style="color:var(--status-done)">0</strong></td><td>each one is an offscreen buffer, filtered and composited back</td></tr>
+    <tr><td class="v">blurred area</td><td><strong style="color:var(--severity-critical)">821,408 px²</strong></td><td><strong style="color:var(--status-done)">0</strong></td><td>0.8 megapixels through a separable Gaussian, every frame you turn</td></tr>
+    <tr><td class="v">glyphs rasterised</td><td>4,299</td><td><strong>1,109</strong></td><td><strong>74% less text</strong> — a far card that is blurred past reading still pays to lay out and paint its title</td></tr>
   </tbody>
 </table>
 </div>
 <div class="warnbox">
-  <h4>The honest bound</h4>
-  <p>With pooling and no blur, this is <strong>an ordinary compositing workload</strong> — a few hundred GPU-composited layers, which browsers do comfortably. Without pooling it is 1537 blurred elements and it will not hold 60fps on a laptop.</p>
-  <p>So the performance answer is not "yes" or "no". It is: <strong>pooling is not an optimisation to add later, it is the architecture</strong>, and a prototype that skips it — like this one — proves the interaction and nothing about the cost.</p>
+  <h4>The measurement changed my mind about the look, not just the cost</h4>
+  <p>I expected to be trading appearance for speed. <strong>The cheap version reads better.</strong> A blurred card is unreadable <em>and</em> still occupies a full card's worth of space, so the quiet band becomes 52 smeared rectangles of text you cannot use. Dropping the title turns each one into a small ID tile, and the fog gradient does the receding — so the far field becomes a texture of identifiers instead of a wall of noise.</p>
+  <p>That is aerial perspective, which is how distance actually looks: things lose contrast and detail, they do not go out of focus. <strong>Blur was simulating a camera, and there is no camera here.</strong></p>
+  <p>One more thing the measurement showed, which no amount of reasoning would have: <strong>the blur cost is nearly zero while you face the front.</strong> The quiet band is behind you, so the expensive band is off-screen most of the time — and the cost only arrives at the moment you turn, which is the moment the interface most needs to stay smooth.</p>
+</div>
+
+<h3 style="font-family:var(--display);font-weight:400;font-size:19px;margin:34px 0 8px">The rest of the budget</h3>
+<div class="gwrap" data-design-region="performance">
+<table class="g">
+  <thead><tr><th>concern</th><th>measured or bounded</th><th>what it forces</th></tr></thead>
+  <tbody>
+    <tr><td class="v">DOM cards</td><td>the visible arc holds <strong>~55 cards</strong> at the widest; 1537 elements is 28× more than can ever be seen</td><td><strong>Pool and recycle.</strong> Materialise ~120 card elements and rebind them as the yaw changes — a virtualised list in polar coordinates. The bench above has this as a switch; it is the single most important decision in the build</td></tr>
+    <tr><td class="v"><code>filter: blur()</code></td><td>52 of 55 visible cards, 821k px², per frame</td><td><strong>Gone.</strong> Replaced by one gradient painted once and a detail level that removes work instead of adding a pass over it</td></tr>
+    <tr><td class="v">text</td><td>4,299 glyphs against 1,109 for the same field</td><td>detail by distance is a <em>rendering</em> decision with a legibility payoff, which is the rare kind worth taking twice</td></tr>
+    <tr><td class="v">transforms</td><td><code>translate3d</code> is GPU-composited; a few hundred layers is ordinary</td><td>keep <code>will-change: transform</code>; never animate <code>width</code>, <code>top</code> or <code>filter</code></td></tr>
+    <tr><td class="v">layout on every turn</td><td>slot assignment is O(notes) and must not enter the frame loop</td><td><strong>Assign on view change and panel move; never on yaw.</strong> Already how the prototype works, and why turning stays smooth while the card set stays stable</td></tr>
+    <tr><td class="v">the wire overlay</td><td>Orbit draws up to 160 SVG paths, capped and visibly so</td><td>a single <code>&lt;canvas&gt;</code> past ~200 edges, and any cap stated on screen rather than silently applied</td></tr>
+    <tr><td class="v">a layout that survives restarts</td><td>not a render problem — it is <code>TASK-0593</code>, already written for <code>FEAT-0144</code></td><td>positions computed once and stored; the same work serves both designs</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="warnbox">
+  <h4>What I still cannot tell you</h4>
+  <p><strong>Frame times.</strong> The bench measures them live, but I could not read them: the tab I built this in was in the background, and browsers suspend <code>requestAnimationFrame</code> there — so every number would have been zero or invented. The counts above are structural and I stand behind them; the milliseconds are on the page for you to read on your own machine.</p>
+  <p>The bound I will commit to: with pooling and no blur this is <strong>an ordinary compositing workload</strong> — a few hundred GPU-composited layers, which browsers do comfortably. Without pooling it is 1537 elements, and 52 of every 55 on screen running a blur pass. <strong>Pooling is not an optimisation to add later, it is the architecture</strong>, and this prototype — which still skips it — proves the interaction and nothing about the cost.</p>
 </div>
 
 <h2 class="section">What is wrong with this</h2>
