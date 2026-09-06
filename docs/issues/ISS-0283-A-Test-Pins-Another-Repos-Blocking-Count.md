@@ -3,8 +3,8 @@ type: "[[issue]]"
 id: ISS-0283
 aliases: ["ISS-0283"]
 title: "Three tests pin ../your-trainer's outstanding work — a blocking count of 40 or more and the existence of chronic rows — so walking the release down turns the suite red; the assertions measure how much is left in another repo, not this code"
-status: triage
-phase: "[[PHASE-999-Future]]"
+status: fixed
+phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
 owner: user:edwin
 created: 2026-09-06
 updated: 2026-09-06
@@ -58,6 +58,17 @@ Three readings, and the choice is Edwin's:
 2. Move the pinned figure into the phase note as a dated measurement, where a number that was true on a date belongs, and delete the assertion.
 3. Skip when the measured repo's suite has moved on, which keeps the number and stops the red.
 
+## What was done
+
+Edwin, 2026-09-06: *"I don't care when they were introduced tests need to run green."* So all three were fixed rather than parked, and reading 1 was taken — assert the property, not the size — with the corpus-dependent half moved onto fixtures.
+
+**`test_gate_delta.py`, the two chronic tests.** The arithmetic they protected — a row already open at the oldest tag is dated to *that* tag, not a later one it was also open at, and its release count is the number of tags cut after it — now runs on a three-tag fixture repository, so it holds whatever any other repository owes. A second fixture test carries the half that makes the first mean something: a row present at no tag gets **no** date rather than the oldest one. A new `_repo_with_tags` helper generalises the file's existing single-tag `_repo_with_tag`, with `--allow-empty` commits, because a tag cut over an unchanged suite is exactly the case a chronic row is about. The live-corpus test stays as a **consistency** check — whatever chronic rows exist today name a real tag and agree with history — and asserts nothing when there are none. `test_the_oldest_chronic_row_carries_its_release_count` skips on an empty list instead of raising out of `max()`.
+
+**`test_release_gate_campaign.py`.** The `>= 40` floor is gone. Kept: every blocking row names its subject (0 of 60 did before [[ISS-0173]]), and a new consistency assertion that `blocked` agrees with the rows carried. The size floor moved onto the **suite** — blocking plus settled — which only grows, so it still catches a loader that has broken while never failing because a release was walked.
+
+The file's own docstring already stated this rule: *"The shapes … are pinned on fixtures, because they must hold whatever the fleet looks like next month."* These three were the exceptions to it.
+
 ## Next Actions
 
-- [ ] Edwin picks a reading, and it applies to all three. The same walk should check the rest of `test_release_gate_campaign.py` and `test_gate_delta.py` for other assertions pinned to `your-trainer`'s size — `@needs_trainer` marks the population to look at.
+- [x] Fix all three: property on fixtures, consistency against the live corpus, no floor under another repo's backlog.
+- [ ] The rest of the `@needs_trainer` population has not been audited for the same shape. Worth one pass; nothing is red today.

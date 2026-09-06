@@ -178,10 +178,35 @@ def test_a_blocking_row_names_its_subject(tmp_path: Path) -> None:
     reason="your-trainer not present",
 )
 def test_the_measured_repo_still_reports_what_this_phase_measured() -> None:
-    """The numbers PHASE-034 stands on, re-taken rather than re-asserted."""
+    """The property PHASE-034 stands on, re-taken rather than re-asserted.
+
+    **The property is not the size of the backlog** ([[ISS-0283]]). This
+    asserted `len(gate["blocking"]) >= 40` against `../your-trainer`, which
+    passed while that repository owed 40 checks and went red on 2026-09-06
+    when Edwin walked it down to 3. A floor under somebody else's outstanding
+    work fails exactly when the work gets done, which is the opposite of what
+    a guard should do.
+
+    What ISS-0173 bought is asserted instead, and it holds at any size: every
+    blocking row names the subject it is about — **0 of 60 did** before that
+    issue — and the gate's own summary agrees with the rows it carries. The
+    floor that stays is on the SUITE, which only grows: a corpus that
+    collapsed to a handful of checks would mean the loader had broken, and
+    that is worth failing over.
+    """
     docs = Path.home() / "Dev/repos/your-trainer/docs"
     gate = acceptance.gate_payload(docs)
-    assert gate["exists"] and gate["blocked"]
-    assert len(gate["blocking"]) >= 40, len(gate["blocking"])
+    assert gate["exists"]
+    assert len(gate["blocking"]) + len(_settled(docs)) >= 40, "a real corpus"
+    assert gate["blocked"] == bool(gate["blocking"]), (
+        "the headline and the rows are one fact; a gate reporting blocked "
+        "with nothing blocking is the failure ISS-0191 named from the other "
+        "direction")
     assert all(row["refs"] for row in gate["blocking"]), \
         "every blocking row names a subject — 0 of 60 did before ISS-0173"
+
+
+def _settled(docs: Path) -> list[object]:
+    """The checks that are NOT blocking, so the size floor above counts the
+    suite rather than the debt."""
+    return [i for i in acceptance.load(docs).items if i.settled]

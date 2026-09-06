@@ -67,6 +67,37 @@ def _repo_with_tag(tmp_path: Path, before: str, after: str) -> Path:
     return root
 
 
+def _repo_with_tags(
+    tmp_path: Path,
+    steps: "tuple[tuple[str, str], ...]",
+    after: str | None = None,
+) -> Path:
+    """A repo with one tag per `(tag, suite)` step, oldest first.
+
+    `_repo_with_tag` above makes exactly one, which cannot express *"open at
+    the oldest tag and still open at the newest"* — the thing a chronic row is
+    ([[ISS-0283]]). `after` writes a final uncommitted state so a row can exist
+    today and at no tag at all.
+    """
+    root = tmp_path / "repo"
+    (root / "docs" / "tests").mkdir(parents=True)
+    _git(root.parent, "init", "-q", str(root))
+    _git(root, "config", "user.email", "t@example.com")
+    _git(root, "config", "user.name", "T")
+    path = root / "docs" / acceptance.SUITE_REL
+    for tag, suite in steps:
+        path.write_text(suite, encoding="utf-8")
+        _git(root, "add", "-A")
+        #: `--allow-empty` because a tag cut over an unchanged suite is the
+        #: normal case and the one that matters here: a row is chronic exactly
+        #: when it survived a release that did not touch it.
+        _git(root, "commit", "-qm", tag, "--allow-empty")
+        _git(root, "tag", tag)
+    if after is not None:
+        path.write_text(after, encoding="utf-8")
+    return root
+
+
 # ----- the delta itself -----------------------------------------------------
 
 
@@ -392,17 +423,79 @@ def test_every_quiet_row_is_quiet_for_a_named_reason() -> None:
             assert subject["status"] in obligations.NOT_YET_BUILT
 
 
+def test_a_chronic_row_is_dated_to_the_oldest_tag_it_was_open_at(
+    tmp_path: Path,
+) -> None:
+    """[[ISS-0283]]. The property, on a corpus that cannot walk away from it.
+
+    This asserted `assert since, "the corpus has chronic rows"` against
+    `../your-trainer`, so it held only while another repository still owed
+    long-open work — and it went red on 2026-09-06 when Edwin walked the last
+    of it. A test that fails because the work got done measures the backlog,
+    not the code.
+
+    What it was actually protecting is here instead, and it is arithmetic on
+    three tags: a row already open at the oldest tag is dated to **that** one
+    and not to a later one it was also open at, and its release count is the
+    number of tags cut after it.
+    """
+    root = _repo_with_tags(
+        tmp_path,
+        (("v1.0.0", _suite("- [ ] **Old:** open from the start.")),
+         ("v1.1.0", _suite("- [ ] **Old:** open from the start.",
+                           "- [ ] **Later:** arrived at the second tag.")),
+         ("v2.0.0", _suite("- [ ] **Old:** open from the start.",
+                           "- [ ] **Later:** arrived at the second tag."))),
+    )
+    tags = ["v1.0.0", "v1.1.0", "v2.0.0"]
+    items = acceptance.load(root / "docs").blocking()
+    dated = acceptance.ages(root, items, tags)
+    by_name = {i.name: i for i in items}
+    assert dated[by_name["Old"].key] == "v1.0.0", (
+        "the OLDEST tag it was open at, not the newest — that difference is "
+        "the whole sentence: open since v1.0.0, and you have shipped twice "
+        "over it")
+    assert dated[by_name["Later"].key] == "v1.1.0"
+    assert acceptance._releases_since("v1.0.0", tags) == 2
+    assert acceptance._releases_since("v1.1.0", tags) == 1
+
+
+def test_a_row_that_never_appeared_at_a_tag_is_not_dated(
+    tmp_path: Path,
+) -> None:
+    """The other half, and the one that makes the first mean something: a row
+    with no history gets **no entry** rather than the oldest tag. Dating a
+    check somebody added this morning to a release from March would report a
+    fresh gap as the project's oldest debt."""
+    root = _repo_with_tags(
+        tmp_path,
+        (("v1.0.0", _suite("- [ ] **Old:** open from the start.")),),
+        after=_suite("- [ ] **Old:** open from the start.",
+                     "- [ ] **Fresh:** added after every tag."),
+    )
+    items = acceptance.load(root / "docs").blocking()
+    dated = acceptance.ages(root, items, ["v1.0.0"])
+    by_name = {i.name: i for i in items}
+    assert by_name["Fresh"].key not in dated
+    assert dated[by_name["Old"].key] == "v1.0.0"
+
+
 @needs_trainer
 def test_chronic_rows_carry_the_tag_they_have_been_open_since() -> None:
+    """The same property against the live corpus — **consistency, not size**
+    ([[ISS-0283]]).
+
+    Whatever chronic rows `../your-trainer` has today, each names a real tag
+    and its release count agrees with where that tag sits in history. It
+    asserts nothing when the corpus has none, which is correct: the property
+    is held by the fixtures above, and this one is here to catch a payload
+    that disagrees with the repository it was computed from.
+    """
     index = Index.build(TRAINER / "docs")
     gate = publication.release_payload(TRAINER, index, "next")["gate"]
-    since = [r["since"] for r in gate["delta"]["chronic"]]
-    assert since, "the corpus has chronic rows"
-    assert all(since), "every chronic row was present at some tag"
-    # Every tag named must be a real one, and the release count must agree
-    # with where that tag sits in history — the relationship, not the date.
     tags = _git(TRAINER, "tag", "--sort=v:refname").split()
     for row in gate["delta"]["chronic"]:
+        assert row["since"], f"{row['number']} is chronic and undated"
         assert row["since"] in tags, row["since"]
         expected = len(tags) - tags.index(row["since"]) - 1
         assert row["releases_since"] == expected, row
@@ -535,11 +628,22 @@ def test_the_historical_line_is_computed_from_the_real_tags() -> None:
 
 @needs_trainer
 def test_the_oldest_chronic_row_carries_its_release_count() -> None:
+    """[[ISS-0283]]. This called `max()` on the live chronic rows, so when
+    Edwin walked the last of them out of `../your-trainer` it did not fail an
+    assertion — it raised `ValueError: max() iterable argument is empty`, which
+    is the same premise one step less defended.
+
+    Which row is oldest changes the moment anybody marks a check, so it was
+    never pinned. What is asserted is that the oldest one is dated at all, and
+    against a real tag. No chronic rows means no oldest, and that is a fact
+    about the repository rather than a failure here — the arithmetic itself is
+    held on a fixture above.
+    """
     index = Index.build(TRAINER / "docs")
     chronic = publication.release_payload(
         TRAINER, index, "next")["gate"]["delta"]["chronic"]
+    if not chronic:
+        pytest.skip("../your-trainer has no chronic rows today")
     oldest = max(chronic, key=lambda r: r["releases_since"])
-    # Some row is the oldest and it is dated against a real tag. Which row that
-    # is changes the moment anybody marks a check, so it is not pinned.
     assert oldest["releases_since"] >= 1
     assert oldest["since"] in _git(TRAINER, "tag", "--sort=v:refname").split()
