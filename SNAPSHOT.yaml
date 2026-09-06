@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 144
-  ISS: 284
+  ISS: 286
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -1693,6 +1693,22 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0286:
+      file: "docs/issues/ISS-0286-A-Check-Is-Owed-On-Every-Platform-That-Has-A-Ledger.md"
+      title: "A check is owed on every platform that has a ledger, with no way to say where it applies — one application built from one codebase has to answer for its whole suite once per operating system, or mark each check `na` by hand"
+      status: triage
+      owner: user:edwin
+      severity: medium
+      component: server
+      note: "Edwin, 2026-09-06: if we do not have different applications per OS, the acceptance suite should not be replicated per OS -- one place for the suite, and small kick-the-tires checks per operating system. ledger.resolve makes absence mean owed on every platform that has a ledger, with no field declaring applicability (REQ-0054), decided on your-trainer where Android and iOS are separately built. project-os-deck is one Electron build, so a second ledger would make its whole suite read as owed there, dischargeable only by marking each check `na` by hand. Naming its one ledger WORKING-app.json holds only while it has exactly one. This is evidence for revisiting REQ-0054, not a bug against it."
+    ISS-0285:
+      file: "docs/issues/ISS-0285-The-Mark-Dialog-Offers-Verdicts-The-Write-Path-Refuses.md"
+      title: "The mark dialog offers verdicts the write path refuses, and the refusal throws away the reason the person typed — Edwin lost a page of explanation marking a check `fail` in a repo with no ledger"
+      status: triage
+      owner: user:edwin
+      severity: high
+      component: ui
+      note: "Edwin lost a page of reasoning on 2026-09-06 marking a check `fail` in ../project-os-deck. The dialog offers the LEDGER vocabulary (renderer.ts:2312-2337, eight verdicts) and a repo with no ledger takes the pre-ledger path, whose vocabulary (acceptance.VERDICTS, acceptance.py:2289) has `failed` where the dialog says `fail` and has no `na` or `blocked` at all. So the write is refused with a 400 and the toast is all that survives -- the dialog has closed and taken the reason with it. TWO HALVES: offer only what the chosen path accepts, and never discard the text on a refusal. A repo created today has migrated nothing, so the newest projects are the ones that meet this first."
     ISS-0281:
       file: "docs/issues/ISS-0281-A-Failing-Verdict-Is-Erased-From-The-Checks-View.md"
       title: "A fail, blocked or question verdict is erased from `~checks` — with no platform named, `apply_ledger` keeps only verdicts that clear on every platform, so three of Edwin's own verdicts in your-trainer read as never walked with no comment"
@@ -4093,7 +4109,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 16
-    issues_triage: 9
+    issues_triage: 11
     risks_open: 6
     releases_total: 1
     decisions_total: 31
