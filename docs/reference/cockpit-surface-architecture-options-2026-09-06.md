@@ -259,6 +259,95 @@ In dependency order. Working titles. None exists.
 
 One phase would be warranted for the shell work, and its goal can be stated without listing its parts: the cockpit's surfaces become panels over one store, so a person can arrange them and put them on any screen. Its exit criteria are measurements rather than a task list: the classic layout passes the parity walk, one status panel lives on a second display across a restart, and the dock layout opens the same notes as classic. The vault work is a second, independent phase: the Comics vault opens in the shell with its notes typed, its bases as views and its statuses banded.
 
+## Part 8: Edwin's answers, and what they change
+
+Edwin answered the seven questions of Part 6 on 2026-09-06, the same day. This part records the answers and what each one changes above. Parts 1 to 7 are left as written; where an answer reverses a recommendation, this part says so.
+
+### 1. Three things, one of them frozen, and their names
+
+> "we have the current application, the 2d multi-window view and the 3d minority report view (can we give these some catchy names?) The current application should not change for now, the current application might be replaced by the new application in the future ... the input can be project-os or/and obsidian vaults."
+
+**This reverses Part 4's one condition.** Part 4 said the current three-pane layout must be rebuilt from panel factories so there is never a second renderer. Edwin's decision is different: the current application is frozen, a new application is built beside it, and the new one may replace the old one later. That is acceptable, and the push-back in Part 6 does not apply to it, because the failure it warned about is two renderers both taking new work. The amended condition is:
+
+- **The current application takes fixes only.** Every new capability lands in the new application. A note that adds capability to the current application after the new one exists must say why.
+- **Both share everything below the renderer**: the sidecar entirely, and the shell's main process (workspace discovery, PTYs, windows, fleet health, the store once it exists).
+- **The new application starts its own renderer.** Where it needs a piece of the old one (the xterm wiring, the health marks, the reader's markup), it copies or lifts it into a shared module without changing the old application's behaviour.
+- **The new application is one renderer with two hosts.** The shell hosts it locally with the preload bridge; the sidecar can also serve it over the LAN at `/_static/`, the way it serves `cockpit.js` today. Shell-only capability (terminal, pop-out windows, the fleet) is detected through the bridge and absent when served. This is what makes the tablet answer in item 6 cheap, and it is the one-view-set-two-front-doors rule of [[ADR-0010]] applied to the new application from the start.
+
+**Names.** Checked against the record on 2026-09-06 so that a name does not already mean something here:
+
+| name | for | in the record today |
+| --- | --- | --- |
+| **Cockpit** | the current application, unchanged | its name |
+| **Canopy** | the new application: the glass over a cockpit, the thing you look through, and it covers both views | unused |
+| **Spread** | the 2D multi-window view: a comic spread is two pages side by side, and the notes spread across screens | 5 notes, as an ordinary word |
+| **Glass** | the 3D field: [[DES-0013]]'s treatment and [[DES-0014]]'s title | 8 notes, already this meaning |
+
+Rejected: Bench (project-os-bench, 67 notes), Board (the claims board of [[DES-0003]], 32 notes), Bridge (41 notes), Desk (the pile of open notes inside DES-0014, which Spread contains). So the sentence to test is: *Canopy has two views, Spread and Glass, over project-os repos and Obsidian vaults; Cockpit stays as it is.*
+
+### 2. Vault support is its own phase, and not the first
+
+> "Can we make the vault support an extra phase instead?"
+
+Yes. Part 7's single phase becomes three, in this order: **Canopy** (the store, the windows, Spread), **Glass** (on [[FEAT-0144]]'s measurements), **Vault** (the profile, bases as views, canvases as boards). [[ISS-0279]] stays at triage and joins the Vault phase when it opens.
+
+One constraint from the Vault phase reaches back into the Canopy phase and must be honoured there: **Canopy asks the sidecar which views a workspace has, and never hard-codes them.** Today the nav modes are a fixed tuple in `cockpit.py`; the sidecar gains a "views for this workspace" answer that lists the project-os modes for a repo and the bases for a vault, and Canopy renders whatever comes back. That is cheap to build first and expensive to retrofit, and it is the whole of what "considered for the architecture" costs.
+
+### 3. What needs attention in a world: deferred, with the seam kept
+
+> "Let's work through that when we start that support, I just want to make sure this is considered for the architecture but I don't want to start with it."
+
+Deferred to the Vault phase. The seam is the same as item 2: Canopy's front plane renders whatever the sidecar's owed-items answer returns, and nothing in Canopy names a project-os obligation. A profile that supplies obligations later needs no change in Canopy.
+
+### 4. The workspace is the vault
+
+Decided. Consequences: shell discovery gains a second marker (`.obsidian`) beside `SNAPSHOT.yaml`, or the existing add action on the rail; the profile is scoped to a folder inside the vault; the rail shows the vault, and the project (Comics) is chosen inside it.
+
+### 5. JSON Canvas is not agreed, and the goal is narrower than round-tripping
+
+> "Not sure depends on the use-case, did we agree on using json-canvas at this stage? Note: I don't think it needs to be possible to replicate the cockpit views in obsidian, the goal is to create a separate view on-top of obsidian."
+
+Not agreed, and Part 2's suggestion is withdrawn as a default. Spread keeps its layouts in the shell's own store, addressable, in its own format. It **reads** `.canvas` files as boards, because the Comics project has four and the parser is small, and it does not write them. Writing JSON Canvas waits for a use case that asks for it. Canopy is a view over Obsidian's files, never a second editor of them.
+
+### 6. The tablet: three options, one recommended
+
+> "I think having the 3d minority report solution would work really nicely on a tablet for instance but not sure how feasible this is (suggest options). Happy to go with a read-only remote vs full local application?"
+
+| option | what it is | feasibility | cost |
+| --- | --- | --- | --- |
+| **T1. Read-only remote** (recommended) | Canopy served by the Mac's sidecar over the LAN, opened in Safari and installed as a web app; Glass as the default view on the tablet; writes refused as today | high: Glass is DOM and CSS transforms and runs in Safari; item 1 already makes Canopy servable | Safari testing; `backdrop-filter` is dearer on tablet GPUs, so the review's "no blur over a moving field" is a hard rule there; pooling matters more |
+| **T2. Full local application** | the sidecar and Canopy both on the tablet | possible but a project of its own: Electron does not run on iPadOS; Python on iOS is official since 3.13 and Briefcase packages it, so the sidecar could run there inside a web view; Tauri 2 targets iOS but would mean porting the sidecar | large; not before T1 has shown Glass works on touch |
+| **T3. Hybrid** | T1 with the renderer cached on the tablet for instant start, data still from the Mac | T1 plus a service worker | small; only worth it if T1's load time bites |
+
+T1 is the answer to "read-only remote versus full local": read-only remote now, and full local only if the tablet must work away from the Mac. Two things carry over from the review: touch makes small far targets harder to hit, so on a tablet "fly first, then open" is the only way to open a far card; and the list panel remains the accessible primary surface. Multi-window is not part of the tablet story; Spread on a tablet is one window, and Glass is the view that fits the device. Writes on the tablet remain behind [[ADR-0010]]'s authentication precondition.
+
+### 7. Any vault, showing what is already there
+
+> "It would be nice if we could point the new cockpit at any vault and show case as much of the functionality already there, it would be great if this could include show casing/interpreting the bases and layout already created."
+
+What a vault already declares, and what Canopy can read from it, measured in `~/Notes` on 2026-09-06:
+
+| the vault declares | where | what Canopy makes of it |
+| --- | --- | --- |
+| note types and their fields | `__templates__/*/*.md` (the Novel types), `Properties.md` (field order, which field is the parent) | the profile: types, faces, nesting |
+| views | `.base` files: 2 under `__bases__/Comic`, 2 under `__bases__/Tasks`, 6 under `TaskNotes/Views`, 8 untitled in the Inbox | navigator views, one per base view; the Comic base gives Characters, Chapters, Locations and Pages as card views with a portrait or cover |
+| boards | 4 `.canvas` files under the Comics characters | Spread boards, read-only |
+| the saved layout | `.obsidian/workspace.json`: a main split with five open notes in tabs, a left sidebar (file explorer, search, bookmarks), a right sidebar (backlinks, outgoing links, tags, properties, outline, calendar, git, bases), and 50 last-open files | the first Spread when a vault opens: the open notes as cards, the last-open list as a recent strip, the sidebars as hints for which panels to show; read-only, Obsidian owns the file |
+| bookmarks | `.obsidian/bookmarks.json`, if present | pins |
+| card images | `portrait`, `cover`, `image`, `scene` fields, already named as `image:` in the bases | the card face |
+| inline queries | Dataview `= this.summary` in the templates | render the `this.<field>` form; show anything else as source |
+
+The ceiling, stated so it is not discovered later: Canopy reads what Obsidian wrote and writes none of Obsidian's files; the Bases language is Obsidian's and still moving, so the supported subset is the union of what the vault's own base files use, named in the Vault phase, and a view outside it says "not supported" rather than showing an empty list.
+
+### What this changes in Part 7
+
+- The first ADR ("surfaces are panels over one store; the classic layout is a locked preset") is replaced by **"Canopy beside Cockpit"**: the current application is frozen, new capability lands in Canopy, both share the sidecar and the main process, and Canopy is one renderer with two hosts.
+- The parity test for the classic layout is dropped; there is no refactor to gate.
+- A REQ is added: **the sidecar tells a client which views a workspace has**; Canopy hard-codes none.
+- The phase list becomes three: Canopy, Glass, Vault. The Canopy phase's exit criteria are measurements: Spread opens the same notes as Cockpit for a project-os repo, one status panel lives on a second display across a restart, and Canopy served from the sidecar opens read-only on a tablet.
+
+Still open: the names, which are proposals until Edwin says so.
+
 ## Sources
 
 Docking and windows:
@@ -289,3 +378,5 @@ Obsidian:
 ## Maintenance
 
 This note describes the shell, the sidecar and the vault on 2026-09-06. A decision on any part of it, or a note from Part 7 being created, makes the corresponding section historical. Do not edit the findings; add a dated line under this heading saying what changed.
+
+- 2026-09-06 — Edwin answered the seven questions of Part 6 the same day; Part 8 records the answers. Part 4's one condition (rebuild the classic layout from panel factories) is reversed: the current application is frozen and a new one, Canopy, is built beside it. Part 2's JSON Canvas suggestion is withdrawn as a default. Part 7's phase becomes three.
