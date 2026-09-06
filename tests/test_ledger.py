@@ -1031,3 +1031,97 @@ def test_a_release_note_survives_a_block_that_is_not_tidy(docs: Path) -> None:
     assert parsed["ledgers"] == [{"file": "c.json", "sha": "3"}]
     assert parsed["version"] == "v1", "a key after the block must survive"
     assert p.read_text().count("ledgers:") == 1, "one key, once"
+
+
+# ------------------------------------- the walk page keeps what it was told
+
+def test_a_verdict_that_does_not_clear_survives_the_platform_less_view(
+    docs: Path,
+) -> None:
+    """[[ISS-0281]]. A `fail` was dropped, and `todo` says nobody walked it.
+
+    With no platform named, `apply_ledger` kept a check only when EVERY
+    platform cleared it — so a `fail`, a `blocked` or a `question` fell out of
+    the result and the row fell back to `todo`, taking the walker's own
+    sentence with it. Measured on `../your-trainer` 2026-09-06: the ledger
+    resolved `fail 2, question 1` and the view reported none of the three,
+    including one Edwin had written that morning.
+
+    The gate never noticed, because both states block. That is why it lived
+    for three weeks: the count was right and the screen was wrong.
+    """
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _walk(docs, "android", "TST-0001", "fail",
+          reason="Removing every rider leaves no way to add one.",
+          when="2026-09-06")
+    item = acceptance.load(docs).items[0]
+    assert item.mark == "fail", (
+        "a mark the ledger holds must reach the row; `todo` here is the "
+        "surface saying nobody walked a check somebody walked")
+    assert item.verdict_reason.startswith("Removing every rider")
+    assert not item.settled, "reporting it must not clear it"
+
+
+def test_the_worst_verdict_wins_when_the_platforms_disagree(
+    docs: Path,
+) -> None:
+    """One platform passes, another fails: the view reports the failure.
+
+    [[DES-0012]] D4's rule is unchanged — a release that has not named a
+    platform takes them all, so nothing clears unless every platform clears
+    it. What changes is what the page SAYS about a check that does not clear:
+    the reason a platform gave, rather than silence.
+    """
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-09-01")
+    _walk(docs, "ios", "TST-0001", "blocked", reason="Rig down.",
+          when="2026-09-02")
+    item = acceptance.load(docs).items[0]
+    assert (item.mark, item.verdict_reason) == ("blocked", "Rig down.")
+    assert not item.settled
+
+
+def test_a_check_nobody_has_walked_is_still_todo(docs: Path) -> None:
+    """The fix must not invent a verdict. Absence stays absence."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo", "TST-0002": "todo"})
+    _walk(docs, "android", "TST-0001", "pass", when="2026-09-01")
+    marks = {i.note_id: i.mark for i in acceptance.load(docs).items}
+    assert marks == {"TST-0001": "pass", "TST-0002": "todo"}
+
+
+def test_the_view_carries_every_comment_ever_written_on_a_check(
+    docs: Path,
+) -> None:
+    """[[ISS-0281]]'s history half.
+
+    The ledger is append-only, so a check marked `fail` with a paragraph and
+    later marked `pass` still holds the paragraph — and no surface read one
+    back. Newest first, so the dialog that shows them does not have to decide
+    the order a second time.
+    """
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "todo"})
+    _walk(docs, "android", "TST-0001", "fail", reason="Broken on pro.",
+          when="2026-09-05")
+    _walk(docs, "android", "TST-0001", "pass", when="2026-09-06")
+    history = acceptance.view_payload(docs)["history"]["TST-0001"]
+    assert [e["mark"] for e in history] == ["pass", "fail"], "newest first"
+    assert history[1]["reason"] == "Broken on pro.", (
+        "the superseded verdict keeps its comment — that is the whole point")
+    assert history[1]["platform"] == "android"
+
+
+def test_a_repo_with_no_ledger_offers_no_history(docs: Path) -> None:
+    """A note holds one verdict and the row already shows it. Synthesising a
+    one-entry log from it would put one fact on the screen twice."""
+    from project_os_cockpit import acceptance
+
+    _corpus(docs, **{"TST-0001": "done"})
+    assert acceptance.view_payload(docs)["history"] == {}

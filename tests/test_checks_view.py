@@ -627,3 +627,226 @@ def test_an_active_check_with_the_same_verdict_still_blocks(tmp_path: Path) -> N
     assert [i.number for i in suite.items] == ["TST-0001"]
     assert acceptance.gate_payload(docs)["blocking"], \
         "an active unsettled check must still block"
+
+
+# ---- the walk survives leaving the project (ISS-0280) ----------------------
+
+
+def test_the_tests_view_remembers_where_it_was_per_workspace() -> None:
+    """[[ISS-0280]]. Coming back to a project restarted the walk.
+
+    `openWorkspace` clears `currentRel`, so the Tests view lands on `~tests`
+    and `checkFilters` — module state nothing persisted — is empty. Edwin
+    walks a 624-row suite a few checks at a time, and every return put the
+    whole suite back in front of him.
+
+    Three parts, and each one alone is useless: the place is written, it is
+    keyed by workspace, and the landing reads it.
+    """
+    src = _renderer()
+    assert "cockpit:checks-place:${workspaceId}" in src, (
+        "per workspace, like pinned documents and the platform picker — one "
+        "repo's areas and covers: ids mean nothing in the next")
+    body = js_function_body(src, "async function loadWsNav()")
+    assert "loadChecksPlace(activeId)" in body, (
+        "the landing must read the stored place, or the Tests view goes on "
+        "landing on ~tests and the fix is unreachable")
+    assert "!currentRel" in body, (
+        "only when nothing else is open: a cross-repo jump or a clicked note "
+        "outranks where the reader was last")
+
+
+def test_a_restore_is_neither_a_navigation_nor_a_repaint() -> None:
+    """[[ISS-0280]] against [[ISS-0262]]'s rule, which still stands.
+
+    `renderChecksPage` clears the axes the address does not name — right when
+    a reader typed an address, wrong when the shell is putting them back. The
+    restore is a third case with its own carrier, consumed once, so a later
+    ordinary navigation still clears.
+    """
+    body = js_function_body(_renderer(), "async function renderChecksPage(")
+    assert "pendingChecksFilters = null;" in body, (
+        "consumed once — a second render with no restore behind it is an "
+        "ordinary navigation again")
+    assert "} else if (!keepFilters) {" in body, (
+        "the address must still win on an ordinary navigation (ISS-0262)")
+
+
+def test_the_place_is_written_on_every_render_not_only_on_a_click() -> None:
+    """A reader who arrived at `~checks/area/Monetization` from the gate's
+    breakdown chose a filtered set without touching a chip."""
+    body = js_function_body(_renderer(), "async function renderChecksPage(")
+    assert "saveChecksPlace(" in body
+
+
+# ---- the dialog shows what it is asking about (ISS-0281, ISS-0282) ---------
+
+
+def test_the_mark_dialog_is_given_the_check_it_marks() -> None:
+    """[[ISS-0282]]. Edwin: *"When setting the state I cannot see the actual
+    test description anymore."*
+
+    The dialog was called with the id, the name and the current mark, so
+    opening it was the moment the check's own words left the screen — and the
+    row clamps that prose to two lines, so they may never have been fully
+    read.
+    """
+    body = js_function_body(_renderer(), "async function walkOneCheck(")
+    assert "text: item.text" in body
+    assert "history: checksHistory[" in body, (
+        "and everything anybody has said about it (ISS-0281)")
+
+
+def _ask_for_mark_src() -> str:
+    """`askForMark`'s source, bounded by the next top-level declaration.
+
+    **Not `js_function_body`**, which counts braces from the first `{` after
+    the parameter list — and this function's return type is
+    `Promise<{ verdict: string; … } | null>`, so that brace is inside a
+    generic and the "body" comes back as the signature. The helper's own
+    docstring records two earlier ways it mis-bounded a function; this is a
+    third, and it belongs here rather than in the shared helper because
+    changing that would move 21 other call sites.
+    """
+    src = _renderer()
+    start = src.index("function askForMark(")
+    end = src.index("\nfunction ", src.index("{", start))
+    return src[start:end]
+
+
+def test_the_dialog_draws_the_description_and_the_earlier_comments() -> None:
+    """Passing them in and not rendering them is the same defect one layer
+    down, which is why this asserts on the dialog rather than on its call."""
+    body = _ask_for_mark_src()
+    assert "ask-check-text" in body, "the check's own words"
+    assert "buildCheckComments(" in body, "what was said about it before"
+
+
+def test_the_migration_backfill_is_not_shown_as_a_comment() -> None:
+    """One boilerplate paragraph per check — 584 of them in `your-trainer` —
+    explaining that a verdict predates the ledger. Shown, it would bury every
+    sentence a person actually wrote."""
+    body = js_function_body(_renderer(), "function buildCheckComments(")
+    assert "e.method !== 'migration'" in body
+
+
+def test_a_comment_is_its_own_line_on_the_row() -> None:
+    """[[ISS-0281]]. It was the second clause of the meta line — `verdict
+    2026-09-05 · <paragraph>` in 11px faint — so a sentence somebody wrote
+    read as a continuation of a timestamp, and Edwin reported he could not
+    see comments at all."""
+    body = js_function_body(_renderer(), "function buildCheckRow(")
+    assert "checks-row-comment" in body
+    assert "meta.push(item.verdict_reason)" not in body, (
+        "back in the meta line is where it was invisible")
+
+
+# ---- the tier chips select something that exists (ISS-0284) ---------------
+
+
+def test_a_tier_chip_selects_a_value_the_predicate_can_match(view: dict) -> None:
+    """[[ISS-0284]]. Two vocabularies for one axis, and they never met.
+
+    `_facets` emits the tier axis from the SECTION key — `feature`,
+    `regression`, `automated` — because [[ADR-0039]] derived the sections and
+    left the payload key as `tiers` so a pinned client kept working. The
+    `~checks/tier/<n>` route puts the numeric position in the same set.
+    `checkMatches` compared only the number, so every chip selected a value no
+    row could match: clicking one changed nothing, and on a bare `~checks` it
+    emptied the page.
+
+    Asserted from both ends — the payload really does emit keys, and the
+    predicate really does consult them — because either half alone passes
+    while the surface stays broken.
+    """
+    values = {f["value"] for f in view["facets"]["tiers"]}
+    assert values and not any(v.isdigit() for v in values), (
+        "the facet is the section key; a digit here would mean the payload "
+        "changed and this guard is now asserting the wrong side")
+    body = js_function_body(_renderer(), "function checkMatches(")
+    assert "f.tiers.has(tier.section_key" in body, (
+        "the chips' vocabulary")
+    assert "f.tiers.has(String(tier.tier))" in body, (
+        "and the address's, which ~checks/tier/<n> still uses")
+
+
+def test_every_tier_the_view_emits_carries_its_section_key(view: dict) -> None:
+    """The predicate reads `tier.section_key`, so a tier without one filters
+    on the number alone and its chip goes dead again in silence."""
+    for tier in view["tiers"]:
+        assert tier.get("section_key"), tier["label"]
+
+
+def test_the_checks_payload_does_not_survive_a_workspace_switch() -> None:
+    """One repo's history must not label another repo's rows.
+
+    `buildCheckRow` reads `checksHistory` for its comment count, and the
+    release page renders rows without ever fetching `~checks` — so a payload
+    left standing across a switch could report a count earned in the workspace
+    the reader just left. The same rule `stripLastPrompt` carries: sticky
+    within a workspace, never across one ([[ISS-0015]]).
+    """
+    body = js_function_body(_renderer(), "async function openWorkspace(")
+    assert "checksHistory = {};" in body
+    assert "checksData = null;" in body
+
+
+# ---- the dialog shows a check a person can read (ISS-0282, second cut) -----
+
+
+def test_the_dialog_renders_the_body_rather_than_printing_it() -> None:
+    """[[ISS-0282]] second cut. Edwin, on the first: *"The dialog only shows
+    the main title/description not the actual tst details."*
+
+    `TST-0062-Free-Tier-Locks` in `../your-trainer` is a structured inventory
+    — two bulleted lists under bold headings — and `textContent` delivered it
+    as `- **New Workout** (the FAB…)`, `## Walk history`, backticks and
+    asterisks. Through `/api/render`, which is the path the centre pane and
+    the review pane already use, so the dialog cannot grow a second Markdown
+    dialect.
+    """
+    src = _renderer()
+    body = js_function_body(src, "async function fillCheckProse(")
+    assert "/api/render?path=" in body
+    walk = js_function_body(src, "async function walkOneCheck(")
+    assert "rel: item.rel" in walk, "the render needs the note's address"
+    # The plain text is still passed, and is what stays when the fetch fails.
+    assert "text: item.text" in walk
+
+
+def test_the_mark_dialog_fits_the_window() -> None:
+    """A dialog a long check cannot be completed in is worse than one that
+    shows too little.
+
+    Measured before the fix on `TST-0062` (2,230 characters of body): a
+    1,245px card in a 963px viewport, centred by the backdrop from -141px to
+    1,104px — the check's title above the screen, **Save below it**, and no
+    scrollbar on the card or the page.
+    """
+    css = (REPO_ROOT / "desktop" / "src" / "renderer" / "renderer.css").read_text(
+        encoding="utf-8")
+    card = css[css.index(".ask-card-mark {"):]
+    card = card[:card.index("\n}")]
+    assert "max-height" in card and "overflow-y: auto" in card
+    prose = css[css.index(".ask-check-text {"):]
+    prose = prose[:prose.index("\n}")]
+    assert "max-height" in prose and "overflow-y: auto" in prose, (
+        "the body scrolls in its own box, so the buttons keep their place")
+
+
+def test_the_migration_boilerplate_is_not_quoted_on_every_row() -> None:
+    """[[ISS-0281]]. The backfill wrote an identical paragraph onto every
+    check it moved — 512 of `your-trainer`'s 624 rows — so promoting the
+    reason to its own quoted line put one sentence under five hundred rows and
+    buried the 99 a person wrote. The line's whole purpose is that a comment
+    stands out, which it cannot do if almost every row has one.
+    """
+    body = js_function_body(_renderer(), "function buildCheckRow(")
+    assert "item.verdict_method !== 'migration'" in body
+
+
+def test_the_row_payload_says_how_the_verdict_was_recorded(view: dict) -> None:
+    """The renderer's rule needs the field, and a payload that stops sending
+    it makes the rule silently false rather than loudly broken."""
+    rows = [r for t in view["tiers"] for a in t["areas"] for r in a["items"]]
+    assert rows and all("verdict_method" in r for r in rows)

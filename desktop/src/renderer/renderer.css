@@ -5812,7 +5812,84 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
  * ONE COLUMN. Six two-line buttons in a two-column grid wrapped their hints and
  * fought for width. A list of consequences is what this is, so it is a list.
  */
-.ask-card-mark { max-width: 44rem; width: min(44rem, calc(100vw - 3rem)); }
+.ask-card-mark {
+  max-width: 44rem;
+  width: min(44rem, calc(100vw - 3rem));
+  /* **The card must fit the window** (ISS-0282, second cut). It had no height
+     bound, and the backdrop centres it: `TST-0062` in `your-trainer` has a
+     2,230-character body, which made a 1,245px card in a 963px viewport
+     sitting from -141px to 1,104px — the check's title cut off above the
+     screen, Save below it, and no scrollbar on either the card or the page.
+     A dialog a long check cannot be completed in is worse than the defect
+     that put the prose here. The two long blocks below take their own
+     heights; this is the backstop for everything else. */
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+/* The check's own words, in the window where the verdict is chosen
+   (ISS-0282). Not clamped — the row clamps to two lines because it is a list
+   entry, and this is the place the prose is being judged. */
+.ask-check-text {
+  margin: 0 0 0.5rem;
+  font-size: 0.92em;
+  line-height: 1.45;
+  color: var(--text-muted, var(--text-faint));
+  overflow-wrap: anywhere;
+  /* Scrolls rather than pushing Save off the screen. Not clamped to a couple
+     of lines — the row does that because it is a list entry, and this is
+     where the prose is being judged — but a body of any length has to leave
+     room for the thing the dialog is for. */
+  max-height: 38vh;
+  overflow-y: auto;
+}
+/* `white-space: pre-wrap` only while the body is the plain-text fallback.
+   Once `/api/render` has replaced it with real elements, pre-wrap turns every
+   newline in the HTML source into a blank line. */
+.ask-check-text:not(:has(> *)) { white-space: pre-wrap; }
+.ask-check-text > :first-child { margin-top: 0; }
+.ask-check-text > :last-child { margin-bottom: 0; }
+.ask-check-text ul, .ask-check-text ol { padding-left: 1.2rem; }
+.ask-check-text code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.92em;
+}
+.ask-check-text a { color: inherit; text-decoration: underline dotted; }
+/* What was said about this check before (ISS-0281). Scrolls rather than
+   growing: `your-trainer` has checks with a dozen events, and a dialog whose
+   Save button leaves the viewport is a dialog that cannot be used. */
+.check-comments {
+  margin: 0 0 0.6rem;
+  padding: 0.35rem 0.5rem;
+  border-left: 2px solid var(--border, #4446);
+  background: var(--bg-subtle, #21262d);
+  border-radius: 4px;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+.check-comments > summary {
+  cursor: pointer;
+  font-size: 0.82em;
+  color: var(--text-faint);
+}
+.check-comment { margin-top: 0.4rem; }
+.check-comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.78em;
+  color: var(--text-faint);
+}
+.check-comment-body {
+  font-size: 0.88em;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.check-comment-note {
+  margin-top: 0.45rem;
+  font-size: 0.78em;
+  color: var(--text-faint);
+}
 .ask-actions-mark {
   display: flex;
   flex-direction: column;
@@ -5991,6 +6068,19 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .checks-row-meta {
   font-size: 11px;
   color: var(--text-faint);
+}
+/* What a person wrote about this check, on its own line (ISS-0281). It used
+   to be the second clause of the meta line above, so a sentence somebody
+   typed read as a continuation of a timestamp and nobody found it. The rule
+   marks it as a quotation; the colour is the description's, not the meta
+   line's, because it is content rather than bookkeeping. */
+.checks-row-comment {
+  margin-top: 2px;
+  padding-left: 6px;
+  border-left: 2px solid var(--border, #4446);
+  font-size: 12px;
+  color: var(--text-muted, var(--text-faint));
+  overflow-wrap: anywhere;
 }
 /* Ticked, and the record says the evidence was overtaken. Neither blocking nor
    satisfied — a third thing, and the whole reason `invalidated_by:` exists. */

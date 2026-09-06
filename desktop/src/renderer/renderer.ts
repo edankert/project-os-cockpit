@@ -936,6 +936,14 @@ async function openWorkspace(id: string): Promise<void> {
   // workspace's prompt (ISS-0015). Clear them so the strip starts clean.
   stripLastPrompt = '';
   workTransitions.clear();
+  //: The checks payload is one repo's, and `buildCheckRow` reads the history
+  //: for its comment count — including on a release page, which renders rows
+  //: without ever fetching `~checks`. Left standing, a row in the workspace
+  //: you switched TO could report a comment count belonging to the one you
+  //: left. Same rule as `stripLastPrompt` two lines up ([[ISS-0015]]): sticky
+  //: within a workspace, never across one.
+  checksData = null;
+  checksHistory = {};
   // Centre tabs are per-workspace context — reset on switch (TASK-0159).
   agentsTabOpen = false;
   lastDocRel = null;
@@ -1620,6 +1628,9 @@ interface GateItem {
   rel?: string;
   verdict_date?: string;
   verdict_reason?: string;
+  /** `manual`, `automated` or `migration` — which is how the row tells a
+   *  walker's sentence from the backfill's boilerplate ([[ISS-0281]]). */
+  verdict_method?: string;
   automation?: string;
   stale?: boolean;
   invalidated_by?: { change?: string; reason?: string; date?: string };
@@ -2328,6 +2339,115 @@ const MARK_CHOICES: Array<{
     needsReason: false, needsChange: true },
 ];
 
+/** The check's body, rendered, into the mark dialog ([[ISS-0282]]).
+ *
+ *  `fillReviewNoteBody`'s shape, with two differences that are the dialog
+ *  rather than the pane: **no metadata strip**, because the title above
+ *  already names the check and a frontmatter table would push the buttons
+ *  down; and **a failure leaves what is already there**, which is the plain
+ *  text the caller mounted, rather than replacing it with an apology.
+ *
+ *  Links are inert here on purpose. Navigating away from a modal that is
+ *  about to write a verdict would lose the verdict, and the row's number
+ *  opens the note when reading it is what the reader wants. */
+async function fillCheckProse(target: HTMLElement, rel: string): Promise<void> {
+  if (!sidecarBaseUrl || !rel) return;
+  try {
+    const resp = await fetch(
+      `${sidecarBaseUrl}/api/render?path=${encodeURIComponent(rel)}`,
+    );
+    if (!resp.ok) return;
+    const data = (await resp.json()) as RenderResponse;
+    if (!data.html) return;
+    target.innerHTML = data.html;
+    //: The note opens with the same `# Title` the dialog's own heading
+    //: carries, and printing it twice, six pixels apart, reads as a bug.
+    const first = target.querySelector('h1');
+    if (first && first.textContent?.trim()
+        && target.firstElementChild === first) first.remove();
+    target.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) => {
+      a.removeAttribute('href');
+      a.style.cursor = 'default';
+    });
+  } catch { /* the plain text the caller mounted stays */ }
+}
+
+/** One event in a check's ledger — a verdict somebody recorded, or an
+ *  invalidation. The payload's `history` map holds these per check id. */
+interface CheckEvent {
+  platform: string; release: string; date: string; mark: string;
+  reason: string; by: string; method: string; invalidated_by: string;
+}
+
+/** A check's comments, newest first ([[ISS-0281]]).
+ *
+ *  **Who said it and when, above what they said.** A reason with no date
+ *  reads as a standing property of the check rather than as something a
+ *  person wrote on a Tuesday, and the difference matters most for the ones
+ *  that were later superseded — which is most of them.
+ *
+ *  `migration` entries are the backfill's boilerplate, one per check in a
+ *  migrated repo (584 of them in `your-trainer`), so they are folded into a
+ *  closing line rather than shown: a paragraph explaining that a verdict
+ *  predates the ledger, repeated under every check, is what would make this
+ *  list unreadable on the corpus it was built for.
+ */
+function buildCheckComments(events: CheckEvent[]): HTMLElement {
+  const box = document.createElement('details');
+  box.className = 'check-comments';
+  //: Open, because a hidden comment is the defect this closes. The `details`
+  //: is here so a check with a long history can be folded away, not so it
+  //: arrives folded.
+  box.open = true;
+  const written = events.filter((e) => e.method !== 'migration');
+  const backfilled = events.length - written.length;
+  const sum = document.createElement('summary');
+  //: **Not "earlier"**, because the newest of these is usually the verdict
+  //: standing right now — seen in the harness against `your-trainer`, where
+  //: `TST-0603`'s list opened with the excuse recorded that morning under a
+  //: heading calling it earlier. The list is every comment the check carries,
+  //: newest first, and the date on each says which is which.
+  sum.textContent = written.length === 1
+    ? '1 comment on this check' : `${written.length} comments on this check`;
+  box.appendChild(sum);
+  for (const ev of written) {
+    const row = document.createElement('div');
+    row.className = 'check-comment';
+    const head = document.createElement('div');
+    head.className = 'check-comment-head';
+    const mark = document.createElement('span');
+    mark.className = `acc-mark acc-mark-${MARK_CLASS[ev.mark] ?? 'unknown'}`;
+    mark.textContent = ev.invalidated_by
+      ? MARK_GLYPH.rerun : markGlyph(ev.mark);
+    head.appendChild(mark);
+    const who = document.createElement('span');
+    //: The platform is named because a verdict without one is the fact
+    //: [[ADR-0037]] exists to stop being written down.
+    const parts = [ev.date, ev.platform, ev.by].filter(Boolean);
+    who.textContent = parts.join(' · ');
+    head.appendChild(who);
+    row.appendChild(head);
+    const body = document.createElement('div');
+    body.className = 'check-comment-body';
+    body.textContent = ev.invalidated_by && !ev.reason
+      ? `invalidated by ${ev.invalidated_by}` : ev.reason;
+    row.appendChild(body);
+    box.appendChild(row);
+  }
+  if (backfilled) {
+    const note = document.createElement('div');
+    note.className = 'check-comment-note';
+    note.textContent = backfilled === 1
+      ? 'One further entry was backfilled by the ledger migration.'
+      : `${backfilled} further entries were backfilled by the ledger `
+        + 'migration.';
+    box.appendChild(note);
+  }
+  //: Every event was boilerplate, so the summary would have counted to zero.
+  if (!written.length) sum.textContent = 'Earlier entries';
+  return box;
+}
+
 /** One dialog, all six options (ISS-0185, ADR-0029).
  *
  *  It replaced a cycle. `[ ]` → `[x]` → `[~]` → `[F]` meant that marking an
@@ -2341,7 +2461,16 @@ const MARK_CHOICES: Array<{
  *  and a field per option would let two of them hold text that is never
  *  written. */
 function askForMark(
-  opts: { number: string; name: string; current: string },
+  opts: {
+    number: string; name: string; current: string;
+    /** The check's own words, as a fallback for the render below. */
+    text?: string;
+    /** The check note's docs-relative path, so the body can be rendered
+     *  rather than printed ([[ISS-0282]]). */
+    rel?: string;
+    /** Every verdict recorded against it, newest first. */
+    history?: CheckEvent[];
+  },
 ): Promise<{ verdict: string; reason: string; change?: string } | null> {
   return new Promise((resolve) => {
     const back = document.createElement('div');
@@ -2353,6 +2482,44 @@ function askForMark(
     h.className = 'ask-title';
     h.textContent = `${opts.number} ${opts.name}`;
     card.appendChild(h);
+
+    //: **What the check asks, in the window where you answer it**
+    //: ([[ISS-0282]]). The dialog showed the id and the name and nothing
+    //: else, so opening it was the moment you lost sight of the check. Edwin:
+    //: *"When setting the state I cannot see the actual test description
+    //: anymore."* The row clamps this prose to two lines; here it is whole,
+    //: because this is where it is being judged.
+    //: **Rendered, not printed** ([[ISS-0282]], second cut). The first cut
+    //: set `textContent`, and a check whose body is a structured inventory —
+    //: two bulleted lists under bold headings, which is the part a walker
+    //: actually reads — arrived as `- **New Workout** (the FAB…)`, `##
+    //: Walk history`, backticks and asterisks. Edwin: *"The dialog only shows
+    //: the main title/description not the actual tst details."* The details
+    //: were there and were unreadable as details.
+    //:
+    //: Through `/api/render`, which is the path the centre pane and the
+    //: review pane already use, so this cannot grow a second Markdown dialect
+    //: and `[[wikilinks]]` resolve as they do everywhere else. The plain text
+    //: is mounted first and stays if the fetch fails: a dialog that opens
+    //: with the check's words in it beats one that opens empty.
+    if (opts.text || opts.rel) {
+      const prose = document.createElement('div');
+      prose.className = 'ask-check-text';
+      prose.textContent = opts.text || '';
+      card.appendChild(prose);
+      if (opts.rel) void fillCheckProse(prose, opts.rel);
+    }
+
+    //: **What has been said about it** ([[ISS-0281]]). Every reason a walker
+    //: has ever written is in the ledger and no surface read one back: a
+    //: check marked `fail` with a paragraph and later marked `pass` lost the
+    //: paragraph. Newest first, and the verdict standing now is in the list
+    //: rather than hoisted out of it — the sequence is the point.
+    const past = (opts.history || []).filter(
+      (e) => e.reason || e.invalidated_by);
+    if (past.length) {
+      card.appendChild(buildCheckComments(past));
+    }
 
     const d = document.createElement('p');
     d.className = 'ask-detail';
@@ -2531,6 +2698,17 @@ const MARK_GLYPH: Record<string, string> = {
  *  `'Done — walked and passed.'` -> `'Done'`, lowercased. REQ-0045: the stored
  *  form is never what a surface renders; an unrecognised mark reports itself as
  *  unrecognised rather than echoing the value back. */
+/** The mark as its glyph, the raw value bracketed only when `MARK_GLYPH` has
+ *  no entry at all ([[ISS-0211]]).
+ *
+ *  The lookup and its fallback were written out at each of three render sites
+ *  before this, which is how ISS-0200's re-keying left one of them rendering
+ *  `[done]` beside a label that already said Done. A fourth site — the comment
+ *  list ([[ISS-0281]]) — calls this instead of adding a fourth copy. */
+function markGlyph(mark: string): string {
+  return MARK_GLYPH[mark] ?? `[${mark}]`;
+}
+
 function markWord(mark: string): string {
   const title = MARK_TITLE[mark];
   if (!title) return 'an unrecognised mark';
@@ -8741,6 +8919,14 @@ async function walkOneCheck(
 ): Promise<void> {
   const chosen = await askForMark({
     number: item.id || item.number, name: item.name, current: item.mark || ' ',
+    //: The check's own words and everything anybody has said about it
+    //: ([[ISS-0281]], [[ISS-0282]]). Read from the payload the page already
+    //: fetched rather than through a lookup of its own: the dialog opens on a
+    //: click, and a round trip here draws the history a moment after the
+    //: reader has finished reading the buttons.
+    text: item.text || '',
+    rel: item.rel || '',
+    history: checksHistory[item.id || ''] || [],
   });
   if (chosen === null) return;              // nothing written, nothing repainted
   try {
@@ -8807,6 +8993,9 @@ interface CheckTier {
 interface ChecksView {
   exists: boolean; shape: string; rel: string; readme: string;
   tiers: CheckTier[];
+  /** Every verdict ever recorded, by check id, newest first ([[ISS-0281]]).
+   *  Empty in a repo with no ledger. */
+  history?: Record<string, CheckEvent[]>;
   facets: Record<string, { value: string; label: string; count: number }[]>;
   blocking: number; total: number; settled: number;
 }
@@ -8819,13 +9008,87 @@ const checkFilters: Record<string, Set<string>> = {
   covers: new Set(), automation: new Set(),
 };
 let checksData: ChecksView | null = null;
+/** Each check's verdicts, newest first, from the last payload ([[ISS-0281]]).
+ *  The mark dialog reads it; the row reads its length. */
+let checksHistory: Record<string, CheckEvent[]> = {};
+
+/** Where the reader was on the Tests view, per workspace ([[ISS-0280]]).
+ *
+ *  **Leaving a project used to throw the walk away.** `openWorkspace` clears
+ *  `currentRel`, so coming back the Tests view lands on `~tests` — its own
+ *  landing — and `checkFilters` is module state that nothing persisted, so
+ *  both the page and the filtered set were gone. Edwin walks 624 checks a
+ *  release, a few at a time between other work, and every return put the whole
+ *  suite back in front of him.
+ *
+ *  Per workspace, because one repo's areas and `covers:` ids mean nothing in
+ *  the next — the same reason pinned documents and the platform picker are
+ *  keyed this way.
+ */
+interface ChecksPlace { rel: string; filters: Record<string, string[]>; }
+
+function checksPlaceKey(workspaceId: string): string {
+  return `cockpit:checks-place:${workspaceId}`;
+}
+
+function saveChecksPlace(rel: string): void {
+  if (!activeId) return;
+  const filters: Record<string, string[]> = {};
+  for (const [axis, set] of Object.entries(checkFilters)) {
+    if (set.size) filters[axis] = [...set];
+  }
+  try {
+    localStorage.setItem(checksPlaceKey(activeId),
+                         JSON.stringify({ rel, filters }));
+  } catch { /* localStorage unavailable — the place just won't persist */ }
+}
+
+function loadChecksPlace(workspaceId: string): ChecksPlace | null {
+  try {
+    const raw = localStorage.getItem(checksPlaceKey(workspaceId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ChecksPlace;
+    //: A stored value that is not a `~checks` address is not restored. The
+    //: key holds one page's place, so a rel from anywhere else could only
+    //: have arrived by a bug or a hand-edit, and navigating to it would be
+    //: this fix teleporting the reader somewhere they never were.
+    if (!parsed || typeof parsed.rel !== 'string'
+        || !parsed.rel.startsWith('~checks')) return null;
+    return { rel: parsed.rel, filters: parsed.filters || {} };
+  } catch { return null; }
+}
+
+/** Filters to apply to the next `~checks` render, from a restore.
+ *
+ *  **A restore is not a navigation** — the same distinction [[ISS-0262]] drew
+ *  for a repaint. `renderChecksPage` clears the axes the address does not
+ *  name, which is right when the reader typed an address and wrong when the
+ *  shell is putting them back where they were. Consumed once, by the render
+ *  it was set for.
+ */
+let pendingChecksFilters: Record<string, string[]> | null = null;
 
 /** The axis a row is judged on, per facet. One place, so a filter chip and the
- *  predicate that honours it cannot describe different fields. */
-function checkMatches(item: GateItem, tier: number): boolean {
+ *  predicate that honours it cannot describe different fields.
+ *
+ *  **The tier axis has two vocabularies and this accepts both** ([[ISS-0284]]).
+ *  The chips carry the SECTION key — `feature`, `regression`, `automated` —
+ *  because [[ADR-0039]] derived the sections and left `_facets`' payload key
+ *  as `tiers` so a pinned client kept working. The `~checks/tier/<n>` route
+ *  carries the numeric position. Both land in the same set, and this compared
+ *  only the number, so every tier chip selected a value no row could match:
+ *  clicking one changed nothing, and on a bare `~checks` it emptied the page.
+ *
+ *  Matching both is what keeps the address and the filter bar from having to
+ *  agree on one form. Nothing raised for as long as it was wrong, because a
+ *  predicate that never matches renders an empty list rather than an error —
+ *  which is [[ISS-0211]]'s shape, one axis over. */
+function checkMatches(item: GateItem, tier: CheckTier): boolean {
   const f = checkFilters;
   if (f.marks.size && !f.marks.has(item.mark || ' ')) return false;
-  if (f.tiers.size && !f.tiers.has(String(tier))) return false;
+  if (f.tiers.size
+      && !f.tiers.has(String(tier.tier))
+      && !f.tiers.has(tier.section_key || '')) return false;
   if (f.areas.size && !f.areas.has(item.area || '')) return false;
   if (f.automation.size && !f.automation.has(item.automation || '')) return false;
   if (f.covers.size && !(item.refs || []).some((r) => f.covers.has(r))) return false;
@@ -8871,6 +9134,7 @@ async function renderChecksPage(
     };
     if (!data.view) return false;
     checksData = data.view;
+    checksHistory = data.view.history || {};
     //: Captured on every render, so a repo that adopts a ledger mid-session
     //: starts routing marks correctly without a restart ([[ISS-0272]]).
     ledgerPlatforms = Array.isArray(data.ledger_platforms)
@@ -8914,13 +9178,39 @@ async function renderChecksPage(
   //: The scroll restore in `walkOneCheck` could not save it and was never the
   //: problem: holding a pixel offset is meaningless once the list under it is
   //: a different list.
-  if (!keepFilters) {
+  //:
+  //: **A restore is the third case** ([[ISS-0280]]). Coming back to a project
+  //: is neither of the two above: the reader did not type an address and no
+  //: write happened, so the filters to apply are the ones this workspace was
+  //: last left with. `pendingChecksFilters` carries them and is consumed here,
+  //: once — a second render with no restore behind it is an ordinary
+  //: navigation again.
+  if (pendingChecksFilters) {
+    const restored = pendingChecksFilters;
+    pendingChecksFilters = null;
+    for (const axis of Object.keys(checkFilters)) {
+      checkFilters[axis] = new Set(restored[axis] || []);
+    }
+  } else if (!keepFilters) {
     checkFilters.tiers = tier ? new Set([tier]) : new Set();
     checkFilters.areas = area ? new Set([area]) : new Set();
   }
   docView.replaceChildren(buildChecksPage(checksData));
   docView.hidden = false;
   placeholder.hidden = true;
+  //: Remembered on every render rather than only on a filter click: the tier
+  //: and area axes are set from the ADDRESS above, so a reader who arrived at
+  //: `~checks/area/Monetization` from the gate's breakdown has chosen a
+  //: filtered set without touching a chip.
+  //:
+  //: A repaint passes neither axis and must not downgrade a stored
+  //: `~checks/area/…` to a bare `~checks` — `currentRel` is the address the
+  //: reader is actually on, and it is still that one after a mark.
+  saveChecksPlace(
+    tier ? `~checks/tier/${tier}`
+      : area ? `~checks/area/${encodeURIComponent(area)}`
+        : (currentRel && currentRel.startsWith('~checks')) ? currentRel
+          : '~checks');
   return true;
 }
 
@@ -9027,6 +9317,9 @@ function buildCheckFilters(v: ChecksView): HTMLElement {
         chip.classList.toggle('is-on');
         const list = document.getElementById('checks-list');
         if (list && checksData) paintCheckList(list as HTMLElement, checksData);
+        //: The selection survives leaving the project ([[ISS-0280]]).
+        saveChecksPlace(currentRel && currentRel.startsWith('~checks')
+          ? currentRel : '~checks');
       });
       row.appendChild(chip);
     }
@@ -9043,7 +9336,7 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
   let shown = 0;
   for (const tier of v.tiers) {
     const areas = tier.areas
-      .map((a) => ({ ...a, items: a.items.filter((i) => checkMatches(i, tier.tier)) }))
+      .map((a) => ({ ...a, items: a.items.filter((i) => checkMatches(i, tier)) }))
       .filter((a) => a.items.length);
     if (!areas.length) continue;
     const section = document.createElement('section');
@@ -9293,9 +9586,40 @@ function buildCheckRow(item: GateItem, manual: boolean = true,
     body.appendChild(cmd);
   }
 
+  //: **The comment is a line of its own** ([[ISS-0281]]). It used to be the
+  //: second clause of the meta line — `verdict 2026-09-05 · <paragraph>` in
+  //: 11px `--text-faint` — so a sentence a person wrote about this check read
+  //: as a continuation of a timestamp. Edwin: *"I cannot see any comments
+  //: added to the acceptance tests."* Same size, its own line, and marked as
+  //: a quotation, because that is what it is.
+  //: **And never the migration's boilerplate.** The backfill wrote an
+  //: identical paragraph onto every check it moved — 511 of `your-trainer`'s
+  //: 624 rows carry *"Backfilled from `mark: done`. The verdict predates the
+  //: ledger…"* — so promoting the reason to its own quoted line put the same
+  //: sentence under five hundred rows and buried the 98 a person wrote. Seen
+  //: on the live page before it shipped, not reasoned about: the whole
+  //: purpose of the line is that a comment stands out, which it cannot do if
+  //: almost every row has one.
+  if (item.verdict_reason && item.verdict_method !== 'migration') {
+    const said = document.createElement('div');
+    said.className = 'checks-row-comment';
+    said.textContent = item.verdict_reason;
+    body.appendChild(said);
+  }
+
   const meta: string[] = [];
   if (item.verdict_date) meta.push(`verdict ${item.verdict_date}`);
-  if (item.verdict_reason) meta.push(item.verdict_reason);
+  //: **The check's earlier comments exist and this says so.** The ledger is
+  //: append-only, so a check marked `fail` with a paragraph and later marked
+  //: `pass` still holds the paragraph — the row can only show the verdict
+  //: that stands, and the mark dialog shows the rest. The count is the total
+  //: written by a person, never the migration's per-check boilerplate.
+  const written = (checksHistory[item.id || ''] || [])
+    .filter((e) => e.reason && e.method !== 'migration');
+  if (written.length > 1 || (written.length && !item.verdict_reason)) {
+    meta.push(written.length === 1
+      ? '1 comment' : `${written.length} comments`);
+  }
   if (item.invalidated_by?.change) {
     // The invalidation, said as a sentence rather than shown as a field name.
     // This is the half of TESTING.md rule 3 nobody performs, so the row has to
@@ -11748,7 +12072,22 @@ async function loadWsNav(): Promise<void> {
   // reselecting a mode while a note is open is not a request to lose your
   // place, so the landing is only claimed when nothing else is.
   if (VIEW_LANDING_RELS.has(`~${currentNavMode}`)) {
-    const target = `~${currentNavMode}`;
+    let target = `~${currentNavMode}`;
+    //: **Coming back to a project returns you to the check you were on**
+    //: ([[ISS-0280]]). `openWorkspace` clears `currentRel`, so `onOwnedPage`
+    //: below cannot know that the Tests view was showing `~checks/area/…`
+    //: when you left — it lands on `~tests` and the walk starts over. The
+    //: stored place answers that, and the filters travel with it.
+    //:
+    //: Only when nothing else is open: a cross-repo jump, or a note the
+    //: reader clicked, is a request that outranks where they were last.
+    if (currentNavMode === 'tests' && !currentRel && activeId) {
+      const place = loadChecksPlace(activeId);
+      if (place) {
+        target = place.rel;
+        pendingChecksFilters = place.filters;
+      }
+    }
     // Mirrors Intent's shape: land unless you are already on THIS view's
     // page. The first draft guarded on `startsWith('~')`, which read every
     // other view's landing as "somewhere you already are" — so arriving from

@@ -68,7 +68,8 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.context.pane` | right pane: linked notes and backlinks grouped by type | `/api/cockpit/context` |
 | `shell.pages.overview` | overview: digest since "Caught up", unpushed commits, phase squares, validator report, contribution grid; per-phase page | `~overview`, `~overview/<PHASE>` |
 | `shell.pages.history` | what changed state and when | `~history` |
-| `shell.pages.checks` | acceptance checks with tier and area filters in the address | `~checks`, `~checks/tier/<n>` |
+| `shell.pages.checks` | acceptance checks with tier and area filters in the address; each row shows the comment behind its verdict, and the count of every comment the check carries; the page and its filters are remembered per workspace, so returning to a project resumes the walk (2026-09-06, [[ISS-0280]], [[ISS-0281]]) | `~checks`, `~checks/tier/<n>`, `~checks/area/<area>`, `cockpit:checks-place:<workspaceId>` |
+| `shell.checks.mark-dialog` | the mark dialog shows the check's body — rendered through `/api/render`, so lists and headings read as lists and headings — and every comment on it, newest first, above the seven verdict buttons; the card is bounded so Save stays on screen whatever the body's length (2026-09-06, [[ISS-0281]], [[ISS-0282]]) | `askForMark`, `fillCheckProse`, `buildCheckComments` |
 | `shell.pages.release` | release page and per-item pages; prepare, verify, mark released | `~release/<id>` |
 | `shell.pages.accept` | acceptance runner for a feature, stepwise | `~accept/<FEAT>` |
 | `shell.pages.test-run` | test runner for a test note | `~tests/<TST>/run` |
@@ -97,6 +98,7 @@ Grouped from the route table in `server.py` at the baseline. A row is a group, n
 | `api.read.note` | a note and its neighbourhood | `/api/render`, `/api/cockpit/context`, `/docs/`, `/index` |
 | `api.read.record` | the record's derived views | `/api/cockpit/decisions`, `/api/cockpit/designs`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/api/cockpit/history`, `/api/cockpit/changes`, `/api/cockpit/commits`, `/api/cockpit/unreleased`, `/api/cockpit/release`, `/api/cockpit/release-item`, `/api/cockpit/digest`, `/api/cockpit/watermark`, `/api/cockpit/activity` |
 | `api.read.obligations` | what needs a person | `/api/cockpit/obligations`, `/api/cockpit/review-queue`, `/api/cockpit/acceptance`, `/api/cockpit/acceptance-debt`, `/api/cockpit/scope-tests`, `/api/cockpit/transitions`, `/api/cockpit/actions` |
+| `api.read.check-history` | every verdict ever recorded against each check — mark, date, platform, author, method and the comment — newest first, in the acceptance payload's `view.history`. Empty in a repo with no ledger (2026-09-06, [[ISS-0281]]) Each row also carries `verdict_method`, so a surface can tell a walker's sentence from the migration backfill's. | `/api/cockpit/acceptance`, `ledger.events_by_check` |
 | `api.read.agents` | sessions and their instruments | `/api/cockpit/sessions`, `/api/cockpit/agents`, `/api/cockpit/agent-state`, `/api/cockpit/session-cache`, `/api/cockpit/approvals`, `/api/cockpit/dispatch-requests`, `/api/cockpit/runtime`, `/api/cockpit/identity` |
 | `api.read.validation` | the validator's report | `/api/cockpit/validation` |
 | `api.read.state` | the user's view, for the CLI and following | `/api/cockpit/state`, `/api/cockpit/focus`, `/api/cockpit/tab-state` |
@@ -124,3 +126,4 @@ git log --since=2026-09-06 --name-only --format='%h %ad %s' --date=short -- docs
 Every commit that list returns must correspond to a row here, or its change note must say why it adds no capability.
 
 - 2026-09-06 — written at baseline `570da22`.
+- 2026-09-06 — `shell.pages.checks` gains the comment on the row and the remembered place; `shell.checks.mark-dialog` and `api.read.check-history` are new ([[CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments]]). Two further changes the same day add no capability key, because `shell.pages.checks` already promised both and neither was working: a verdict that does not clear is no longer dropped from the view ([[ISS-0281]]), and the tier chips now select a value the row predicate can match ([[ISS-0284]]).

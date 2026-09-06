@@ -7,7 +7,7 @@ status: done
 order: 37
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-21"
+updated: "2026-09-06"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: approved
@@ -26,7 +26,7 @@ features:
   - "[[FEAT-0115-The-Sweep-Is-Continuous]]"
   - "[[FEAT-0142-A-Release-Says-What-Is-In-It]]"
   - "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
-issues: ["[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was]]", "[[ISS-0212-Retired-Documents-Render-As-Verified-Tests]]", "[[ISS-0214-A-Note-Whose-Id-Contradicts-Its-Filename]]", "[[ISS-0222-The-Left-Pane-Groups-By-Tier-And-Nothing-Else]]", "[[ISS-0223-The-Bar-Is-The-Wrong-Instrument-In-The-Editor]]", "[[ISS-0224-The-Positional-Address-Outlived-The-Document]]", "[[ISS-0225-A-Nav-Row-Carries-Data-No-Renderer-Draws]]", "[[ISS-0226-A-Surface-Wears-A-Test-Status]]", "[[ISS-0227-Every-Surface-Links-To-The-Same-Place]]", "[[ISS-0228-The-Test-Id-Renders-Twice-On-A-Row]]", "[[ISS-0229-Steps-Proven-Is-Sent-And-Nothing-Draws-It]]", "[[ISS-0231-The-Surface-Row-Is-Two-Lines-And-Names-The-Wrong-Thing]]", "[[ISS-0232-A-Check-Row-Shows-A-Status-It-Cannot-Hold]]", "[[ISS-0233-Migration-Provenance-Outlives-Its-Migrations]]", "[[ISS-0234-The-Generated-Page-Repeats-Itself]]", "[[ISS-0235-A-Surface-Wore-Its-Features-Title]]", "[[ISS-0241-The-Section-Head-Restates-Its-Own-Arithmetic]]", "[[ISS-0242-Two-Different-Things-Are-Both-Called-Automated-Tests]]", "[[ISS-0243-The-Automated-Checks-Page-Is-A-Walk-Page]]", "[[ISS-0244-The-Gate-Rows-Wear-A-Mark-That-Does-Nothing]]", "[[ISS-0245-A-Verdict-On-An-Accepted-Note-Is-Owed-Forever]]", "[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]", "[[ISS-0247-The-Tests-View-Lost-Its-Quiet-Group]]", "[[ISS-0248-Two-Predicates-Disagree-About-Not-In-Flight]]", "[[ISS-0249-Two-Check-Write-Paths-Reach-No-Front-Door]]", "[[ISS-0250-A-Surface-Rename-Silently-Orphans-Its-Checks]]", "[[ISS-0251-A-Test-Backdates-A-Shared-Source-File]]", "[[ISS-0252-Two-Sessions-Closing-Out-Collide-In-The-Snapshot]]", "[[ISS-0253-A-Verdict-Outlives-The-Work-It-Judged]]"]
+issues: ["[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was]]", "[[ISS-0212-Retired-Documents-Render-As-Verified-Tests]]", "[[ISS-0214-A-Note-Whose-Id-Contradicts-Its-Filename]]", "[[ISS-0222-The-Left-Pane-Groups-By-Tier-And-Nothing-Else]]", "[[ISS-0223-The-Bar-Is-The-Wrong-Instrument-In-The-Editor]]", "[[ISS-0224-The-Positional-Address-Outlived-The-Document]]", "[[ISS-0225-A-Nav-Row-Carries-Data-No-Renderer-Draws]]", "[[ISS-0226-A-Surface-Wears-A-Test-Status]]", "[[ISS-0227-Every-Surface-Links-To-The-Same-Place]]", "[[ISS-0228-The-Test-Id-Renders-Twice-On-A-Row]]", "[[ISS-0229-Steps-Proven-Is-Sent-And-Nothing-Draws-It]]", "[[ISS-0231-The-Surface-Row-Is-Two-Lines-And-Names-The-Wrong-Thing]]", "[[ISS-0232-A-Check-Row-Shows-A-Status-It-Cannot-Hold]]", "[[ISS-0233-Migration-Provenance-Outlives-Its-Migrations]]", "[[ISS-0234-The-Generated-Page-Repeats-Itself]]", "[[ISS-0235-A-Surface-Wore-Its-Features-Title]]", "[[ISS-0241-The-Section-Head-Restates-Its-Own-Arithmetic]]", "[[ISS-0242-Two-Different-Things-Are-Both-Called-Automated-Tests]]", "[[ISS-0243-The-Automated-Checks-Page-Is-A-Walk-Page]]", "[[ISS-0244-The-Gate-Rows-Wear-A-Mark-That-Does-Nothing]]", "[[ISS-0245-A-Verdict-On-An-Accepted-Note-Is-Owed-Forever]]", "[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]", "[[ISS-0247-The-Tests-View-Lost-Its-Quiet-Group]]", "[[ISS-0248-Two-Predicates-Disagree-About-Not-In-Flight]]", "[[ISS-0249-Two-Check-Write-Paths-Reach-No-Front-Door]]", "[[ISS-0250-A-Surface-Rename-Silently-Orphans-Its-Checks]]", "[[ISS-0251-A-Test-Backdates-A-Shared-Source-File]]", "[[ISS-0252-Two-Sessions-Closing-Out-Collide-In-The-Snapshot]]", "[[ISS-0253-A-Verdict-Outlives-The-Work-It-Judged]]", "[[ISS-0280-The-Checks-Page-Does-Not-Survive-Leaving-The-Project]]", "[[ISS-0281-A-Failing-Verdict-Is-Erased-From-The-Checks-View]]", "[[ISS-0282-The-Mark-Dialog-Hides-The-Check-It-Marks]]"]
 related: ["[[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]", "[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[DES-0012-Tests-In-Two-Flows]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[PHASE-036-One-Human-Walk]]"]
 tags: [phase]
 ---
@@ -167,6 +167,19 @@ Found by the second pass **counting `def test_` across the two commits**, which 
 ### Two vocabularies now exist in three copies each
 
 `OWED_VERDICTS` (cockpit, validator, renderer) and the surface-title join (cockpit, validator). Both are forced — the validator is stdlib-only and standalone, the renderer is TypeScript — and both are pinned by tests that **drive** the copies over the same inputs rather than matching text in either. A text assertion passes on a rule whose normalisation is in a comment, which is this repo's own recorded mutation-testing pitfall and which bit this phase again on its last day.
+
+## Reopened 2026-09-06 — three defects on the checks page, found by walking it
+
+Edwin walked `../your-trainer`'s suite on `~checks` and reported three things. A `fail` he wrote that morning showed as never walked, with no comment ([[ISS-0281]]). Leaving the project and coming back dropped him on the Tests landing with his filters gone ([[ISS-0280]]). The mark dialog showed the id and the name of the check and not the sentence he was judging ([[ISS-0282]]).
+
+This phase is their home rather than a new one because each is the shape the phase was opened on: a surface answering a question its reader did not ask. The checks page shows the release gate's join (every platform must clear) where the reader asked what was recorded; the shell restores the *mode* where the reader wanted the *page*; the dialog asks *which mark* where the reader asked *for what*. Three issues in one session do not earn a phase (`CLAUDE.md`, "When to open a phase"), and `PHASE-041`, where the last three checks-page issues went, is about the validator reaching the fleet and is closed on its own criteria.
+
+Reopened to `active` for the fix and to be closed again when the three are `fixed`, the way [[PHASE-004]] was for [[ISS-0255]]. The five exit criteria above stand as ticked; the reopen adds one:
+
+- [x] **The checks page shows what the ledger recorded, keeps its place when the reader leaves and returns, and the mark dialog shows the check being marked.** [[ISS-0280]], [[ISS-0281]], [[ISS-0282]] all `fixed`, each with a guard named in its note. Met 2026-09-06 by [[CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments]]: twelve guards, five in `tests/test_ledger.py` and seven in `tests/test_checks_view.py`. Re-measured on `../your-trainer` after the fix — the ledger and the view now agree on every mark, where before the view reported none of the ledger's two `fail` and one `question`.
+
+**Closed again 2026-09-06.** A fourth defect was found while verifying the third in the live harness and fixed in the same commit: [[ISS-0284]], the tier chips selecting a value no row could match. It joined rather than waited because [[ISS-0280]] persists the filter set, and a change that makes an existing bug durable carries its remedy. One finding from the same session is parked rather than fixed: [[ISS-0283]] (a test pins another repository's blocking count) is at `triage` under [[PHASE-999]], because what it needs is Edwin choosing between three readings, not work this phase can do.
+
 
 ## Independent review — 2026-08-21
 

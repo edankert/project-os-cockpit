@@ -374,6 +374,13 @@ class Item:
     #: required for `/`, `-`, `!` and `?`; the write path refuses without one.
     verdict_date: str = ""
     verdict_reason: str = ""
+    #: How the verdict was recorded — `manual`, `automated`, or `migration`
+    #: ([[ISS-0281]]). A surface needs it to tell a sentence somebody wrote
+    #: from the backfill's boilerplate, which is identical on every check in a
+    #: migrated repo: 584 of `your-trainer`'s 624 carry *"Backfilled from
+    #: `mark: done`…"*, and quoting that on every row buries the 28 comments a
+    #: person actually wrote. Empty on a note-shape item, which has no events.
+    verdict_method: str = ""
     #: **How a machine executes this check, and the field the reader never had**
     #: ([[ISS-0237]]). `item_from_note` did not look at `command:` at all, so
     #: every consumer -- the gate, the sections, the percentage -- treated an
@@ -1132,15 +1139,38 @@ def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item
         #: because that is the weakest evidence behind the claim.
         #:
         #: Fails closed by construction: a platform that has said nothing has
-        #: no entry, so the check is owed and the intersection is empty.
+        #: no entry, so the check is owed and nothing clears it.
+        #:
+        #: **A verdict that does not clear is reported, not dropped**
+        #: ([[ISS-0281]]). This walked the INTERSECTION and kept a check only
+        #: when every platform cleared it, so a `fail`, a `blocked` or a
+        #: `question` fell out of the result entirely — and a check with no
+        #: entry reads as `todo`, which says *nobody has walked this*. Edwin
+        #: marked `TST-0434` failed on 2026-09-06 with a paragraph saying what
+        #: broke, and the page showed it as unwalked with no comment. Measured
+        #: the same day on `your-trainer`: the ledger resolves `fail 2,
+        #: question 1` and this function reported none of them.
+        #:
+        #: The gate never noticed because both states block. That is exactly
+        #: why it survived: the count was right and the screen was wrong.
         per = [_ledger.verdicts(docs_root, p)
                for p in _ledger.platforms(docs_root)]
         found = {}
         if per:
-            for check in set(per[0]).intersection(*(set(d) for d in per[1:])):
-                verdicts = [d[check] for d in per]
-                if all(v.clears for v in verdicts):
+            for check in set().union(*(set(d) for d in per)):
+                verdicts = [d[check] for d in per if check in d]
+                #: Clearing still takes every platform, and still reports the
+                #: earliest — the weakest evidence behind the claim.
+                if len(verdicts) == len(per) and all(v.clears for v in verdicts):
                     found[check] = min(verdicts, key=lambda v: v.date)
+                    continue
+                #: Otherwise the check is owed, and if a platform said WHY it
+                #: is owed then that is the answer to report. The most recent
+                #: one, because a rig that was down in June and a failure today
+                #: are not equally current.
+                blocking = [v for v in verdicts if not v.clears]
+                if blocking:
+                    found[check] = max(blocking, key=lambda v: v.date)
     by_check: dict[str, list[Any]] = {}
     for led in _ledger.load(docs_root, platform):
         for item in led.evidence:
@@ -1168,6 +1198,7 @@ def apply_ledger(items: list[Item], docs_root: Path, platform: str) -> list[Item
             needs_rerun=False,
             verdict_date=verdict.date if verdict else "",
             verdict_reason=verdict.reason if verdict else "",
+            verdict_method=verdict.method if verdict else "",
             #: [[TASK-0544]]. Evidence follows the verdict it backs, so it is
             #: joined out of the ledger's sibling collection rather than read
             #: from the note — a screenshot proves one walk on one platform on
@@ -1765,11 +1796,42 @@ def view_payload(docs_root: Path, index: "Any | None" = None, *,
         "readme": (f"{CHECKS_REL}/README.md"
                    if suite.shape == SHAPE_NOTES else suite_rel(suite)),
         "tiers": tiers,
+        #: **Every comment ever written on a check, keyed by its id**
+        #: ([[ISS-0281]]). A row can only ever show the verdict that stands
+        #: now, so everything said on the way there was in the file and
+        #: reachable from no surface: mark a check `fail` with a paragraph
+        #: saying what broke, fix it, mark it `pass`, and the paragraph is
+        #: gone from the app.
+        #:
+        #: In the list payload rather than behind a lookup, because the dialog
+        #: that needs it opens on a click and a round trip there is a dialog
+        #: that draws its history a moment after the reader has read the
+        #: buttons. Measured on `your-trainer`, 615 events over 624 checks:
+        #: 186 KB against the payload's existing 745 KB, over loopback.
+        #:
+        #: Empty in a repo with no ledger — those keep a single verdict on the
+        #: note and have no history to show.
+        "history": _history(docs_root),
         "facets": _facets(suite),
         "blocking": len(suite.blocking()),
         "total": len(suite.items),
         "settled": sum(1 for i in suite.items if i.settled),
     }
+
+
+def _history(docs_root: Path) -> dict[str, list[dict[str, Any]]]:
+    """Every event recorded against every check, newest first, by check id.
+
+    A thin pass-through to :func:`ledger.events_by_check`, and a repo with no
+    ledger gets `{}` rather than a fabricated single-entry history: a note's
+    own verdict is what the row already shows, and inventing a log from it
+    would put one fact on the screen twice.
+    """
+    from . import ledger as _ledger
+
+    if not _ledger.has_ledger(docs_root):
+        return {}
+    return _ledger.events_by_check(docs_root)
 
 
 def _facets(suite: Suite) -> dict[str, list[dict[str, Any]]]:
@@ -1934,6 +1996,9 @@ def _row(item: "Item", **extra: Any) -> dict[str, Any]:
         "id": item.note_id, "rel": item.rel,
         "verdict_date": item.verdict_date,
         "verdict_reason": item.verdict_reason,
+        #: So the row can tell a walker's sentence from the migration's
+        #: boilerplate ([[ISS-0281]]).
+        "verdict_method": item.verdict_method,
         "automation": item.automation,
         # **What executes it, so the row can say so instead of drawing a
         # checkbox** (ADR-0039). The client cannot tell an automated check

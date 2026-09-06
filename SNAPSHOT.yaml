@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 144
-  ISS: 279
+  ISS: 284
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -78,7 +78,7 @@ focus:
   feature: ""
   phase: "PHASE-028"
   issue: ""
-  note: "2026-09-06: the new-application design collateral (DES-0013, DES-0014, FEAT-0144 with TASK-0592..0596, the DES-0014 review and the surface-architecture options note) MOVED to ~/Dev/repos/project-os-deck as DES-0001, DES-0002, FEAT-0001 with TASK-0001..0005 and the two reference notes. This cockpit STAYS THE PRIMARY PLACE for new functionality (Edwin, later the same day: too early to send new capability to Deck); Deck watches the register and must be able to support what arrives. What stays here for that relationship: docs/reference/cockpit-capability-register.md (baseline 570da22) and the rule in CLAUDE.md that a change note adding capability updates the register in the same commit. ISS-0279 (list-valued type: dropped by the indexer) stays here at triage and joins Deck's Vault phase when it opens. PHASE-028 keeps its related links as cross-repo links."
+  note: "2026-09-06 (later): four acceptance-checks defects are fixed and PHASE-037 is closed again -- see CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments. What shipped: a fail/blocked/question verdict now reaches the row with its reason (acceptance.apply_ledger stopped dropping non-clearing verdicts in the no-platform join, ISS-0281); the acceptance payload carries view.history, every event per check newest first, so the mark dialog shows the check's own words and its earlier comments (ISS-0281, ISS-0282); the checks page and its filters are remembered per workspace under cockpit:checks-place:<workspaceId> (ISS-0280). A fourth defect, ISS-0284, was found while verifying the third in the live harness and fixed in the same commit: the tier chips selected the section key while the row predicate compared the tier number, so every chip in that row did nothing (and emptied a bare ~checks). Nineteen guards, five in tests/test_ledger.py and fourteen in tests/test_checks_view.py; all four were driven in the live harness against your-trainer rather than only asserted, and the harness is what caught the two second-cut defects: the mark dialog was taller than the window with Save off-screen and printed the body as raw Markdown (ISS-0282 reopened and re-fixed via /api/render plus a bounded card), and the row quoted the migration backfill under 379 of 436 rows until _row gained verdict_method. LEFT OPEN FOR EDWIN, two questions in the notes: (a) ISS-0281 -- for a check that fails on one platform and passes on another the page now shows the worst verdict; the alternative is making ~checks always name a platform; (b) ISS-0280 -- the fourth 'the checks page loses its place' issue, past the sibling-harvest trigger, so a rule-ADR is proposed and not written. ISS-0283 is at triage under PHASE-999: a test pins your-trainer's blocking count at >=40 and the release has been walked down to 3, so the suite is red for a reason that is not this code. Standing context: the new-application design collateral moved to ~/Dev/repos/project-os-deck on 2026-09-06; this cockpit STAYS THE PRIMARY PLACE for new functionality, and Deck watches docs/reference/cockpit-capability-register.md, which this change updated (shell.pages.checks, shell.checks.mark-dialog, api.read.check-history)."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
@@ -1693,6 +1693,51 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0281:
+      file: "docs/issues/ISS-0281-A-Failing-Verdict-Is-Erased-From-The-Checks-View.md"
+      title: "A fail, blocked or question verdict is erased from `~checks` — with no platform named, `apply_ledger` keeps only verdicts that clear on every platform, so three of Edwin's own verdicts in your-trainer read as never walked with no comment"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      severity: high
+      component: server
+      note: "Measured 2026-09-06 on ../your-trainer (one ledger, WORKING-android.json): ledger.verdicts resolves pass 584, excused 15, na 6, partial 2, fail 2, question 1; acceptance.view_payload renders pass 582, todo 19, excused 15, na 6, partial 2 -- no fail, no question. The no-platform branch is DES-0012 D4's release-gate join (every platform must clear) reused as the walk page's display, and it drops a non-clearing verdict instead of showing it. The clearing half of Edwin's report is legibility: the meta line shows only the CURRENT verdict's reason and no surface reaches the earlier ones."
+    ISS-0280:
+      file: "docs/issues/ISS-0280-The-Checks-Page-Does-Not-Survive-Leaving-The-Project.md"
+      title: "Leaving a project and coming back lands on the Tests landing instead of the filtered checks list — the page and the tier/area filters live in module state that nothing persists per workspace"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      severity: medium
+      component: ui
+      note: "Two losses on one switch. openWorkspace clears currentRel and loadWsNav lands Tests on ~tests because tests is in MODES_WITH_VIRTUAL_LANDING; checkFilters is module state with no persistence and renderChecksPage clears both axes on every address-driven render (ISS-0262's keepFilters rule). Only the nav MODE is stored (cockpit:nav-mode), and globally. Pinned docs (cockpit:pinned:<workspaceId>) and the platform picker already persist per workspace. Fourth issue of its kind on this page (ISS-0193, ISS-0262, ISS-0263): the rule-ADR proposal is in the note."
+    ISS-0284:
+      file: "docs/issues/ISS-0284-The-Tier-Chips-Filter-Nothing.md"
+      title: "The tier chips on the checks filter bar select a value nothing matches — the facet carries the section key (`regression`) and the predicate compares the tier number (`2`), so clicking one changes nothing or empties the page"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      severity: medium
+      component: ui
+      note: "Found in the live harness while verifying ISS-0280. _facets emits the SECTION key for the tiers axis (ADR-0039 derived the sections and left the payload key alone); checkMatches compares String(tier), the numeric position; the ~checks/tier/<n> route puts a digit in the same set, which is why the address works and the chips do not. Fixed here rather than filed because ISS-0280 persists the filter set, which would have made a per-session bug a stored one."
+    ISS-0283:
+      file: "docs/issues/ISS-0283-A-Test-Pins-Another-Repos-Blocking-Count.md"
+      title: "Three tests pin ../your-trainer's outstanding work — a blocking count of 40 or more and the existence of chronic rows — so walking the release down turns the suite red; the assertions measure how much is left in another repo, not this code"
+      status: triage
+      owner: user:edwin
+      phase: "[[PHASE-999-Future]]"
+      severity: medium
+      component: tests
+      note: "THREE tests, one premise: an assertion that ~/Dev/repos/your-trainer still owes work. test_release_gate_campaign asserts len(gate['blocking']) >= 40 and it now reports 3; test_gate_delta's two chronic-row tests assert the corpus has rows blocking across releases and Edwin cleared the last of them the same day (the second raises ValueError out of max() on an empty list rather than failing an assertion). All three red exactly because the release was walked, and all three verified independent of the ISS-0281 fix by stashing it. Three readings offered in the note; Edwin picks, and the choice applies to all three."
+    ISS-0282:
+      file: "docs/issues/ISS-0282-The-Mark-Dialog-Hides-The-Check-It-Marks.md"
+      title: "The mark dialog shows the check's id and name and nothing else — its description and earlier comments are not passed to `askForMark`, so recording a verdict means losing sight of what the check asks"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      severity: medium
+      component: ui
+      note: "walkOneCheck calls askForMark with {number, name, current} only. item.text (shown clamped to two lines on the row) and the verdict history are not passed. Depends on ISS-0281's history half for the comments: the payload carries only the current verdict's reason today, so the dialog can show the description now and the earlier comments once the payload carries them."
     ISS-0279:
       file: "docs/issues/ISS-0279-A-List-Valued-Type-Field-Loses-Its-Type.md"
       title: "A note whose `type:` is a YAML list is indexed as untyped — 99 of the 407 notes in Edwin's vault, including nearly every character, page and panel in the Comics project"
@@ -3027,8 +3072,8 @@ items:
       owner: user:edwin
       goal: "Every verification surface answers the question its reader actually has, and the record can hold the answer — a release says what holds IT and offers no control that changes a check, the tests view leads with what a person owes rather than with an inventory, and a rendered mark is a check mark. Widened 2026-08-20: where a surface was found stating something nothing had recorded, this phase now also builds the place to record it. Found by use, not by audit."
       features: ["FEAT-0125", "FEAT-0126", "FEAT-0127", "FEAT-0128", "FEAT-0129"]
-      issues: ["ISS-0210", "ISS-0211", "ISS-0212", "ISS-0213"]
-      note: "Opened 2026-08-18 from five defects Edwin found by USE, not by audit — four are invisible to the validator and to the suite, and two are live regressions PHASE-036 introduced. Common cause: every surface answers a question its reader did not ask. Opens on ADR-0035 (a release page reports, it does not record)."
+      issues: ["ISS-0210", "ISS-0211", "ISS-0212", "ISS-0213", "ISS-0280", "ISS-0281", "ISS-0282"]
+      note: "REOPENED 2026-09-06 for ISS-0280, ISS-0281 and ISS-0282: three defects on the acceptance checks page Edwin found by walking your-trainer's suite, which is this phase's shape (a surface answering a question its reader did not ask). Close it again when the three are fixed (CLAUDE.md, reopen-and-close rule). Opened 2026-08-18 from five defects Edwin found by USE, not by audit — four are invisible to the validator and to the suite, and two are live regressions PHASE-036 introduced. Closed 2026-08-21 over 97 resolved children. Opens on ADR-0035 (a release page reports, it does not record)."
     PHASE-036:
       file: "docs/phases/PHASE-036-One-Human-Walk.md"
       title: "Three axes — what a test exercises, who runs it and what it gates stop being one word, and gating is derived from `covers:` at any granularity"
@@ -4048,7 +4093,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 16
-    issues_triage: 9
+    issues_triage: 10
     risks_open: 6
     releases_total: 1
     decisions_total: 31

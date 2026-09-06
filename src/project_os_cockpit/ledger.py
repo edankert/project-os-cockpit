@@ -719,3 +719,49 @@ def owed(docs_root: Path, platform: str, checks: Iterable[str]) -> list[str]:
     found = verdicts(docs_root, platform)
     return [c for c in checks
             if (v := found.get(c)) is None or not v.clears]
+
+
+def events_by_check(
+    docs_root: Path, platform: str | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    """Every event ever recorded against each check, newest first.
+
+    **The comments are all here and no surface showed one of them.** A walker
+    writes a reason with every verdict that does not simply pass — 28 of them
+    in `your-trainer` by 2026-09-06 — and the only one any surface rendered was
+    whatever `resolve` currently reports. Mark a check `fail` with a paragraph
+    saying what broke, come back after the fix and mark it `pass`, and the
+    paragraph is unreachable from the app: it is in the file, and nothing reads
+    it back.
+
+    So this is deliberately the raw log rather than a resolution: superseded
+    verdicts, expired excuses and invalidations all stay, because *what did we
+    say about this check before* is a question about history and `resolve`
+    answers a different one — *what does the platform say now*.
+
+    Newest first, and ties inside a date break on the append order reversed:
+    the file is append-only, so the last line written on a day is the last
+    thing somebody decided that day.
+    """
+    rows: dict[str, list[tuple[str, int, dict[str, Any]]]] = {}
+    seq = 0
+    for led in load(docs_root, platform):
+        for entry in led.entries:
+            seq += 1
+            rows.setdefault(entry.check, []).append((entry.date, seq, {
+                "platform": led.platform,
+                #: `""` is the working ledger — the release it belongs to has
+                #: not been decided yet, which is what sealing does.
+                "release": led.release,
+                "date": entry.date,
+                "mark": entry.mark,
+                "reason": entry.reason,
+                "by": entry.by,
+                "method": entry.method,
+                "invalidated_by": entry.invalidated_by,
+            }))
+    return {
+        check: [row for _, _, row in sorted(items, key=lambda r: (r[0], r[1]),
+                                            reverse=True)]
+        for check, items in rows.items()
+    }
