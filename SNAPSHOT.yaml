@@ -78,20 +78,11 @@ focus:
   feature: ""
   phase: "PHASE-028"
   issue: ""
-  note: "DES-0013 rev 2 re-pitches the nine as WHOLE APPLICATIONS carrying the cockpit's full function, terminal included, and forks ORBIT into two treatments. FEAT-0144 is the one part Edwin asked to be real. Originally: DES-0013 explores nine alternative applications over the same corpus — a proposal, nothing accepted and nothing to build yet. It is homed in the standing survey phase PHASE-028, which reopens for a round and closes again; PHASE-041 closed 2026-08-29 and its context now lives in its own note."
+  note: "2026-09-06: the new-application design collateral (DES-0013, DES-0014, FEAT-0144 with TASK-0592..0596, the DES-0014 review and the surface-architecture options note) MOVED to ~/Dev/repos/project-os-deck as DES-0001, DES-0002, FEAT-0001 with TASK-0001..0005 and the two reference notes. This cockpit is FROZEN except for fixes; new capability lands in project-os-deck. What stays here for that relationship: docs/reference/cockpit-capability-register.md (baseline 570da22) and the rule in CLAUDE.md that a change note adding capability updates the register in the same commit. ISS-0279 (list-valued type: dropped by the indexer) stays here at triage and joins Deck's Vault phase when it opens. PHASE-028 keeps its related links as cross-repo links."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
-    FEAT-0144:
-      file: "docs/features/orbit-view/FEAT-0144-The-Corpus-Has-An-Inside.md"
-      title: "The corpus has an inside — an orbit view of the whole link graph, flown rather than listed, in the cockpit"
-      status: planned
-      owner: user:edwin
-      phase: "[[PHASE-999-Future]]"
-      requirements: []
-      tasks: ["TASK-0592", "TASK-0593", "TASK-0594", "TASK-0595", "TASK-0596"]
-      note: "Asked for directly by Edwin 2026-09-05 off DES-0013's ORBIT plate. A VIEW at ~orbit, not a replacement for the reader: landing opens the note in the existing document pane and NO verb is discharged in the field (ADR-0020). The two hard tasks are not the renderer -- TASK-0593 (a layout that stays put while the corpus adds 634 notes a month) and TASK-0596 (the treatment decision, glass or blocks, which is human-only and BLOCKS the renderer). Its own design says the orphan-note query is one a table could answer; what a table cannot answer is which clusters hang by a single edge, and where a note sits two hops out."
     FEAT-0143:
       file: "docs/features/fleet-validator-sync/FEAT-0143-The-Fleet-Runs-One-Validator.md"
       title: "The fleet runs one validator — the migration is two mechanical rules, not a per-repo reconciliation, and a drift check keeps it that way"
@@ -829,36 +820,6 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
-    TASK-0592:
-      file: "docs/features/orbit-view/plan/tasks/TASK-0592-The-Whole-Edge-List-Is-One-Payload.md"
-      title: "The whole edge list is one payload — every link, with the offset that lets the edge quote the sentence that made it"
-      status: backlog
-      owner: user:edwin
-      parent: "FEAT-0144"
-    TASK-0593:
-      file: "docs/features/orbit-view/plan/tasks/TASK-0593-The-Layout-Is-Computed-Once-And-Kept.md"
-      title: "The layout is computed once and kept — and a new note takes a place without moving its neighbours"
-      status: backlog
-      owner: user:edwin
-      parent: "FEAT-0144"
-    TASK-0594:
-      file: "docs/features/orbit-view/plan/tasks/TASK-0594-The-Field-Renders-And-Flies.md"
-      title: "The field renders and flies — 1537 nodes and 16148 edges, coloured by status band, at a frame rate that survives a laptop"
-      status: backlog
-      owner: user:edwin
-      parent: "FEAT-0144"
-    TASK-0595:
-      file: "docs/features/orbit-view/plan/tasks/TASK-0595-Landing-Opens-The-Note.md"
-      title: "Landing opens the note in the reader that already exists, so the field never becomes a second document pane"
-      status: backlog
-      owner: user:edwin
-      parent: "FEAT-0144"
-    TASK-0596:
-      file: "docs/features/orbit-view/plan/tasks/TASK-0596-The-Treatment-Is-Chosen-Not-Assumed.md"
-      title: "The treatment is chosen, not assumed — the sky, the instrument and the wooden table are drawn, and a person picks"
-      status: backlog
-      owner: user:edwin
-      parent: "FEAT-0144"
     TASK-0579:
       file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0579-Count-The-Flood-By-Rule.md"
       title: "Count the flood by rule — run the upstream validator against all four fleet repos in report-only mode and record what it actually reports"
@@ -3933,20 +3894,6 @@ items:
   releases: {}
 
   designs:
-    DES-0014:
-      file: "docs/designs/DES-0014-The-Glass-Cockpit.md"
-      title: "The glass cockpit — depth is priority, every view is a re-arrangement rather than a page, and the console is furniture that floats over the notes"
-      status: proposed
-      owner: user:edwin
-      phase: "[[PHASE-028-Borrowed-Capability]]"
-      note: "REV 2 fixed the bug that made it untestable -- quiet cards carried pointer-events:none, so FEAT-0143 (done, therefore always quiet) could not be opened AT ALL; every visible card is now clickable and the search box flies to an id. Rev 2 also: per-type card faces with REAL phase progress bars (PHASE-041 21/23, PHASE-028 0/11, PHASE-999 0/27), phases leading their own sectors (rev 1 grouped by phase in four views and never rendered a phase), multiple console slabs, list panels beside the field, files, pulse lanes, the Orbit arrangement, multi-card open, and sector ordering so finished work stops occupying the visible columns. NEW SECTIONS: many monitors (only screen 1 gets a front plane -- two screens both claiming to show what needs you is how you end up trusting neither) and whether it would run (the visible arc holds ~40 cards of 1537, so POOLING IS THE ARCHITECTURE not an optimisation, and filter:blur must go). Originally: DES-0013's GLASS treatment taken seriously as a whole application, headset dropped on Edwin's instruction: desktop, mouse and keyboard, one window. THE MECHANIC IS THE FINDING -- nav_payload already prepends _needs_you_group to all eleven modes and appends suppressed_group to most, so every view is ALREADY three bands and a list can only express that by vertical position (which is why ADR-0025 had to be written). Depth carries it instead: front plane = owed, mid = the view's subject, deep field = the quiet 70%. A view switch is a re-arrangement, not a navigation, so you watch a note change importance. Console is furniture (drag, resize, translucent) and the layout treats it as an OBSTACLE that cards flow around. Consoles and agent sessions share one carousel; the twelve repos are the same mechanic at a different radius. Selecting a note brings its linked neighbours into a ring. Hue is left to say only what a note IS -- depth carries priority -- which is this design's answer to the four-hues-in-25-degrees cost DES-0013 recorded."
-    DES-0013:
-      file: "docs/designs/DES-0013-Nine-Ways-To-Read-The-Record.md"
-      title: "Nine ways to read the record, and a tenth that was cut and then asked for — whole applications over one corpus"
-      status: proposed
-      owner: user:edwin
-      phase: "[[PHASE-028-Borrowed-Capability]]"
-      note: "REV 2 re-pitched these as WHOLE APPLICATIONS after Edwin: the ask was a replacement for the cockpit, terminal included, not nine views. Carries a twelve-capability inventory read off the routes/endpoints/obligation registry and a coverage table; FOUR OF TEN cannot be a replacement and say so (PULSE no reader, DECK refuses navigation, BROADSHEET is print, ROOM cannot host a shell). Five keep the cockpit's reader and route to it. ORBIT and ROOM each carry a LIVE THREE-WAY TREATMENT TOGGLE, and both record a cost rather than a mood: glass collapses four of six status hues into 25 degrees, blocks cannot draw the 16148 edges. ORBIT is filed as FEAT-0144; ROOM was cut, challenged and promoted to plate 10. Originally: nine concepts drawn as working mocks in one artifact: ORBIT, ATLAS, REEL, PULSE, ASK, DECK, LEDGER, BROADSHEET, FOUNDRY. Each is separated from the others on six axes stated in the artifact's matrix, so the claim `these are different applications` is checkable rather than asserted. NOTHING IS ACCEPTED AND NOTHING IS SCHEDULED. Two of the nine collide with recorded decisions and the artifact says so on the plate rather than in a footnote: ASK is the conversation UI PHASE-028 itself puts out of scope, and DECK's one-card queue contradicts ADR-0020 (obligations live with their subject, not in a central queue). Mocks are driven by measured corpus figures, not invented ones — 1537 notes, 16148 wikilinks, 2206 distinct targets, and the month histogram 180/1/313/634 that makes the June silence visible."
     DES-0011:
       file: "docs/designs/DES-0011-Publication-Is-An-Obligation.md"
       title: "Publication is an obligation — unpushed work joins Needs you, the push lives with the commits, and the overview button carries the number"
@@ -4091,9 +4038,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 144
+    features_total: 143
     features_done: 131
-    tasks_total: 595
+    tasks_total: 590
     tasks_done: 554
     tests_total: 47
     tests_passing: 2

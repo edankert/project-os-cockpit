@@ -7,11 +7,11 @@ phase:
 owner: unassigned
 created: 2026-09-06
 updated: 2026-09-06
-source: ["Measured 2026-09-06 while writing [[REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]: the sidecar run against ~/Notes returned a Library with a Panel group of zero"]
+source: ["Measured 2026-09-06 while writing [[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]: the sidecar run against ~/Notes returned a Library with a Panel group of zero"]
 severity: medium
 component: index
 parent: ""
-related: ["[[REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]", "[[ISS-0023]]"]
+related: ["[[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]", "[[ISS-0023]]"]
 tests: []
 ---
 

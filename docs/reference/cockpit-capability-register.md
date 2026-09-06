@@ -12,7 +12,7 @@ source:
   - "Edwin 2026-09-06: 'make sure to mark the current cockpit functionality so if any new cockpit functionality arrives which it will that we can adapt the other repo accordingly'"
   - "desktop/src/renderer/index.html, renderer.ts, main.ts; src/project_os_cockpit/server.py (the route table), cockpit.py (NAV_MODES); docs/reference/des-0014-glass-cockpit-review-2026-09-05.md Part 2"
 related:
-  - "[[REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]"
+  - "[[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]"
   - "[[ADR-0010-What-The-Browser-Cockpit-Is-For]]"
   - "[[FEAT-0093-A-Cross-Repo-Link-Carries-Its-Parts]]"
 tags: [reference, register, capability, downstream]
@@ -22,7 +22,7 @@ tags: [reference, register, capability, downstream]
 
 ## Purpose
 
-A second application is being started in its own repository, beside this one, to build the views described in [[REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]. It shares this repository's sidecar and will grow while this cockpit is frozen except for fixes. New capability will still arrive here, and Edwin's requirement is that the other repository can see it and adapt.
+A second application is being started in its own repository, beside this one, to build the views described in [[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]. It shares this repository's sidecar and will grow while this cockpit is frozen except for fixes. New capability will still arrive here, and Edwin's requirement is that the other repository can see it and adapt.
 
 This note is the mechanism. It lists every capability the cockpit has today under a stable key, records the commit it was measured at, and states the rule that keeps it current. The other repository keeps an adoption table against the same keys (adopted, not yet, not applicable, replaced by). A capability added here after the baseline is a new row here and an open row there.
 

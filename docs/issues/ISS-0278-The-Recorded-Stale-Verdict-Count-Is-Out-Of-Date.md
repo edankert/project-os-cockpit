@@ -11,7 +11,7 @@ source: ["Measured while drawing DES-0013; the design needed a real number for i
 severity: low
 component: docs
 parent: ""
-related: ["[[DES-0013-Nine-Ways-To-Read-The-Record]]", "[[ISS-0253-A-Verdict-Is-Answered-Not-Flipped]]", "[[project-os-dev#ADR-0011]]"]
+related: ["[[project-os-deck#DES-0001]]", "[[ISS-0253-A-Verdict-Is-Answered-Not-Flipped]]", "[[project-os-dev#ADR-0011]]"]
 tests: []
 ---
 
@@ -50,4 +50,4 @@ Option 3 is the only one that cannot go stale again, and it is also the one that
 
 ## Notes
 
-Filed under LIFECYCLE "Scope of a change": found while drawing [[DES-0013]], not asked for, and not fixed in that diff. `triage` because which of the three options is right is Edwin's call, and option 1 is a one-line edit anybody can make today.
+Filed under LIFECYCLE "Scope of a change": found while drawing [[project-os-deck#DES-0001]], not asked for, and not fixed in that diff. `triage` because which of the three options is right is Edwin's call, and option 1 is a one-line edit anybody can make today.

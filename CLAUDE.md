@@ -153,7 +153,7 @@ Upstream relationship: this repo is downstream of `~/Dev/repos/project-os/` (the
 
 ## A sibling application tracks this cockpit's capability (2026-09-06)
 
-A second application is being built in its own repository beside this one. It shares this repository's sidecar, and this cockpit is frozen except for fixes while it grows. Its design collateral is moving there; the options that led to it are in `docs/reference/cockpit-surface-architecture-options-2026-09-06.md`.
+A second application, **Deck**, is being built in `~/Dev/repos/project-os-deck` beside this one. It shares this repository's sidecar, and this cockpit is frozen except for fixes while it grows. Its design collateral moved there on 2026-09-06 (DES-0013 and DES-0014 became `project-os-deck#DES-0001` and `#DES-0002`, FEAT-0144 became `#FEAT-0001` with TASK-0001 to 0005; the counters here were not reused). The options that led to it are `project-os-deck: docs/reference/cockpit-surface-architecture-options-2026-09-06.md`, and Deck's adoption table against the register below is `project-os-deck: docs/reference/cockpit-adoption.md`.
 
 **Every change note that adds, changes or retires capability updates `docs/reference/cockpit-capability-register.md` in the same commit.** Capability means anything a person or an agent can do or see through the shell, the sidecar's own HTML, the sidecar API or the `cockpit` CLI. A fix that changes no behaviour does not touch the register. The register carries the detection command; a commit it lists without a row is drift.
 
