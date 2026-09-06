@@ -1,7 +1,7 @@
 ---
 type: "[[change]]"
 id: CHG-20260906-Deck-Collateral-Moved
-title: "The new-application design collateral moved to project-os-deck; this cockpit is frozen except for fixes and keeps a capability register the sibling tracks"
+title: "The new-application design collateral moved to project-os-deck; the cockpit stays the primary place for new functionality and keeps a capability register the sibling tracks"
 status: merged
 owner: user:edwin
 created: 2026-09-06
@@ -22,7 +22,7 @@ related: ["[[REFERENCE-CAPABILITY-REGISTER]]", "[[PHASE-028-Borrowed-Capability]
 
 ## Summary
 
-Nine notes and two HTML prototypes that designed the next application left this repository on 2026-09-06 for a new one, `~/Dev/repos/project-os-deck`, and anyone following a link to DES-0013, DES-0014 or FEAT-0144 from here now lands in that repository. The cockpit itself is unchanged in behaviour. What it gained is a rule: this application is frozen except for fixes, new capability lands in Deck, and a capability register here is the contract Deck adopts against.
+Nine notes and two HTML prototypes that designed the next application left this repository on 2026-09-06 for a new one, `~/Dev/repos/project-os-deck`, and anyone following a link to DES-0013, DES-0014 or FEAT-0144 from here now lands in that repository. The cockpit itself is unchanged in behaviour. What it gained is a register: the capability register here is the contract Deck tracks, and this cockpit remains the primary place where new functionality is built. An earlier wording of this note, the same day, said the cockpit was frozen except for fixes and that new capability would land in Deck; Edwin reversed that within the hour ("too early to say that any new cockpit functionality should land in the deck instead"), so Deck's obligation is to keep an eye on what arrives here and be able to support it.
 
 ## What moved, and to what
 

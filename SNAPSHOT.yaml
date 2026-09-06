@@ -78,7 +78,7 @@ focus:
   feature: ""
   phase: "PHASE-028"
   issue: ""
-  note: "2026-09-06: the new-application design collateral (DES-0013, DES-0014, FEAT-0144 with TASK-0592..0596, the DES-0014 review and the surface-architecture options note) MOVED to ~/Dev/repos/project-os-deck as DES-0001, DES-0002, FEAT-0001 with TASK-0001..0005 and the two reference notes. This cockpit is FROZEN except for fixes; new capability lands in project-os-deck. What stays here for that relationship: docs/reference/cockpit-capability-register.md (baseline 570da22) and the rule in CLAUDE.md that a change note adding capability updates the register in the same commit. ISS-0279 (list-valued type: dropped by the indexer) stays here at triage and joins Deck's Vault phase when it opens. PHASE-028 keeps its related links as cross-repo links."
+  note: "2026-09-06: the new-application design collateral (DES-0013, DES-0014, FEAT-0144 with TASK-0592..0596, the DES-0014 review and the surface-architecture options note) MOVED to ~/Dev/repos/project-os-deck as DES-0001, DES-0002, FEAT-0001 with TASK-0001..0005 and the two reference notes. This cockpit STAYS THE PRIMARY PLACE for new functionality (Edwin, later the same day: too early to send new capability to Deck); Deck watches the register and must be able to support what arrives. What stays here for that relationship: docs/reference/cockpit-capability-register.md (baseline 570da22) and the rule in CLAUDE.md that a change note adding capability updates the register in the same commit. ISS-0279 (list-valued type: dropped by the indexer) stays here at triage and joins Deck's Vault phase when it opens. PHASE-028 keeps its related links as cross-repo links."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.

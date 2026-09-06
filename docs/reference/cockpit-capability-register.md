@@ -22,7 +22,7 @@ tags: [reference, register, capability, downstream]
 
 ## Purpose
 
-A second application is being started in its own repository, beside this one, to build the views described in [[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]. It shares this repository's sidecar and will grow while this cockpit is frozen except for fixes. New capability will still arrive here, and Edwin's requirement is that the other repository can see it and adapt.
+A second application is being started in its own repository, beside this one, to build the views described in [[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]. It shares this repository's sidecar. This cockpit stays the primary place where new functionality is built, so capability will keep arriving here, and Edwin's requirement is that the other repository can see it and support it going forward.
 
 This note is the mechanism. It lists every capability the cockpit has today under a stable key, records the commit it was measured at, and states the rule that keeps it current. The other repository keeps an adoption table against the same keys (adopted, not yet, not applicable, replaced by). A capability added here after the baseline is a new row here and an open row there.
 
