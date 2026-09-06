@@ -150,3 +150,11 @@ This lives here rather than in `tools/instructions/LIFECYCLE.md` because that fi
 Stack: Python 3.11+. Dependencies live in `pyproject.toml`. Source under `src/project_os_cockpit/`. Run with `python -m project_os_cockpit <path-to-docs-dir>` or the installed console script `project-os-cockpit <path-to-docs-dir>`. The render server binds to `0.0.0.0` (so a tablet on the same Wi-Fi can read), the optional terminal endpoint binds to `127.0.0.1` only (Mac-local).
 
 Upstream relationship: this repo is downstream of `~/Dev/repos/project-os/` (the canonical project-os template). Run `tools/scripts/sync-project-os.sh ../project-os` to pull template-owned files (`tools/instructions/`, `tools/skills/`, `docs/__templates__/`, `docs/__bases__/`) when the upstream changes.
+
+## A sibling application tracks this cockpit's capability (2026-09-06)
+
+A second application is being built in its own repository beside this one. It shares this repository's sidecar, and this cockpit is frozen except for fixes while it grows. Its design collateral is moving there; the options that led to it are in `docs/reference/cockpit-surface-architecture-options-2026-09-06.md`.
+
+**Every change note that adds, changes or retires capability updates `docs/reference/cockpit-capability-register.md` in the same commit.** Capability means anything a person or an agent can do or see through the shell, the sidecar's own HTML, the sidecar API or the `cockpit` CLI. A fix that changes no behaviour does not touch the register. The register carries the detection command; a commit it lists without a row is drift.
+
+**New capability lands in the sibling, not here, unless the note says why.** A feature added to this cockpit after 2026-09-06 must state in its note why it belongs here rather than there.
