@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 144
-  ISS: 278
+  ISS: 279
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -1732,6 +1732,14 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0279:
+      file: "docs/issues/ISS-0279-A-List-Valued-Type-Field-Loses-Its-Type.md"
+      title: "A note whose `type:` is a YAML list is indexed as untyped — 99 of the 407 notes in Edwin's vault, including nearly every character, page and panel in the Comics project"
+      status: triage
+      owner: unassigned
+      severity: medium
+      component: index
+      note: "Found 2026-09-06 by running the sidecar against ~/Notes for the surface-architecture options note. One function (_normalise_type) accepts only a string; Obsidian writes list-valued properties as YAML lists. The fix is small; the decision is what a multi-element list means."
     ISS-0278:
       file: "docs/issues/ISS-0278-The-Recorded-Stale-Verdict-Count-Is-Out-Of-Date.md"
       title: "CLAUDE.md states the stale-verdict backlog as 49 notes; it is 70, and the file that describes the problem now understates it"
@@ -4093,7 +4101,7 @@ metrics:
     test_cases_passing: 181
     tests_failing: 0
     issues_open: 16
-    issues_triage: 8
+    issues_triage: 9
     risks_open: 6
     releases_total: 1
     decisions_total: 31

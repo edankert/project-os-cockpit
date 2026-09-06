@@ -9,7 +9,7 @@ status: "proposed"
 phase: "[[PHASE-028-Borrowed-Capability]]"
 owner: user:edwin
 created: 2026-09-05
-updated: "2026-09-05"
+updated: "2026-09-06"
 source: ["Edwin 2026-09-05, rev 2: 'That new design though would provide us with some huge new options ... multiple consoles for instance which would otherwise be hidden behind tabs and also we could still decide to have lists available ... we could now easily allow for multiple cards to be visible at once'", "Edwin 2026-09-05, rev 2: 'I was not able to open up feat-0143 and try out the selection/opening up functionality'", "Edwin 2026-09-05, rev 2: 'we could show different information on the closed cards, like progress bars for the phases (I didn't see phases in overview and other places even though we group by phase in lots of places?)'", "Edwin 2026-09-05, rev 2: 'nice to have the orbit glass view integrated in this, and the pulse view for the consoles/agents ... if we can make this a multi monitor application ... the library one, should probably turn into a file browser ... also consider the actual implementation and if this would be performant enough?'", "Edwin 2026-09-05: 'I assume this view allows for 360 degree turn around, allowing to see and store less important items out of sight?'", "Edwin 2026-09-05: 'The minority report view could work ... I do not consider this to be a vr view ... instead I would like you to design each of the current sets of views for this, these views should be selectable and each view should concentrate on the same details and notes currently in that view, making some note-types and states more important then others (directly in view)'", "Edwin 2026-09-05: 'The console is a view which sits at the bottom middle but can be moved anywhere and can be made smaller/bigger if needed and all the notes can be arranged around the console ... maybe the console should be slightly transparent'", "Edwin 2026-09-05: 'the console and usage view in the left pane need a different approach, possibly for the console statuses show some carousel where the current active ones or selected ones can be moved to the front? Also the repo/project selection could be handled similarly'", "Edwin 2026-09-05: 'When selecting a note it opens up more fully and also somehow brings the associated notes into view'"]
 asset: "DES-0014-the-glass-cockpit.html"
 implements: []
@@ -18,7 +18,7 @@ superseded_by: ""
 reviewed_by: ""
 review_date: ""
 review_verdict: ""
-related: ["[[DES-0013-Nine-Ways-To-Read-The-Record]]", "[[PHASE-028-Borrowed-Capability]]", "[[DES-0002-Cockpit-Design-System]]", "[[ADR-0025-What-Needs-A-Person-Goes-First]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0003-Embedded-Terminal]]", "[[DESIGN]]", "[[REFERENCE-DES-0014-REVIEW]]"]
+related: ["[[DES-0013-Nine-Ways-To-Read-The-Record]]", "[[PHASE-028-Borrowed-Capability]]", "[[DES-0002-Cockpit-Design-System]]", "[[ADR-0025-What-Needs-A-Person-Goes-First]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[FEAT-0003-Embedded-Terminal]]", "[[DESIGN]]", "[[REFERENCE-DES-0014-REVIEW]]", "[[REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]"]
 tags: [design, glass, views]
 ---
 
@@ -264,6 +264,7 @@ So the version I would defend is not the whole cockpit. It is **a twelfth view i
 
 ## Review
 
+- **(document)** · 2026-09-06 · model:claude-fable-5-1 — Edwin answered the review on 2026-09-06: the read-only point, the wish for a flexible desktop with the lists kept as the selector, status surfaces as separate windows, the three-pane cockpit kept as the default with the 2D desk and this field as views over one architecture, and an Obsidian vault as a workspace. The options, the layered architecture and the questions back are in [[REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]] (docs/reference/cockpit-surface-architecture-options-2026-09-06.md). Still no verdict written; the decision is his.
 - **(document)** · 2026-09-05 · model:claude-fable-5-1 — Full review, with the measurements and the literature, is [[REFERENCE-DES-0014-REVIEW]] (docs/reference/des-0014-glass-cockpit-review-2026-09-05.md). Verdict left to Edwin; nothing in the frontmatter was written by this pass.
 - **depth-rule** · 2026-09-05 · model:claude-fable-5-1 — The founding count is overstated: the server serves nine navigator modes, the shell shows seven buttons, and the Needs-you group is prepended to six views (skipped for issues, tests and publication, which already gather). The three-band structure is real for those six; say six.
 - **views** · 2026-09-05 · model:claude-fable-5-1 — Four of the twelve arrangements revive modes the shell retired with a stated reason (tasks: TASK-0368; active and recent: TASK-0204; review: TASK-0378 under ADR-0020). Review re-creates the central verdict queue ADR-0020 dissolved while the note cites ADR-0020 as unchanged; drop it or argue the reversal openly. Overview loses the digest band, the watermark and the unpushed commits, which appear nowhere in the design.
