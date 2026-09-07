@@ -617,11 +617,14 @@ def test_the_historical_line_is_computed_from_the_real_tags() -> None:
     be ignored twelve times."""
     index = Index.build(TRAINER / "docs")
     delta = publication.release_payload(TRAINER, index, "next")["gate"]["delta"]
-    # The tag count is stable — tags do not move — but the live figure is
-    # whatever the suite says today, including after somebody marks a check
-    # from the app. Shape, not value.
+    #: **Shape, not value — including the tag count** ([[ISS-0287]]). This
+    #: pinned `12 releases` under a comment claiming *"the tag count is stable
+    #: — tags do not move"*. Tags do not move; new ones get cut, and
+    #: `your-trainer` cut a thirteenth on 2026-09-06, so the sentence read
+    #: `13 releases, median 26 blocking at ship. This is 541.` and a correct
+    #: line failed a guard about its own grammar.
     assert re.fullmatch(
-        r"12 releases, median \d+ blocking at ship\. This is \d+\.",
+        r"\d+ releases, median \d+ blocking at ship\. This is \d+\.",
         delta["summary"],
     ), delta["summary"]
 

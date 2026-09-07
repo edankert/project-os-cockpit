@@ -27,7 +27,7 @@ The honest answer is that a top-level nav mode was the **cheapest thing to build
 
 The design argument runs the other way, and it is not close:
 
-- **Every other top-level mode is a view over the durable record.** Overview, features, tasks, issues, design, review — all read `docs/`. The inbox is explicitly *not* that: it is gitignored staging, and [[LIFECYCLE]] says its success condition is being **empty**. Giving it equal billing with the committed record states the opposite of what it is.
+- **Every other top-level mode is a view over the durable record.** Overview, features, tasks, issues, design, review — all read `docs/`. The inbox is explicitly *not* that: it is gitignored staging, and `tools/instructions/LIFECYCLE.md` says its success condition is being **empty**. Giving it equal billing with the committed record states the opposite of what it is.
 - **A permanent slot whose ideal state is empty is a permanent slot showing nothing.** The correct steady state of that nav button is a button you never press.
 - **It is per-workspace transient state** — which is exactly what the left pane already holds, one element below, in the agent attention panel. The inbox belongs next to that, not next to `docs/`.
 

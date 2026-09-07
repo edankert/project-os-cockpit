@@ -12,7 +12,7 @@ source: []
 goal: "Second-pass IA fix: pull workspaces to a Discord-style mini-rail on the far left, surface nav modes as a horizontal toolbar above the in-workspace nav, give every workspace its own persistent terminal session, plus two bug fixes (light-theme override + Cmd+P selection)."
 related: ["[[FEAT-0014-Cockpit-IA-Rework]]", "[[FEAT-0009-Native-Shell-Layout]]"]
 requirements: []
-tasks: ["[[TASK-0100]]", "[[TASK-0101]]", "[[TASK-0102]]", "[[TASK-0103]]", "[[TASK-0104]]", "[[TASK-0105]]"]
+tasks: ["[[TASK-0100]]", "[[TASK-0101]]", "[[TASK-0102]]", "[[TASK-0103]]", "[[TASK-0104]]", "[[TASK-0105]]", "TASK-0187"]
 release: ""
 
 ---

@@ -12,6 +12,7 @@ goal: "A standing home for corrections to the record itself — a phase that say
 features: []
 requirements: []
 issues:
+  - "[[ISS-0287-Broken-Links-In-The-Record]]"
   - "[[ISS-0074-Sixteen-Delivered-Notes-Stranded-In-The-Parking-Lot]]"
   - "[[ISS-0078-Downstream-Pilot-Was-Overtaken-And-CLAUDE-Md-Still-Claims-It]]"
 depends: ["[[PHASE-013-Fleet-Surfaces]]"]
@@ -59,7 +60,7 @@ Small phase, and deliberately its own rather than folded into [[PHASE-014]]: tha
 
 **Found by a user reading the surface.** The phase strip drew sixteen `delivered` squares inside a phase titled "Future / Unphased" and no check anywhere reported it. That is the fourth time in a week that a rendering caught what validation could not — after [[ISS-0069]], [[ISS-0072]] and [[ISS-0073]] — and the first where the reader was Edwin rather than a test.
 
-**Two spellings.** The corpus used both `[[PHASE-999-Future]]` and the bare `[[PHASE-999]]`. The first correction pass matched only the long form and stopped partway, which is the same near-miss [[PHASES.md]] already records for the never-existing `PHASE-999-Unscheduled`. The guard below matches on the resolved ID, not on either spelling.
+**Two spellings.** The corpus used both `[[PHASE-999-Future]]` and the bare `[[PHASE-999]]`. The first correction pass matched only the long form and stopped partway, which is the same near-miss [[PHASES]] already records for the never-existing `PHASE-999-Unscheduled`. The guard below matches on the resolved ID, not on either spelling.
 
 
 ## Closed 2026-07-30
@@ -67,3 +68,9 @@ Small phase, and deliberately its own rather than folded into [[PHASE-014]]: tha
 Both legs done: [[ISS-0074]] `fixed`, [[ISS-0078]] `fixed`.
 
 Reopen this note for the next record correction rather than allocating a new phase. That is what "standing" means here — a known address, not a permanently open one.
+
+## Reopened and re-closed 2026-09-07 — broken links in the record
+
+Edwin read the pages and found links that go nowhere. Twenty-five wikilinks in note bodies resolved to nothing and the cockpit drew each as a broken link; three task notes had been zero-byte files since July, so the work shipped and the notes held nothing. Fixed in [[CHG-20260907-Links-In-The-Record-Resolve]], with the notes reconstructed from their delivering commits rather than invented.
+
+This is the phase's own subject — *a record that says the wrong thing* — so it was reopened rather than given a new phase, and closed again the same day. What makes it stay closed this time is the guard: `tests/test_record_links.py` reads links in note bodies, which nothing had ever done. [[ISS-0162]] fixed 48 of these by hand in August and closed; nine more were back by September.

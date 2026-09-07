@@ -57,7 +57,7 @@ Both copies here were 10 lines behind `project-os/tools/scripts/validate-docs.py
 
 - **The cockpit's in-app validation can disagree with a repo's pre-commit and CI**, which run the template-synced validator. A user sees green in one surface and red in another with no indication which is authoritative.
 - Sync lag is invisible: the local parity test passes while both copies are equally stale.
-- It was about to get much worse. Upstream `project-os-dev` [[PHASE-0002]] retires `ITEM-STATUS`, `COUNTER` and `METRICS` entirely (ADR-0009), collapses `ALLOWED_STATUS` (ADR-0008), and re-severities every remaining check (ADR-0011). Each of those lands in the template; none reaches this file automatically.
+- It was about to get much worse. Upstream `project-os-dev` [[project-os-dev#PHASE-0002]] retires `ITEM-STATUS`, `COUNTER` and `METRICS` entirely (ADR-0009), collapses `ALLOWED_STATUS` (ADR-0008), and re-severities every remaining check (ADR-0011). Each of those lands in the template; none reaches this file automatically.
 
 ## Options
 

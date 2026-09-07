@@ -26,7 +26,7 @@ I tried to close this twice and neither attempt was a fix:
 
 The tier filter runs **before** the fail-closed clause, so those six are discarded before the clause that exists for exactly that case can see them. I reversed the order on 2026-08-18 and then reverted it, because measuring it changed what the change meant:
 
-**`your-trainer`'s release gate moves 60 → 66.** And [[TESTING]] says the opposite in as many words — *"Tier 3 tests do not gate releases (they are verification aids, not requirements)."*
+**`your-trainer`'s release gate moves 60 → 66.** And `tools/instructions/TESTING.md` says the opposite in as many words — *"Tier 3 tests do not gate releases (they are verification aids, not requirements)."*
 
 The fail-closed clause is justified by *"this check gated yesterday and a purely derived gate would silently stop it gating"*. **That argument does not extend to these six: they never gated under the tier rule either.** So blocking them is not failing closed — it is a **new and tighter gate**, contradicting a written rule, across three repos. That is a decision for you, not a tidy-up at the end of a session, so the code carries the blind spot with a comment pointing here rather than a fix nobody asked for.
 

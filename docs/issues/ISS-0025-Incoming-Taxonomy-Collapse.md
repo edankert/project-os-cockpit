@@ -18,7 +18,7 @@ tests: []
 
 ## Problem
 
-`project-os-dev` has opened [[PHASE-0002]] with ADR-0008, "States must earn their keep", which collapses the project-os status taxonomy from 64 declared values to roughly 45 by deleting every value with no observed fleet usage. The cockpit's status vocabulary is downstream of that decision and will need to follow, as it did for ADR-0007.
+`project-os-dev` has opened [[project-os-dev#PHASE-0002]] with ADR-0008, "States must earn their keep", which collapses the project-os status taxonomy from 64 declared values to roughly 45 by deleting every value with no observed fleet usage. The cockpit's status vocabulary is downstream of that decision and will need to follow, as it did for ADR-0007.
 
 The measurement behind it: 5,890 `status:` writes across 10 repos and 3,775 notes, reconstructed per-note from git history.
 

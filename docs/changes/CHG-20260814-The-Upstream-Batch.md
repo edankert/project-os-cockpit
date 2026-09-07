@@ -45,7 +45,7 @@ Seven issues closed, one filed, across two repos. Four could only be fixed upstr
 
 **[[ISS-0164]]**, filed: **phases are a second type the palette cannot find** — 34 notes (independently re-measured as exact), and ISS-0142's title had called releases *"the one note type"* it had never carried. That claim was measured by hand, one type at a time, which is how the bug was found in the first place. The per-type guard now measures all types in one pass and requires any zero to be **named with a reason**; a third instance cannot arrive quietly.
 
-Also found: eight occurrences across [[ISS-0148]], [[FEAT-0093]], [[CHG-20260812]], `CONTEXT.md` and [[ISS-0162]] itself **quote** the bare citation form to explain what it means or why the slash lost. `FEAT-0093`'s acceptance criterion is literally *"`[[ADR-0011]]` with no prefix keeps its current meaning exactly"* — a naive sweep would have made it assert the opposite of what it verifies.
+Also found: eight occurrences across [[ISS-0148]], [[FEAT-0093]], [[CHG-20260812-Cross-Repo-Links]], `CONTEXT.md` and [[ISS-0162]] itself **quote** the bare citation form to explain what it means or why the slash lost. `FEAT-0093`'s acceptance criterion is literally *"`[[ADR-0011]]` with no prefix keeps its current meaning exactly"* — a naive sweep would have made it assert the opposite of what it verifies.
 
 ## Behaviour that changed
 

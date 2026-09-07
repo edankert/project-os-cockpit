@@ -1092,11 +1092,41 @@ def test_every_task_note_on_disk_is_reachable(repo_index: Index) -> None:
     reached = {r.path for r in cockpit._task_records(repo_index)}
     assert on_disk <= reached, f"unreachable task notes: {sorted(on_disk - reached)}"
 
-    typed = {r.path for r in repo_index.notes_by_type("task")}
-    assert typed < on_disk | typed, (
-        "if every task were typed this could not distinguish the path fallback "
-        "from the type lookup it supplements"
-    )
+
+def test_the_path_fallback_reaches_a_task_that_types_itself_as_nothing(
+    tmp_path: Path,
+) -> None:
+    """[[ISS-0067]]'s fallback, proved on a note built for it ([[ISS-0287]]).
+
+    **This assertion used to rest on the corpus containing a defect.** It read
+    `typed < on_disk | typed` — a strict subset, meaning *at least one task
+    note on disk must be untyped* — and that was true only because
+    `TASK-0182`, `TASK-0183` and `TASK-0187` were **zero-byte files**. Restoring
+    them gave every task note a `type:`, the subset stopped being strict, and
+    the guard failed on a repository that had just got healthier.
+
+    The fallback is still worth having: a note that makes no claim about its
+    type is still a task if it lives under `features/*/plan/tasks/`. So the
+    case is constructed rather than borrowed from whatever the corpus happens
+    to be missing this month.
+    """
+    docs = tmp_path / "docs"
+    tasks = docs / "features" / "thing" / "plan" / "tasks"
+    tasks.mkdir(parents=True)
+    (tasks / "TASK-0001-Untyped.md").write_text(
+        "# A task nobody typed\n", encoding="utf-8")
+    #: The other half, and the one that makes the first mean something: a note
+    #: that types itself as something else is NOT swept in by its path.
+    (tasks / "TASK-0002-Typed-As-A-Test.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-9001\n---\n\n# Not a task\n',
+        encoding="utf-8")
+    index = Index.build(docs)
+    reached = {p.name for p in (r.path for r in cockpit._task_records(index))}
+    assert "TASK-0001-Untyped.md" in reached, (
+        "an untyped note under features/*/plan/tasks/ is a task by its path")
+    assert "TASK-0002-Typed-As-A-Test.md" not in reached, (
+        "the type is the claim wherever it is written; the path is only the "
+        "fallback for notes that make none")
 
 
 def test_root_file_rows_are_distinguishable_from_docs_notes(repo_index: Index) -> None:

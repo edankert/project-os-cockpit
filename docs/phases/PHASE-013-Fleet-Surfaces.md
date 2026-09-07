@@ -190,7 +190,7 @@ The audit singles out `your-health`'s unrelated uncommitted work but omits `your
 
 ### What would close this
 
-F1 and F2 are the gate: both are guarding claims on the two things this phase advertises as mutation-verified, and this phase's own stated lesson is that string-shaped guards are the recurring defect here. F3 is a factual correction to a section written to be audited. F4–F9 are worth an [[ISS-*]] each rather than blocking.
+F1 and F2 are the gate: both are guarding claims on the two things this phase advertises as mutation-verified, and this phase's own stated lesson is that string-shaped guards are the recurring defect here. F3 is a factual correction to a section written to be audited. F4–F9 are worth an `ISS-*` each rather than blocking.
 
 
 ## Review findings addressed 2026-07-30

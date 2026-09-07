@@ -3701,10 +3701,20 @@ def _task_records(index: Index) -> list[NoteRecord]:
     """Every task note, typed or not (ISS-0067).
 
     `notes_by_type("task")` reads frontmatter, and three notes under
-    `features/*/plan/tasks/` have none — so they were missing from the Tasks
+    `features/*/plan/tasks/` had none — so they were missing from the Tasks
     mode, and `features/` is a DOC_TREE_EXCLUDED_ROOTS root, so they reached
     no surface at all. Exactly ISS-0062's mechanism, which PHASE-010 fixed for
     plans and not for tasks.
+
+    **Those three notes were zero-byte files, and they are notes again**
+    ([[ISS-0287]]). `TASK-0182`, `TASK-0183` and `TASK-0187` were committed
+    empty in July and restored on 2026-09-07, so this repository now has no
+    untyped task at all and the fallback below sweeps in nothing here. It
+    stays: the type is a claim a note may simply not make, and a repo that
+    scaffolds a task by touching a file needs it. What changed is that the
+    guard for it is now a constructed case rather than these three
+    (`tests/test_surface_ownership.py`), because a test that needs the corpus
+    to stay broken fails when somebody fixes it.
 
     Union rather than a path-only sweep: a task note living somewhere else is
     still a task, and the type is the claim wherever it is written. The path is

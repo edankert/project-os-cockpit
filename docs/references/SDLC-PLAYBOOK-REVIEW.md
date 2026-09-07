@@ -59,7 +59,7 @@ Six governance principles: humans accountable for judgment; controls enforced as
 
 ## Where the playbook should not be followed here
 
-- **Blocking gates on unautomatable judgment.** The playbook enforces through hooks that allow, ask or block. [[INTENT]] states the opposing position and gives the reason: *"a blocking gate on an unautomatable judgment gets cleared to unblock the build rather than because somebody looked."* `ACCEPT-STALE`, `DESIGN-GATE` and independent review warn on purpose.
+- **Blocking gates on unautomatable judgment.** The playbook enforces through hooks that allow, ask or block. `INTENT.md` states the opposing position and gives the reason: *"a blocking gate on an unautomatable judgment gets cleared to unblock the build rather than because somebody looked."* `ACCEPT-STALE`, `DESIGN-GATE` and independent review warn on purpose.
 - **Tiered production autonomy.** "dev free / staging intermediate / production gated" is reasonable for a team pipeline and weaker than [[ADR-0022]]'s flat rule in this fleet, where one repo's only remote is a live web server.
 
 ## The main finding: six is three, halved

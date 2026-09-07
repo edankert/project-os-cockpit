@@ -42,7 +42,7 @@ tags: [phase]
 
 ## Why this is a phase
 
-[[CLAUDE]]'s rule: a goal statable without listing its parts, and exit criteria that are not *"the tasks are done"*. Both hold. The goal is one sentence about where a verdict lives; the exit criteria are about what a query returns and what a gate reports, neither of which is a task list.
+`CLAUDE.md`'s rule: a goal statable without listing its parts, and exit criteria that are not *"the tasks are done"*. Both hold. The goal is one sentence about where a verdict lives; the exit criteria are about what a query returns and what a gate reports, neither of which is a task list.
 
 **And it is not a small request.** Six features, a new file format, a migration of 671 notes across three repos, and a read/write path spanning 87 TypeScript sites and six Python modules. This is the shape a phase exists for.
 

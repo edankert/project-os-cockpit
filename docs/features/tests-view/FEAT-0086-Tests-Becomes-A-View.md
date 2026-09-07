@@ -43,8 +43,8 @@ This is the one feature in [[PHASE-030]] that is new capability rather than re-h
 **Out:**
 
 - **The acceptance *runner*** — [[FEAT-0063]]/[[FEAT-0064]] under [[PHASE-024]] own the criterion-by-criterion walk and the `acceptance:` gate. This feature gives them their home instead of the desk; it does not build them.
-- Changing what a test *is*, or the `TST-*` storage split (feature-scoped under `plan/tests/`, system-wide under `docs/tests/`). [[LIFECYCLE.md]]'s hybrid rule stands.
-- Automating manual tests. A manual pass is evidence that decays ([[STATUSES.md]]); this shows it, it does not replace it.
+- Changing what a test *is*, or the `TST-*` storage split (feature-scoped under `plan/tests/`, system-wide under `docs/tests/`). `tools/instructions/LIFECYCLE.md`'s hybrid rule stands.
+- Automating manual tests. A manual pass is evidence that decays (`tools/instructions/STATUSES.md`); this shows it, it does not replace it.
 
 ## Coordination with what already exists
 

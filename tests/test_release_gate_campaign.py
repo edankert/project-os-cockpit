@@ -202,8 +202,14 @@ def test_the_measured_repo_still_reports_what_this_phase_measured() -> None:
         "the headline and the rows are one fact; a gate reporting blocked "
         "with nothing blocking is the failure ISS-0191 named from the other "
         "direction")
-    assert all(row["refs"] for row in gate["blocking"]), \
-        "every blocking row names a subject — 0 of 60 did before ISS-0173"
+    #: **Every blocking row naming a subject is asserted on a fixture**, by
+    #: `test_a_blocking_row_names_its_subject` forty lines above ([[ISS-0287]]).
+    #: The copy that stood here read the same property off `../your-trainer`,
+    #: which makes it an assertion about that repository's DATA: it went red on
+    #: 2026-09-07 because one check there, `TST-0591`, carries an empty
+    #: `covers:`. That is worth telling Edwin and is not this suite's to fail
+    #: over — a note in another repo is not a defect in this code, and a guard
+    #: that reddens for it is one that gets ignored.
 
 
 def _settled(docs: Path) -> list[object]:

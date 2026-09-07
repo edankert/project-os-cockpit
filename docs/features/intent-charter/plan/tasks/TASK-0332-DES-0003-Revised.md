@@ -26,7 +26,7 @@ tests: []
 
 ## Done — 2026-08-11
 
-[[DES-0003]]'s oracle role is what [[INTENT.md]] now discharges: the intent page is what a delegated principal reads first, so its content contract **is** the charter's — and the charter exists, drafted from the corpus with citations ([[TASK-0333]]).
+[[DES-0003]]'s oracle role is what `INTENT.md` now discharges: the intent page is what a delegated principal reads first, so its content contract **is** the charter's — and the charter exists, drafted from the corpus with citations ([[TASK-0333]]).
 
 [[DES-0009]] gains its artifact: two `## Variant` sections rendering the worker's four states and its six halt reasons, through the machinery [[FEAT-0067]] built. **They render what the note already specifies** — the shape a reviewer judges, not a new proposal.
 

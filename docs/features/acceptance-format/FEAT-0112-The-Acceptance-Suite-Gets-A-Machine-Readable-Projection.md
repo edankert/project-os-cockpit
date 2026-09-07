@@ -94,7 +94,7 @@ GET /api/cockpit/acceptance.json
 
 **Per-check history.** If it becomes worth knowing every verdict a check has ever carried — walked and passed in v2.0.5, excused in v2.1.0, failed in v2.1.6 — Markdown cannot hold that on one line and stay readable, and no projection helps because the data would not exist in the source.
 
-At that point JSON stops being a preference and becomes the only option, and the trade above genuinely reverses. **That is the thing to watch for**, and it is a decision that would want an [[ADR]] rather than a feature note, because it overturns [[ADR-0009]]'s premise for one corpus.
+At that point JSON stops being a preference and becomes the only option, and the trade above genuinely reverses. **That is the thing to watch for**, and it is a decision that would want an ADR rather than a feature note, because it overturns [[ADR-0009]]'s premise for one corpus.
 
 Two weaker signals worth noticing in the same direction: if the `RE-RUN` annotations ever need a *date* as well as a task, or if burden tags are wanted on the gating suite rather than on one `TST-*` ([[TASK-0449]], cancelled for exactly that absence), the prose is being asked to carry structure and the balance is shifting.
 

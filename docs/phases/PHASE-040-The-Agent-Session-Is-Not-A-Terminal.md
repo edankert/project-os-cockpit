@@ -65,7 +65,7 @@ Electron *is* Node. The cockpit already ships a Node runtime, and terminals and 
 - **The record engine.** Index, acceptance, obligations, publication, `note_writes`, the ledger — all Python, all untouched. None of it is agent-session code, and rewriting it to gain a terminal feature is the wrong trade.
 - **Any conversion of the fleet's tooling.** `tools/scripts/*.py` is **template-owned**, synced from upstream `project-os`, used by all twelve repos. The cockpit does not own it. There is also a hard constraint in the other direction: `validate_docs_bundled.py` must stay **byte-identical** to `tools/scripts/validate-docs.py`, and a `diff -q` in the suite enforces it — a guarantee that exists *because* they are the same language.
 - **Remote shell access.** See the terminal decision below.
-- **Hosting the cockpit itself.** That is a separate question; see [[reference/HOSTED-COCKPIT]].
+- **Hosting the cockpit itself.** That is a separate question; see [[HOSTED-COCKPIT]].
 
 ## The terminal question, decided separately
 

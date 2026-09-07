@@ -31,7 +31,7 @@ The five tasks are a release page's platform scoping, two renderer behaviours on
 ## Why this is not bookkeeping
 
 1. **The waiver is now false.** `acceptance_exception` is the field that excuses a feature from carrying acceptance checks, and its justification is a factual claim about the feature's scope. Five tasks later that claim does not hold, and the waiver is still standing on it.
-2. **The review no longer covers the feature.** [[independent-review]]'s whole basis is that a verdict is about a specific artifact. Appending work to a reviewed, closed feature moves what the recorded verdict points at without changing the verdict — the field says `2026-08-29` and the newest task under it is dated the 30th.
+2. **The review no longer covers the feature.** `tools/skills/independent-review/SKILL.md`'s whole basis is that a verdict is about a specific artifact. Appending work to a reviewed, closed feature moves what the recorded verdict points at without changing the verdict — the field says `2026-08-29` and the newest task under it is dated the 30th.
 3. **The traceability is wrong in the other direction too.** A later reader asking *"why was the checks page repaint split from the render?"* is routed to a feature about fleet validator migration.
 
 ## And no CHG note

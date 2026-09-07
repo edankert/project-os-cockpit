@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 144
-  ISS: 286
+  ISS: 287
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -78,7 +78,7 @@ focus:
   feature: ""
   phase: "PHASE-028"
   issue: ""
-  note: "2026-09-06 (later): four acceptance-checks defects are fixed and PHASE-037 is closed again -- see CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments. What shipped: a fail/blocked/question verdict now reaches the row with its reason (acceptance.apply_ledger stopped dropping non-clearing verdicts in the no-platform join, ISS-0281); the acceptance payload carries view.history, every event per check newest first, so the mark dialog shows the check's own words and its earlier comments (ISS-0281, ISS-0282); the checks page and its filters are remembered per workspace under cockpit:checks-place:<workspaceId> (ISS-0280). A fourth defect, ISS-0284, was found while verifying the third in the live harness and fixed in the same commit: the tier chips selected the section key while the row predicate compared the tier number, so every chip in that row did nothing (and emptied a bare ~checks). Nineteen guards, five in tests/test_ledger.py and fourteen in tests/test_checks_view.py; all four were driven in the live harness against your-trainer rather than only asserted, and the harness is what caught the two second-cut defects: the mark dialog was taller than the window with Save off-screen and printed the body as raw Markdown (ISS-0282 reopened and re-fixed via /api/render plus a bounded card), and the row quoted the migration backfill under 379 of 436 rows until _row gained verdict_method. LEFT OPEN FOR EDWIN, two questions in the notes: (a) ISS-0281 -- for a check that fails on one platform and passes on another the page now shows the worst verdict; the alternative is making ~checks always name a platform; (b) ISS-0280 -- the fourth 'the checks page loses its place' issue, past the sibling-harvest trigger, so a rule-ADR is proposed and not written. ISS-0283 is FIXED (Edwin: 'I don't care when they were introduced tests need to run green'): three tests asserted that ../your-trainer still owes work -- a blocking count >=40 and the existence of chronic rows -- and went red because he walked it down. The arithmetic moved onto fixtures (_repo_with_tags, three tags, --allow-empty), the live corpus keeps a consistency check that asserts nothing when there is nothing, and the size floor moved onto the SUITE, which only grows. Suite green: 2177 passed, 6 skipped. Standing context: the new-application design collateral moved to ~/Dev/repos/project-os-deck on 2026-09-06; this cockpit STAYS THE PRIMARY PLACE for new functionality, and Deck watches docs/reference/cockpit-capability-register.md, which this change updated (shell.pages.checks, shell.checks.mark-dialog, api.read.check-history)."
+  note: "2026-09-07: links in the record resolve -- CHG-20260907-Links-In-The-Record-Resolve. 25 wikilinks in note bodies pointed at nothing and the cockpit drew each as a broken link; 3 task notes (TASK-0182/0183/0187) had been ZERO-BYTE FILES since 21-22 July, so their work shipped and the notes held nothing (reconstructed from commits 15d732c and 3536687, never invented). External URLs were always clean -- the weekly link-check workflow only ever read those, and validate-docs.py reads frontmatter relationships, so nobody had read a link in a body. The guard is tests/test_record_links.py (wikilinks resolve, relative links point at a file, no note is zero bytes), in tests/ because tools/scripts/ is template-owned; proposed upstream. PHASE-015 (record hygiene, standing) reopened and re-closed the same day. THE COUNT WAS WRONG TWICE FIRST: 232 raw matches (206 are syntax examples inside code), then 26 line-by-line (an inline span wrapping a line break makes a false pair), then 25 whole-document. Previously 2026-09-06: four acceptance-checks defects fixed and PHASE-037 closed again -- see CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments; ISS-0283 fixed the three tests that pinned your-trainer's outstanding work."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
@@ -756,7 +756,7 @@ items:
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-hooks/FEAT-0019-Agent-Hook-Ingestion.md"
-      tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117"]
+      tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0183"]
     FEAT-0020:
       title: "Agent activity surfaces — activity strip, needs-input inbox, live nav trail"
       status: done
@@ -780,7 +780,7 @@ items:
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/overview-scopes/FEAT-0023-Overview-Scopes.md"
-      tasks: ["TASK-0128", "TASK-0129", "TASK-0130", "TASK-0173"]
+      tasks: ["TASK-0128", "TASK-0129", "TASK-0130", "TASK-0173", "TASK-0182"]
     FEAT-0024:
       title: "Agent verbs — drive the docs system from any note"
       status: done
@@ -1260,24 +1260,6 @@ items:
       status: backlog
       phase: "[[PHASE-028-Borrowed-Capability]]"
       parent: FEAT-0080
-    TASK-0182:
-      title: "Nest phase drill-down children by shared phase — a task parked in another phase no longer shows under its parent's phase section"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/plan/tasks/TASK-0182-Nest-Children-By-Shared-Phase.md"
-      parent: "FEAT-0023"
-    TASK-0183:
-      title: "Fix: a session that survives a sidecar restart is stuck ended — revive on fresh activity so its live cost/ctx shows"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-hooks/plan/tasks/TASK-0183-Revive-Ended-Session-On-Activity.md"
-      parent: "FEAT-0019"
-    TASK-0187:
-      title: "Add a Restart console action — kill the workspace PTY + tmux session and respawn, to recover a stuck/broken console"
-      status: done
-      phase: "[[PHASE-004-Embedded-Terminal]]"
-      path: "docs/features/embedded-terminal/plan/tasks/TASK-0187-Restart-Console-Action.md"
-      parent: "FEAT-0003"
     TASK-0285:
       file: "docs/features/desk-resolution/plan/tasks/TASK-0285-Request-Re-Review.md"
       title: "Request re-review from a changes-requested row — the reviewer dispatched with the note and its prior findings"
@@ -1693,6 +1675,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0287:
+      file: "docs/issues/ISS-0287-Broken-Links-In-The-Record.md"
+      title: "25 wikilinks in the record resolve to nothing and three task notes are zero bytes — the weekly link-check only looks at external URLs and the validator only checks frontmatter relationships, so nothing has ever read a link in a note's body"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-015-Phase-Hygiene]]"
+      severity: medium
+      component: docs
+      note: "Measured 2026-09-07. External URLs are CLEAN (28 unique, 0 broken; the weekly lychee run agrees). The unchecked populations are body wikilinks (26 broken of 7078 live) and relative links (7 broken). A first pass said 232 wikilinks: wrong, 206 of those sit in code fences or inline code where nothing renders a link. Causes: 3 zero-byte task notes (TASK-0182/0183/0187, 0 bytes since 21-22 July, work landed, notes empty), 4 targets named differently (CHG dates without titles, PHASE-0002, reference/ vs references/), 8 real files the resolver cannot see because they live outside docs/ (CLAUDE.md, INTENT.md, tools/instructions/*, tools/skills/*), 3 bracketed placeholders, 1 cross-repo citation. The guard goes in tests/ because tools/scripts/ is template-owned per tools/sync/MANIFEST.yaml."
     ISS-0286:
       file: "docs/issues/ISS-0286-A-Check-Is-Owed-On-Every-Platform-That-Has-A-Ledger.md"
       title: "A check is owed on every platform that has a ledger, with no way to say where it applies — one application built from one codebase has to answer for its whole suite once per operating system, or mark each check `na` by hand"

@@ -40,7 +40,7 @@ The regression predates the range that surfaced it (it arrived with `afc4fa7`, a
 
 ## The part that is mine
 
-[[CHG-20260730]] closed FEAT-0045 under the heading *"checked rather than assumed"*, and one of the things it checked was that **`inbox/` is gitignored and empty** — without noticing that the same pattern was hiding the feature's own record. So the close-out inspected the exact mechanism that invalidated it and read it as evidence in favour.
+[[CHG-20260730-Two-Features-Closed]] closed FEAT-0045 under the heading *"checked rather than assumed"*, and one of the things it checked was that **`inbox/` is gitignored and empty** — without noticing that the same pattern was hiding the feature's own record. So the close-out inspected the exact mechanism that invalidated it and read it as evidence in favour.
 
 Worse for the process than for the code: **FEAT-0045 could not be independently reviewed at all**, because its notes were not in the handoff surface. Any verdict recorded on that note was uncommittable. A close-out that cannot be reviewed is not a close-out.
 

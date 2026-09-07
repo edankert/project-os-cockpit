@@ -51,11 +51,11 @@ Edwin chose the full sweep. Doing it required measuring first, and the measureme
 
 `ADR-0012`, `ADR-0014` and `ADR-0019` were never in this note. They were found by enumerating every `[[ADR-nnnn]]` in the corpus and subtracting the ids that have a note in `docs/decisions/` — which is also the rule the guard now enforces, so the next upstream id cannot be missed by whoever writes the list.
 
-**44 in prose bodies, 10 in frontmatter.** Both are consumers `wikilinks.py` names, and [[CHG-20260812]] verified the form renders in each.
+**44 in prose bodies, 10 in frontmatter.** Both are consumers `wikilinks.py` names, and [[CHG-20260812-Cross-Repo-Links]] verified the form renders in each.
 
 ### Four occurrences were deliberately left bare, and that mattered
 
-[[ADR-0024]], [[ISS-0148]], [[FEAT-0093]] and [[CHG-20260812]] all **quote** the bare form to explain what it means or why the slash lost. `FEAT-0093`'s acceptance criterion is literally *"`[[ADR-0011]]` with no prefix keeps its current meaning exactly"* — rewriting that would have made the criterion assert the opposite of what it verifies. The sweep skips inline code and fenced blocks for this reason, and the guard carries the same exemption rather than an allowlist of filenames.
+[[ADR-0024]], [[ISS-0148]], [[FEAT-0093]] and [[CHG-20260812-Cross-Repo-Links]] all **quote** the bare form to explain what it means or why the slash lost. `FEAT-0093`'s acceptance criterion is literally *"`[[ADR-0011]]` with no prefix keeps its current meaning exactly"* — rewriting that would have made the criterion assert the opposite of what it verifies. The sweep skips inline code and fenced blocks for this reason, and the guard carries the same exemption rather than an allowlist of filenames.
 
 `[[ADR-9999]]` is also left alone: it is a *deliberately* broken link, used by [[TASK-0225]] and `FEAT-0093` to assert that an unresolvable link is reported rather than silently dropped.
 
