@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 145
-  ISS: 288
+  ISS: 289
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -1682,6 +1682,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0289:
+      file: "docs/issues/ISS-0289-An-Absent-Platform-Is-Read-As-Every-Platform.md"
+      title: "The acceptance endpoint reads an absent platform as `all`, so the Tests page and the gate band grade a two-ledger repo against every platform and report every check it has ever passed as owed"
+      status: fixed
+      owner: user:edwin
+      phase: ""
+      severity: high
+      component: publication
+      note: "FOUND 2026-09-08, immediately after ISS-0288: 'Why do I still see 544 unchecked tests for your trainer!' The endpoint collapsed two different requests into one answer - a person choosing All, and a client that never sent the parameter - and both got the union. BOTH renderer callers are the second kind (mountReleaseGate renderer.ts:1668, renderChecksPage :9130); the platform picker feeds nav and context and has never reached this route. your-trainer read 544 unchecked (445 feature + 99 regression) where its open Android release owes 67 (63 + 4). Fixed as a RULE rather than a parameter, because Edwin asked for one step: an ABSENT platform asks the open release which platform it ships, `all` still means the union because a person choosing it has said so, and a repo with no open release still fails closed. No client changed. tests/test_acceptance_platform_default.py pins all four cases; the first fails without the fix."
     ISS-0288:
       file: "docs/issues/ISS-0288-The-Release-Gate-Ignores-The-Release-Platform.md"
       title: "The release page filters its contents by the release's platform and grades its gate against every platform, so a two-ledger repo is told every check it has ever passed is owed again"

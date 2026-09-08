@@ -1013,10 +1013,30 @@ def _make_handler(
                 # read as cleared. That is how a release which has not said
                 # what it ships fails closed rather than inheriting the
                 # loosest platform's answer.
-                _platform = (urllib.parse.parse_qs(parsed.query)
-                             .get("platform", [""])[0]).strip().lower()
+                #: **Absent is not the same as `all`** ([[ISS-0289]]). Both
+                #: used to collapse to `""`, so a client that simply did not
+                #: send the parameter got the union — and both of the
+                #: renderer's callers are exactly that client
+                #: (`mountReleaseGate`, `renderChecksPage`). On a two-ledger
+                #: repo the union is every check owed: `../your-trainer` read
+                #: **544 unchecked** where its open Android release owes 67.
+                #:
+                #: So an absent parameter now asks the record the same
+                #: question the release page asks — *what does the open
+                #: release ship?* — and grades on that. `all` still means the
+                #: union, because a person choosing it has said so.
+                _params = urllib.parse.parse_qs(parsed.query)
+                _platform = (_params.get("platform", [""])[0]).strip().lower()
                 if _platform == "all":
                     _platform = ""
+                elif not _platform:
+                    from . import publication as _pub_plat
+
+                    _open = _pub_plat.open_releases(index)
+                    _platform = (
+                        str((_open[0].get("platform") or "")).strip().lower()
+                        if _open else ""
+                    )
                 from . import ledger as _led
                 self._respond_json({
                     "schema_version": cockpit.SCHEMA_VERSION,
