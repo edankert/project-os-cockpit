@@ -48,11 +48,15 @@ Read straight, that is four steps and a lifecycle. Below is what each costs agai
 
 ## Step 2 — The platform is a choice, not a text field
 
+*(Partly landed 2026-09-08 under [[ISS-0290-A-Walker-Cannot-Mark-A-Check-Because-Nothing-Names-The-Platform]]: `create_release` now takes a `platform:`, writes it, and creates the working ledger for it. What remains here is the picker and the ability to change the platform of a release that already exists.)*
+
 `platform:` is free text today, and `_ships_on` already knows five spellings of "all platforms" because the corpus holds four of them. The workflow should offer the platforms **this repo has evidence for** — the ledger platforms plus the platforms its notes actually use — and let the answer be one of them or *every platform*, which is the union rule [[DES-0012-Tests-In-Two-Flows]] D4 already implements.
 
 Naming the platform must immediately change the number on screen. That is [[ISS-0288-The-Release-Gate-Ignores-The-Release-Platform]]'s fix, and this workflow is the surface that makes the consequence visible: pick `android` and the gate falls from the union to the Android ledger, in front of the person who picked it.
 
 ## Step 3 — Settling the checks the release owes
+
+*(The precondition landed 2026-09-08 under [[ISS-0290-A-Walker-Cannot-Mark-A-Check-Because-Nothing-Names-The-Platform]]: a mark that names no platform now resolves one from the open release, so a walk can be recorded at all on a repo with more than one ledger. What remains is the bulk actions and the walk being one screen.)*
 
 This is the step with a real design question in it, and the answer is **not** a checkbox list.
 

@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 145
-  ISS: 289
+  ISS: 290
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -1682,6 +1682,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0290:
+      file: "docs/issues/ISS-0290-A-Walker-Cannot-Mark-A-Check-Because-Nothing-Names-The-Platform.md"
+      title: "A person walking a checklist cannot record a pass, because a verdict needs a platform, the client has none to send on a two-ledger repo, and the refusal is written for whoever is calling the API"
+      status: fixed
+      owner: user:edwin
+      phase: ""
+      severity: high
+      component: publication
+      note: "SECOND TIME, same person, same expectation - ISS-0272 (cited in the code, no note in the record) was the first. A verdict names its platform (ADR-0037, and that refusal is right); the client has none to send when a repo keeps TWO ledgers, because verdictPlatform() returns the picker value, or the sole ledger platform, or nothing. your-trainer keeps android and ios, so the mark routed to the pre-ledger writer and was refused with a message about write paths, met by somebody ticking a checklist. ISS-0272 fixed the unambiguous half and left the ambiguous one refusing - the reasoning holds, but NOBODY WAS ASKED. The declaration was already in the record: an open release says which platform it ships, which the release page has read since ISS-0288 and the acceptance endpoint since ISS-0289. verdict_platform() resolves caller, then open release, then a sole ledger platform, then refuses. create_release now TAKES a platform and writes it - it never did, so every release the tool drafted arrived platform-less and all three readers fell back to fail-closed - and calls ledger.ensure_working so the ledger exists with the release. Ten tests; three fail without the fix."
     ISS-0289:
       file: "docs/issues/ISS-0289-An-Absent-Platform-Is-Read-As-Every-Platform.md"
       title: "The acceptance endpoint reads an absent platform as `all`, so the Tests page and the gate band grade a two-ledger repo against every platform and report every check it has ever passed as owed"

@@ -2169,6 +2169,9 @@ def _make_handler(
                         previous_release=str(
                             body.get("previous_release") or since.get("id") or ""
                         ),
+                        #: [[ISS-0290]] — the other front door onto the same
+                        #: writer. Optional here too, and for the same reason.
+                        platform=str(body.get("platform") or ""),
                         actor=str(body.get("actor") or ""),
                     )
                 except note_writes.WriteError as exc:
@@ -2504,7 +2507,14 @@ def _make_handler(
                          if body.get("mtime") is not None else None)
                 verdict = str(body.get("verdict") or "")
                 check_id = str(body.get("id") or "")
-                platform = str(body.get("platform") or "")
+                #: **The walker does not have to know the platform**
+                #: ([[ISS-0290]]). An absent one is resolved from the open
+                #: release, then from a sole ledger platform; the resolver
+                #: never overrides what the caller sent, and returns `""` when
+                #: the question is genuinely open, which is where the refusal
+                #: below belongs.
+                platform = note_writes.verdict_platform(
+                    docs_root, index, str(body.get("platform") or ""))
                 if platform:
                     #: **The ledger path** ([[ADR-0037]]). A verdict that names
                     #: its platform is an EVENT and never touches a note; the
@@ -2732,6 +2742,12 @@ def _make_handler(
                     index, docs_root,
                     version=version,
                     title=str(body.get("title") or "").strip() or f"v{version.lstrip('vV')}",
+                    #: **Which platform this release ships** ([[ISS-0290]]).
+                    #: Optional, because a single-platform repo has nothing to
+                    #: say — but naming it here is what gives the gate, the
+                    #: acceptance endpoint and every verdict of this cycle
+                    #: their answer, and it creates the ledger to walk into.
+                    platform=str(body.get("platform") or ""),
                     actor=str(body.get("actor") or ""),
                 )
             except note_writes.WriteError as exc:

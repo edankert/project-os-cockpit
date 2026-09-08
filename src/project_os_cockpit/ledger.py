@@ -438,6 +438,33 @@ def working_path(docs_root: Path, platform: str) -> Path:
     return ledgers_dir(docs_root) / f"{WORKING_PREFIX}-{platform}.json"
 
 
+def ensure_working(docs_root: Path, platform: str) -> Path:
+    """Create the open ledger for a platform if it does not exist yet, and
+    return its path ([[ISS-0290]]).
+
+    **A release that exists can be walked.** `append` has always created the
+    file on its first write, so nothing was ever *blocked* by a missing
+    ledger — but `platforms()` reads the directory, and a platform with no
+    file is a platform the tool does not know it has. That is what turned a
+    walker's first mark into a refusal: with two ledgers and no way to choose
+    between them, the client sent none and the write path refused.
+
+    Called when a release declares its platform, so the ledger the release
+    will be walked against exists from the moment the release does.
+
+    Idempotent, and it never touches a ledger that is already there — an
+    existing file is somebody's record.
+    """
+    path = working_path(docs_root, platform)
+    if path.exists():
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"platform": platform, "entries": []}, indent=2) + "\n",
+        encoding="utf-8")
+    return path
+
+
 def working(docs_root: Path, platform: str) -> Ledger:
     """The open ledger for a platform, created in memory if it has none yet."""
     path = working_path(docs_root, platform)

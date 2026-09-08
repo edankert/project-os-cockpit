@@ -718,10 +718,15 @@ def test_a_scalar_cannot_be_written_in_a_repo_that_keeps_ledgers(
 
     _corpus(docs, **{"TST-0001": "todo"})
     _walk(docs, "android", "TST-0002", "pass", when="2026-08-14")
-    with pytest.raises(note_writes.WriteError, match="records verdicts in a "
-                       "ledger"):
+    #: The refusal is unchanged; its WORDS changed with [[ISS-0290]], because
+    #: the person who met it was ticking a checklist and was told to "use the
+    #: ledger write path". What is asserted is the refusal and that it names
+    #: what would answer it, not the sentence it used to be.
+    with pytest.raises(note_writes.WriteError,
+                       match="no platform to belong to") as exc:
         note_writes.mark_check(Index.build(docs), check_id="TST-0001",
                                verdict="pass")
+    assert "android" in exc.value.message
 
 
 def test_a_release_id_is_guarded_like_a_platform_is(docs: Path) -> None:

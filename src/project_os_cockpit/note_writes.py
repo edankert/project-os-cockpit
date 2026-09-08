@@ -1368,6 +1368,7 @@ def create_release(
     features: list[str] | None = None,
     previous_release: str = "",
     version: str = "",
+    platform: str = "",
     actor: str = "",
 ) -> dict[str, Any]:
     """Scaffold a release note from the template, as a **draft** (TASK-0316).
@@ -1385,6 +1386,15 @@ def create_release(
 
     `date:` is deliberately left empty. It records when the release *shipped*,
     and a drafted note has not.
+
+    **`platform` is the field the rest of the release surface reads**
+    ([[ISS-0290]]). The gate grades on it ([[ISS-0288]]), the acceptance
+    endpoint defaults to it ([[ISS-0289]]) and a verdict now finds its ledger
+    through it — and it was the one field this writer never set, so every
+    release drafted by the tool arrived platform-less and each of those three
+    fell back to its fail-closed answer. Naming it here also **creates the
+    working ledger**, so the release can accept a verdict the moment it
+    exists rather than on somebody's second attempt.
     """
     clean_title = (title or "").strip()
     if not clean_title:
@@ -1452,11 +1462,20 @@ def create_release(
     # Post-Release-Actions section — and FEAT-0110 reads the second of those,
     # so the tool was writing notes its own reader could not find anything in.
     # `docs/__templates__/release.md` has carried both all along.
+    #: Refused rather than sanitised: it becomes a ledger filename, and the
+    #: same rule `ledger.working_path` enforces is the one that applies here.
+    clean_platform = (platform or "").strip().lower()
+    if clean_platform and not re.match(r"^[a-z0-9][a-z0-9_-]*$", clean_platform):
+        raise WriteError(
+            f"{platform!r} is not a usable platform name — it becomes part of "
+            "a ledger filename, so it must be lowercase alphanumerics, `-` "
+            "or `_`", status=400)
+
     scaffolded = _release_from_template(
         docs_root, release_id=release_id, title=clean_title,
         version=clean_version, previous_release=previous_release,
         feature_links=feature_links, features=features or [],
-        actor=actor, today=today,
+        platform=clean_platform, actor=actor, today=today,
     )
     if scaffolded is not None:
         resolved.parent.mkdir(parents=True, exist_ok=True)
@@ -1466,6 +1485,8 @@ def create_release(
             "rel": str(resolved.relative_to(docs_root.resolve())),
             "status": "draft",
             "features": list(features or []),
+            "platform": clean_platform,
+            "ledger": _ensure_release_ledger(docs_root, clean_platform),
         }
     lines = [
         "---",
@@ -1482,7 +1503,7 @@ def create_release(
         'tag: ""',
         # Empty on purpose: `date` is when it shipped, and this has not.
         'date: ""',
-        "platform:",
+        f'platform: "{clean_platform}"' if clean_platform else "platform:",
         f"owner: {actor.strip() or 'unassigned'}",
         f"created: {today}",
         f"updated: {today}",
@@ -1520,7 +1541,33 @@ def create_release(
         "rel": str(resolved.relative_to(docs_root.resolve())),
         "status": "draft",
         "features": list(features or []),
+        "platform": clean_platform,
+        "ledger": _ensure_release_ledger(docs_root, clean_platform),
     }
+
+
+def _ensure_release_ledger(docs_root: Path, platform: str) -> str:
+    """The working ledger for a release's platform, created with the release
+    ([[ISS-0290]]).
+
+    Edwin: *"when creating a new release that the ledger is automatically
+    created and can accept the new verdicts"*. `ledger.append` has always
+    created the file on its first write, so this is not what unblocks a
+    verdict — what unblocks it is `verdict_platform` finding a platform to
+    write against. This is the other half: `ledger.platforms()` reads the
+    directory, so until a file exists the tool does not know the repo has that
+    platform at all, and the surfaces that count platforms cannot see it.
+
+    Returns the ledger's repo-relative path, or `""` when the release named no
+    platform — a release with no platform has no ledger to make, and inventing
+    one would be guessing at exactly the point [[ADR-0037]] says not to.
+    """
+    if not platform:
+        return ""
+    from . import ledger as _ledger
+
+    return str(_ledger.ensure_working(docs_root, platform)
+               .relative_to(docs_root.resolve()))
 
 
 def release_contents(
@@ -1903,7 +1950,7 @@ def _documented_exceptions(record: Any) -> bool:
 def _release_from_template(
     docs_root: Path, *, release_id: str, title: str, version: str,
     previous_release: str, feature_links: str, features: list[str],
-    actor: str, today: str,
+    actor: str, today: str, platform: str = "",
 ) -> str | None:
     """The repo's own `docs/__templates__/release.md`, filled in (TASK-0470).
 
@@ -1936,6 +1983,9 @@ def _release_from_template(
         ("preparing", today if version else ""),
         ("tag", ""),
         ("date", ""),
+        # [[ISS-0290]]: the gate, the acceptance endpoint and every verdict
+        # read this field, and nothing ever wrote it.
+        ("platform", platform),
         ("owner", actor.strip() or "unassigned"),
         ("created", today),
         ("updated", today),
@@ -2271,6 +2321,47 @@ def record_verification(
     return {"id": release_id, "tests_verified": clean}
 
 
+def verdict_platform(docs_root: "Path", index: Index, given: str = "") -> str:
+    """Which platform a verdict belongs to when the caller did not say
+    ([[ISS-0290]]).
+
+    **The walker should not have to know.** Edwin, twice, mid-walk: *"My
+    understanding of the functionality is that I update the notes and you then
+    update the ledger, I do not update the ledger directly"*, and then *"Could
+    not mark the test as passing because there was no ledger for it."* Both
+    are the same refusal — `record_verdict` requires a platform, correctly,
+    and the client had none to send.
+
+    [[ISS-0272]] answered the easy half: one ledger platform is unambiguous,
+    so send it. It left the hard half open, and `../your-trainer` is exactly
+    the hard half — an Android ledger and an iOS ledger, and a picker that
+    does not reach this route.
+
+    **The open release is the missing declaration.** A repo preparing an
+    Android release is being walked on Android; that is what the release note
+    says, and it is the same source [[ISS-0289]] gave the read path. Order:
+
+    1. what the caller sent, always — an explicit answer is never overridden;
+    2. the open release's platform, because a release says what is being
+       walked;
+    3. the only ledger platform, if there is exactly one ([[ISS-0272]]);
+    4. nothing, and the refusal stands. Two platforms and no open release is a
+       real question — *which one did you walk on?* — and guessing there puts
+       a verdict on the wrong platform, which is worse than being asked.
+    """
+    from . import ledger as _ledger, publication as _publication
+
+    given = (given or "").strip().lower()
+    if given:
+        return given
+    for release in _publication.open_releases(index):
+        found = str(release.get("platform") or "").strip().lower()
+        if found:
+            return found
+    known = _ledger.platforms(docs_root)
+    return known[0] if len(known) == 1 else ""
+
+
 def record_verdict(
     docs_root: "Path",
     index: Index,
@@ -2464,11 +2555,18 @@ def mark_check(
     #: get it wrong, which is precisely how PLAN.md came to claim *"nothing is
     #: dual-written"* about a repo holding a ledger AND 34 notes with `mark:`.
     if _ledger.has_ledger(index.docs_root):
+        #: **Written for the person walking, not for the API caller**
+        #: ([[ISS-0290]]). This said *"use the ledger write path and send
+        #: `platform`"*, which is advice for whoever is calling the endpoint
+        #: — and the person who met it was ticking a checklist. It is reached
+        #: now only when `verdict_platform` had nothing to answer with, so it
+        #: says what would answer it.
+        known = ", ".join(_ledger.platforms(index.docs_root)) or "none yet"
         raise WriteError(
-            "this repo records verdicts in a ledger, so a mark cannot be "
-            "written onto a note — a verdict is an event and needs the "
-            "platform it was earned on (ADR-0037). Use the ledger write path "
-            "and send `platform`.",
+            "this verdict has no platform to belong to. A verdict is an event "
+            "about one platform (ADR-0037), and this repo keeps ledgers for: "
+            f"{known}. Open a release and give it a `platform:` — the walk "
+            "then records against it — or name the platform on this mark.",
             status=409)
 
     verdict = (verdict or "").strip().lower()
