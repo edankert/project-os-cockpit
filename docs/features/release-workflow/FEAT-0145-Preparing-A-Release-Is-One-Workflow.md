@@ -7,7 +7,7 @@ status: backlog
 owner: user:edwin
 created: 2026-09-08
 updated: 2026-09-08
-phase: ""
+phase: "[[PHASE-999-Future]]"
 source: ["Edwin, 2026-09-08, after preparing your-trainer's 2.2.0 by hand: 'suggest how the creation of releases can be made a little easier in the tool. I think it should probably be a new workflow: Create Release (Update and delete release should also be possible) — set the version — select: android or iOS — uncheck the required acceptance-tests for the release and add new checks if required (these might be LLM/Human actions?)'"]
 goal: "A person who has decided to ship names a version and a platform, sees exactly which acceptance checks that release owes, settles the ones that do not apply, and commissions the ones that are missing — in one place, with every step recorded as an event that says who decided and why."
 requirements: []
