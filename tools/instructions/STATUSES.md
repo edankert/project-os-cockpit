@@ -178,9 +178,10 @@ Deferring an item is therefore a **descoping operation**, not just a status flip
 Re-adoption reverses it: assign a new (or the original) parent, add the ID back to that parent's scope list, set the non-parked status (`backlog`/`open`/`draft`/`planned`), and keep `origin:` as history. Backlog grooming reviews every parked item each pass (`../skills/backlog-grooming/SKILL.md`).
 
 ## `[[release]]`
-- Allowed: `draft`, `released`, `reverted`
+- Allowed: `draft`, `released`, `reverted`, `abandoned`
 - Typical transitions:
   - `draft` → `released` (`draft` covers "prepared and verified, not yet live"; see `../skills/release-verification/SKILL.md`)
+  - `draft` → `abandoned` (prepared, and it will not ship; requires a reason, and keeps the note — it is the only record of why that version number was skipped. Name the successor in `superseded_by:` when one exists. The version stays taken: reusing it would erase the skip.)
   - `released` → `reverted` (rollback occurred; keep the note and link the successor release when one ships)
 
 ## `[[plan]]`

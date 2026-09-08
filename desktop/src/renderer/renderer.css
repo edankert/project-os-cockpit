@@ -5654,6 +5654,54 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .release-section .review-btn { margin: 8px 0; }
 .release-known { font-size: 12px; line-height: 1.5; }
 
+/* ----- version, platform and the way out (FEAT-0145) -------------------- */
+.release-identity .release-start { max-width: 560px; }
+.release-platform { flex: 1 1 auto; min-width: 0; }
+/* Abandon sits apart from Save: they are not two ways of doing one thing, and
+   a row of equal buttons would read as though they were. */
+.release-abandon {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  margin-top: 14px;
+}
+/* The reason and its optional successor, stacked, because they are one act:
+   a row would put the sentence and the id side by side at the same weight. */
+.release-abandon-form {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  width: 100%; max-width: 560px;
+}
+.release-abandon-form .ask-field { width: 100%; }
+
+/* ----- the walk, on the release page (FEAT-0145 / ADR-0041) ------------- */
+.release-settle-bar {
+  display: flex; align-items: baseline; gap: 10px;
+  margin: 10px 0 6px;
+}
+.release-settle-area { margin-top: 10px; }
+.release-settle-area > summary {
+  cursor: pointer; font-size: 12px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.release-settle-row { align-items: flex-start; }
+/* Three buttons, kept together and never split across a wrap: N/A, Excuse and
+   Blocked are one choice, and a Blocked that has wrapped onto its own line
+   reads as a different kind of control. */
+.release-settle-acts {
+  display: inline-flex; flex: none; gap: 4px; white-space: nowrap;
+}
+.release-settle-pick { margin-top: 3px; flex: none; }
+/* A check that names a feature this release carries. A left rule rather than
+   a colour: every row here blocks, and colouring some of them would say that
+   the others do not. */
+.release-settle-row.is-for-release {
+  border-left: 2px solid var(--accent, var(--border));
+  padding-left: 8px;
+  margin-left: -10px;
+}
+
+/* ----- coverage (FEAT-0145 step 4) ------------------------------------- */
+.release-coverage .scoped-rowlist { margin-top: 6px; }
+
 /* ----- the gate section, now the first thing on the page (ISS-0190) -----
  *
  * It is the only section on this page that is an ERRAND — everything below it

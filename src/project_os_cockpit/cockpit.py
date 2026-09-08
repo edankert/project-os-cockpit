@@ -391,7 +391,7 @@ TASK_STATUS_ORDER: tuple[str, ...] = (
     "implemented",
     "verified", "passing", "published", "released", "closed",
     "obsolete", "retired", "cancelled", "superseded", "declined", "reverted",
-    "deprecated", "reconciled",
+    "deprecated", "reconciled", "abandoned",
     "reference",
 )
 _TASK_STATUS_RANK: dict[str, int] = {s: i for i, s in enumerate(TASK_STATUS_ORDER)}
@@ -5164,6 +5164,37 @@ def _publication_groups(
                 release, row_status="released", shipped=True,
             ),
             "default_open": False,
+        })
+
+    #: **An abandoned release still appears** ([[FEAT-0145]]).
+    #:
+    #: The whole argument for abandoning rather than deleting is that the note
+    #: is the record of why a version number was skipped. This loop built rows
+    #: for open drafts, released releases and overtaken drafts — three
+    #: populations that between them do not include `abandoned` — so the
+    #: navigator's answer to *"what happened to 2.1.7"* was silence, on the one
+    #: surface whose whole subject is releases. Found by independent review,
+    #: 2026-09-08.
+    #:
+    #: Below the shipped ones and closed by default: it is a fact about the
+    #: past, not work. The row says what it was and offers the note.
+    for gone in _pub._releases(index):
+        if gone["status"] != "abandoned":
+            continue
+        out.append({
+            "key": f"abandoned-{gone['id']}",
+            "label": f"Abandoned · {gone['id']} {gone['version']}".rstrip(),
+            "url": f"/docs/{gone['rel']}",
+            "status": "abandoned", "type": "release", "item_layout": "stacked",
+            "default_open": False,
+            "items": [{
+                "id": gone["id"], "title": gone["title"],
+                "subtitle": "prepared and never shipped — the note records "
+                            "why this version number was skipped, and the "
+                            "number stays taken",
+                "status": "abandoned", "type": "release",
+                "url": f"/docs/{gone['rel']}",
+            }],
         })
 
     for stale in _pub.stale_drafts(index):

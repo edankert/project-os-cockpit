@@ -6,7 +6,7 @@ title: "Capability register: what the cockpit can do today, keyed so a sibling a
 status: active
 owner: user:edwin
 created: 2026-09-06
-updated: 2026-09-06
+updated: 2026-09-08
 scope: "project"
 source:
   - "Edwin 2026-09-06: 'make sure to mark the current cockpit functionality so if any new cockpit functionality arrives which it will that we can adapt the other repo accordingly'"
@@ -70,7 +70,9 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.pages.history` | what changed state and when | `~history` |
 | `shell.pages.checks` | acceptance checks with tier and area filters in the address; each row shows the comment behind its verdict, and the count of every comment the check carries; the page and its filters are remembered per workspace, so returning to a project resumes the walk (2026-09-06, [[ISS-0280]], [[ISS-0281]]) | `~checks`, `~checks/tier/<n>`, `~checks/area/<area>`, `cockpit:checks-place:<workspaceId>` |
 | `shell.checks.mark-dialog` | the mark dialog shows the check's body — rendered through `/api/render`, so lists and headings read as lists and headings — and every comment on it, newest first, above the seven verdict buttons; the card is bounded so Save stays on screen whatever the body's length (2026-09-06, [[ISS-0281]], [[ISS-0282]]) | `askForMark`, `fillCheckProse`, `buildCheckComments` |
-| `shell.pages.release` | release page and per-item pages; prepare, verify, mark released | `~release/<id>` |
+| `shell.pages.release` | release page and per-item pages; prepare, verify, mark released. **2026-09-08 ([[FEAT-0145]]):** the page also sets the version and the platform of a release that already exists, from a picker built out of the platforms the repo has evidence for, and abandons a draft that will not ship (a true delete only when the note was created today, nothing links to it and no ledger is sealed against it). | `~release/<id>` |
+| `shell.pages.release.settle` | **New 2026-09-08 ([[FEAT-0145]], [[ADR-0041]]).** The walk is one screen: the checks a release owes, grouped by area, each carrying its own procedure text, with three settle buttons — `na`, `excused`, `blocked` — and bulk selection. Each writes one ledger event with a reason and an author. A release page settles a check; it never passes one, and `pass`/`partial`/`fail`/`question` are refused by name at the server. | `~release/<id>`, `/api/notes/release-settle` |
+| `shell.pages.release.coverage` | **New 2026-09-08 ([[FEAT-0145]]).** What a release ships that nothing verifies: features no acceptance check names in `covers:`, and requirements with unticked criteria. Computed mechanically. A `Commission checks` verb dispatches an agent to draft the missing `TST-*` notes into the working tree, for review as a diff — nothing enters the gate without a person's yes. | `~release/<id>`, `agent_actions` `release` verbs |
 | `shell.pages.accept` | acceptance runner for a feature, stepwise | `~accept/<FEAT>` |
 | `shell.pages.test-run` | test runner for a test note | `~tests/<TST>/run` |
 | `shell.pages.session` | an agent session's page: work and files | `~session/<id>` |
@@ -96,13 +98,13 @@ Grouped from the route table in `server.py` at the baseline. A row is a group, n
 | --- | --- | --- |
 | `api.read.nav` | navigation payloads | `/api/cockpit/nav`, `/api/cockpit/landing`, `/api/cockpit/locate`, `/api/cockpit/brief`, `/api/cockpit/stats` |
 | `api.read.note` | a note and its neighbourhood | `/api/render`, `/api/cockpit/context`, `/docs/`, `/index` |
-| `api.read.record` | the record's derived views | `/api/cockpit/decisions`, `/api/cockpit/designs`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/api/cockpit/history`, `/api/cockpit/changes`, `/api/cockpit/commits`, `/api/cockpit/unreleased`, `/api/cockpit/release`, `/api/cockpit/release-item`, `/api/cockpit/digest`, `/api/cockpit/watermark`, `/api/cockpit/activity` |
+| `api.read.record` | the record's derived views | `/api/cockpit/decisions`, `/api/cockpit/designs`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/api/cockpit/history`, `/api/cockpit/changes`, `/api/cockpit/commits`, `/api/cockpit/unreleased`, `/api/cockpit/release` (which since 2026-09-08 also carries `platforms`, `settle` and `coverage` — [[FEAT-0145]]), `/api/cockpit/release-item`, `/api/cockpit/digest`, `/api/cockpit/watermark`, `/api/cockpit/activity` |
 | `api.read.obligations` | what needs a person | `/api/cockpit/obligations`, `/api/cockpit/review-queue`, `/api/cockpit/acceptance`, `/api/cockpit/acceptance-debt`, `/api/cockpit/scope-tests`, `/api/cockpit/transitions`, `/api/cockpit/actions` |
 | `api.read.check-history` | every verdict ever recorded against each check — mark, date, platform, author, method and the comment — newest first, in the acceptance payload's `view.history`. Empty in a repo with no ledger (2026-09-06, [[ISS-0281]]) Each row also carries `verdict_method`, so a surface can tell a walker's sentence from the migration backfill's. | `/api/cockpit/acceptance`, `ledger.events_by_check` |
 | `api.read.agents` | sessions and their instruments | `/api/cockpit/sessions`, `/api/cockpit/agents`, `/api/cockpit/agent-state`, `/api/cockpit/session-cache`, `/api/cockpit/approvals`, `/api/cockpit/dispatch-requests`, `/api/cockpit/runtime`, `/api/cockpit/identity` |
 | `api.read.validation` | the validator's report | `/api/cockpit/validation` |
 | `api.read.state` | the user's view, for the CLI and following | `/api/cockpit/state`, `/api/cockpit/focus`, `/api/cockpit/tab-state` |
-| `api.write.notes` | guarded writes to frontmatter, never body text | `/api/notes/transition`, `tick`, `tick-owed`, `check-toggle`, `mark-check`, `retire-check`, `create`, `attach`, `decide`, `shape`, `review`, `test-run`, `acceptance-run`, `acceptance`, `release-prepare`, `release-verified`, `release-mark-released`, `release-contents`, `seal-ledger`, `choose-variant`, `actions` |
+| `api.write.notes` | guarded writes to frontmatter, never body text | `/api/notes/transition`, `tick`, `tick-owed`, `check-toggle`, `mark-check`, `retire-check`, `create`, `attach`, `decide`, `shape`, `review`, `test-run`, `acceptance-run`, `acceptance`, `release-prepare`, `release-verified`, `release-mark-released`, `release-contents`, `release-update`, `release-abandon`, `release-delete`, `release-settle`, `seal-ledger`, `choose-variant`, `actions` |
 | `api.write.design` | design page writes | `/api/design/capture`, `comment`, `offer-review`, `verdict` |
 | `api.write.agents` | approve, dispatch, review requests, caught-up | `/api/cockpit/approve`, `dispatch`, `review-request`, `review-resolve`, `reviewed`, `review/`, `caught-up` |
 | `api.write.inbox` | inbox store and discard | `/api/inbox`, `/api/inbox/store`, `/api/inbox/discard` |

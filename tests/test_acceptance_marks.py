@@ -311,7 +311,12 @@ def test_every_choice_shows_its_mark_in_the_dialog() -> None:
     """So the dialog and the row speak the same language: a reader picks
     `[!] Important` and the row then reads `[!]`."""
     src = _renderer_src()
-    block = src[src.index("for (const choice of MARK_CHOICES)"):]
+    #: `offered`, not `MARK_CHOICES` ([[FEAT-0145]] / [[ADR-0041]]). The loop
+    #: now runs over a possibly-narrowed list, because a release page offers
+    #: three of the seven marks — and `offered` IS `MARK_CHOICES` wherever no
+    #: `only:` was passed, which is every other caller. What this test says is
+    #: unchanged: whatever the dialog draws, each button carries its mark.
+    block = src[src.index("for (const choice of offered)"):]
     block = block[:block.index("row.appendChild(btn)")]
     assert "mark-choice-mark" in block, "the token is built"
     assert "choice.mark" in block

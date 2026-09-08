@@ -366,8 +366,23 @@ def test_a_release_row_does_not_call_a_manual_check_automated() -> None:
     assert "buildCheckRow(item, !item.command, false)" in region
 
 
-def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
-    """[[ADR-0035]] unweakened — [[TASK-0576]]'s fourth criterion.
+def test_no_attestation_path_to_a_check_appears_on_the_release_page() -> None:
+    """[[ADR-0035]] narrowed by [[ADR-0041]], and narrowed rather than holed.
+
+    **What changed, and what did not.** ADR-0035 forbade every check-changing
+    control on a release page. ADR-0041 narrows that to **attestations** —
+    `pass`, `partial`, `fail`: somebody executed steps and reports what
+    happened. The three SETTLE marks (`na`, `excused`, `blocked`) are decisions
+    about scope, nobody walked anything, and `excused` has no meaning away from
+    a release at all, because `seal` expires it per release.
+
+    So this is still a universal claim over every release surface. It is one
+    claim narrower, and the narrowing is **structural rather than a hole in a
+    list**: `askForMark` may appear on a release surface only with an `only:`
+    argument naming a subset of the settle marks — checked on the ARGUMENT,
+    which is the same treatment `buildCheckRow` gets three assertions down and
+    for the same reason. A spelling ban with an exception carved into it is the
+    shape seven passes of independent review defeated.
 
     **Scoped to the whole release-page region, not to a window.** The first
     version read `src[i:i + 2600]` and `renderer.ts` runs 469,293 characters
@@ -382,23 +397,31 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     decls = [(m.start(), m.group(1))
              for m in re.finditer(r"^(?:async )?function (\w+)", src, re.M)]
     #: **Every function that builds or renders a release surface**, bounded by
-    #: the next top-level declaration. Named rather than pattern-matched, so
-    #: renaming one into existence outside this list is a visible edit here.
+    #: the next top-level declaration.
     #: **Discovered, not enumerated.** A fixed list catches a function
     #: DISAPPEARING and never one appearing: independent review added
     #: `buildReleaseChecksPanel` calling `askForMark` and the test passed.
     #: Every top-level function whose name mentions a release is in scope, and
-    #: the discovered set is asserted against the recorded one — so a **tenth**
-    #: is a deliberate edit here rather than a silent widening of the page.
-    #: (There are nine. The comment said "a ninth" while the list already held
-    #: nine, which is the enumerated version's sentence surviving the rewrite.)
+    #: the discovered set is asserted against the recorded one — so a **new
+    #: one** is a deliberate edit here rather than a silent widening.
+    #:
+    #: `named` carries the surfaces whose names do not say "release" and which
+    #: are mounted only from one. `buildSettleSection` and
+    #: `buildCoverageSection` join it with [[FEAT-0145]]: both are drawn on the
+    #: release page and neither would be discovered by the pattern, which is
+    #: precisely the gap the `named` set exists to close.
     named = {"mountReleaseGate", "buildGateSection", "composeRelease",
-             "holdFeatureBack"}
+             "holdFeatureBack", "buildSettleSection", "buildCoverageSection",
+             "buildPlatformPicker"}
     subjects = {n for _, n in decls if "elease" in n} | named
     expected = {"renderReleasePage", "renderReleaseItemPage",
                 "buildReleasePage", "buildReleaseItemPage",
                 "mountReleaseGate", "buildGateSection", "composeRelease",
-                "holdFeatureBack", "fillUnreleasedCard"}
+                "holdFeatureBack", "fillUnreleasedCard",
+                # FEAT-0145 — the workflow's own surfaces.
+                "settleReleaseChecks", "buildReleaseIdentity",
+                "buildSettleSection", "buildCoverageSection",
+                "buildPlatformPicker"}
     assert subjects == expected, (
         "the set of release surfaces changed: %s appeared, %s went"
         % (sorted(subjects - expected), sorted(expected - subjects))
@@ -411,10 +434,15 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: **An enumeration, and it must be maintained.** It is not a property:
     #: the seventh pass planted `checkMark(item)` on a release surface, and it
     #: typechecked and left all 18 tests green while the list still named
-    #: `markGateRow(`, which is deleted. Every live route to a check write is
-    #: named here now, and [[ISS-0254]] owns the durable form — a rule over
-    #: the call graph rather than over spellings.
-    forbidden = ("askForMark", "walkOneCheck", "/api/notes/mark-check",
+    #: `markGateRow(`, which is deleted. Every live ATTESTATION route is named
+    #: here, and [[ISS-0254]] owns the durable form — a rule over the call
+    #: graph rather than over spellings.
+    #:
+    #: `walkOneCheck` and `/api/notes/mark-check` stay forbidden even though
+    #: the endpoint could in principle be sent `excused`: they are the surface
+    #: that offers all seven marks, and a release page reaching them would be
+    #: one refactor away from offering `pass`.
+    forbidden = ("walkOneCheck", "/api/notes/mark-check",
                  "/api/notes/retire-check",
                  "gateMark(", "markGateRow(", "retireCheckRow(",
                  "checkMark(", "markCheckRow(", "paintCheckList(")
@@ -428,10 +456,66 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
             covered = True
         for word in forbidden:
             assert word not in region, (
-                "%s appears inside %s() — a release page reports, it does not "
-                "record (ADR-0035)" % (word, name)
+                "%s appears inside %s() — a release page reports what holds "
+                "it; it attests to nothing (ADR-0035, ADR-0041)" % (word, name)
             )
     assert covered, "the held-back block is not inside any release function"
+
+    #: **The settle dialog is checked on its ARGUMENT, not on its spelling.**
+    #: `askForMark` is one dialog with one reason field and one set of
+    #: refusals, and narrowing what it OFFERS is what [[ADR-0041]] authorises.
+    #: A second dialog for the release page is how the two surfaces would come
+    #: to disagree about what `excused` means — so the call is admitted and the
+    #: `only:` list is asserted to be a subset of the three settle marks.
+    #:
+    #: `pass`, `partial`, `fail` and `question` appearing in that list is the
+    #: failure this whole test exists to catch, and it is caught by the subset
+    #: check rather than by hoping nobody types them.
+    settle_marks = {"na", "excused", "blocked"}
+    dialogs = 0
+    for n, (start, name) in enumerate(decls):
+        if name not in subjects:
+            continue
+        end = decls[n + 1][0] if n + 1 < len(decls) else len(src)
+        region = _code_only(src[start:end])
+        for call in re.finditer(r"askForMark\(", region):
+            dialogs += 1
+            tail = region[call.end():call.end() + 2000]
+            found = re.search(r"only:\s*\[([^\]]*)\]", tail)
+            assert found, (
+                "%s() opens the mark dialog without an `only:` list — every "
+                "mark is on offer, which is ADR-0035's defect back (ADR-0041 "
+                "decision 2)" % name
+            )
+            offered = {m.strip().strip("'\"")
+                       for m in found.group(1).split(",") if m.strip()}
+            assert offered and offered <= settle_marks, (
+                "%s() offers %s on a release page — a release settles a "
+                "check, it never passes one (ADR-0041 decision 2)"
+                % (name, sorted(offered - settle_marks) or sorted(offered))
+            )
+    assert dialogs == 1, (
+        "expected exactly one mark dialog on a release surface, found %d"
+        % dialogs
+    )
+
+    #: **The write it posts to is the settle endpoint and nothing else.** The
+    #: server refuses `pass`, `partial` and `fail` there by name, so this is
+    #: the assertion that keeps the rule enforced where the write happens
+    #: rather than where the button is drawn ([[ADR-0041]] decision 2).
+    posts = set()
+    for n, (start, name) in enumerate(decls):
+        if name not in subjects:
+            continue
+        end = decls[n + 1][0] if n + 1 < len(decls) else len(src)
+        for hit in re.finditer(r"'(/api/notes/[a-z-]+)'",
+                               _code_only(src[start:end])):
+            posts.add(hit.group(1))
+    assert "/api/notes/release-settle" in posts, (
+        "no release surface posts to the settle endpoint — FEAT-0145 step 3 "
+        "is not wired"
+    )
+    assert not (posts & {"/api/notes/mark-check", "/api/notes/retire-check"})
 
     #: **The row builder is checked on its ARGUMENT, not on its spelling.**
     #: Listing `buildCheckRow(item)` as a forbidden string caught one call and
@@ -439,10 +523,6 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: all passed, and the last is the original defect with one letter
     #: changed. Every call inside a release surface must pass `controls` as a
     #: literal `false`.
-    #:
-    #: **That covers this helper and not the general case.** The `forbidden`
-    #: list above is still an enumeration; [[ISS-0254]] carries the repro and
-    #: the durable form.
     calls = 0
     for n, (start, name) in enumerate(decls):
         if name not in subjects:
@@ -466,3 +546,44 @@ def test_no_write_path_to_a_check_appears_on_the_release_page() -> None:
     #: decision just removed.
     assert "function gateMark" not in src
     assert "function markGateRow" not in src
+
+
+def test_the_settle_endpoint_refuses_every_attestation() -> None:
+    """[[ADR-0041]]'s load-bearing refusal, on the server.
+
+    *"If `release-settle` ever accepts `pass`, ADR-0035 is gone and nothing
+    will say so. That refusal is the first thing to guard and the last thing
+    to relax."*
+
+    Asserted over `ledger.MARKS` rather than over a list written here, so a
+    mark added to the vocabulary tomorrow is either a settle mark by
+    declaration or refused by this test — never quietly admitted because
+    nobody updated a literal.
+    """
+    from project_os_cockpit import ledger
+
+    assert note_writes.SETTLE_MARKS == {"na", "excused", "blocked"}
+    attestations = set(ledger.MARKS) - note_writes.SETTLE_MARKS
+    assert {"pass", "fail", "question"} <= attestations
+    for mark in sorted(attestations) + ["", "PASS", "anything"]:
+        with pytest.raises(note_writes.WriteError) as exc:
+            note_writes.settle_checks(
+                Path("/nonexistent"), None,        # never reached
+                release_id="REL-0001", checks=["TST-0001"], mark=mark,
+                reason="because", by="user:edwin")
+        assert exc.value.status == 400
+        #: `question` is refused for its OWN reason ([[ADR-0041]] decision 5):
+        #: it is a judgment about the check's wording, not an attestation and
+        #: not a scope decision. Same refusal, different sentence, and the
+        #: difference is the point — a shared message would give the right
+        #: answer for the wrong reason.
+        assert "ADR-0041" in exc.value.message
+        assert ("settles a check" in exc.value.message
+                or "does not review text" in exc.value.message)
+    #: The one that says so by name, checked rather than merely allowed for.
+    with pytest.raises(note_writes.WriteError) as exc:
+        note_writes.settle_checks(
+            Path("/nonexistent"), None,
+            release_id="REL-0001", checks=["TST-0001"], mark="question",
+            reason="because", by="user:edwin")
+    assert "wording" in exc.value.message

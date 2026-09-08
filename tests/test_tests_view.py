@@ -934,8 +934,24 @@ def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> 
             for row in g["items"] for kid in row.get("items") or []]
     assert rows, "no checks reachable — this guard would pass vacuously"
     assert not any("status" in kid for kid in rows)
+    #: **`todo` is the absence of an event, not a mark** ([[FEAT-0145]]).
+    #: `ledger.MARKS` is what a walker can WRITE — seven verdicts, each an
+    #: event with an author and a date. A check nobody has walked has no event,
+    #: and `acceptance.normalise_mark` calls that `todo`, which is the word
+    #: every surface in this repo already draws as `[ ]`.
+    #:
+    #: The assertion used to read `marks <= _ledger.MARKS`, which is stronger
+    #: than the sentence above it and was true only by accident: **every check
+    #: in this corpus had been walked**, so no row ever emitted `todo`. Adding
+    #: one unwalked check ([[TST-0083]]) broke it, and the break was in the
+    #: guard rather than in the view.
+    #:
+    #: The property that matters is the one stated above and asserted on the
+    #: line before: a check row carries no `status`, so no surface ranks it as
+    #: open work. The mark set is checked against what a check may legitimately
+    #: carry — a recorded verdict, or nothing yet.
     marks = {kid["mark"] for kid in rows if kid.get("mark")}
-    assert marks <= _ledger.MARKS, marks - _ledger.MARKS
+    assert marks <= _ledger.MARKS | {"todo"}, marks - _ledger.MARKS - {"todo"}
 
 
 def test_the_gate_states_its_local_extension_beside_the_contracts_rule() -> None:

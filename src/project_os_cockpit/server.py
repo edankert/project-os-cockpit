@@ -776,6 +776,22 @@ def _make_handler(
             if path == "/api/notes/release-prepare":
                 self._serve_release_prepare()
                 return
+
+            if path == "/api/notes/release-update":
+                self._serve_release_update()
+                return
+
+            if path == "/api/notes/release-abandon":
+                self._serve_release_abandon()
+                return
+
+            if path == "/api/notes/release-delete":
+                self._serve_release_delete()
+                return
+
+            if path == "/api/notes/release-settle":
+                self._serve_release_settle()
+                return
             # Unknown POST. Drain the request body before responding so
             # HTTP/1.1 keep-alive framing stays intact: an undrained body
             # bleeds into the next request line on the same TCP socket,
@@ -2758,6 +2774,163 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": str(exc)},
                                    status=HTTPStatus.BAD_REQUEST)
                 return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_release_update(self) -> None:
+            """``POST /api/notes/release-update`` — set the version or the
+            platform of a release that already exists ([[FEAT-0145]]).
+
+            **The write path `release-contents` implied and never had.**
+            Composing a release could add and remove features; nothing could
+            change the two fields the gate is graded on. Edwin prepared
+            `your-trainer` 2.2.0 by hand for exactly this reason, and the gate
+            then reported 635 checks owed on a repo with 67 because the
+            platform had never been written ([[ISS-0288]]).
+
+            `version` and `platform` are both optional and both distinguish
+            *absent* from *empty*: omitting a key leaves the field alone,
+            sending `""` for `platform` means **every platform**, which is a
+            choice ([[DES-0012]] D4) rather than the state you get by not
+            choosing.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            release_id = str(body.get("release") or body.get("id") or "")
+            try:
+                result = note_writes.update_release(
+                    index, docs_root, release_id,
+                    version=(None if body.get("version") is None
+                             else str(body.get("version"))),
+                    platform=(None if body.get("platform") is None
+                              else str(body.get("platform"))),
+                    actor=str(body.get("actor") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            #: The page repaints the moment this resolves, and the repaint
+            #: re-reads the release to redraw the gate against the new
+            #: platform ([[ISS-0264]]).
+            self._reindex(release_id)
+            self._respond_json({"ok": True, **result})
+
+        def _serve_release_abandon(self) -> None:
+            """``POST /api/notes/release-abandon`` — a prepared release that
+            will not ship ([[FEAT-0145]]).
+
+            **Not a delete.** `your-trainer`'s REL-0013 is the precedent: 2.1.7
+            was prepared, never shipped, and its note is the only record of why
+            that version number was skipped. This sets a terminal status, keeps
+            the note, and requires a reason.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            release_id = str(body.get("release") or body.get("id") or "")
+            try:
+                result = note_writes.abandon_release(
+                    index, release_id,
+                    reason=str(body.get("reason") or ""),
+                    superseded_by=str(body.get("superseded_by") or ""),
+                    actor=str(body.get("actor") or ""),
+                    mtime=(float(body["mtime"])
+                           if body.get("mtime") is not None else None),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            self._reindex(release_id)
+            self._respond_json({"ok": True, **result})
+
+        def _serve_release_delete(self) -> None:
+            """``POST /api/notes/release-delete`` — remove a release note that
+            has not become part of anything ([[FEAT-0145]]).
+
+            The narrow case abandoning does not cover: a release created by a
+            misclick minutes ago that no reader has seen. Three refusals stand
+            behind it — created today, nothing links to it, no ledger sealed
+            against it — and failing any of them routes the caller to abandon,
+            by name.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            try:
+                result = note_writes.delete_release(
+                    index, docs_root,
+                    str(body.get("release") or body.get("id") or ""),
+                    actor=str(body.get("actor") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            self._respond_json({"ok": True, **result})
+
+        def _serve_release_settle(self) -> None:
+            """``POST /api/notes/release-settle`` — settle owed checks from the
+            release page ([[FEAT-0145]], authorised by [[ADR-0041]]).
+
+            **Three marks, and the endpoint refuses the other four by name.**
+            `na`, `excused` and `blocked` are decisions about scope — does this
+            check apply, is it in this cycle, could it be run — and the release
+            is where that question has an answer. `pass`, `partial` and `fail`
+            attest that somebody walked a procedure, and [[ADR-0035]]'s rule
+            that a release page must not offer that control stands unchanged.
+
+            One reason, typed once, written onto every check in the batch.
+            Each check is reported individually: a ledger is append-only, so a
+            refusal part-way through leaves the events before it standing, and
+            pretending otherwise would be the only dishonest option.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            raw = body.get("checks")
+            checks = [str(c) for c in raw] if isinstance(raw, list) else []
+            try:
+                result = note_writes.settle_checks(
+                    docs_root, index,
+                    release_id=str(body.get("release") or ""),
+                    checks=checks,
+                    mark=str(body.get("mark") or body.get("verdict") or ""),
+                    reason=str(body.get("reason") or ""),
+                    by=str(body.get("by") or ""),
+                    platform=str(body.get("platform") or ""),
+                )
+            except note_writes.WriteError as exc:
+                self._respond_json({"ok": False, "error": exc.message},
+                                   status=HTTPStatus(exc.status))
+                return
+            except (TypeError, ValueError) as exc:
+                self._respond_json({"ok": False, "error": str(exc)},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            #: Every check that was actually written, before the response —
+            #: the page repaints the moment this resolves ([[ISS-0264]]).
+            self._reindex(*[str(row.get("id") or "")
+                            for row in result.get("settled") or []])
             self._respond_json({"ok": True, **result})
 
         def _serve_test_run(self) -> None:

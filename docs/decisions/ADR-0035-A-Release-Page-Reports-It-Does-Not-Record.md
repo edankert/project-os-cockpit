@@ -6,14 +6,17 @@ title: "A release page reports what holds it; the mark is recorded where the che
 status: accepted
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-09-08"
 decided: 2026-08-18
 phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ISS-0192]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]"]
+related: ["[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]]", "[[ISS-0192]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]"]
 tags: [decision]
 ---
 
 # A release page reports; it does not record
+
+> [!note] Amended 2026-09-08 by [[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]] — narrowed, not overturned.
+> This decision's rule holds in full for `pass`, `partial`, `fail` and `question`, which are attestations that somebody walked a procedure. ADR-0041 narrows it for `na`, `excused` and `blocked`, which are decisions about whether a check is in scope: none of the three can assert a check passed, `excused` is scoped to one release by construction, and each demands a written reason. The argument below is left exactly as it was written; ADR-0041 answers both of its objections by name rather than assuming them away.
 
 ## Context
 

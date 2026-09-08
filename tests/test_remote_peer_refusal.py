@@ -223,7 +223,12 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
     #: [[ISS-0249]]'s front door for `retire_check`, a complete and tested
     #: write path that no route reached. It is guarded like every other write,
     #: and the sweep below drives it over a real socket.
-    assert (len(guarded), len(open_)) == (28, 5), (
+    #: **28 -> 32 on 2026-09-08**, deliberately: [[FEAT-0145]]'s four release
+    #: write paths — `release-update`, `release-abandon`, `release-delete` and
+    #: `release-settle`. Every one of them edits a note or appends a ledger
+    #: event, so every one is loopback-only; the sweep below drives all four
+    #: over a real socket and requires 403.
+    assert (len(guarded), len(open_)) == (32, 5), (
         f"the dispatch split moved: {len(guarded)} guarded / {len(open_)} open. "
         "That is not automatically wrong — but it must be a deliberate edit here."
     )
@@ -292,7 +297,9 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
     #: list the inbox and download any item (independent review of [[ISS-0274]],
     #: finding 6). Both new calls use their answer; the `discarded` assertion
     #: above is what says so.
-    assert sites == 30, f"expected 30 guard call sites, found {sites}"
+    #: 30 -> 34 on 2026-09-08, deliberately: [[FEAT-0145]]'s four release write
+    #: handlers, one `_require_loopback` each.
+    assert sites == 34, f"expected 34 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:

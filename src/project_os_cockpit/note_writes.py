@@ -1414,26 +1414,21 @@ def create_release(
     if clean_version:
         from . import publication
 
-        if not re.match(r"^\d+(\.\d+)*$", clean_version):
-            raise WriteError(f"{version!r} is not a version", status=400)
         if publication.open_releases(index):
             raise WriteError(
                 "a release is already open — one at a time, or 'the next "
                 "release' means nothing",
                 status=409,
             )
-        shipped = max(
-            (publication._version_key(r["version"])
-             for r in publication._releases(index) if r["status"] == "released"),
-            default=(),
-        )
-        if shipped and publication._version_key(clean_version) <= shipped:
-            raise WriteError(
-                f"{clean_version} is at or below the newest released version "
-                "— that is the overtaken-draft state FEAT-0102 has to work "
-                "around, and creating one by hand manufactures it",
-                status=400,
-            )
+        #: **The version refusals live in one function** ([[FEAT-0145]]).
+        #: Shape, the newest-released ceiling and the collision with a release
+        #: that already carries this number — the last of which is what keeps
+        #: an ABANDONED version from being silently reused: the note is still
+        #: in the record, so the number is still taken, which is the whole
+        #: reason abandoning keeps the file. `update_release` calls the same
+        #: function, so the two write paths cannot come to disagree about what
+        #: a legal version is.
+        clean_version = _refuse_bad_version(index, clean_version, "")
 
     release_id = next_release_id(index)
     # `REL-0012-v2.1.6.md`, which is what eleven of `../your-trainer`'s twelve
@@ -1568,6 +1563,536 @@ def _ensure_release_ledger(docs_root: Path, platform: str) -> str:
 
     return str(_ledger.ensure_working(docs_root, platform)
                .relative_to(docs_root.resolve()))
+
+
+#: **Terminal release statuses.** A release at one of these is a fact about
+#: the past, and every write path added by [[FEAT-0145]] refuses one — with a
+#: different sentence for each, because the three are terminal for different
+#: reasons and a shared message would give the right answer for the wrong one.
+_CLOSED_RELEASE: dict[str, str] = {
+    "released": (
+        "has shipped; {verb} it would rewrite what it was measured against "
+        "(ADR-0035)"),
+    "reverted": (
+        "was rolled back; what a reverted release held is the record of what "
+        "was rolled back"),
+    "abandoned": (
+        "was abandoned; the note IS the record of why that version number was "
+        "skipped, and keeping it is what abandoning was chosen over"),
+}
+
+
+def _open_release(
+    index: Index, release_id: str, *, verb: str,
+    closed: "frozenset[str] | None" = None,
+) -> "tuple[Path, Any]":
+    """The note behind a `REL-*` that is still open to change.
+
+    Two refusals, both `release_contents`' and stated once so the four write
+    paths added by [[FEAT-0145]] cannot drift from the one that was here first:
+    the id must name a release, and a **terminal** release is immutable
+    ([[ADR-0035]] — what a released release contained is a fact about the
+    past).
+
+    **`abandoned` is terminal here too, and that is not obvious.** It was not,
+    at first: the first cut refused only `released`, so an abandoned release
+    could be deleted outright — which destroys precisely the record abandoning
+    exists to keep. Found by walking the endpoints against a live sidecar, not
+    by a test, because every test asked about a `draft`.
+
+    `closed` lets `abandon_release` accept an abandoned release and refuse it
+    with its own sentence ("already abandoned"), which is a different fact
+    from "you cannot change this".
+    """
+    path = index.by_id(release_id) if release_id else None
+    record = index.get(path) if path is not None else None
+    if record is None or (record.note_type or "") != "release":
+        raise WriteError(
+            f"{release_id or '(nothing)'} is a "
+            f"{(record.note_type if record else None) or 'note'}, "
+            "not a release",
+            status=409,
+        )
+    status = (record.status or "").strip().lower()
+    blocked = _CLOSED_RELEASE if closed is None else {
+        k: v for k, v in _CLOSED_RELEASE.items() if k in closed}
+    if status in blocked:
+        raise WriteError(
+            f"{release_id} {blocked[status].format(verb=verb)}",
+            status=409,
+        )
+    assert path is not None
+    return path, record
+
+
+def _refuse_bad_version(index: Index, version: str, release_id: str) -> str:
+    """`create_release`'s two version refusals, reusable.
+
+    A version must look like one, and it must be above the newest thing that
+    actually shipped — a draft at or below a released version is the
+    overtaken-draft state [[FEAT-0102]] works around, and minting one by hand
+    manufactures the defect.
+
+    **The open-release refusal is deliberately NOT here.** `create_release`
+    refuses a second open release; changing the version of the release that is
+    already open must not refuse on the existence of itself.
+    """
+    from . import publication
+
+    clean = (version or "").strip().lstrip("vV")
+    if not clean:
+        return ""
+    if not re.match(r"^\d+(\.\d+)*$", clean):
+        raise WriteError(f"{version!r} is not a version", status=400)
+    shipped = max(
+        (publication._version_key(r["version"])
+         for r in publication._releases(index) if r["status"] == "released"),
+        default=(),
+    )
+    if shipped and publication._version_key(clean) <= shipped:
+        raise WriteError(
+            f"{clean} is at or below the newest released version — that is "
+            "the overtaken-draft state FEAT-0102 has to work around, and "
+            "creating one by hand manufactures it",
+            status=400,
+        )
+    for other in publication._releases(index):
+        if other["id"] == release_id:
+            continue
+        if (other["version"] or "").strip().lstrip("vV") == clean:
+            raise WriteError(
+                f"{other['id']} already carries {clean}; two releases with "
+                "one version number is the state a release note exists to "
+                "prevent",
+                status=409,
+            )
+    return clean
+
+
+def _clean_platform(platform: str) -> str:
+    """A platform name that can become a ledger filename, or a refusal.
+
+    The same expression `ledger.working_path` enforces, checked here so the
+    refusal names the field a person filled in rather than a path they never
+    saw.
+    """
+    clean = (platform or "").strip().lower()
+    if clean and not re.match(r"^[a-z0-9][a-z0-9_-]*$", clean):
+        raise WriteError(
+            f"{platform!r} is not a usable platform name — it becomes part of "
+            "a ledger filename, so it must be lowercase alphanumerics, `-` "
+            "or `_`", status=400)
+    return clean
+
+
+def update_release(
+    index: Index,
+    docs_root: Path,
+    release_id: str,
+    *,
+    version: str | None = None,
+    platform: str | None = None,
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """Set the **version** or the **platform** of a release that already exists
+    ([[FEAT-0145]] step 1).
+
+    **The half of "update" that did not exist.** `release_contents` has added
+    and removed features since [[TASK-0558]]; nothing could change the two
+    fields the rest of the release surface is graded on. Edwin, after preparing
+    `your-trainer` 2.2.0 by hand: the release note itself — version, platform,
+    features, held-back entries — was written by hand, and the gate then
+    reported 635 checks owed on a repo with 67 because nothing had told it
+    which platform the release ships ([[ISS-0288]]).
+
+    **Naming a platform creates its working ledger**, the same way
+    `create_release` does, so the release can accept a verdict the moment it
+    names one rather than on somebody's second attempt ([[ISS-0290]]).
+
+    **Naming a version stamps `preparing:`**, because declaring a number is
+    declaring intent to ship ([[FEAT-0105]]) — and it is what stops the gate
+    obligation asking outside a release window.
+
+    **The filename is not rewritten, and the caller is told so.** A release is
+    called `REL-0013-v2.1.7.md` and every `[[REL-0013-v2.1.7]]` in the corpus
+    resolves through that stem, so renaming the file to match a new version
+    would break links to buy a tidier path. The id in the filename is the
+    identity; the version in the frontmatter is the claim. `stale_stem` says
+    when the two have parted so the answer is visible rather than discovered.
+    """
+    if version is None and platform is None:
+        raise WriteError(
+            "nothing to change — name a version, a platform, or both",
+            status=400)
+
+    path, record = _open_release(index, release_id, verb="changing")
+
+    clean_version = (
+        None if version is None
+        else _refuse_bad_version(index, version, release_id))
+    clean_platform = None if platform is None else _clean_platform(platform)
+
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {release_id}: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(raw)
+
+    today = _today()
+    changed: list[str] = []
+    if clean_version is not None:
+        was = str(record.frontmatter.get("version") or "").strip()
+        fm_lines = _set_field(fm_lines, "version", clean_version)
+        if clean_version and not str(
+                record.frontmatter.get("preparing") or "").strip():
+            fm_lines = _set_field(fm_lines, "preparing", today)
+        if was != clean_version:
+            changed.append(f"version {was or '(none)'} -> {clean_version or '(none)'}")
+    ledger_rel = ""
+    if clean_platform is not None:
+        was = str(record.frontmatter.get("platform") or "").strip().lower()
+        fm_lines = _set_field(fm_lines, "platform", clean_platform)
+        ledger_rel = _ensure_release_ledger(docs_root, clean_platform)
+        if was != clean_platform:
+            changed.append(
+                f"platform {was or '(every platform)'} -> "
+                f"{clean_platform or '(every platform)'}")
+    fm_lines = _set_field(fm_lines, "updated", today)
+    _write(path, fm_lines, body)
+
+    stem = path.name[:-3] if path.name.endswith(".md") else path.name
+    final_version = (
+        clean_version if clean_version is not None
+        else str(record.frontmatter.get("version") or "").strip())
+    return {
+        "id": release_id,
+        "rel": str(path.resolve().relative_to(docs_root.resolve())),
+        "version": final_version,
+        "platform": (
+            clean_platform if clean_platform is not None
+            else str(record.frontmatter.get("platform") or "").strip().lower()),
+        "ledger": ledger_rel,
+        "changed": changed,
+        "actor": actor,
+        #: True when the filename still names a version the note no longer
+        #: claims. Reported rather than fixed — see the docstring.
+        "stale_stem": bool(
+            final_version and "-v" in stem
+            and not stem.endswith(f"-v{final_version}")),
+        "stem": stem,
+    }
+
+
+def abandon_release(
+    index: Index,
+    release_id: str,
+    *,
+    reason: str = "",
+    superseded_by: str = "",
+    actor: str = "",
+    mtime: float | None = None,
+) -> dict[str, Any]:
+    """A prepared release that will not ship is **abandoned, not deleted**
+    ([[FEAT-0145]] step 1).
+
+    `../your-trainer`'s REL-0013 is the precedent and the argument: v2.1.7 was
+    prepared, never shipped, and is still on disk with `superseded_by:` naming
+    the release that overtook it. **That is the right record.** A release that
+    was prepared and abandoned is a fact about the project, and deleting the
+    file erases the only answer to *why was that version number skipped*.
+
+    So: a terminal status, and a reason it is refused without. `abandoned` is
+    new to the release vocabulary and lands upstream in `STATUSES.md` and the
+    validator, because a status a downstream repo writes and the fleet's
+    validator rejects is a repo that cannot commit.
+
+    **The version is not freed.** `_refuse_bad_version` reads every release,
+    abandoned ones included, so the number this note held stays taken — which
+    is what makes the record worth keeping.
+    """
+    reason = str(reason or "").strip()
+    if not reason:
+        raise WriteError(
+            "abandoning a release needs a reason — the note survives precisely "
+            "so somebody can read why a version number was skipped",
+            status=400)
+
+    path, record = _open_release(
+        index, release_id, verb="abandoning",
+        #: Not `abandoned`: an already-abandoned release gets its own sentence
+        #: below, which says something different from *you cannot change this*.
+        closed=frozenset({"released", "reverted"}))
+    status = (record.status or "").strip().lower()
+    if status == "abandoned":
+        raise WriteError(f"{release_id} is already abandoned", status=409)
+
+    superseded_by = str(superseded_by or "").strip()
+    if superseded_by:
+        target = index.by_id(superseded_by)
+        if target is None:
+            raise WriteError(
+                f"{superseded_by} is not in this record — a successor must be "
+                "a release somebody can open", status=409)
+        found = index.get(target)
+        if found is None or (found.note_type or "") != "release":
+            raise WriteError(
+                f"{superseded_by} is not a release", status=409)
+
+    _check_mtime(path, mtime)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot read {release_id}: {exc}", status=500) from None
+    fm_lines, body = _split_frontmatter(raw)
+    today = _today()
+    fm_lines = _set_field(fm_lines, "status", "abandoned", quote=False)
+    #: **Cleared, because it is what the obligation reads.** `preparing:` is
+    #: how the gate obligation knows a release window is open; an abandoned
+    #: release with it still set would keep asking for a walk nobody owes.
+    fm_lines = _set_field(fm_lines, "preparing", "")
+    if superseded_by:
+        stem = ""
+        target = index.by_id(superseded_by)
+        found = index.get(target) if target is not None else None
+        if found is not None:
+            rel = (found.rel_path or "").rsplit("/", 1)[-1]
+            stem = rel[:-3] if rel.endswith(".md") else ""
+        fm_lines = _set_field(
+            fm_lines, "superseded_by", f"[[{stem or superseded_by}]]")
+    fm_lines = _set_field(fm_lines, "updated", today)
+    body = _append_decision_record(
+        body, verb="Abandoned", actor=actor or "unassigned", note=reason)
+    _write(path, fm_lines, body)
+    return {
+        "id": release_id,
+        "status": "abandoned",
+        "reason": reason,
+        "superseded_by": superseded_by,
+        "version": str(record.frontmatter.get("version") or "").strip(),
+        "actor": actor,
+    }
+
+
+def delete_refusal(
+    index: Index, docs_root: Path, release_id: str,
+) -> str:
+    """Why deleting this release outright would destroy something, or ``""``.
+
+    **One implementation, two callers.** `delete_release` raises it and the
+    release payload reports it, so the button appears exactly when the write
+    would succeed. Two implementations of one question is [[REQ-0059]]'s
+    forbidden shape, and this one would have been especially easy to let
+    drift: a client-side guess at "created today" is right until midnight.
+    """
+    path = index.by_id(release_id) if release_id else None
+    record = index.get(path) if path is not None else None
+    if path is None or record is None:
+        return f"{release_id or '(nothing)'} is not in this record"
+
+    #: **Terminal first, and `abandoned` is the one that matters.** The date
+    #: check below would let an abandoned release be deleted on the day it was
+    #: abandoned, which erases the record inside the hour it was made. Stated
+    #: here as well as in `_open_release` because the release payload reports
+    #: this string and the button is drawn from it: a control refused by the
+    #: write path but offered by the page is a button that exists to fail.
+    status = (record.status or "").strip().lower()
+    if status in _CLOSED_RELEASE:
+        return f"{release_id} {_CLOSED_RELEASE[status].format(verb='deleting')}"
+
+    created = str(record.frontmatter.get("created") or "").strip()[:10]
+    if created != _today():
+        return (
+            f"{release_id} was created on {created or 'an unrecorded day'}, "
+            "not today — abandon it instead, which keeps the note and records "
+            "why the version was skipped")
+
+    #: `links_to` is the index's own inbound set — the same graph the backlinks
+    #: panel draws — so "nothing points at it" means what a reader would see,
+    #: rather than a text search that would also match the id inside a code
+    #: fence.
+    inbound: list[str] = []
+    for other in index.links_to(path):
+        found = index.get(other)
+        if found is None or found.path == path:
+            continue
+        inbound.append(found.note_id or found.rel_path)
+    linked = sorted({i for i in inbound if i})
+    if linked:
+        return (
+            f"{', '.join(linked[:5])} refers to {release_id} — abandon it "
+            "instead, so the reference still resolves")
+
+    from . import ledger as _ledger
+
+    for book in _ledger.load(docs_root):
+        if (book.release or "") == release_id:
+            return (
+                f"{book.path.name if book.path else 'a ledger'} is sealed "
+                f"against {release_id} — abandon it instead, so the verdicts "
+                "it froze still name something")
+    return ""
+
+
+def delete_release(
+    index: Index,
+    docs_root: Path,
+    release_id: str,
+    *,
+    actor: str = "",
+) -> dict[str, Any]:
+    """A true delete, and only for a note that has not become part of anything
+    ([[FEAT-0145]] step 1).
+
+    Abandoning is the answer for a release that was prepared and dropped. This
+    is the answer for the other case: a release created by a misclick two
+    minutes ago, which no reader has seen and nothing has ever pointed at.
+    Three refusals, and every one of them is a thing that would be destroyed:
+
+    1. **Created today.** A note that has survived a day is somebody's record.
+    2. **Nothing links to it.** A backlink is somebody having referred to it.
+    3. **No ledger entry names it.** A sealed ledger carries the release id in
+       its filename and its entries; deleting the release would leave a sealed
+       verdict attributed to nothing.
+
+    Anything that fails one of these is abandoned instead, and the refusal
+    says so.
+    """
+    path, _record = _open_release(index, release_id, verb="deleting")
+    refusal = delete_refusal(index, docs_root, release_id)
+    if refusal:
+        raise WriteError(refusal, status=409)
+
+    try:
+        path.unlink()
+    except OSError as exc:                            # pragma: no cover
+        raise WriteError(f"cannot delete {release_id}: {exc}", status=500) from None
+    return {"id": release_id, "deleted": True, "actor": actor}
+
+
+#: **What a release page may write on a check** ([[ADR-0041]]).
+#:
+#: Three marks, and what they have in common is that none of them is an
+#: attestation. `na` says the check cannot apply here, `excused` says it is not
+#: being walked this cycle, `blocked` says it could not be run — decisions about
+#: scope, which is the question a release is the right place to answer.
+#:
+#: `pass`, `partial` and `fail` are absent and the endpoint refuses them by
+#: name: each claims somebody walked a procedure, and [[ADR-0035]]'s rule that a
+#: release page must not offer that control is unchanged.
+SETTLE_MARKS: frozenset[str] = frozenset({"na", "excused", "blocked"})
+
+
+def settle_checks(
+    docs_root: Path,
+    index: Index,
+    *,
+    release_id: str,
+    checks: "list[str]",
+    mark: str,
+    reason: str = "",
+    by: str = "",
+    platform: str = "",
+) -> dict[str, Any]:
+    """Settle several owed checks at once, from the release page
+    ([[FEAT-0145]] step 3, [[ADR-0041]]).
+
+    **No new storage.** `na` / `excused` / `blocked` already mean *cannot
+    apply* / *not this cycle* / *the rig was down*, `excused` is already scoped
+    to one release by `ledger.PERSISTS`, and `record_verdict` already refuses a
+    reason that cites a note nobody can open. This is those pieces, once per
+    check, under one reason a person typed once.
+
+    **The platform comes from the release**, not from a picker. A release says
+    which platform it ships and the gate is graded on it ([[ISS-0288]]); asking
+    a walker to name it again on the page that already knows is the friction
+    [[ISS-0290]] removed for single marks.
+
+    **All or nothing is deliberately NOT the rule.** A ledger is append-only
+    and a failure part-way through is a real record of the checks that were
+    settled; rolling those back would delete events somebody caused. Each check
+    is reported with what happened to it, and the caller shows the failures.
+    """
+    mark = str(mark or "").strip().lower()
+    if mark == "question":
+        #: **Refused with its own reason** ([[ADR-0041]] decision 5). Not an
+        #: attestation and not a scope decision either: *the check itself is
+        #: not understood* is a judgment about the procedure's wording, made
+        #: by somebody reading the wording. Lumping it in with `pass` would
+        #: give the right refusal for the wrong reason.
+        raise WriteError(
+            "`question` says the check's own wording is not understood, so it "
+            "belongs where the wording is read — the check's note, or "
+            "~checks. A release settles scope; it does not review text "
+            "(ADR-0041).",
+            status=400)
+    if mark not in SETTLE_MARKS:
+        raise WriteError(
+            f"a release page may not write {mark!r}. It settles a check — "
+            f"{', '.join(sorted(SETTLE_MARKS))} — which are decisions about "
+            "scope. `pass`, `partial` and `fail` attest that somebody walked "
+            "the procedure, and those are recorded where the check lives "
+            "(ADR-0035, ADR-0041).",
+            status=400)
+    reason = str(reason or "").strip()
+    if not reason:
+        raise WriteError(
+            f"{mark} needs a reason — that is the difference between it and "
+            "an undocumented exception",
+            status=400)
+    wanted = [str(c or "").strip() for c in (checks or []) if str(c or "").strip()]
+    if not wanted:
+        raise WriteError("name at least one check to settle", status=400)
+
+    #: **A shipped release is refused here, by name.** `ledger.append` already
+    #: refuses a sealed ledger, and that refusal reads as a server error about
+    #: a file. This one says what a reader did: a released release was measured
+    #: against its ledger, and settling a check into it now would rewrite what
+    #: it was measured against ([[ADR-0035]]).
+    if release_id:
+        _open_release(index, release_id, verb="settling a check on")
+
+    #: **This release's platform comes before the general resolver, and the
+    #: order is load-bearing.** `verdict_platform` answers *which platform is
+    #: being walked* by reading the FIRST open release — right for a walker on
+    #: `~checks`, who is not standing on any particular release, and wrong
+    #: here: with two drafts open, settling a check on the second one would
+    #: have written the event into the first one's ledger. The first cut had
+    #: this backwards and a single-draft fixture could never have shown it.
+    resolved = _clean_platform(platform)
+    if not resolved and release_id:
+        path = index.by_id(release_id)
+        record = index.get(path) if path is not None else None
+        if record is not None:
+            resolved = str(record.frontmatter.get("platform") or "").strip().lower()
+    #: Only once the release has said nothing: a release with no platform takes
+    #: every platform, and a verdict cannot ([[ADR-0037]]). The resolver's
+    #: remaining answer — the sole ledger, when there is exactly one — is the
+    #: unambiguous case [[ISS-0272]] settled.
+    if not resolved:
+        resolved = verdict_platform(docs_root, index)
+    if not resolved:
+        raise WriteError(
+            "this release does not say which platform it ships, and the repo "
+            "keeps more than one ledger — name the platform on the release "
+            "before settling its checks",
+            status=400)
+
+    settled: list[dict[str, Any]] = []
+    refused: list[dict[str, str]] = []
+    for check_id in wanted:
+        try:
+            settled.append(record_verdict(
+                docs_root, index, check_id=check_id, platform=resolved,
+                verdict=mark, reason=reason, by=by, method="manual"))
+        except WriteError as exc:
+            refused.append({"id": check_id, "error": exc.message})
+    return {
+        "release": release_id, "platform": resolved, "mark": mark,
+        "reason": reason, "settled": settled, "refused": refused,
+        "count": len(settled),
+    }
 
 
 def release_contents(

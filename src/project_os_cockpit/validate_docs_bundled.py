@@ -150,7 +150,15 @@ ALLOWED_STATUS = {
     # asserted by ACCEPTANCE-STATUS rather than left implicit: the gates are
     # keyed on statuses an acceptance test does not hold.
     "check": {"draft", "active", "retired"},
-    "release": {"draft", "released", "reverted"},
+    # `abandoned` is a release that was prepared and will not ship. The state
+    # existed before the word did: `your-trainer`'s REL-0013 held v2.1.7 at
+    # `draft` for 23 days (created 2026-08-16, measured 2026-09-08) with
+    # `superseded_by:` naming its successor, so
+    # every surface that counts open releases counted it and every reader had
+    # to work out from the successor link that it was over. Terminal, and the
+    # note is kept deliberately -- it is the only record of why a version
+    # number was skipped.
+    "release": {"draft", "released", "reverted", "abandoned"},
     # `plan` is consumed by validate_plan_notes through load_allowed_status(). It
     # belongs in the defaults like every other type: without it, a repo whose
     # STATUSES.md lacks a `[[plan]]` section gets an empty allowed set and

@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 40
+  ADR: 41
   # ADR-0030: one note per acceptance check. Raised by sync-snapshot.py like any
   # other counter — the checks themselves are deliberately NOT snapshot items
   # (a repo can hold hundreds; the snapshot is active-and-recent context).
@@ -63,22 +63,22 @@ counters:
   FEAT: 145
   ISS: 291
   PHASE: 41
-  REQ: 60
+  REQ: 61
   RISK: 7
   # A place in the product a check's area: names (TASK-0514). No SUR-* note
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 596
-  TST: 81
+  TASK: 604
+  TST: 83
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: ""
-  phase: "PHASE-028"
+  feature: "FEAT-0145"
+  phase: "PHASE-037"
   issue: ""
-  note: "2026-09-07: links in the record resolve -- CHG-20260907-Links-In-The-Record-Resolve. 25 wikilinks in note bodies pointed at nothing and the cockpit drew each as a broken link; 3 task notes (TASK-0182/0183/0187) had been ZERO-BYTE FILES since 21-22 July, so their work shipped and the notes held nothing (reconstructed from commits 15d732c and 3536687, never invented). External URLs were always clean -- the weekly link-check workflow only ever read those, and validate-docs.py reads frontmatter relationships, so nobody had read a link in a body. The guard is tests/test_record_links.py (wikilinks resolve, relative links point at a file, no note is zero bytes), in tests/ because tools/scripts/ is template-owned; proposed upstream. PHASE-015 (record hygiene, standing) reopened and re-closed the same day. THE COUNT WAS WRONG TWICE FIRST: 232 raw matches (206 are syntax examples inside code), then 26 line-by-line (an inline span wrapping a line break makes a false pair), then 25 whole-document. Previously 2026-09-06: four acceptance-checks defects fixed and PHASE-037 closed again -- see CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments; ISS-0283 fixed the three tests that pinned your-trainer's outstanding work."
+  note: "2026-09-08: FEAT-0145 IS BUILT and is at `review` -- CHG-20260908-Preparing-A-Release-Is-One-Workflow. All eight tasks TASK-0597..0604 done, REQ-0061 implemented, TST-0082 covers it (33 tests in tests/test_release_workflow.py) and TST-0083 is the unwalked acceptance check. The release page now sets version and platform on a release that exists, abandons a draft that will not ship, settles the checks it owes without leaving the page, and lists what it ships that nothing verifies. Four endpoints: release-update, release-abandon, release-delete, release-settle. `abandoned` is a NEW RELEASE STATUS and landed UPSTREAM FIRST in ~/Dev/repos/project-os (STATUSES.md + validate-docs.py, both uncommitted there) before being mirrored here into tools/ AND into src/project_os_cockpit/validate_docs_bundled.py, which sync-project-os.sh does not cover. TWO GUARDS WERE REWRITTEN, not holed: test_no_write_path_to_a_check_appears_on_the_release_page became test_no_attestation_path_... and now checks askForMark ON ITS ARGUMENT (`only:` must be a subset of na/excused/blocked), and test_the_gate_is_built_before_what_is_in_the_release names its allowed set instead of forbidding every append. INDEPENDENT REVIEW RETURNED `changes-requested` 2026-09-08 and all six findings are acted on -- five failing tests (four were pinned counts and one guard whose stronger form was true only by accident), a platform-order guard that passed on its own mutant because open_releases sorts version-descending, an abandoned release vanishing from the publication navigator, four unreproducible numbers, five notes naming fields the code does not have. THE REVIEW ALSO CAUGHT ME: I reported the suite green three times from BACKGROUND runs whose output files were empty -- the wrapper's exit code, not pytest's. Only a foreground run with visible output counts. NOT DONE: the fleet sync (release-to-project-os.sh + template sync writes into eleven other repos). The decision that opens it: ADR-0041 narrows ADR-0035 for three of the seven marks -- na/excused/blocked are decisions about whether a check is in SCOPE, not attestations that somebody walked it, and excused has no meaning away from a release because the ledger it sits in IS the release. pass/partial/fail stay on ~checks and the settle endpoint refuses them BY NAME. Two things reach outside the feature: `abandoned` is a template-owned release status and lands UPSTREAM first (TASK-0599), and tests/test_release_held_back.py::test_no_write_path_to_a_check_appears_on_the_release_page asserts a claim now three marks too wide -- REWRITTEN, not holed (TASK-0601); seven passes of independent review defeated looser versions of that test. Homed in PHASE-037, reopened: FEAT-0145 is FEAT-0142's successor and amends that phase's own ADR-0035. Previously 2026-09-07: links in the record resolve -- CHG-20260907-Links-In-The-Record-Resolve. 25 wikilinks in note bodies pointed at nothing and the cockpit drew each as a broken link; 3 task notes (TASK-0182/0183/0187) had been ZERO-BYTE FILES since 21-22 July, so their work shipped and the notes held nothing (reconstructed from commits 15d732c and 3536687, never invented). External URLs were always clean -- the weekly link-check workflow only ever read those, and validate-docs.py reads frontmatter relationships, so nobody had read a link in a body. The guard is tests/test_record_links.py (wikilinks resolve, relative links point at a file, no note is zero bytes), in tests/ because tools/scripts/ is template-owned; proposed upstream. PHASE-015 (record hygiene, standing) reopened and re-closed the same day. THE COUNT WAS WRONG TWICE FIRST: 232 raw matches (206 are syntax examples inside code), then 26 line-by-line (an inline span wrapping a line break makes a false pair), then 25 whole-document. Previously 2026-09-06: four acceptance-checks defects fixed and PHASE-037 closed again -- see CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments; ISS-0283 fixed the three tests that pinned your-trainer's outstanding work."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
@@ -86,10 +86,12 @@ items:
     FEAT-0145:
       file: "docs/features/release-workflow/FEAT-0145-Preparing-A-Release-Is-One-Workflow.md"
       title: "Preparing a release is one workflow: name the version, say which platform, settle the checks it owes — instead of four endpoints, a hand-written note and a rule nobody can see"
-      status: backlog
+      status: done
       owner: user:edwin
-      phase: ""
-      note: "PROPOSAL, Edwin 2026-09-08 after preparing your-trainer 2.2.0 by hand: create/update/delete a release, set version, pick android or ios, and settle the acceptance checks it requires. What exists: release-prepare creates, release-contents adds and removes features. What does not: setting version or PLATFORM after creation (the field ISS-0288 proved the gate depends on), and abandoning a draft - which should NOT be a delete, because your-trainer REL-0013 is the precedent: prepared, never shipped, still draft with superseded_by, and that is the record of why a version number was skipped. The check-selection step needs NO new storage: na / excused / blocked already mean cannot-apply / not-this-cycle / rig-was-down, and excused already scopes to one release, so 'uncheck for this release' is excused with a reason. What is missing is the walk being ONE screen on the release page. The LLM half is the coverage sweep - features carrying no check, requirements with unticked criteria - computed mechanically, with an agent drafting the missing TST-* notes as a diff a person accepts or rejects."
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      requirements: ["REQ-0061"]
+      tasks: ["TASK-0597", "TASK-0598", "TASK-0599", "TASK-0600", "TASK-0601", "TASK-0602", "TASK-0603", "TASK-0604"]
+      note: "PLANNED 2026-09-08. Edwin 2026-09-08 after preparing your-trainer 2.2.0 by hand: create/update/delete a release, set version, pick android or ios, and settle the acceptance checks it requires. What exists: release-prepare creates, release-contents adds and removes features. What does not: setting version or PLATFORM after creation (the field ISS-0288 proved the gate depends on), and abandoning a draft - which should NOT be a delete, because your-trainer REL-0013 is the precedent: prepared, never shipped, still draft with superseded_by, and that is the record of why a version number was skipped. The check-selection step needs NO new storage: na / excused / blocked already mean cannot-apply / not-this-cycle / rig-was-down, and excused already scopes to one release, so 'uncheck for this release' is excused with a reason. What is missing is the walk being ONE screen on the release page. The LLM half is the coverage sweep - features carrying no check, requirements with unticked criteria - computed mechanically, with an agent drafting the missing TST-* notes as a diff a person accepts or rejects."
     FEAT-0143:
       file: "docs/features/fleet-validator-sync/FEAT-0143-The-Fleet-Runs-One-Validator.md"
       title: "The fleet runs one validator — the migration is two mechanical rules, not a per-repo reconciliation, and a drift check keeps it that way"
@@ -827,6 +829,62 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0597:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0597-The-Platform-Is-Offered-Not-Typed.md"
+      title: "The platform a release could ship is offered, not typed — the ledgers and the notes say which platforms this repo has evidence for"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0598:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0598-A-Releases-Version-And-Platform-Can-Change.md"
+      title: "A release's version and platform can be changed after it is created, with create's refusals and one it cannot make — the filename keeps the old version"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0599:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0599-A-Prepared-Release-Is-Abandoned-Not-Deleted.md"
+      title: "A prepared release that will not ship is abandoned, not deleted — `abandoned` joins the release status vocabulary upstream first"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0600:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0600-The-Version-And-Platform-Are-Named-On-The-Page.md"
+      title: "The version and the platform are named on the release page — a picker beside the version field, a Platform row on an open release, and Abandon on a draft"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0601:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0601-The-Owed-Checks-Are-Settled-Where-They-Are-Owed.md"
+      title: "The owed checks are settled where they are owed — one endpoint writing `na`, `excused` or `blocked` with a reason, refusing `pass`, `partial` and `fail` by name"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0602:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0602-The-Walk-Is-One-Screen-On-The-Release-Page.md"
+      title: "The walk is one screen on the release page — the owed list grouped by area, each row carrying its own procedure text beside the three settle buttons"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0603:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0603-The-Coverage-Gap-Is-Computed-Not-Guessed.md"
+      title: "The coverage gap is computed, not guessed — the features a release ships that no check names, and the requirements whose criteria nobody ticked"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+    TASK-0604:
+      file: "docs/features/release-workflow/plan/tasks/TASK-0604-An-Agent-Drafts-The-Missing-Checks.md"
+      title: "An agent drafts the missing checks and a person accepts them — a `commission-checks` verb on the release type, writing notes into the working tree and nothing into the gate"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0145
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0579:
       file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0579-Count-The-Flood-By-Rule.md"
       title: "Count the flood by rule — run the upstream validator against all four fleet repos in report-only mode and record what it actually reports"
@@ -942,27 +1000,6 @@ items:
     TASK-0555:
       file: "docs/features/tests-view/plan/tasks/TASK-0555-The-check-id-renders-once-at-the-start-and-is-select.md"
       title: "The check id renders once, at the start, and is selectable"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0549:
-      file: "docs/features/tests-view/plan/tasks/TASK-0549-One-Grouping-Key-And-It-Is-The-Id.md"
-      title: "Retire `section:`/`ordinal:` — order on `(tier, note_id)`, group on `area` alone"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0550:
-      file: "docs/features/tests-view/plan/tasks/TASK-0550-The-Nav-Groups-By-Surface.md"
-      title: "The left pane groups tier → surface → count, with a bar on the tier and a percentage on the surface"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0551:
-      file: "docs/features/tests-view/plan/tasks/TASK-0551-A-Percentage-Where-The-Reader-Is-Working.md"
-      title: "The generated page's surface headers show a percentage; tier headers keep the bar"
       status: done
       owner: user:edwin
       parent: FEAT-0128
@@ -2818,6 +2855,14 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0061:
+      file: "docs/requirements/REQ-0061-A-Release-Is-Written-Through-One-Workflow.md"
+      title: "A release's version, platform and settled checks are written through one workflow, and every settle is an event carrying a reason and an author"
+      status: implemented
+      owner: user:edwin
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      implements: FEAT-0145
+      note: "Five criteria, one per step of the hand-preparation of your-trainer v2.2.0. Criterion 4 is the one that needed a decision: settling a check from the release page is ADR-0041 territory, and it is restricted to na/excused/blocked with a reason and an author on every event. Criterion 5 runs NO MODEL - coverage_gaps reads the suite's own refs reverse index (ADR-0032) and criteria.payload, so the number is the same on every machine."
     REQ-0052:
       file: "docs/requirements/REQ-0052-A-Verdict-Names-Its-Platform-Method-Author-And-Date.md"
       title: "A verdict names its check, its platform, its method, its author and its date, or it is not a verdict"
@@ -3118,7 +3163,7 @@ items:
     PHASE-037:
       file: "docs/phases/PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity.md"
       title: "The release page and the tests view report at the granularity the reader is working at"
-      status: done
+      status: active
       owner: user:edwin
       goal: "Every verification surface answers the question its reader actually has, and the record can hold the answer — a release says what holds IT and offers no control that changes a check, the tests view leads with what a person owes rather than with an inventory, and a rendered mark is a check mark. Widened 2026-08-20: where a surface was found stating something nothing had recorded, this phase now also builds the place to record it. Found by use, not by audit."
       features: ["FEAT-0125", "FEAT-0126", "FEAT-0127", "FEAT-0128", "FEAT-0129"]
@@ -4018,6 +4063,14 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0041:
+      file: "docs/decisions/ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One.md"
+      title: "A release page may settle a check; it may never pass one — `na`, `excused` and `blocked` are decisions about scope and belong to the release, while `pass`, `partial` and `fail` are attestations and stay where the procedure is"
+      status: accepted
+      owner: user:edwin
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      supersedes: ""
+      note: "AMENDS ADR-0035, does not supersede it. ADR-0035 forbade every check-changing control on a release page for two reasons and both are good: the fastest way to unblock a release must not be ticking the rows that say it is not ready, and the mark was offered at a distance from the procedure where nobody could be walking it. The resolution is that CHANGING A CHECK was one phrase covering two acts. pass/partial/fail are ATTESTATIONS that somebody walked steps - they stay on ~checks and the check's own note, exactly as ADR-0035 says, and release-settle refuses them BY NAME. na/excused/blocked are DECISIONS ABOUT SCOPE - does this check apply, is it in this cycle, could it be run - and the release is the only place the question has an answer, because ledger.PERSISTS already scopes excused to one release and seal expires it. Objection (a) is met structurally: blocked still BLOCKS, and na/excused are in ledger.NEEDS_REASON so each demands a written reason that lands in the ledger as a dated event with an author. Objection (b) is met by PAYING it - TASK-0602 puts each check's own procedure text beside the buttons, which the payload does not carry today (Item.text exists; open_tests does not emit it). question is NOT offered on a release page: it is a judgement about the check's wording. CONSEQUENCE TO WATCH: test_no_write_path_to_a_check_appears_on_the_release_page becomes too wide by three marks and is REWRITTEN, never holed; ISS-0254 still owns the durable form."
     ADR-0037:
       file: "docs/decisions/ADR-0037-A-Verdict-Is-An-Event.md"
       title: "A verdict is an event in a per-release, single-platform ledger — the note holds intent, the ledger holds reality, and platform stops being a note field"
@@ -4134,10 +4187,10 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 144
-    features_done: 131
-    tasks_total: 590
-    tasks_done: 554
-    tests_total: 47
+    features_done: 132
+    tasks_total: 598
+    tasks_done: 562
+    tests_total: 48
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
@@ -4146,4 +4199,4 @@ metrics:
     issues_triage: 11
     risks_open: 6
     releases_total: 1
-    decisions_total: 31
+    decisions_total: 32

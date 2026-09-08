@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-037
 aliases: ["PHASE-037"]
 title: "The release page and the tests view report at the granularity the reader is working at"
-status: done
+status: active
 order: 37
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-09-06"
+updated: "2026-09-08"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: approved
@@ -26,8 +26,9 @@ features:
   - "[[FEAT-0115-The-Sweep-Is-Continuous]]"
   - "[[FEAT-0142-A-Release-Says-What-Is-In-It]]"
   - "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]"
+  - "[[FEAT-0145-Preparing-A-Release-Is-One-Workflow]]"
 issues: ["[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[ISS-0211-The-Mark-Picker-Shows-Words-Where-The-Check-Mark-Was]]", "[[ISS-0212-Retired-Documents-Render-As-Verified-Tests]]", "[[ISS-0214-A-Note-Whose-Id-Contradicts-Its-Filename]]", "[[ISS-0222-The-Left-Pane-Groups-By-Tier-And-Nothing-Else]]", "[[ISS-0223-The-Bar-Is-The-Wrong-Instrument-In-The-Editor]]", "[[ISS-0224-The-Positional-Address-Outlived-The-Document]]", "[[ISS-0225-A-Nav-Row-Carries-Data-No-Renderer-Draws]]", "[[ISS-0226-A-Surface-Wears-A-Test-Status]]", "[[ISS-0227-Every-Surface-Links-To-The-Same-Place]]", "[[ISS-0228-The-Test-Id-Renders-Twice-On-A-Row]]", "[[ISS-0229-Steps-Proven-Is-Sent-And-Nothing-Draws-It]]", "[[ISS-0231-The-Surface-Row-Is-Two-Lines-And-Names-The-Wrong-Thing]]", "[[ISS-0232-A-Check-Row-Shows-A-Status-It-Cannot-Hold]]", "[[ISS-0233-Migration-Provenance-Outlives-Its-Migrations]]", "[[ISS-0234-The-Generated-Page-Repeats-Itself]]", "[[ISS-0235-A-Surface-Wore-Its-Features-Title]]", "[[ISS-0241-The-Section-Head-Restates-Its-Own-Arithmetic]]", "[[ISS-0242-Two-Different-Things-Are-Both-Called-Automated-Tests]]", "[[ISS-0243-The-Automated-Checks-Page-Is-A-Walk-Page]]", "[[ISS-0244-The-Gate-Rows-Wear-A-Mark-That-Does-Nothing]]", "[[ISS-0245-A-Verdict-On-An-Accepted-Note-Is-Owed-Forever]]", "[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]", "[[ISS-0247-The-Tests-View-Lost-Its-Quiet-Group]]", "[[ISS-0248-Two-Predicates-Disagree-About-Not-In-Flight]]", "[[ISS-0249-Two-Check-Write-Paths-Reach-No-Front-Door]]", "[[ISS-0250-A-Surface-Rename-Silently-Orphans-Its-Checks]]", "[[ISS-0251-A-Test-Backdates-A-Shared-Source-File]]", "[[ISS-0252-Two-Sessions-Closing-Out-Collide-In-The-Snapshot]]", "[[ISS-0253-A-Verdict-Outlives-The-Work-It-Judged]]", "[[ISS-0280-The-Checks-Page-Does-Not-Survive-Leaving-The-Project]]", "[[ISS-0281-A-Failing-Verdict-Is-Erased-From-The-Checks-View]]", "[[ISS-0282-The-Mark-Dialog-Hides-The-Check-It-Marks]]"]
-related: ["[[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]", "[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[DES-0012-Tests-In-Two-Flows]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[PHASE-036-One-Human-Walk]]"]
+related: ["[[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]]", "[[REQ-0061-A-Release-Is-Written-Through-One-Workflow]]", "[[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]", "[[ADR-0036-The-Sweep-Is-Withdrawn]]", "[[DES-0012-Tests-In-Two-Flows]]", "[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[PHASE-036-One-Human-Walk]]"]
 tags: [phase]
 ---
 
@@ -180,6 +181,20 @@ Reopened to `active` for the fix and to be closed again when the three are `fixe
 
 **Closed again 2026-09-06.** A fourth defect was found while verifying the third in the live harness and fixed in the same commit: [[ISS-0284]], the tier chips selecting a value no row could match. It joined rather than waited because [[ISS-0280]] persists the filter set, and a change that makes an existing bug durable carries its remedy. [[ISS-0283]] — three tests asserting that `../your-trainer` still owes work, red because Edwin walked it — was parked at `triage` under [[PHASE-999]] for a few hours and then fixed here on his instruction (*"I don't care when they were introduced tests need to run green"*): the arithmetic moved onto fixtures, the live corpus keeps a consistency check, and the size floor moved onto the suite, which only grows. It is re-homed here because a terminal note must not sit in the parking lot, which is what `test_no_terminal_note_sits_in_the_parking_lot` caught the moment it closed.
 
+
+## Reopened 2026-09-08 — preparing a release becomes one workflow
+
+Edwin prepared `your-trainer` v2.2.0 by hand and every step was an edit or a diagnosis: the release note typed out, the platform absent so the gate reported 635 checks owed on a repo holding 67 ([[ISS-0288]]), and no way to record a verdict at all because nothing named a platform ([[ISS-0290]]). Both issues are fixed. What is not fixed is the reason all three were reachable at once — the write paths exist and no order runs through them.
+
+[[FEAT-0145-Preparing-A-Release-Is-One-Workflow]] joins this phase, with [[REQ-0061]] and eight tasks ([[TASK-0597]]..[[TASK-0604]]).
+
+**Why here rather than in a new phase.** It is the direct successor to [[FEAT-0142]] — a release-page write path replacing a hand-edit — and it amends this phase's own opening decision, [[ADR-0035]]. The 2026-08-20 widening, from *what a surface says* to *whether anything recorded it*, is the sentence that covers it. A new phase fails both of `CLAUDE.md`'s tests: its goal would be one feature's goal, and its exit criteria would restate that feature's task list.
+
+**One decision opens it.** [[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]] narrows [[ADR-0035]] for three of the seven marks — `na`, `excused` and `blocked` are decisions about whether a check is in scope, not attestations that somebody walked it — and leaves it intact for `pass`, `partial`, `fail` and `question`. ADR-0035's note is amended with one line and its argument is untouched.
+
+The five exit criteria above stand as ticked, and the 2026-09-06 criterion stands. The reopen adds one:
+
+- [ ] **A release is prepared end to end in the cockpit, with no hand-edited frontmatter**: version and platform named and changeable, a draft abandonable with a reason, the owed checks settled from the release page with a reason and an author on every event, and the coverage gap named mechanically. Measured by preparing a release on a real repo without opening a note in an editor.
 
 ## Independent review — 2026-08-21
 

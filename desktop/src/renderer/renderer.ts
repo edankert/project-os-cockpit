@@ -2470,6 +2470,22 @@ function askForMark(
     rel?: string;
     /** Every verdict recorded against it, newest first. */
     history?: CheckEvent[];
+    /** Restrict the marks on offer ([[ADR-0041]]). The release page passes
+     *  the three SETTLE marks — `na`, `excused`, `blocked` — because those are
+     *  decisions about scope, and leaves `pass`, `partial` and `fail` to the
+     *  surfaces whose subject is the check. Absent means all seven, which is
+     *  what `~checks` and a check's own note get. */
+    only?: string[];
+    /** Replaces the instruction line under the prose. The release page says
+     *  what these three marks do to THIS release, which the generic sentence
+     *  cannot. */
+    detail?: string;
+    /** Open with this mark already chosen. The release page's rows carry one
+     *  button per settle mark, so the choice is made before the dialog opens
+     *  — and re-choosing it inside would be the same click twice. It is
+     *  PRE-PICKED, never pre-committed: Save is still disabled until the
+     *  reason each of these marks requires has been written. */
+    preset?: string;
   },
 ): Promise<{ verdict: string; reason: string; change?: string } | null> {
   return new Promise((resolve) => {
@@ -2523,9 +2539,18 @@ function askForMark(
 
     const d = document.createElement('p');
     d.className = 'ask-detail';
-    d.textContent = 'Choose a mark, then Save. Naming an ISS-#### in the '
-      + 'reason links it.';
+    d.textContent = opts.detail
+      || 'Choose a mark, then Save. Naming an ISS-#### in the reason links it.';
     card.appendChild(d);
+
+    //: **The offer is narrowed, never the vocabulary** ([[ADR-0041]]). One
+    //: dialog, one reason field, one set of refusals — what changes between
+    //: the checks view and the release page is which marks are on the table,
+    //: and a second dialog for the second surface is how the two would come to
+    //: disagree about what `excused` means.
+    const offered = opts.only?.length
+      ? MARK_CHOICES.filter((c) => opts.only?.includes(c.verdict))
+      : MARK_CHOICES;
 
     // SELECT, then SAVE (ISS-0187). The options used to commit on click, and a
     // reason-less `[-]` merely showed an error and returned — so the SAME
@@ -2550,7 +2575,7 @@ function askForMark(
 
     const refresh = (): void => {
       buttons.forEach((btn, i) => {
-        btn.classList.toggle('is-picked', MARK_CHOICES[i] === picked);
+        btn.classList.toggle('is-picked', offered[i] === picked);
       });
       const needs = picked?.needsReason ?? false;
       const wantsChange = picked?.needsChange ?? false;
@@ -2575,7 +2600,7 @@ function askForMark(
       }
     };
 
-    for (const choice of MARK_CHOICES) {
+    for (const choice of offered) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = `review-btn mark-choice mark-choice-${choice.verdict}`;
@@ -2660,6 +2685,17 @@ function askForMark(
     back.addEventListener('click', (e) => { if (e.target === back) close(null); });
     document.addEventListener('keydown', onKey, true);
 
+    //: Pre-picked, then refreshed — so the reason field is enabled and its
+    //: `required — why?` placeholder is showing before the reader has clicked
+    //: anything, which is the whole point of arriving with a mark chosen.
+    if (opts.preset) {
+      const start = offered.find((c) => c.verdict === opts.preset);
+      if (start) {
+        picked = start;
+        refresh();
+        field.focus();
+      }
+    }
     refresh();
     back.appendChild(card);
     document.body.appendChild(back);
@@ -4034,7 +4070,7 @@ const COMPLETED_STATUSES = new Set([
   'done', 'merged', 'fixed', 'resolved', 'fulfilled', 'met', 'complete',
   'implemented', 'verified', 'passing', 'published', 'released', 'closed',
   'obsolete', 'retired', 'cancelled', 'superseded',
-  'declined', 'reverted', 'deprecated', 'reconciled',
+  'declined', 'reverted', 'deprecated', 'reconciled', 'abandoned',
 ]);
 
 let hideCompleted = false;
@@ -7660,6 +7696,51 @@ interface ReleasePayload {
     rel?: string; mark?: string; features?: string[];
   }>;
   gate: GatePayload;
+  /** The platforms this repo has evidence for ([[FEAT-0145]]). Ledger
+   *  platforms unioned with the `platform:` values the notes carry, plus an
+   *  explicit *every platform* option whose id is the empty string. Offered as
+   *  a picker because the value becomes a ledger filename and the gate is
+   *  graded on it ([[ISS-0288]]) — a text box for it is how [[ISS-0142]]
+   *  happened one note type earlier. */
+  platforms?: Array<{
+    id: string; label: string; ledger: boolean; in_notes: boolean; why: string;
+  }>;
+  /** The platform this release says it ships. `''` means every platform,
+   *  which is the union rule [[DES-0012]] D4 gives a release that has not
+   *  said. */
+  platform?: string;
+  /** Why a true delete would be refused, or `''` when it would be allowed
+   *  ([[FEAT-0145]]). Server-owned and computed by the same function the
+   *  write path raises from, so the control is offered exactly when it would
+   *  work. */
+  delete_refusal?: string;
+  /** The owed checks, grouped by area, each with its own words
+   *  ([[FEAT-0145]] / [[ADR-0041]]). The live blocking rows only — a quiet or
+   *  resting check is not being asked about, and offering a settle button on
+   *  one would ask a person to excuse work nobody has started. */
+  settle?: Array<{
+    area: string; count: number; for_release: number;
+    rows: Array<{
+      key: string; id: string; number: string; name: string; area: string;
+      text: string; rel: string; mark: string; command: string;
+      /** What was already said about this check. `blocked` leaves the row
+       *  where it was, so the reason beside it is the evidence that the
+       *  button did anything at all. */
+      reason: string; verdict_date: string;
+      features: string[]; covers_release: boolean;
+    }>;
+  }>;
+  /** What this release ships that nothing verifies ([[FEAT-0145]] step 4).
+   *  Mechanical — features no acceptance check names, and requirements with
+   *  criteria nobody ticked. Drafting the missing checks is an agent's job. */
+  coverage?: {
+    scoped: boolean; features?: number;
+    uncovered: Array<{ id: string; title: string; rel: string }>;
+    unmet: Array<{
+      id: string; title: string; rel: string; feature: string;
+      open: number; total: number; sample: string[];
+    }>;
+  };
   /** What this release verified — the suite snapshot it shipped against and
    *  any TST notes. From `tests_verified:`, which twelve releases have been
    *  filling in by hand and nothing has ever read (FEAT-0107). */
@@ -7951,6 +8032,13 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     field.className = 'ask-field release-version';
     field.placeholder = 'version — e.g. 2.1.7';
     field.value = d.version || '';
+    //: **The platform is a choice, not a text field** ([[FEAT-0145]] step 2).
+    //: It becomes a ledger filename, the gate is graded on it ([[ISS-0288]])
+    //: and `create_release` creates its working ledger — so it is offered from
+    //: what the repo has evidence for rather than typed from memory. A repo
+    //: with no platforms at all gets no control: there is nothing to choose
+    //: between, and an empty picker is a question with no answers.
+    const picker = buildPlatformPicker(d, d.platform || '');
     const go = document.createElement('button');
     go.type = 'button';
     go.className = 'review-btn is-primary';
@@ -7973,7 +8061,8 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
       err.hidden = true;
       try {
         const res = await postJson('/api/notes/release-prepare',
-          { version, actor: 'user:edwin' }) as { ok?: boolean; error?: string };
+          { version, platform: picker.value, actor: 'user:edwin' }) as
+          { ok?: boolean; error?: string };
         if (res && res.ok) {
           showStatus(`Preparing ${version}`, 'info');
           void loadWsNav();
@@ -7992,8 +8081,23 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
     field.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') { e.preventDefault(); void submit(); }
     });
-    start.append(field, go);
+    start.append(field, picker, go);
     wrap.append(start, err);
+  }
+
+  // ---- version, platform, and the way out (FEAT-0145) -------------------
+  //
+  // Edwin prepared `your-trainer` 2.2.0 by hand, and the release note —
+  // version, platform, the five features, four held-back entries — was written
+  // in an editor because nothing here could write it. The gate then reported
+  // 635 checks owed on a repo with 67, because the page had never told it
+  // which platform the release ships (ISS-0288).
+  //
+  // Three controls, and each one answers a question the page could already ask
+  // but not settle: what number is this, what does it ship on, and what
+  // happens when it will not ship at all.
+  if (d.exists && d.status !== 'released' && d.status !== 'abandoned') {
+    wrap.appendChild(buildReleaseIdentity(d, releaseId));
   }
 
   // ---- what still has to be DONE, before what is merely IN it ----------
@@ -8002,6 +8106,24 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
   // an argument rather than a preference.
   const gateSection = buildGateSection(d, releaseId);
   if (gateSection) wrap.appendChild(gateSection);
+
+  // ---- and then the walk, on the same screen (FEAT-0145 step 3) --------
+  //
+  // Directly under the gate, because the gate is the number this list brings
+  // down. They used to be a page apart: the release said 67 unchecked and
+  // settling one of them meant a Tests view that had forgotten which release
+  // it was grading.
+  const settleSection = buildSettleSection(d, releaseId);
+  if (settleSection) wrap.appendChild(settleSection);
+
+  // ---- what nothing verifies (FEAT-0145 step 4) ------------------------
+  //
+  // After the gate rather than inside it: an uncovered feature does not block
+  // this release — no check names it, so no check can be unticked — and
+  // folding it into the gate's count would invent an obligation. It is the
+  // question the gate cannot ask about itself.
+  const coverageSection = buildCoverageSection(d);
+  if (coverageSection) wrap.appendChild(coverageSection);
 
   // ---- after the gate, deliberately ------------------------------------
   //
@@ -8618,6 +8740,671 @@ function buildReleasePage(d: ReleasePayload, releaseId: string): HTMLElement {
 
   return wrap;
 }
+
+/** Settle one owed check, or a selection of them, from the release page
+ *  ([[FEAT-0145]] step 3, authorised by [[ADR-0041]]).
+ *
+ *  **Three marks and no more.** `na` says the check cannot apply here,
+ *  `excused` says it is not being walked this cycle, `blocked` says it could
+ *  not be run — decisions about scope, which is the question a release is the
+ *  right place to answer. `pass`, `partial` and `fail` are not on offer here
+ *  and the server refuses them by name: each claims somebody walked a
+ *  procedure, and [[ADR-0035]]'s rule that a release page must not offer that
+ *  control is unchanged.
+ *
+ *  **One reason, typed once, for the whole selection.** A per-check reason on
+ *  a bulk action is a field that gets filled in once and pasted eleven times,
+ *  which is a worse record than one sentence that is true of all of them.
+ */
+async function settleReleaseChecks(
+  d: ReleasePayload, releaseId: string,
+  rows: Array<{ key: string; id: string; number: string; name: string;
+                text: string; rel: string; mark: string }>,
+  preset?: string,
+): Promise<void> {
+  if (!rows.length) return;
+  const one = rows.length === 1 ? rows[0] : null;
+  const chosen = await askForMark({
+    number: one ? (one.id || one.number) : `${rows.length} checks`,
+    name: one ? one.name : 'settled together',
+    current: one?.mark || ' ',
+    text: one?.text || rows.map((r) => `${r.number} ${r.name}`).join('\n'),
+    //: The rendered procedure, for a single check. A batch has no single
+    //: procedure to show, and rendering one of eleven would be worse than
+    //: showing none.
+    rel: one?.rel || '',
+    history: one ? (checksHistory[one.id || ''] || []) : [],
+    only: ['na', 'excused', 'blocked'],
+    preset,
+    detail: one
+      ? 'A release settles a check; it does not pass one. Not applicable is '
+        + 'permanent, Excused clears this release only, Blocked still blocks. '
+        + 'Walking it — pass, partial, fail — happens on the check itself.'
+      : `One reason, written onto all ${rows.length}. Not applicable is `
+        + 'permanent, Excused clears this release only, Blocked still blocks.',
+  });
+  if (chosen === null) return;
+  try {
+    const res = await postJson('/api/notes/release-settle', {
+      release: d.id,
+      checks: rows.map((r) => r.id || r.number).filter(Boolean),
+      mark: chosen.verdict, reason: chosen.reason,
+      by: 'user:edwin', platform: d.platform || '',
+    }) as { count?: number; refused?: Array<{ id: string; error: string }> };
+    const refused = res.refused ?? [];
+    //: **A part-written batch says so.** The ledger is append-only, so the
+    //: events before a refusal stand — reporting the whole thing as a failure
+    //: would be the one dishonest option.
+    showStatus(refused.length
+      ? `Settled ${res.count ?? 0} as ${chosen.verdict}; ${refused.length} `
+        + `refused — ${refused[0].id}: ${refused[0].error}`
+      : `Settled ${res.count ?? 0} as ${chosen.verdict}`,
+      refused.length ? 'error' : 'info');
+    scheduleHide(refused.length ? 10000 : 5000);
+  } catch (e: unknown) {
+    showStatus(`Could not settle: ${
+      e instanceof Error ? e.message : String(e)}`, 'error');
+    scheduleHide(8000);
+    return;
+  }
+  const held = docView.scrollTop;
+  await renderReleasePage(releaseId);
+  docView.scrollTop = held;
+  requestAnimationFrame(() => { docView.scrollTop = held; });
+}
+
+/** The walk, on one screen ([[FEAT-0145]] step 3).
+ *
+ *  **What was genuinely missing.** The pieces all existed — the owed list, the
+ *  three marks, the ledger, the reason the write path already demands — and
+ *  the walk still meant leaving the release for a Tests view that has
+ *  forgotten which release it is grading. This is the same rows, grouped by
+ *  area, on the page that says why they matter.
+ *
+ *  **Grouped, because the wall was the problem.** Measured on `your-trainer`
+ *  2026-09-08, REL-0017 open on Android: **52 rows across 15 areas** on the
+ *  page somebody opens to ask *can I ship*, and the shape is not flat —
+ *  `Riding — simulation` holds 16 and `Riding — routes` 14, so two areas are
+ *  more than half of it. Each area is a `details` a reader opens; nothing is
+ *  hidden, and the counts add up to the heading.
+ */
+function buildSettleSection(
+  d: ReleasePayload, releaseId: string,
+): HTMLElement | null {
+  const groups = d.settle || [];
+  //: **Only where there is nothing to say at all.** A shipped release has no
+  //: settle surface (ADR-0035) and a repo with no suite has no gate; both are
+  //: reported by the section above. What must not vanish is *this release owes
+  //: nothing*, which is the good news and is otherwise indistinguishable from
+  //: a section that failed to load — the silence TASK-0318 swept out of every
+  //: other pane in this app.
+  if (!groups.length) {
+    if (!d.gate?.exists || d.status === 'released') return null;
+    const none = document.createElement('section');
+    none.className = 'release-section release-settle';
+    const h2 = document.createElement('h3');
+    h2.textContent = 'Settle what this release owes · nothing';
+    const p2 = document.createElement('p');
+    p2.className = 'meta';
+    p2.textContent = 'Every check that would hold this release has reached a '
+      + 'mark. Nothing here is waiting on a decision.';
+    none.append(h2, p2);
+    return none;
+  }
+  const total = groups.reduce((n, g) => n + g.count, 0);
+  const mine = groups.reduce((n, g) => n + g.for_release, 0);
+
+  const s = document.createElement('section');
+  s.className = 'release-section release-settle';
+  const h = document.createElement('h3');
+  h.textContent = `Settle what this release owes · ${total} across `
+    + `${groups.length} area(s)`;
+  s.appendChild(h);
+
+  const rule = document.createElement('p');
+  rule.className = 'meta';
+  //: Says what this surface may NOT do, in the same breath as what it may.
+  //: A reader who finds three buttons where seven live elsewhere is entitled
+  //: to know that the absence is a decision rather than a gap.
+  rule.textContent = 'A release settles a check; it does not pass one. '
+    + 'Not applicable, Excused and Blocked are decisions about scope and each '
+    + 'needs a reason. Walking a check — pass, partial, fail — is recorded on '
+    + 'the check itself, where its steps are (ADR-0035, ADR-0041).';
+  s.appendChild(rule);
+
+  if (mine) {
+    const scope = document.createElement('p');
+    scope.className = 'meta';
+    scope.textContent = `${mine} of these name a feature this release `
+      + 'carries; the rest block it without being about it. Every one still '
+      + 'has to reach a mark before the gate clears.';
+    s.appendChild(scope);
+  }
+
+  // ---- the bulk bar ----------------------------------------------------
+  //
+  // Selection is the whole reason this is not eleven visits to one dialog.
+  // The bar is disabled until something is ticked and says how many, so the
+  // button never writes to a set the reader cannot see.
+  const selected = new Map<string, {
+    key: string; id: string; number: string; name: string; text: string;
+    rel: string; mark: string;
+  }>();
+  const bar = document.createElement('div');
+  bar.className = 'release-settle-bar';
+  const count = document.createElement('span');
+  count.className = 'meta';
+  const bulk = document.createElement('button');
+  bulk.type = 'button';
+  bulk.className = 'review-btn is-primary';
+  bulk.textContent = 'Settle selected…';
+  bulk.disabled = true;
+  const refreshBar = (): void => {
+    count.textContent = selected.size
+      ? `${selected.size} selected` : 'nothing selected';
+    bulk.disabled = selected.size === 0;
+  };
+  bulk.addEventListener('click', () => {
+    void settleReleaseChecks(d, releaseId, [...selected.values()]);
+  });
+  bar.append(count, bulk);
+  refreshBar();
+  s.appendChild(bar);
+
+  for (const group of groups) {
+    const det = document.createElement('details');
+    det.className = 'release-settle-area';
+    //: The two biggest areas are more than half the gate, so they open. The
+    //: rest fold: a reader walking `Sync` does not need `Onboarding` on
+    //: screen, and seventeen open lists is the wall again.
+    det.open = group.count >= GATE_BREAKDOWN_MIN;
+    const sum = document.createElement('summary');
+    sum.textContent = `${group.area} · ${group.count}`
+      + (group.for_release ? ` · ${group.for_release} for this release` : '');
+    det.appendChild(sum);
+
+    for (const row of group.rows) {
+      const li = document.createElement('div');
+      li.className = 'checks-row release-settle-row';
+      if (row.covers_release) li.classList.add('is-for-release');
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.className = 'release-settle-pick';
+      box.title = `Select ${row.number || row.id}`;
+      box.addEventListener('change', () => {
+        if (box.checked) selected.set(row.key, row);
+        else selected.delete(row.key);
+        refreshBar();
+      });
+      li.appendChild(box);
+
+      const num = document.createElement('span');
+      num.className = 'checks-row-number mono is-link';
+      num.textContent = row.number || row.id;
+      num.title = `Open ${row.number || row.id}`;
+      if (row.rel) {
+        num.addEventListener('click', (e) => {
+          e.stopPropagation();
+          void navigateTo(`/docs/${row.rel}`);
+        });
+      }
+      li.appendChild(num);
+
+      const body = document.createElement('div');
+      body.className = 'checks-row-body';
+      const name = document.createElement('div');
+      name.className = 'checks-row-name';
+      name.textContent = row.name;
+      body.appendChild(name);
+      //: **The procedure, beside the buttons** — which is the half of
+      //: [[ADR-0035]]'s objection this surface has to answer. Its second
+      //: argument was that the mark was offered *at a distance from the
+      //: procedure where a person cannot be walking it*; a settle is not a
+      //: walk, but a person deciding a check does not apply still has to read
+      //: what it asks. Clamped here, whole in the dialog.
+      if (row.text) {
+        const prose = document.createElement('div');
+        prose.className = 'checks-row-text';
+        prose.textContent = row.text;
+        body.appendChild(prose);
+      }
+      if (row.features.length) {
+        const meta = document.createElement('div');
+        meta.className = 'verification-meta';
+        meta.textContent = row.features.join(', ');
+        body.appendChild(meta);
+      }
+      //: **What was already said about it.** `blocked` is a control whose
+      //: effect is *still blocked, and now recorded* — so a row that looked
+      //: identical after settling would read as a button that did nothing.
+      //: The reason is the evidence that it did.
+      if (row.reason) {
+        const why = document.createElement('div');
+        why.className = 'check-comment-body';
+        why.textContent = row.verdict_date
+          ? `${row.reason} — ${row.verdict_date}` : row.reason;
+        body.appendChild(why);
+      }
+      li.appendChild(body);
+
+      //: **One button per settle mark**, rather than one `Settle…` that opens
+      //: a menu. The three do different things and the difference is the part
+      //: a reader must not have to remember: `na` is permanent, `excused`
+      //: clears this release only, `blocked` still blocks. Each opens the
+      //: shared dialog already holding that mark, where the check's whole
+      //: procedure is rendered and the reason each of them requires is typed
+      //: ([[ADR-0041]] decision 4).
+      const acts = document.createElement('span');
+      acts.className = 'release-settle-acts';
+      for (const [mark, label, hint] of [
+        ['na', 'N/A', 'cannot apply on this platform, ever'],
+        ['excused', 'Excuse', 'not this cycle, by decision — clears THIS release only'],
+        ['blocked', 'Blocked', 'could not be run — still blocks, deliberately'],
+      ] as const) {
+        const act = document.createElement('button');
+        act.type = 'button';
+        act.className = `review-btn is-small mark-choice-${mark}`;
+        act.textContent = label;
+        act.title = `${row.number || row.id} — ${hint}`;
+        act.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          void settleReleaseChecks(d, releaseId, [row], mark);
+        });
+        acts.appendChild(act);
+      }
+      li.appendChild(acts);
+      det.appendChild(li);
+    }
+    s.appendChild(det);
+  }
+  return s;
+}
+
+/** What this release ships that nothing verifies ([[FEAT-0145]] step 4).
+ *
+ *  Edwin, after preparing 2.2.0 by hand: three of PHASE-021's claims had no
+ *  check at all, and finding that took a deliberate read of thirty task notes
+ *  against nine checks. The sweep nobody does is exactly the one a machine
+ *  should.
+ *
+ *  **The tool computes the gap; an agent proposes the checks; a person accepts
+ *  them.** The split is the whole design. The two populations here are
+ *  mechanical — features no `covers:` names, requirements with unticked
+ *  criteria — so the number is reproducible and the same on every machine. The
+ *  drafting is dispatched, arrives as `TST-*` notes in the working tree, and is
+ *  reviewed as a diff. Nothing is written into a release's gate without a yes.
+ */
+function buildCoverageSection(d: ReleasePayload): HTMLElement | null {
+  const cov = d.coverage;
+  if (!cov?.scoped) return null;
+  const uncovered = cov.uncovered || [];
+  const unmet = cov.unmet || [];
+  if (!uncovered.length && !unmet.length) {
+    //: **Zero is a fact, and it is said.** An empty section and a missing one
+    //: look identical, which is the silence TASK-0318 swept out of every other
+    //: pane — and here the empty answer is the good news.
+    const ok = document.createElement('section');
+    ok.className = 'release-section release-coverage';
+    const h = document.createElement('h3');
+    h.textContent = 'Coverage · nothing uncovered';
+    const p2 = document.createElement('p');
+    p2.className = 'meta';
+    p2.textContent = `Every one of the ${cov.features ?? 0} feature(s) in this `
+      + 'release is named by an acceptance check or carries a written '
+      + 'exception, and no requirement constraining them has an unticked '
+      + 'criterion.';
+    ok.append(h, p2);
+    return ok;
+  }
+
+  const s = document.createElement('section');
+  s.className = 'release-section release-coverage';
+  const h = document.createElement('h3');
+  h.textContent = `Coverage · ${uncovered.length} feature(s) no check names`
+    + (unmet.length ? ` · ${unmet.length} requirement(s) with open criteria` : '');
+  s.appendChild(h);
+  const note = document.createElement('p');
+  note.className = 'meta';
+  note.textContent = 'Computed from the record: a feature nothing names in '
+    + '`covers:`, and a requirement with a criterion nobody ticked. A feature '
+    + 'carrying a written acceptance exception is not listed — somebody '
+    + 'already answered for it.';
+  s.appendChild(note);
+
+  if (uncovered.length) {
+    const ul = document.createElement('ul');
+    ul.className = 'scoped-rowlist';
+    for (const row of uncovered.slice(0, 40)) {
+      const li = document.createElement('li');
+      const id = document.createElement('span');
+      id.className = 'scoped-row-id mono ov-typed';
+      id.dataset.type = 'feature';
+      id.textContent = shortNoteId(row.id);
+      const title = document.createElement('span');
+      title.className = 'scoped-row-title';
+      title.textContent = row.title;
+      li.append(id, title);
+      if (row.rel) {
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', () => void navigateTo(`/docs/${row.rel}`));
+      }
+      ul.appendChild(li);
+    }
+    if (uncovered.length > 40) {
+      const more = document.createElement('li');
+      more.className = 'meta';
+      more.textContent = `…${uncovered.length - 40} more`;
+      ul.appendChild(more);
+    }
+    s.appendChild(ul);
+  }
+
+  if (unmet.length) {
+    const ul = document.createElement('ul');
+    ul.className = 'scoped-rowlist';
+    for (const row of unmet.slice(0, 40)) {
+      const li = document.createElement('li');
+      const id = document.createElement('span');
+      id.className = 'scoped-row-id mono ov-typed';
+      id.dataset.type = 'requirement';
+      id.textContent = shortNoteId(row.id);
+      const title = document.createElement('span');
+      title.className = 'scoped-row-title';
+      //: The first unticked criterion, verbatim. A count says how much is
+      //: owed and nothing about whether this release owes it; the words are
+      //: what a reader judges that on.
+      title.textContent = row.sample[0]
+        ? `${row.title} — ${row.sample[0]}` : row.title;
+      const meta = document.createElement('span');
+      meta.className = 'verification-meta is-warn';
+      meta.textContent = `${row.open} of ${row.total} open · ${row.feature}`;
+      li.append(id, title, meta);
+      if (row.rel) {
+        li.style.cursor = 'pointer';
+        li.addEventListener('click', () => void navigateTo(`/docs/${row.rel}`));
+      }
+      ul.appendChild(li);
+    }
+    s.appendChild(ul);
+  }
+
+  //: **The agent's half, and it is a proposal.** A check nobody read is a
+  //: check nobody will walk, and a generated suite that grows on its own is
+  //: worse than a short one somebody meant — so this dispatches a prompt and
+  //: the drafts arrive in the working tree as a diff to accept or reject.
+  if (uncovered.length && d.id && d.rel) {
+    const ask = document.createElement('button');
+    ask.type = 'button';
+    ask.className = 'review-btn';
+    ask.textContent = `Commission checks for ${uncovered.length} feature(s)…`;
+    ask.title = 'Drafts TST-* notes in the working tree, for you to accept or '
+      + 'reject as a diff. Nothing is written into the gate.';
+    ask.addEventListener('click', () => {
+      void dispatchToAgent(d.id, d.rel, undefined, 'commission-checks');
+    });
+    s.appendChild(ask);
+    const how = document.createElement('p');
+    how.className = 'meta';
+    how.textContent = 'The gap above is computed; the drafting is dispatched. '
+      + 'Proposals arrive as notes in the working tree and are reviewed as a '
+      + 'diff — nothing enters this release’s gate without your yes.';
+    s.appendChild(how);
+  }
+  return s;
+}
+
+
+/** The platforms this repo has evidence for, as a `<select>`.
+ *
+ *  **A picker, because the value becomes a ledger filename.** `platform:` was
+ *  free text and `_ships_on` already knows five spellings of *every platform*
+ *  because the corpus holds four of them. Offering what the repo can be shown
+ *  to use — its ledgers, and the `platform:` values its notes carry — removes
+ *  the class of mistake a text box invites, which is the same argument
+ *  [[TASK-0511]] made for the feature candidate list.
+ *
+ *  *Every platform* is the first option and its value is the empty string.
+ *  Offered explicitly rather than left as the state you get by not choosing:
+ *  *not chosen* and *deliberately all* look identical in the note, and only
+ *  one of them is a decision.
+ */
+function buildPlatformPicker(
+  d: ReleasePayload, current: string,
+): HTMLSelectElement {
+  const sel = document.createElement('select');
+  sel.className = 'ask-field release-platform';
+  sel.title = 'Which platform this release ships — the gate is graded on it';
+  const rows = d.platforms || [];
+  //: A repo with no ledgers and no platform-tagged notes still gets the one
+  //: honest option, so the control never renders empty.
+  const options = rows.length ? rows : [{
+    id: '', label: 'every platform', ledger: false, in_notes: false,
+    why: 'this repo tags nothing with a platform',
+  }];
+  for (const row of options) {
+    const opt = document.createElement('option');
+    opt.value = row.id;
+    //: The evidence, in the option. `android` and `android (keeps a ledger)`
+    //: are the same choice with different amounts of confidence behind it, and
+    //: the reader picking one is entitled to know which.
+    opt.textContent = row.id ? `${row.label} — ${row.why}` : row.label;
+    if (row.id === current) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  return sel;
+}
+
+/** Version, platform, and abandoning — the three writes a prepared release
+ *  needed and did not have ([[FEAT-0145]] step 1).
+ *
+ *  `release-contents` has added and removed features since [[TASK-0558]].
+ *  Nothing could change the version, nothing could change the platform the
+ *  gate is graded on, and nothing could say *this will not ship* — so a
+ *  release that was prepared and dropped stayed `draft` forever, which is
+ *  exactly the state `your-trainer`'s REL-0013 has been in since 2026-08-16.
+ */
+function buildReleaseIdentity(
+  d: ReleasePayload, releaseId: string,
+): HTMLElement {
+  const s = document.createElement('section');
+  s.className = 'release-section release-identity';
+  const h = document.createElement('h3');
+  h.textContent = 'Version and platform';
+  s.appendChild(h);
+
+  const err = document.createElement('p');
+  err.className = 'ask-error';
+  err.hidden = true;
+
+  const say = (message: string): void => {
+    err.textContent = message;
+    err.hidden = !message;
+  };
+
+  const row = document.createElement('div');
+  row.className = 'release-start';
+
+  const version = document.createElement('input');
+  version.type = 'text';
+  version.className = 'ask-field release-version';
+  version.placeholder = 'version — e.g. 2.2.0';
+  version.value = d.version || '';
+
+  const picker = buildPlatformPicker(d, d.platform || '');
+
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'review-btn is-primary';
+  save.textContent = 'Save';
+  save.title = 'Write the version and platform onto the release note';
+
+  const commit = async (): Promise<void> => {
+    save.disabled = true;
+    say('');
+    try {
+      const res = await postJson('/api/notes/release-update', {
+        release: d.id, version: version.value.trim(),
+        platform: picker.value, actor: 'user:edwin',
+      }) as { changed?: string[]; stale_stem?: boolean; stem?: string };
+      const changed = res.changed ?? [];
+      showStatus(changed.length
+        ? `${d.id} — ${changed.join(', ')}`
+        : `${d.id} unchanged`, 'info');
+      //: **The filename is not rewritten, and saying so is the point.** Every
+      //: `[[REL-0013-v2.1.7]]` in the corpus resolves through the stem, so
+      //: renaming the file to match a new version would break links to buy a
+      //: tidier path. The id in the name is the identity; the version in the
+      //: frontmatter is the claim. A reader who later greps for the number
+      //: needs to know the two have parted.
+      if (res.stale_stem) {
+        say(`Saved. The file is still called ${res.stem}.md — the name is the `
+          + 'id and every wikilink resolves through it, so it is left alone. '
+          + 'Rename it yourself if you want the two to agree.');
+      }
+      void loadWsNav();
+      void renderReleasePage(releaseId);
+      return;
+    } catch (e: unknown) {
+      say(e instanceof Error ? e.message : String(e));
+    }
+    save.disabled = false;
+  };
+  save.addEventListener('click', () => void commit());
+  version.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); void commit(); }
+  });
+  row.append(version, picker, save);
+  s.append(row, err);
+
+  //: **Abandoning is not deleting** ([[FEAT-0145]] step 1). `your-trainer`'s
+  //: REL-0013 is the precedent: v2.1.7 was prepared, never shipped, and its
+  //: note is the only record of why that version number was skipped. So the
+  //: way out keeps the note, takes a reason, and leaves the number taken.
+  //:
+  //: **Inline, not a dialog.** [[FEAT-0106]]'s first criterion and
+  //: [[ISS-0139]]: a release surface opens pages, not modals. The reason field
+  //: and the refusal sit on the page beside the button that needs them, which
+  //: is the same shape the version control above already has and the reason
+  //: it has it — a refusal in a toast is gone before it has been read.
+  if (d.status === 'draft') {
+    const out = document.createElement('div');
+    out.className = 'release-abandon';
+
+    const drop = document.createElement('button');
+    drop.type = 'button';
+    drop.className = 'review-btn';
+    drop.textContent = `Abandon ${d.version ? `v${d.version}` : d.id}…`;
+    drop.title = 'Keeps the note and its reason; the version stays taken';
+
+    const form = document.createElement('div');
+    form.className = 'release-abandon-form';
+    form.hidden = true;
+
+    const why = document.createElement('textarea');
+    why.className = 'ask-field';
+    why.rows = 2;
+    why.placeholder = 'required — why is this not shipping?';
+
+    const successor = document.createElement('input');
+    successor.type = 'text';
+    successor.className = 'ask-field';
+    //: **Optional, and demanding it would produce a fake one.** A release
+    //: abandoned because it was replaced says what replaced it; one abandoned
+    //: because the work was dropped has nothing to point at.
+    successor.placeholder = 'optional — superseded by, e.g. REL-0016';
+
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'review-btn';
+    go.textContent = 'Abandon';
+    go.disabled = true;
+    why.addEventListener('input', () => { go.disabled = !why.value.trim(); });
+
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'review-btn is-small';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => {
+      form.hidden = true; drop.hidden = false; say('');
+    });
+
+    drop.addEventListener('click', () => {
+      drop.hidden = true; form.hidden = false; why.focus();
+    });
+    go.addEventListener('click', () => {
+      void (async (): Promise<void> => {
+        go.disabled = true;
+        say('');
+        try {
+          await postJson('/api/notes/release-abandon', {
+            release: d.id, reason: why.value.trim(),
+            superseded_by: successor.value.trim(), actor: 'user:edwin',
+          });
+          showStatus(`${d.id} abandoned — the note and its reason stay`, 'info');
+          scheduleHide(6000);
+          void loadWsNav();
+          void renderReleasePage(releaseId);
+        } catch (e: unknown) {
+          say(e instanceof Error ? e.message : String(e));
+          go.disabled = false;
+        }
+      })();
+    });
+    form.append(why, successor, go, cancel);
+    out.append(drop, form);
+
+    //: **A true delete, offered only when it would be allowed.** The server
+    //: computes the refusal — created today, nothing links to it, no ledger
+    //: sealed against it — and the button appears only when there is none, so
+    //: nobody is offered a control that exists to be refused. The narrow case
+    //: it covers is real: a release created by a misclick two minutes ago.
+    if (!d.delete_refusal) {
+      const wipe = document.createElement('button');
+      wipe.type = 'button';
+      wipe.className = 'review-btn is-small';
+      wipe.textContent = 'Delete';
+      wipe.title = 'Created today, nothing links to it, no ledger names it';
+      let armed = false;
+      wipe.addEventListener('click', () => {
+        void (async (): Promise<void> => {
+          //: Two clicks, and the second one says what it does. A confirm
+          //: dialog would be the modal this surface does not raise, and a
+          //: single click would delete a file on a mis-aim.
+          if (!armed) {
+            armed = true;
+            wipe.textContent = `Really delete ${d.id}?`;
+            wipe.classList.add('is-primary');
+            say(`This removes the file. It is offered because ${d.id} was `
+              + 'created today, nothing links to it and no ledger is sealed '
+              + 'against it — so nothing is lost but the mistake.');
+            return;
+          }
+          try {
+            await postJson('/api/notes/release-delete',
+              { release: d.id, actor: 'user:edwin' });
+            showStatus(`${d.id} deleted`, 'info');
+            void loadWsNav();
+            void navigateTo('~release/next');
+          } catch (e: unknown) {
+            say(e instanceof Error ? e.message : String(e));
+          }
+        })();
+      });
+      out.appendChild(wipe);
+    } else {
+      //: Named rather than hidden. A missing control and a refused one look
+      //: identical, and only one of them is a fact about this release.
+      const refusal = document.createElement('span');
+      refusal.className = 'verification-meta';
+      refusal.textContent = d.delete_refusal;
+      out.appendChild(refusal);
+    }
+    s.appendChild(out);
+  }
+  return s;
+}
+
 
 /** The gate — what still has to be *done* before this release ships.
  *
@@ -16417,6 +17204,12 @@ async function loadAgentActions(): Promise<void> {
 const NOTE_TYPE_BY_PREFIX: Record<string, string> = {
   TASK: 'task', ISS: 'issue', FEAT: 'feature',
   REQ: 'requirement', PHASE: 'phase', RISK: 'risk',
+  //: **`REL` was missing** ([[FEAT-0145]]). The registry gained release verbs
+  //: and `verbsForId` could not resolve them: an id with no entry here maps to
+  //: no type, so `Commission checks` would have fallen back to the generic
+  //: `Work on REL-0013` prompt — the dispatch would have fired and asked for
+  //: the wrong thing.
+  REL: 'release',
 };
 
 function noteTypeOfId(id: string): string | null {

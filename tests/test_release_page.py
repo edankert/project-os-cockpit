@@ -198,10 +198,26 @@ def test_the_gate_is_built_before_what_is_in_the_release() -> None:
         "renders below them"
     )
     # And it is genuinely the first thing after the header/version controls:
-    # nothing else may be appended between them.
-    between = body[body.index("wrap.append(start, err);"):gate]
-    assert "wrap.append" not in between.replace("wrap.append(start, err);", ""), (
-        f"something is appended between the header and the gate: {between!r}"
+    # nothing but those controls may be appended before it.
+    #
+    #: **The allowed set is named, not the forbidden one** ([[FEAT-0145]]).
+    #: This used to search for the string `wrap.append` after one known line,
+    #: which made the claim *"nothing at all"* — right until the page grew a
+    #: second header control. Edwin's argument is ERRANDS before INVENTORY:
+    #: naming a version and a platform is neither, it is the release saying
+    #: what it is, so `buildReleaseIdentity` belongs above the gate and the
+    #: feature list still does not. Every other append that appears here is a
+    #: deliberate edit to this list.
+    allowed = {
+        "wrap.appendChild(head);",
+        "wrap.append(start, err);",
+        "wrap.appendChild(buildReleaseIdentity(d, releaseId));",
+    }
+    before = {m.group(0) for m in re.finditer(
+        r"wrap\.append\w*\([^;]*\);", body[:gate])}
+    assert before <= allowed, (
+        "something that is not a header control is appended above the gate: "
+        f"{sorted(before - allowed)}"
     )
 
 
