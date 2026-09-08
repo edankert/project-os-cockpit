@@ -60,8 +60,8 @@ counters:
   CHG:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 144
-  ISS: 287
+  FEAT: 145
+  ISS: 288
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -83,6 +83,13 @@ focus:
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0145:
+      file: "docs/features/release-workflow/FEAT-0145-Preparing-A-Release-Is-One-Workflow.md"
+      title: "Preparing a release is one workflow: name the version, say which platform, settle the checks it owes — instead of four endpoints, a hand-written note and a rule nobody can see"
+      status: backlog
+      owner: user:edwin
+      phase: ""
+      note: "PROPOSAL, Edwin 2026-09-08 after preparing your-trainer 2.2.0 by hand: create/update/delete a release, set version, pick android or ios, and settle the acceptance checks it requires. What exists: release-prepare creates, release-contents adds and removes features. What does not: setting version or PLATFORM after creation (the field ISS-0288 proved the gate depends on), and abandoning a draft - which should NOT be a delete, because your-trainer REL-0013 is the precedent: prepared, never shipped, still draft with superseded_by, and that is the record of why a version number was skipped. The check-selection step needs NO new storage: na / excused / blocked already mean cannot-apply / not-this-cycle / rig-was-down, and excused already scopes to one release, so 'uncheck for this release' is excused with a reason. What is missing is the walk being ONE screen on the release page. The LLM half is the coverage sweep - features carrying no check, requirements with unticked criteria - computed mechanically, with an agent drafting the missing TST-* notes as a diff a person accepts or rejects."
     FEAT-0143:
       file: "docs/features/fleet-validator-sync/FEAT-0143-The-Fleet-Runs-One-Validator.md"
       title: "The fleet runs one validator — the migration is two mechanical rules, not a per-repo reconciliation, and a drift check keeps it that way"
@@ -1675,6 +1682,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0288:
+      file: "docs/issues/ISS-0288-The-Release-Gate-Ignores-The-Release-Platform.md"
+      title: "The release page filters its contents by the release's platform and grades its gate against every platform, so a two-ledger repo is told every check it has ever passed is owed again"
+      status: fixed
+      owner: user:edwin
+      phase: ""
+      severity: high
+      component: publication
+      note: "FOUND 2026-09-08 by Edwin preparing your-trainer v2.2.0: 'the release-gate says that there are 635 checks todo'. release_payload asks the platform question twice and answers it two ways - shipping_in reads _platform_of_release (ISS-0261, fixed) and the gate call twelve lines later passed no platform at all, so it fell to the union rule: a check clears only where EVERY platform with a ledger cleared it. The union is right for a release that has not said what it ships (DES-0012 D4) and is kept; the defect was applying it to a release that HAS said, in frontmatter the same function already read. Measured: 635 unsettled against the union, 67 against android, on a repo whose android ledger resolves 569 checks and whose ios ledger holds one entry. Invisible in eleven of twelve fleet repos, because the union over one ledger IS that ledger. Fixed with one argument; tests/test_release_gate_platform.py fails without it and pins both directions plus the no-platform union."
     ISS-0287:
       file: "docs/issues/ISS-0287-Broken-Links-In-The-Record.md"
       title: "25 wikilinks in the record resolve to nothing and three task notes are zero bytes — the weekly link-check only looks at external URLs and the validator only checks frontmatter relationships, so nothing has ever read a link in a note's body"
@@ -4090,7 +4106,7 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 143
+    features_total: 144
     features_done: 131
     tasks_total: 590
     tasks_done: 554

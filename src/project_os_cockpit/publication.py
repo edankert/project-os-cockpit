@@ -1163,6 +1163,20 @@ def release_payload(
         )
         contents["held_back"] = _held_back_rows(
             index, held_back, derived_rows, _rel_rec)
+        #: **The gate is graded on the release's own platform** ([[ISS-0288]]).
+        #: `shipping_in` above has read `_platform_of_release` since
+        #: [[ISS-0261]] and this call did not, so one function asked the
+        #: platform question twice and answered it two ways: the contents were
+        #: this platform's and the verdicts were every platform's.
+        #:
+        #: The union is not wrong — [[DES-0012]] D4: *a release that has not
+        #: said which platform it ships takes them all* — and a release with no
+        #: `platform:` still gets it, unchanged. What was wrong is applying it
+        #: to a release that HAS said, in the frontmatter this function already
+        #: read. Measured on `../your-trainer` with one Android release open:
+        #: **635 checks reading unsettled against the union, 67 against its own
+        #: platform**, on a repo whose Android ledger resolves 569 of them. A
+        #: gate at 635 cannot be walked down and cannot go green.
         gate = acceptance.gate_payload(
             index.docs_root,
             index=index,
@@ -1170,6 +1184,7 @@ def release_payload(
             baseline_ref=baseline_ref(project_root, index),
             tags=ordered,
             deselected=held_back,
+            platform=_platform_of_release(index, _rel_id),
         )
     verified: list[dict[str, Any]] = []
     known_issues = ""
