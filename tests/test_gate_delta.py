@@ -382,6 +382,15 @@ def test_the_delta_against_your_trainers_real_tags() -> None:
     tag of the newest shipped release, and nothing is negative. The absolute
     figures of the day are recorded in [[FEAT-0108]] and the phase note, which
     are the right place for a measurement — they are dated.
+
+    **The lesson was paid for a fourth time.** The baseline assertion was
+    written `== "v2.1.6"`, which is a dated measurement in the one place this
+    docstring says not to put one, and it went red the day `your-trainer`
+    shipped v2.1.8 — a passing test turning red because the corpus it watches
+    moved forward correctly. The invariant is *the newest released version's
+    tag*, so the expectation is derived from the corpus's own release notes
+    rather than typed. The derivation is deliberately not `baseline_ref`: a
+    test that calls the function it is checking asserts nothing.
     """
     index = Index.build(TRAINER / "docs")
     payload = publication.release_payload(TRAINER, index, "next")
@@ -389,7 +398,20 @@ def test_the_delta_against_your_trainers_real_tags() -> None:
     delta = gate["delta"]
 
     assert delta["comparable"] is True
-    assert delta["baseline"] == "v2.1.6", "the newest released tag"
+
+    #: Read out of the frontmatter, the long way round, so the expectation
+    #: comes from the record rather than from the code under test.
+    shipped = sorted(
+        (r for r in publication._releases(index)
+         if r["status"] == "released" and r["version"]),
+        key=lambda r: publication._version_key(str(r["version"])),
+        reverse=True,
+    )
+    assert shipped, "the corpus stopped being the corpus this describes"
+    newest = str(shipped[0]["version"]).lstrip("vV")
+    assert delta["baseline"] in (f"v{newest}", newest), (
+        f"the baseline is the newest released tag, which is now v{newest}"
+    )
 
     groups = ("new", "chronic", "regressed")
     #: **`resting` is the third way out of the displayed set** ([[TASK-0526]]):

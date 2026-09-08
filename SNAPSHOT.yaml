@@ -61,7 +61,7 @@ counters:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 145
-  ISS: 290
+  ISS: 291
   PHASE: 41
   REQ: 60
   RISK: 7
@@ -1682,6 +1682,15 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0291:
+      file: "docs/issues/ISS-0291-The-Fourth-Dated-Measurement-In-A-Corpus-Test.md"
+      title: "A corpus test pinned the baseline tag as a literal, so it went red the day your-trainer shipped v2.1.8 — the fourth time a dated measurement has been written into an assertion about a live repo"
+      status: fixed
+      owner: user:edwin
+      phase: ""
+      severity: medium
+      component: tests
+      note: "test_the_delta_against_your_trainers_real_tags asserted baseline == v2.1.6. your-trainer shipped v2.1.8 on 2026-09-07 and the test went red - a passing test turning red because the corpus moved forward CORRECTLY. Its own docstring names the rule it broke ('asserted as invariants, not as absolute counts, and that is a lesson paid for three times in one session'); ISS-0283 fixed three of this class and this one survived because it is a tag rather than a count, so it did not look like the thing being swept up. The expectation is now derived from the corpus - the newest released note's version, read out of frontmatter - and deliberately NOT from baseline_ref, because a test that calls the function it checks asserts nothing. Adequacy: breaking baseline_ref to return the oldest tag fails it with the right message."
     ISS-0290:
       file: "docs/issues/ISS-0290-A-Walker-Cannot-Mark-A-Check-Because-Nothing-Names-The-Platform.md"
       title: "A person walking a checklist cannot record a pass, because a verdict needs a platform, the client has none to send on a two-ledger repo, and the refusal is written for whoever is calling the API"
