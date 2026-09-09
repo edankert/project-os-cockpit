@@ -30,6 +30,12 @@ tests: []
 
 One read endpoint carrying the vocabulary as data — the bands with their members, the completed set, the legacy mapping, the severity order, the known types — so a client can ask instead of copying. It is a read, so it fits behind the existing guards and needs no new write surface.
 
+## A second consequence, measured on 2026-09-09
+
+**Deck now asks for a severity in a free text box, because the four values are not available to ask for.** `/api/notes/transition` accepts a `severity` while an issue leaves `triage`, and refuses anything outside `SEVERITIES` — `critical`, `high`, `medium`, `low`. `/api/notes/actions` returns the verbs for that transition and says nothing about the severities, so the surface offering the verb cannot offer the values that go with it.
+
+Deck's choice was a text box and the sidecar's refusal quoted back, rather than a picker with the four values written into Deck. A picker would have been better for the person using it, and it would have been a fifth copy of a table this issue is about. That trade is the cost of the missing endpoint, stated as a thing somebody sees rather than as a principle.
+
 ## Why this is filed rather than worked around
 
 `docs/reference/cockpit-capability-register.md` describes what the cockpit can do, and Deck's `docs/reference/cockpit-adoption.md` tracks what it has adopted. A capability that exists only as a Python module cannot be adopted, only duplicated. This is the issue the Deck task was required to file on the day it started copying, following the same pattern as the whole-edge-list endpoint.
