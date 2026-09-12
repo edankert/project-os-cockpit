@@ -4394,6 +4394,21 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 /* ---- design bench (FEAT-0042 / TASK-0215) ------------------------------ */
 
 .design-page { overflow: auto; padding: 18px 22px; }
+/* The viewer (FEAT-0148) wears the same shell as the bench did: the page
+   stops scrolling so the framed file is the only scroller, which is ISS-0039's
+   fix and is not design-specific. Stated as its own rule rather than by adding
+   `design-page` to the viewer's class list — a class named for designs on a
+   surface that frames any file is how the next reader learns the wrong thing. */
+.doc-view.viewer-page {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 18px 26px 20px;
+  gap: 4px;
+}
+.viewer-view > .design-body { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; }
+.viewer-view > .design-body > .design-frame { flex: 1 1 auto; width: 100%; }
 /* App shell (ISS-0039). The page stops scrolling so the artifact frame can be
    the only scroller for the artifact; before this, a fixed-height frame sat
    inside a scrolling page and every long design produced a scrollbar inside a

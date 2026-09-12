@@ -893,7 +893,7 @@ items:
     TASK-0613:
       file: "docs/features/html-viewer/plan/tasks/TASK-0613-A-Generic-HTML-Viewer.md"
       title: "A viewer frames any HTML page a note references, with no design vocabulary in the route, the mode or the frame"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0148
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -4438,7 +4438,7 @@ metrics:
     features_total: 147
     features_done: 133
     tasks_total: 611
-    tasks_done: 570
+    tasks_done: 571
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182

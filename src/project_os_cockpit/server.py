@@ -1166,7 +1166,14 @@ def _make_handler(
                 return
 
             if path.startswith("/design-asset/"):
-                self._serve_design_asset(path[len("/design-asset/"):])
+                self._serve_framed_file(path[len("/design-asset/"):])
+                return
+
+            # The same bytes under a name that is not about designs
+            # (FEAT-0148). `/design-asset/` stays until the bench goes with
+            # it; both reach the same handler so neither can drift.
+            if path.startswith("/framed/"):
+                self._serve_framed_file(path[len("/framed/"):])
                 return
 
             if path == "/api/cockpit/dispatch-requests":
@@ -3372,8 +3379,12 @@ def _make_handler(
             self.end_headers()
             self.wfile.write(body)
 
-        def _serve_design_asset(self, rel: str) -> None:
-            """``GET /design-asset/<rel>`` — a file served verbatim for framing.
+        def _serve_framed_file(self, rel: str) -> None:
+            """``GET /framed/<rel>`` — a file served verbatim for framing.
+
+            Also answers ``/design-asset/<rel>``, the name it had when only a
+            design could be framed. Both spellings reach this one handler so
+            the two cannot drift while the older name is retired.
 
             Deliberately separate from ``/api/render``: that endpoint renders
             Markdown to the cockpit's own HTML, while this serves a file *as

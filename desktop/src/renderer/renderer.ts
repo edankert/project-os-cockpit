@@ -1312,6 +1312,12 @@ async function navigateTo(
   rel: string,
   opts: { replace?: boolean; fromHistory?: boolean; keepScroll?: number } = {},
 ): Promise<void> {
+  // Where the viewer's way back points (FEAT-0148). Recorded on the way IN to
+  // a `~view/` page, because by the time the viewer renders, `currentRel` is
+  // already the viewer itself.
+  if (rel.startsWith('~view/')) {
+    viewerCameFrom = currentRel && !currentRel.startsWith('~') ? currentRel : '';
+  }
   await navigateToInner(rel, opts);
   renderCenterTabs();
 }
@@ -1475,6 +1481,13 @@ async function navigateToInner(
   // were reading, while their badges counted things the view never gathered.
   if (VIEW_LANDING_RELS.has(normalised)) {
     const ok = await renderViewLanding(normalised.slice(1));
+    if (ok) commitVirtualPage(normalised, opts);
+    return;
+  }
+  // `~view/<rel>` — any file, framed (FEAT-0148). Checked before `~design`
+  // so neither can shadow the other while both exist.
+  if (normalised.startsWith('~view/')) {
+    const ok = await renderViewerPage(normalised.slice('~view/'.length));
     if (ok) commitVirtualPage(normalised, opts);
     return;
   }
@@ -6488,6 +6501,109 @@ async function renderViewLanding(view: string): Promise<boolean> {
   for (const el of buildLandingObligations(data)) page.appendChild(el);
 
   docView.appendChild(page);
+  return true;
+}
+
+// ---- The viewer: any HTML page in the record, framed (FEAT-0148) --------
+//
+// The design bench could frame one thing — an artifact a design note claimed
+// in `asset:` — and everything else about it (revisions, regions, variants)
+// served a review workflow nobody used: measured across thirteen repos on
+// 2026-09-12, 24 artifacts declared regions and twelve comments existed, all
+// on one note from one reviewer in one pass.
+//
+// This frames a FILE, for a note of any type, and knows nothing about designs.
+
+/** The note the reader came from, so the viewer can offer a way back. Set by
+ *  `navigateTo` when it leaves a note for a `~view/` page; a viewer opened
+ *  cold (a link, a restored tab) simply has no back button. */
+let viewerCameFrom = '';
+
+/** `~view/<rel>` frames a file in the workspace on screen. `~view/@<project>/<rel>`
+ *  frames one in another workspace the shell has open, through that
+ *  workspace's own sidecar — cross-repo is allowed (Edwin, 2026-09-12) and
+ *  each sidecar still bounds its own `docs/`. */
+interface ViewerTarget { base: string; path: string; project: string }
+
+function viewerTarget(rel: string): ViewerTarget | null {
+  if (!rel.startsWith('@')) {
+    return sidecarBaseUrl ? { base: sidecarBaseUrl, path: rel, project: '' } : null;
+  }
+  const slash = rel.indexOf('/');
+  if (slash < 0) return null;
+  const wanted = rel.slice(1, slash).toLowerCase();
+  const ws = workspaces.find((w) => (w.projectId ?? '').toLowerCase() === wanted
+    || w.id.toLowerCase() === wanted);
+  const base = ws ? sidecarUrls.get(ws.id) : undefined;
+  if (!ws || !base) return null;
+  return { base, path: rel.slice(slash + 1), project: ws.projectId ?? ws.id };
+}
+
+async function renderViewerPage(rel: string): Promise<boolean> {
+  const target = viewerTarget(rel);
+  docView.classList.remove('overview-pane', 'agents-page', 'review-page',
+    'is-design-shell', 'design-page');
+  docView.classList.add('viewer-page');
+  if (!target) {
+    // Said out loud, never a blank pane: a workspace that is not open is a
+    // real answer, and it must not look like a file that failed to load.
+    const miss = document.createElement('p');
+    miss.className = 'design-empty';
+    miss.textContent = rel.startsWith('@')
+      ? `No project “${rel.slice(1).split('/')[0]}” is open in this window.`
+      : 'No project on screen.';
+    docView.replaceChildren(miss);
+    return true;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'design-view is-shell viewer-view';
+
+  const head = document.createElement('header');
+  head.className = 'design-head';
+  const h = document.createElement('h1');
+  h.textContent = target.path.split('/').pop() || target.path;
+  head.append(h);
+
+  const meta = document.createElement('div');
+  meta.className = 'design-meta';
+  const where = document.createElement('span');
+  where.className = 'design-chip';
+  where.textContent = target.project ? `${target.project} · ${target.path}` : target.path;
+  meta.append(where);
+  // The way back to the note that sent you here. A viewer reached cold has
+  // none, and says nothing rather than offering a button that goes nowhere.
+  if (viewerCameFrom) {
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'design-chip design-chip-link';
+    const from = viewerCameFrom;
+    back.textContent = `Read ${from.split('/').pop()?.replace(/\.md$/, '') || 'the note'}`;
+    back.addEventListener('click', () => { void navigateTo(from); });
+    meta.append(back);
+  }
+  head.append(meta);
+  wrap.append(head);
+
+  const body = document.createElement('div');
+  body.className = 'design-body';
+  const frame = document.createElement('iframe');
+  frame.className = 'design-frame';
+  // Every property the bench's frame had, for the same reasons. The absence
+  // of the same-origin flag is the only boundary a framed file has since
+  // ADR-0042 (RISK-0008) — `tests/test_framing.py` fails if it is added.
+  frame.setAttribute('sandbox', 'allow-scripts');
+  frame.setAttribute('referrerpolicy', 'no-referrer');
+  // The frame has an opaque origin, so it can read neither the app's theme
+  // nor its stylesheets: the URL is the only channel. Passing the theme is
+  // what lets one style-guide page follow six projects instead of drifting
+  // into six copies (TASK-0231).
+  const theme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+  frame.src = `${target.base}/framed/${target.path.split('/').map(encodeURIComponent).join('/')}`
+    + `?theme=${theme}`;
+  body.append(frame);
+  wrap.append(body);
+  docView.replaceChildren(wrap);
   return true;
 }
 

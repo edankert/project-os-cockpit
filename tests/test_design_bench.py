@@ -243,7 +243,9 @@ def test_design_asset_response_is_not_cacheable_and_does_not_sniff() -> None:
 
     from project_os_cockpit import server as server_mod
 
-    body = inspect.getsource(server_mod).split("def _serve_design_asset(")[1].split("\n        def ")[0]
+    # Renamed to `_serve_framed_file` (FEAT-0148); `/design-asset/` still
+    # routes here until the bench goes.
+    body = inspect.getsource(server_mod).split("def _serve_framed_file(")[1].split("\n        def ")[0]
     assert "no-store" in body
     assert "nosniff" in body
 
