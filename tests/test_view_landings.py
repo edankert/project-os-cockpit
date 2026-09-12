@@ -420,16 +420,18 @@ def test_the_intent_landing_leads_with_what_its_badge_counts() -> None:
     assert "buildDesignRegisterList(designs, owedIds)" in body
 
 
-def test_an_owed_design_opens_its_note_and_the_rest_open_the_bench() -> None:
+def test_every_design_row_opens_its_note() -> None:
     """FEAT-0092's criterion — *"every owed row navigates to the note that
     carries its actuator, so the verb named on the page is the verb available
-    when you arrive"* — applied to the view it was not applied to.
+    when you arrive"* — now satisfied for every row rather than the owed ones.
 
-    `Accept` lives on the note's actuator row (`mountActuatorRow`, reached only
-    from `loadDoc`); the bench offers `Ask for review` and no status
-    transition. So an owed design that opened the bench would name a verb the
-    destination does not have. Asserted rather than walked because no design in
-    this corpus is `proposed` today — which is exactly when a path rots.
+    It used to branch: an owed design opened its note, where `Accept` is, and
+    every other opened the design bench, which offered `Ask for review` and no
+    transition. The bench is gone (TASK-0615/TASK-0616), so the branch is gone,
+    and a design is its note — pictures included, since REQ-0065.
+
+    Asserted rather than walked because no design in this corpus is `proposed`
+    today, which is exactly when a path rots.
     """
     code = _code(_renderer())
     register = re.search(
@@ -437,11 +439,11 @@ def test_an_owed_design_opens_its_note_and_the_rest_open_the_bench() -> None:
         code, re.S,
     )
     assert register, "the register's row builder moved; re-anchor this guard"
-    assert "owed.has(d.id) ? d.rel : `~design/${d.id}`" in register.group(1), (
-        "an owed design no longer opens its note, or a settled one no longer "
-        "opens the bench"
+    body = register.group(1)
+    assert "open: () => void navigateTo(d.rel)" in body, (
+        "a design row opens something other than the design's note"
     )
-
+    assert "~design/" not in body, "the bench address came back on the landing"
 
 def test_the_landing_unhides_the_stage_it_renders_into() -> None:
     """Both bugs this feature shipped with were invisible to DOM assertions.

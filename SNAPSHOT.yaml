@@ -914,14 +914,14 @@ items:
     TASK-0616:
       file: "docs/features/html-viewer/plan/tasks/TASK-0616-Intent-After-The-Bench.md"
       title: "The Intent landing keeps leading a reader to every design once there is no bench for its rows to open"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0148
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
     TASK-0617:
       file: "docs/features/html-viewer/plan/tasks/TASK-0617-Register-And-Deck.md"
       title: "The capability register loses every row that names a removed route, and Deck is told which rows changed"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0148
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -4438,7 +4438,7 @@ metrics:
     features_total: 147
     features_done: 131
     tasks_total: 611
-    tasks_done: 573
+    tasks_done: 575
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182

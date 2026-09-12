@@ -6,7 +6,7 @@ title: "Capability register: what the cockpit can do today, keyed so a sibling a
 status: active
 owner: user:edwin
 created: 2026-09-06
-updated: 2026-09-08
+updated: 2026-09-12
 scope: "project"
 source:
   - "Edwin 2026-09-06: 'make sure to mark the current cockpit functionality so if any new cockpit functionality arrives which it will that we can adapt the other repo accordingly'"
@@ -62,9 +62,10 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.stage.find` | find in page (⌘F) | `#find-bar` |
 | `shell.stage.quick-switch` | quick switch to any note (⌘P) | `#quick-switch` |
 | `shell.stage.capture` | file an issue at triage from anywhere | capture action |
-| `shell.reader.render` | a note rendered by the sidecar: frontmatter strip, wikilinks, cross-repo links (`project#ID`; one naming a design with an artifact or variants opens the design bench), image embeds (loaded from the sidecar in the desktop app too), callouts, project-os IDs linked; stays open through a file change in any mode | `/api/render`, `renderer.py`, `wikilinks.py`, `callouts.py`, `renderer.ts` `pointImagesAtSidecar` |
+| `shell.reader.render` | a note rendered by the sidecar: frontmatter strip, wikilinks, cross-repo links (`project#ID`), image embeds — including pictures in `__attachments__/` beside the note, by relative path or Obsidian embed, loaded from the sidecar in the desktop app too, callouts, project-os IDs linked; stays open through a file change in any mode | `/api/render`, `renderer.py`, `wikilinks.py`, `callouts.py`, `renderer.ts` `pointImagesAtSidecar` |
 | `shell.reader.actuators` | actuator row on a note: transition, tick a criterion with evidence, release gate, run a test, decide an ADR, mark or retire a check | `/api/notes/*` |
-| `shell.reader.design` | design pages: regions, comments, revisions, capture, offer for review, verdict | `/api/design/*`, `/api/cockpit/design-*` |
+| `shell.reader.viewer` | `~view/<rel>` frames any HTML page inside a workspace's `docs/`, for a note of any type; `~view/@<project>/<rel>` frames one in another open workspace. A design note with a page offers it from its banner | `/framed/`, `renderer.ts` `renderViewerPage` |
+| ~~`shell.reader.design`~~ | **retired 2026-09-12** ([[CHG-20260912-The-Design-Bench-Becomes-One-Viewer]]). Was: design pages with regions, comments, revisions, capture, offer for review, verdict. The frame became `shell.reader.viewer`; the revision log is Markdown in the note; a design's Accept and Decline moved to `shell.reader.actuators`, where every other type's already were | — |
 | `shell.context.pane` | right pane: linked notes and backlinks grouped by type | `/api/cockpit/context` |
 | `shell.pages.overview` | overview: digest since "Caught up", unpushed commits, phase squares, validator report, contribution grid; per-phase page | `~overview`, `~overview/<PHASE>` |
 | `shell.pages.history` | what changed state and when | `~history` |
@@ -87,7 +88,7 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.validation` | validator report in the shell, failing notes marked | `/api/cockpit/validation` |
 | `shell.theme` | light and dark themes from the design system (DES-0002) | `cockpit:theme` |
 | `shell.settings` | settings popover (external hook) | `#settings-popover` |
-| `shell.windows` | New Window (a full second copy), window bounds persisted app-wide, deep links (`cockpit://<project>/<path or note ID>` opens that page in that project, and a note ID naming a design with an artifact or variants opens the design bench, `~design/<ID>`; `desktop/scripts/open-link.sh` sends one from source), context menus per surface, context-aware copy and paste | `main.ts`, `window-state.ts`, `ipc/context-menu.ts`, `ipc/clipboard.ts`, `renderer/deep-link.ts`, `scripts/open-link.sh` |
+| `shell.windows` | New Window (a full second copy), window bounds persisted app-wide, deep links (`cockpit://<project>/<path or note ID>` opens that page in that project; `desktop/scripts/open-link.sh` sends one from source), context menus per surface, context-aware copy and paste | `main.ts`, `window-state.ts`, `ipc/context-menu.ts`, `ipc/clipboard.ts`, `renderer/deep-link.ts`, `scripts/open-link.sh` |
 | `shell.state.local` | nav mode, pane widths, theme, hide-completed, pins, follow, terminal open and height, design side, scope-completed, platform, left pane collapsed are kept in `localStorage`, read once at start | `renderer.ts` |
 
 ## Sidecar API
@@ -98,17 +99,17 @@ Grouped from the route table in `server.py` at the baseline. A row is a group, n
 | --- | --- | --- |
 | `api.read.nav` | navigation payloads | `/api/cockpit/nav`, `/api/cockpit/landing`, `/api/cockpit/locate`, `/api/cockpit/brief`, `/api/cockpit/stats` |
 | `api.read.note` | a note and its neighbourhood | `/api/render`, `/api/cockpit/context`, `/docs/`, `/index` |
-| `api.read.record` | the record's derived views | `/api/cockpit/decisions`, `/api/cockpit/designs`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/api/cockpit/history`, `/api/cockpit/changes`, `/api/cockpit/commits`, `/api/cockpit/unreleased`, `/api/cockpit/release` (which since 2026-09-08 also carries `platforms`, `settle` and `coverage` — [[FEAT-0145]]), `/api/cockpit/release-item`, `/api/cockpit/digest`, `/api/cockpit/watermark`, `/api/cockpit/activity` |
+| `api.read.record` | the record's derived views | `/api/cockpit/decisions`, `/api/cockpit/designs`, `/api/cockpit/history`, `/api/cockpit/changes`, `/api/cockpit/commits`, `/api/cockpit/unreleased`, `/api/cockpit/release` (which since 2026-09-08 also carries `platforms`, `settle` and `coverage` — [[FEAT-0145]]), `/api/cockpit/release-item`, `/api/cockpit/digest`, `/api/cockpit/watermark`, `/api/cockpit/activity` |
 | `api.read.obligations` | what needs a person | `/api/cockpit/obligations`, `/api/cockpit/review-queue`, `/api/cockpit/acceptance`, `/api/cockpit/acceptance-debt`, `/api/cockpit/scope-tests`, `/api/cockpit/transitions`, `/api/cockpit/actions` |
 | `api.read.check-history` | every verdict ever recorded against each check — mark, date, platform, author, method and the comment — newest first, in the acceptance payload's `view.history`. Empty in a repo with no ledger (2026-09-06, [[ISS-0281]]) Each row also carries `verdict_method`, so a surface can tell a walker's sentence from the migration backfill's. | `/api/cockpit/acceptance`, `ledger.events_by_check` |
 | `api.read.agents` | sessions and their instruments | `/api/cockpit/sessions`, `/api/cockpit/agents`, `/api/cockpit/agent-state`, `/api/cockpit/session-cache`, `/api/cockpit/approvals`, `/api/cockpit/dispatch-requests`, `/api/cockpit/runtime`, `/api/cockpit/identity` |
 | `api.read.validation` | the validator's report | `/api/cockpit/validation` |
 | `api.read.state` | the user's view, for the CLI and following | `/api/cockpit/state`, `/api/cockpit/focus`, `/api/cockpit/tab-state` |
 | `api.write.notes` | guarded writes to frontmatter, never body text | `/api/notes/transition`, `tick`, `tick-owed`, `check-toggle`, `mark-check`, `retire-check`, `create`, `attach`, `decide`, `shape`, `review`, `test-run`, `acceptance-run`, `acceptance`, `release-prepare`, `release-verified`, `release-mark-released`, `release-contents`, `release-update`, `release-abandon`, `release-delete`, `release-settle`, `seal-ledger`, `choose-variant`, `actions` |
-| `api.write.design` | design page writes | `/api/design/capture`, `comment`, `offer-review`, `verdict` |
+| ~~`api.write.design`~~ | **retired 2026-09-12**: `/api/design/capture`, `comment`, `offer-review` and `verdict` are gone with the design bench, and so is `/api/notes/choose-variant`. **What moved rather than went**: a design's Accept and Decline are still offered, on the note, through `api.write.note` — `/api/notes/decide` and `/api/notes/transition`, which already knew a design accepts to `accepted` and declines to `cancelled`. What is genuinely gone is the verdict naming the revision it judged ([[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]]) | — |
 | `api.write.agents` | approve, dispatch, review requests, caught-up | `/api/cockpit/approve`, `dispatch`, `review-request`, `review-resolve`, `reviewed`, `review/`, `caught-up` |
 | `api.write.inbox` | inbox store and discard | `/api/inbox`, `/api/inbox/store`, `/api/inbox/discard` |
-| `api.infra` | events, static, project files, shell files, terminal, hooks, health | `/_events`, `/_static/`, `/_project/`, `/_shell/`, `/_inbox/`, `/api/terminal`, `/api/agent-hook`, `/healthz`, `/design-asset/`, `/design-asset-at/` |
+| `api.infra` | events, static, project files, shell files, terminal, hooks, health | `/_events`, `/_static/`, `/_project/`, `/_shell/`, `/_inbox/`, `/api/terminal`, `/api/agent-hook`, `/healthz`, `/framed/` |
 | `api.guards` | writes are loopback-only (REQ-0027); human-only verbs refuse an agent (REQ-0026); verbs come from the registry (ISS-0153) | `approvals.py`, `note_writes.py`, `agent_actions.py` |
 
 ## What the other repository owes

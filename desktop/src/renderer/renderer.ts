@@ -2042,10 +2042,11 @@ async function performNoteAction(
     if (!ok) return;
   }
   btn.disabled = true;
-  if (action.endpoint === '/api/design/verdict') {
-    await performDesignVerdict(noteId, action, btn);
-    return;
-  }
+  // **Every type transitions the same way since 2026-09-12** (FEAT-0148).
+  // A design used to branch here into `performDesignVerdict`, which named the
+  // revision it judged; that endpoint went with the design bench and the
+  // binding with it ([[RISK-0009]]). `action.endpoint` is empty for every type
+  // today, and the branch would be re-added here if one ever needs its own.
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/notes/transition`, {
       method: 'POST',
@@ -2073,62 +2074,6 @@ async function performNoteAction(
   }
 }
 
-/** A design's verdict, named to the revision it judged (TASK-0375 / ISS-0056).
- *
- *  The button is the same button, on the same note, from the same table. What
- *  differs is where it posts: `/api/design/verdict` requires a revision and
- *  validates it against the artifact's real git history, so an approval given
- *  to revision 3 cannot silently cover revision 6. The generic transition path
- *  refuses this type outright, so a client that skipped this branch would get
- *  a 403 rather than an unrevisioned accept.
- *
- *  The revision is the artifact's newest, fetched here rather than assumed —
- *  and a **dirty** artifact is refused, because the frame is showing a working
- *  copy no revision covers. That is the same distinction
- *  `design_revisions_payload` exists to report.
- */
-async function performDesignVerdict(
-  noteId: string, action: NoteAction, btn: HTMLButtonElement,
-): Promise<void> {
-  try {
-    const resp = await fetch(
-      `${sidecarBaseUrl}/api/cockpit/design-revisions/${encodeURIComponent(noteId)}`,
-    );
-    const revs = (await resp.json()) as
-      { available?: boolean; dirty?: boolean; revisions?: Array<{ sha: string }> };
-    const newest = revs.revisions?.[0]?.sha;
-    if (!newest) {
-      showStatus(
-        'No committed revision of this design to judge — capture one first.',
-        'error',
-      );
-      btn.disabled = false;
-      return;
-    }
-    if (revs.dirty) {
-      showStatus(
-        'This artifact has uncommitted edits; a verdict would name a revision '
-        + 'that is not what you are looking at.',
-        'error',
-      );
-      btn.disabled = false;
-      return;
-    }
-    await postJson(action.endpoint!, {
-      id: noteId,
-      reviewer: 'user:edwin',
-      verdict: action.verdict,
-      revision: newest,
-      accept: action.accept,
-    });
-    showStatus(`${noteId} → ${action.to} at ${newest.slice(0, 7)}`);
-    void refreshObligationBadges();
-    if (currentRel) void navigateTo(currentRel, { replace: true });
-  } catch (err) {
-    showStatus(`Verdict failed: ${String(err)}`, 'error');
-    btn.disabled = false;
-  }
-}
 
 function wireMetadataStripPersistence(): void {
   const det = docView.querySelector<HTMLDetailsElement>('details.metadata-strip');
@@ -5633,9 +5578,15 @@ let designFitObserver: ResizeObserver | null = null;
  *  own, three designs across two headings, for a frontmatter field the reader
  *  never asked about — and putting the same field back as a word on every row
  *  would reintroduce it one element lower down. */
+/** What the landing says about a design's shape, in three words or fewer.
+ *
+ *  **"no artifact" was the old answer for a design with no HTML page**, and
+ *  since markdown-first that is the normal shape (REQ-0065) — the row would
+ *  have reported the recommended form as a lack. A design is now described by
+ *  what it HAS: pictures in the note, a page, or neither. */
 function designShape(d: DesignRecord): string {
-  if (!d.has_asset) return 'no artifact';
-  return d.viewport ? `${d.viewport}px surface` : 'document';
+  if (d.asset) return d.has_asset ? 'note and page' : 'page missing';
+  return 'in the note';
 }
 
 /** The design register, in the landing's own row grammar (ISS-0167).
@@ -5656,11 +5607,14 @@ function designShape(d: DesignRecord): string {
  *  `owedIds` comes from the landing payload — the registry's own answer for
  *  which designs are owed — rather than from a `status === 'proposed'` test
  *  here. `TASK-0357`'s rule: the obligation vocabulary ships in the payload,
- *  not in TypeScript. It decides the destination: an owed design goes to its
- *  NOTE, where `Accept` lives, so the verb named at the top of the page is
- *  the verb available on arrival (`FEAT-0092`'s criterion, applied to the
- *  view it was not applied to). Every other row goes to the bench, which is
- *  what the bench is for.
+ *  not in TypeScript.
+ *
+ *  **It no longer decides the destination** (`TASK-0616`). It used to: an owed
+ *  design opened its NOTE, where `Accept` lives, so the verb named at the top
+ *  of the page was the verb available on arrival (`FEAT-0092`'s criterion);
+ *  every other row opened the bench. With the bench gone every row opens the
+ *  note, which satisfies that criterion for all of them rather than for one
+ *  band. `owedIds` still marks the rows, which is the other half of its job.
  */
 function buildDesignRegisterList(
   designs: DesignRecord[], owedIds?: ReadonlySet<string>,
@@ -5686,7 +5640,12 @@ function buildDesignRegisterList(
     title: d.title,
     status: d.status,
     note: designShape(d),
-    open: () => void navigateTo(owed.has(d.id) ? d.rel : `~design/${d.id}`),
+    // **Always the note** (TASK-0616). The row used to send an owed design to
+    // its note and every other one to the bench; there is no bench, and the
+    // note is where a design lives — pictures included. A design with a page
+    // offers it from the note's banner, which is one place rather than two
+    // that can disagree about where a design is.
+    open: () => void navigateTo(d.rel),
   });
 
   const live = designs.filter((d) => !designIsSettled(d));
@@ -6375,10 +6334,10 @@ async function renderReviewPage(target: string): Promise<boolean> {
     docView.replaceChildren(buildOrphanedRequestView(detail));
   } else if (detail.request && detail.subject_type === 'design') {
     // A design must NOT go through the proposal path: that stamps
-    // `plan-accepted` with no revision, and rejects by writing
-    // `status: cancelled` onto a design that may be `implemented`.
-    // TASK-0218 built /api/design/verdict precisely so a verdict names the
-    // revision it judged; this is what calls it (ISS-0056).
+    // `plan-accepted`, and rejects by writing `status: cancelled` onto a
+    // design that may be `implemented` (ISS-0056). That half of ISS-0056
+    // outlived the design bench; the other half — a verdict naming the
+    // revision it judged — did not (RISK-0009).
     docView.replaceChildren(buildDesignReviewView(detail));
   } else if (detail.request) {
     docView.replaceChildren(buildProposalView(detail));

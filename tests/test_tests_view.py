@@ -1387,29 +1387,32 @@ def test_the_buttons_still_appear_and_carry_their_endpoint() -> None:
         "an action carries verdict semantics with no endpoint to spend them on"
     )
 def test_the_renderer_reads_the_field_not_the_type() -> None:
-    """One place knows designs are special, and it is not this one.
+    """One place knows a type is special, and it is not the renderer.
 
-    A `type === 'design'` branch in the renderer would be that knowledge in a
-    second place, and the two would drift the first time another type earned
-    its own endpoint.
+    A `type === 'design'` branch here would be that knowledge in a second
+    place, and the two would drift the first time another type earned its own
+    endpoint. The renderer reads `action.endpoint` — a field the sidecar
+    fills — and posts where it is sent.
+
+    **Nothing fills it today** (2026-09-12): `VERDICT_ENDPOINTS` is empty since
+    the design bench went, so every type transitions through the generic path.
+    The property under test is the one that made that removal a one-line
+    change rather than a hunt: the renderer never asked what type it was
+    holding.
     """
     src = RENDERER.read_text(encoding="utf-8")
     fn = re.search(
         r"async function performNoteAction\(.*?\n\}", src, re.S,
     ).group(0)
-    assert "action.endpoint === '/api/design/verdict'" in fn
-    assert "noteType" not in fn and "note.type" not in fn
-    verdict = re.search(
-        r"async function performDesignVerdict\(.*?\n\}\n\n", src, re.S,
-    ).group(0)
-    # The revision is fetched, never assumed, and a dirty artifact is refused:
-    # the frame shows a working copy no revision covers.
-    assert "design-revisions/" in verdict
-    assert "revs.dirty" in verdict
-    assert "action.verdict" in verdict and "action.accept" in verdict
-    # Posts to the route it was SENT, so the endpoint is named once.
-    assert "postJson(action.endpoint!" in verdict
-
+    assert "'design'" not in fn and "noteType" not in fn and "note.type" not in fn, (
+        "the renderer branches on a note's type; that knowledge belongs in "
+        "note_writes.VERDICT_ENDPOINTS, which the action's endpoint carries"
+    )
+    assert "/api/notes/transition" in fn, "the generic transition path is gone"
+    # And the dispatch the endpoint field existed for is gone with its only
+    # user: no design-specific verdict path survives in the renderer.
+    assert "performDesignVerdict" not in src.replace(
+        "// A design used to branch here into `performDesignVerdict`, which named the", "")
 
 # ---- TASK-0382: the standing documents land on Intent --------------------
 
