@@ -3,16 +3,16 @@ type: "[[test]]"
 id: TST-0084
 aliases: ["TST-0084"]
 title: "A design's ID opens the bench and every other ID opens its note: the rule runs in node, and a source guard pins where the renderer asks it"
-status: active
+status: retired
 owner: user:edwin
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-12
 phase: "[[PHASE-005-Desktop-Shell]]"
 source: ["[[FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]"]
 scope: feature
 level: unit
 entrypoint: ""
-command: ".venv/bin/python -m pytest tests/test_desktop_node_suite.py tests/test_design_links.py tests/test_cross_repo_links.py -q -p no:cacheprovider"
+command: ".venv/bin/python -m pytest tests/test_desktop_node_suite.py tests/test_cross_repo_links.py -q -p no:cacheprovider"
 last_verified: ""
 covers: ["[[FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]", "[[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]"]
 issues: ["[[ISS-0296-A-Link-That-Switches-Project-In-Overview-Leaves-The-Left-Pane-Unloaded]]", "[[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]]", "[[ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First]]"]
@@ -27,6 +27,15 @@ review_verdict: ""
 related: ["[[TST-0085-A-Link-To-A-Design-Shows-The-Design]]"]
 ---
 
+
+<!-- The command lost the rule's own source-guard file, deleted with the rule
+     (TASK-0614). The four guards in it that did not belong to the rule
+     moved into `tests/test_cross_repo_links.py` and are named here instead, so
+     this retired check still says truthfully what runs.
+     Retired 2026-09-12 with the rule it checked (TASK-0614): the design bench
+     is gone, so a design ID opens its note like every other ID. Kept, not
+     deleted — it records what was checked, and passed, on 2026-09-11. -->
+
 # A design's ID opens the bench, and every other ID opens its note
 
 ## Purpose
@@ -35,7 +44,7 @@ Two automated halves check [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Desig
 
 **The rule, in node.** `desktop/tests/deep-link.test.mjs` runs the built `deep-link.js` with an empty global scope and calls `designBenchTarget` with a hand-written register. It checks that the register decides, not the `DES-` prefix, and that a design with nothing to show gets `null`. The nine cases are listed in TASK-0606. `tests/test_desktop_node_suite.py` runs this file with the rest of the desktop's node suite.
 
-**The call site, as source text.** `tests/test_design_links.py` reads `desktop/src/renderer/renderer.ts`. It checks that `locateAndOpen` asks `designBenchTarget` before it asks `/api/cockpit/locate`, that nothing else calls the function, and that `locateAndOpen` does not use the cached register. It also checks **the other half of the chain**, added after the independent review found it unpinned: that all three routes still reach `locateAndOpen` and that the rule is asked about the note's ID. Three more tests pin the fixes for [[ISS-0296-A-Link-That-Switches-Project-In-Overview-Leaves-The-Left-Pane-Unloaded]], [[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]] and [[ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First]], which is why this note's `command:` now runs `tests/test_cross_repo_links.py` too: ISS-0296's guard lives there, beside the landing-suppression tests it belongs with.
+**The call site, as source text.** A source-guard file (deleted 2026-09-12 with the rule) read `desktop/src/renderer/renderer.ts`. It checks that `locateAndOpen` asks `designBenchTarget` before it asks `/api/cockpit/locate`, that nothing else calls the function, and that `locateAndOpen` does not use the cached register. It also checks **the other half of the chain**, added after the independent review found it unpinned: that all three routes still reach `locateAndOpen` and that the rule is asked about the note's ID. Three more tests pin the fixes for [[ISS-0296-A-Link-That-Switches-Project-In-Overview-Leaves-The-Left-Pane-Unloaded]], [[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]] and [[ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First]], which is why this note's `command:` now runs `tests/test_cross_repo_links.py` too: ISS-0296's guard lives there, beside the landing-suppression tests it belongs with.
 
 **This note holds no verdict, and that is the rule rather than an omission.** It declares a `command:`, so by [[ADR-0038-The-Suite-Is-The-Verdict]] it never reaches `passing` and carries no `last_run:`. The suite is the verdict. It stays `active` when the feature closes. **Its limit:** it pins where the call is written, not what the window shows. A correct refactor that renames `locateAndOpen` will turn it red, and a bug in `navigateTo` will not. [[TST-0085-A-Link-To-A-Design-Shows-The-Design]] is the check of the window.
 
@@ -47,7 +56,7 @@ Two automated halves check [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Desig
 ## Expected results
 
 - Every case in `deep-link.test.mjs` passes, the nine new ones included.
-- The seven tests in `tests/test_design_links.py` pass, and so does `tests/test_cross_repo_links.py`.
+- The seven source guards pass, and so does `tests/test_cross_repo_links.py`.
 
 ## Adequacy (who verifies this test?)
 
@@ -61,7 +70,7 @@ Each broken version was built, the tests were run against it, and the real code 
 | The rule reads `has_asset` instead of `asset` | `a declared asset whose file is missing opens the bench` |
 | The call is deleted from `locateAndOpen` | all 3 call-site tests |
 | The call is moved into `navigateTo` | all 3 call-site tests |
-| `fetchDesignRegister()` replaces the fresh fetch, in `locateAndOpen` or inside `designsForLink` | `test_the_link_reads_a_fresh_register_not_the_cached_one`, each time |
+| `fetchDesignRegister()` replaces the fresh fetch, in `locateAndOpen` or inside the link's own helper | the fresh-register guard, each time |
 | The parked jump's call to `locateAndOpen` is deleted | 2 tests, among them `test_every_route_that_resolves_a_link_by_id_goes_through_locate_and_open` |
 | The same-project cross-repo call is deleted | the same test |
 | The same-project `cockpit://` branch opens `target.id` as a path | the same test |
@@ -71,4 +80,4 @@ Each broken version was built, the tests were run against it, and the real code 
 
 The first four of those six were found by the independent review, which built them against the code as it then stood and recorded that every one of them **survived**. They are caught now.
 
-`tests/test_design_links.py` also carries `test_a_project_switch_forgets_the_previous_projects_designs`, the guard for [[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]]. Deleting the reset from `openWorkspace` turns it red.
+The source-guard file also carried the guard for [[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]] — deleting the reset from `openWorkspace` turned it red. That guard, and three others that did not belong to the design rule, moved into `tests/test_cross_repo_links.py` on 2026-09-12; the file that held them was deleted with the rule.

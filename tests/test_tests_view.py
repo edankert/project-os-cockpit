@@ -1172,7 +1172,18 @@ def test_the_live_suite_loses_no_line_to_the_parser() -> None:
         # `test`, `CHK-*` in a repo that has not run the merge migration. Never
         # both — the migration renames in place.
         _acc = REPO_DOCS / acceptance.CHECKS_REL
-        raw = len(list(_acc.glob("TST-*.md")) or list(_acc.glob("CHK-*.md")))
+        _notes = list(_acc.glob("TST-*.md")) or list(_acc.glob("CHK-*.md"))
+        # **A retired check is not in the suite, and this counter has to agree**
+        # (2026-09-12, the first time anything here was retired: TST-0085, with
+        # the design bench). `acceptance.load` drops retired items deliberately
+        # — REQ-0059, one filter rather than three — so counting them here made
+        # the guard fire on a correct retirement. Read with its own regex, not
+        # through `item_from_note`: the independence is the point.
+        raw = sum(
+            1 for n in _notes
+            if not re.search(r"(?m)^status:\s*[\"']?retired[\"']?\s*$",
+                             n.read_text(encoding="utf-8"))
+        )
         subject = "acceptance note(s) on disk"
     parsed = len(acceptance.load(REPO_DOCS).items)
     assert parsed == raw, (

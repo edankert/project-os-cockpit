@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+from conftest import js_function_body
+
 from project_os_cockpit.cockpit import project_id
 from project_os_cockpit.wikilinks import resolve_text_to_html, split_cross_repo
 
@@ -182,7 +184,6 @@ def test_a_skipped_overview_landing_still_loads_the_left_pane() -> None:
     own target wins. Skipping the pane with it left "Pick a workspace" on
     screen, or the previous project's phases under the new project's name.
     So the Overview branch draws the pane on the path that skips the page."""
-    from conftest import js_function_body
     src = RENDERER.read_text(encoding="utf-8")
     nav = js_function_body(src, "async function loadWsNav(")
     overview = nav.split("if (currentNavMode === 'overview') {", 1)[1].split("return;", 1)[0]
@@ -202,3 +203,134 @@ def test_the_suppression_cannot_outlive_its_jump() -> None:
     src = RENDERER.read_text(encoding="utf-8")
     fn = re.search(r"function consumeLandingSuppression\(\).*?\n\}", src, re.S)
     assert fn and "suppressLandingOnce = false;" in fn.group(0)
+
+
+# ---- every route that resolves a link by ID (FEAT-0146, then FEAT-0148) ----
+#
+# These moved here from `tests/test_design_links.py` when the design-bench link
+# rule was deleted (TASK-0614). The rule lasted one day; the guards under it
+# did not belong to it. Three of them came out of FEAT-0146's independent
+# review, which found four one-line edits to the link routes passing every
+# test, and the fourth is ISS-0298's — a parked link opening in whichever
+# project arrived first, which predates the rule and outlives it.
+
+def _code_only(body: str) -> str:
+    """The body without its comments, so a comment that names a function is
+    not mistaken for a call to it."""
+    body = re.sub(r"/\*.*?\*/", "", body, flags=re.S)
+    return re.sub(r"//[^\n]*", "", body)
+
+
+def _calls(src: str, name: str) -> list[int]:
+    """Where `name(` is called in `src`: not declared, not only mentioned."""
+    code = _code_only(src)
+    return [m.start() for m in re.finditer(rf"(?<!function )\b{name}\(", code)]
+
+
+def test_every_route_that_resolves_a_link_by_id_goes_through_locate_and_open() -> None:
+    """Every link resolved by ID has to arrive at one function, and nothing
+    used to check that it did. FEAT-0146's independent review found four
+    one-line edits — deleting either same-project call, deleting the parked
+    jump's call, or opening `target.id` as a path — that broke links in the
+    window while passing every automated test.
+
+    The three routes are: a `cockpit://` link to the project on screen, a
+    cross-repo link to the project on screen, and either kind parked while the
+    window switches project.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    link = _code_only(js_function_body(src, "async function openCockpitLink("))
+    assert "void locateAndOpen(target.id, project);" in link, (
+        "a cockpit:// link naming an ID no longer resolves through locateAndOpen"
+    )
+    jump = _code_only(js_function_body(src, "async function jumpToCrossRepoNote("))
+    assert "void locateAndOpen(noteId, project);" in jump, (
+        "a cross-repo link to the project on screen no longer resolves through locateAndOpen"
+    )
+    ready = _code_only(src.split("case 'ready': {", 1)[1].split("case 'failed'", 1)[0])
+    assert "void locateAndOpen(jump.noteId, jump.project);" in ready, (
+        "a link parked while the window switches project is never resolved"
+    )
+    # …and it is asked about the note, not about the project. Both arguments
+    # are strings, so swapping them builds and every other test passes. The
+    # design-bench rule this clause was written for is gone (TASK-0614); the
+    # argument order it protected is still the thing a refactor gets wrong.
+    locate = _code_only(js_function_body(src, "async function locateAndOpen("))
+    assert "encodeURIComponent(noteId)" in locate, (
+        "locateAndOpen looks up something other than the note's ID"
+    )
+
+
+def test_a_parked_link_is_consumed_only_by_the_project_it_names() -> None:
+    """ISS-0298. Picking a third project on the rail while a link's switch is
+    in flight used to hand the parked link to whichever workspace reported
+    ready next — now a link can land on the wrong project's bench, not just
+    its note. The reader is told when a link is dropped, because a link that
+    silently does nothing looks the same as one that failed."""
+    src = RENDERER.read_text(encoding="utf-8")
+    # Dropped where the reader goes elsewhere, because the landing the link
+    # suppressed is decided before the link would be consumed. Dropping it
+    # only on arrival left the project they picked with an empty centre pane.
+    opening = _code_only(js_function_body(src, "async function openWorkspace("))
+    assert "pendingCrossRepoJump && !workspaceIsProject(" in opening, (
+        "openWorkspace carries a parked link into a project the link never named"
+    )
+    assert "pendingCrossRepoJump = null;" in opening and "suppressLandingOnce = false;" in opening
+    assert opening.index("pendingCrossRepoJump && !workspaceIsProject(") < opening.index("activeId = id;"), (
+        "the link is dropped after the switch has already begun"
+    )
+    # Said where it survives: an earlier showStatus is overwritten by the
+    # spawn line in the same turn, and the reader never sees it.
+    assert "droppedLink\n    ? `${droppedLink} was not opened" in opening, (
+        "the dropped link is not reported, or is reported before the spawn line"
+    )
+    assert opening.index("'Starting cockpit…'") > opening.index("droppedLink ="), (
+        "the drop message cannot outlive the spawn message"
+    )
+    # …and the same rule where the link is consumed.
+    ready = _code_only(src.split("case 'ready': {", 1)[1].split("case 'failed'", 1)[0])
+    guard = ready.split("if (pendingCrossRepoJump) {", 1)[1]
+    assert "const mine = workspaceIsProject(p.workspaceId, jump.project);" in guard, (
+        "a parked link is consumed without checking which project arrived"
+    )
+    # The branch itself, not just the computation: `if (false)` above the same
+    # lines left every other assertion here true.
+    assert "if (!mine) {" in guard, "the arriving project is computed and not acted on"
+    assert guard.index("const mine") < guard.index("void locateAndOpen("), (
+        "the link is opened before the arriving project is checked"
+    )
+    # The match accepts a project id or the shell's own workspace id, the pair
+    # `openCockpitLink` resolves a link against.
+    matcher = _code_only(js_function_body(src, "function workspaceIsProject("))
+    assert "ws.projectId" in matcher and "ws.id.toLowerCase()" in matcher
+
+
+def test_a_reply_from_the_project_the_reader_left_never_lands() -> None:
+    """Both fixes from the review's findings 7 and 8. Each reads the reply's
+    body, then checks that the sidecar it asked is still the sidecar on
+    screen. Checking before the body is read leaves a window in which the
+    previous project's answer is drawn — which is the symptom ISS-0296 and
+    ISS-0297 exist to remove."""
+    src = RENDERER.read_text(encoding="utf-8")
+    for fn, after in (
+        ("async function loadOverviewScopePane(", "scopePhaseList = phases;"),
+        ("async function fetchDesignRegister(", "designRegister = Array.isArray"),
+    ):
+        body = _code_only(js_function_body(src, fn))
+        assert "base !== sidecarBaseUrl" in body, f"{fn} keeps no note of which project it asked"
+        assert body.index("await resp.json()" if "Design" in fn else "await r.json()") \
+            < body.index("base !== sidecarBaseUrl") < body.index(after), (
+            f"{fn} checks for a switch before it reads the reply, not after"
+        )
+
+
+def test_a_project_switch_forgets_the_previous_projects_designs() -> None:
+    """ISS-0297. A design note looks itself up in `designRegister` for its
+    banner, and refetches the list only when it is empty. Left standing across
+    a switch, the list is the previous project's: DES-0003 opened from a
+    your-health link was looked up in your-health's designs and drawn with no
+    banner. The same rule as the other per-project caches `openWorkspace`
+    clears (ISS-0015)."""
+    src = RENDERER.read_text(encoding="utf-8")
+    body = _code_only(js_function_body(src, "async function openWorkspace("))
+    assert "designRegister = [];" in body, "openWorkspace keeps the previous project's designs"

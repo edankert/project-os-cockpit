@@ -3,10 +3,10 @@ type: "[[test]]"
 id: TST-0085
 aliases: ["TST-0085"]
 title: "A link to a design shows the design"
-status: active
+status: retired
 owner: user:edwin
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-12
 phase: "[[PHASE-005-Desktop-Shell]]"
 tier: 1
 area: "Desktop shell and workspaces"
@@ -15,6 +15,11 @@ last_verified: 2026-09-11
 related: ["[[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]", "[[TST-0084-A-Design-ID-Opens-The-Bench-And-Other-IDs-Open-Their-Note]]"]
 level: acceptance
 ---
+
+
+<!-- Retired 2026-09-12 with the rule it checked (TASK-0614): the design bench
+     is gone, so a design ID opens its note like every other ID. Kept, not
+     deleted — it records what was checked, and passed, on 2026-09-11. -->
 
 # A link to a design shows the design
 

@@ -78,7 +78,7 @@ focus:
   feature: "FEAT-0147"
   phase: "PHASE-042"
   issue: "ISS-0299"
-  note: "2026-09-12: PHASE-042 is PLANNED, not started, and Edwin has now ANSWERED FIVE OF SIX open questions - the notes below were rewritten against his answers and each keeps its first version visible. HIS FOUR DECISIONS: the design bench is removed and replaced by a generic HTML viewer any note can use; images are files on disk in __attachments__ beside the note, not base64 inside a document; Markdown with pictures is the DEFAULT way to show a design and an HTML page is the exception; a block of HTML in a note is displayed without the code fence's language slot deciding it. Side-by-side version compare is DEFERRED by him and must serve .md notes when built. ANSWERED 2026-09-12: (Q1) a design's ID opens ITS NOTE like every other ID - the rule is DELETED, not re-pointed, designBenchTarget goes, FEAT-0146 and REQ-0062 are superseded; (Q3) tools/instructions/OBSIDIAN.md owns BOTH the __attachments__ convention AND the HTML-in-a-note rules, because it is the file any LLM reads for how notes are written; (Q4) NO reachability rule - any file inside the workspace's docs/, cross-repo included - ADR-0042 was REWRITTEN, and RISK-0008 with it, because /docs/<rel> already serves every file under docs/ with no gate on a 0.0.0.0 socket, so the allowlist protected nothing and the sandbox without allow-same-origin is the whole boundary; (Q5) rewriting your-health's 4.6 MB artifact is APPROVED as a deliberate cross-repo task; (Q6) relative paths are the convention, and the fleet-wide filename fallback STAYS because Obsidian writes ![[name.png]] when you paste an image and resolves it vault-wide. STILL OPEN, WITH EDWIN: how a note shows HTML (ADR-0043). The research moved the answer - Obsidian renders raw HTML natively and so does the cockpit, so a ```html render marker would show as SOURCE in Obsidian, which he rejected; the likely decision is no marker at all with four authoring constraints. ADR-0043 will be REWRITTEN, not amended; TASK-0610 and TST-0086 step 10 are blocked on it and nothing else is. START HERE: TASK-0611, upstream in ~/Dev/repos/project-os. validate-docs.py:1773 DESIGN-ASSET raises an ERROR for a non-draft design with no asset:, so the first markdown-only design fails CI in all twelve repos; and design-authoring/SKILL.md still opens with 'The artifact is HTML, and self-contained'. Those files CANNOT be edited here - MANIFEST.yaml marks them template-owned, this repo has no generator, sync-project-os.sh would report the edit as divergence. ADR-0042 still needs Edwin's acceptance before any route is widened. MEASURED 2026-09-12 over 47 design notes in 12 repos: 33 declare asset:, 6 carry a real ## Revisions entry, 12 region-anchored comments exist FLEET-WIDE and all are on project-os-deck DES-0002 from one reviewer on one day, 1 note uses ## Variant, chosen_variant: is set on NONE. test_design_bench.py alone is 170 tests over 3174 lines. your-health DES-0002 is 4,607,604 bytes with 51 inline PNGs. REQ-0023 is NOT superseded and must not be - all four criteria still hold and two hold better. ONE MORE CORRECTION, 2026-09-12: Edwin challenged FEAT-0148's capability table on design verdicts and the table was WRONG. Accept/Decline for a design were never bench-hosted - they are on the NOTE, from the actuator table every type shares - so they are KEPT and only their endpoint changes to the generic /api/notes/transition. What is actually retired is the verdict's binding to an artifact commit ('Drop the binding for now!'), which re-opens ISS-0056's hazard and is recorded as RISK-0009 with the way back written down. The same table's region-comments row also claimed the feature was never used; 12 region-anchored comments exist. Both corrections are visible in the note, not absorbed. Previously 2026-09-12: FEAT-0146 done, REQ-0062 implemented, PHASE-005 closed again."
+  note: "2026-09-12: PHASE-042 is BEING BUILT — a note shows what it is about. FEAT-0147 is DONE: pictures live in __attachments__ beside the note, the framing route serves any file inside the workspace docs/ (ADR-0042), the upstream markdown-first contract landed in project-os and synced down, and your-health DES-0002 went from 4.6 MB to 28 KB. FEAT-0148 is in progress: the viewer is ~view/<rel> served by /framed/<rel> (TASK-0613), and links no longer ask for the bench (TASK-0614). Left: TASK-0615 removes the bench, 0616 rehomes Intent, 0617 updates the capability register and tells Deck. THE OPEN WIKILINK QUESTION IS ANSWERED: an in-repo [[DES-####]] wikilink opens the note, because there is no bench. FEAT-0146 and REQ-0062 are superseded one day after landing, TST-0084 and TST-0085 retired, each keeping its prose as written. STILL OWED: walk TST-0086 and TST-0087 in the RUNNING WINDOW once the bench is gone — those checks say a harness does not count for their window steps — and close FEAT-0147, FEAT-0148, REQ-0063/0064/0065 and the phase. Restart the cockpit by its pid only; Deck also runs as Electron."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
@@ -103,7 +103,7 @@ items:
     FEAT-0146:
       file: "docs/features/design-links/FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench.md"
       title: "A link that names a design's ID opens the design bench, not the design's note"
-      status: done
+      status: superseded
       owner: user:edwin
       phase: "[[PHASE-005-Desktop-Shell]]"
       requirements: ["REQ-0062"]
@@ -900,7 +900,7 @@ items:
     TASK-0614:
       file: "docs/features/html-viewer/plan/tasks/TASK-0614-Links-Stop-Asking-For-The-Bench.md"
       title: "The design-ID link rule is removed: a design's ID opens its note like every other ID, and REQ-0062 is superseded rather than rewritten"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0148
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -3001,7 +3001,7 @@ items:
     REQ-0062:
       file: "docs/requirements/REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench.md"
       title: "A link that names a design's ID opens that design in the design bench, and opens the design's note only when the design has nothing to show"
-      status: implemented
+      status: superseded
       owner: user:edwin
       phase: "[[PHASE-005-Desktop-Shell]]"
       implements: FEAT-0146
@@ -3585,7 +3585,7 @@ items:
     TST-0084:
       file: "docs/features/design-links/plan/tests/TST-0084-A-Design-ID-Opens-The-Bench-And-Other-IDs-Open-Their-Note.md"
       title: "A design's ID opens the bench and every other ID opens its note: the rule runs in node, and a source guard pins where the renderer asks it"
-      status: active
+      status: retired
       owner: user:edwin
       phase: "[[PHASE-005-Desktop-Shell]]"
       scope: feature
@@ -3595,7 +3595,7 @@ items:
     TST-0085:
       file: "docs/tests/acceptance/TST-0085-A-Link-To-A-Design-Shows-The-Design.md"
       title: "A link to a design shows the design"
-      status: active
+      status: retired
       owner: user:edwin
       phase: "[[PHASE-005-Desktop-Shell]]"
       scope: feature
@@ -4436,9 +4436,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 147
-    features_done: 133
+    features_done: 132
     tasks_total: 611
-    tasks_done: 571
+    tasks_done: 572
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182

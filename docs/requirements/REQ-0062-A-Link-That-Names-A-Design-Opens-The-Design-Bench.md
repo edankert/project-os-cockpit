@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0062
 aliases: ["REQ-0062"]
 title: "A link that names a design's ID opens that design in the design bench, and opens the design's note only when the design has nothing to show"
-status: implemented
+status: superseded
 phase: "[[PHASE-005-Desktop-Shell]]"
 owner: user:edwin
 created: 2026-09-11
@@ -20,6 +20,7 @@ acceptance:
   - "[x] A link that names any other ID opens its note exactly as before. So does a design's ID when the design register cannot be read. — evidence: TST-0085 step 6 in the running window (FEAT-0107 opened its note); in the harness, with /api/cockpit/designs made to fail by a network error and by HTTP 500, DES-0002 opened its note both times"
 implements: "[[FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]"
 verifies: []
+superseded_by: "[[REQ-0064-One-Viewer-And-One-Rule-About-What-May-Be-Framed]]"
 related: ["[[FEAT-0093-A-Note-In-Another-Project-Is-One-Click-Away]]", "[[FEAT-0042-Design-Bench]]", "[[ISS-0293-A-Cockpit-Link-Opens-The-Project-But-Not-The-Page]]", "[[ISS-0041-Artifactless-Design-Is-Unreadable]]", "[[ISS-0167-The-Intent-Landing-Does-Not-Lead-With-What-Its-Badge-Counts]]"]
 tests: ["[[TST-0084-A-Design-ID-Opens-The-Bench-And-Other-IDs-Open-Their-Note]]", "[[TST-0085-A-Link-To-A-Design-Shows-The-Design]]"]
 tags: [requirement, desktop-shell, design, links]
@@ -31,6 +32,12 @@ review_response_date: 2026-09-11
 ---
 
 # A link that names a design's ID opens the design bench
+
+## Superseded 2026-09-12
+
+By [[REQ-0064-One-Viewer-And-One-Rule-About-What-May-Be-Framed]]. The design bench is removed, so the rule this requirement states has nothing to open; a design's ID opens its note.
+
+**The six criteria below stay ticked as written.** They were true, and verified, on the day they were ticked. A superseded requirement records what was required then — not what is required now.
 
 ## Approval
 

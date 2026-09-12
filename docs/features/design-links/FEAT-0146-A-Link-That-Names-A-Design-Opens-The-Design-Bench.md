@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0146
 aliases: ["FEAT-0146"]
 title: "A link that names a design's ID opens the design bench, not the design's note"
-status: done
+status: superseded
 phase: "[[PHASE-005-Desktop-Shell]]"
 owner: user:edwin
 created: 2026-09-11
@@ -13,6 +13,7 @@ goal: "A person or an agent who sends a link naming a design's ID puts that desi
 requirements: ["[[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]"]
 tasks: ["[[TASK-0606-The-Design-Register-Decides-Where-An-ID-Opens]]", "[[TASK-0607-Links-Resolved-By-ID-Open-A-Design-In-The-Bench]]"]
 release: ""
+superseded_by: "[[FEAT-0148-One-HTML-Viewer]]"
 acceptance_exception: ""
 acceptance: "[[TST-0085-A-Link-To-A-Design-Shows-The-Design]]"
 design: ""
@@ -26,7 +27,15 @@ review_response_date: 2026-09-11
 
 # A link that names a design's ID opens the design bench
 
-## Status (2026-09-12): done
+## Superseded 2026-09-12, one day after it landed
+
+[[FEAT-0148-One-HTML-Viewer]] removes the design bench, so there is no bench for a link to open. A design's ID opens its note, like every other ID, and under markdown-first ([[REQ-0065-A-Design-Is-Markdown-First]]) the note holds the pictures — so the reader sees the design either way, which is what this feature was for.
+
+**The prose below is left as it was written.** It describes what was true on 2026-09-11 and the review it passed. Editing it to describe today would erase the record of a decision that was correct when it was made and overtaken the next day.
+
+The open question this feature carried — *should an in-repo `[[DES-####]]` wikilink open the bench too?* — is answered by the removal: **no, and there is no bench.** An in-repo wikilink opens the note, as it always did.
+
+## Status (2026-09-12, as written when this closed): done
 
 **Done.** Edwin approved [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]] on 2026-09-12 and asked for close-out, so the requirement is `implemented` and this feature is `done`. One thing is still open and is NOT part of this feature: whether an in-repo `[[DES-####]]` wikilink should open the bench too (the question below). It was asked on 2026-09-11 and is unanswered; if the answer is yes it becomes its own task.
 

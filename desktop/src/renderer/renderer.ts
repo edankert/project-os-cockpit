@@ -598,10 +598,6 @@ declare function parseCockpitLink(url: string): {
   project: string;
   target: { kind: 'none' } | { kind: 'note'; id: string } | { kind: 'path'; rel: string };
 } | null;
-// Also from deep-link.js: where a link that names an ID lands (REQ-0062).
-// `LinkDesign` is the part of a design register entry that rule reads.
-interface LinkDesign { id: string; asset?: string; variants?: ReadonlyArray<unknown> }
-declare function designBenchTarget(noteId: string, designs: ReadonlyArray<LinkDesign>): string | null;
 
 // Declared by cache-temperature.js, loaded as a plain script before this
 // one (same arrangement as healthMarks).
@@ -888,16 +884,14 @@ async function jumpToCrossRepoNote(project: string, noteId: string): Promise<voi
  * by ID passes through here: a `cockpit://` link, a cross-repo link, and
  * either kind parked while the window switched project.
  *
- * An ID that names a design with something to show opens the design bench,
- * `~design/<ID>`, instead of the note (REQ-0062). The design register decides
- * that, through `designBenchTarget` in deep-link.ts. The rule lives here and
- * not in `navigateTo`, because the bench's ID chip, its `Read <ID> as a note`
- * button and an owed design's landing row open the note by path on purpose.
+ * **Every ID opens its note, designs included** (REQ-0064). For one day a
+ * design ID opened the design bench instead; the bench is gone, and with
+ * markdown-first a design's pictures are in its note anyway, so there is
+ * nothing the note fails to show. `tests/test_framing.py` pins that the three
+ * routes still arrive here with the link's ID — that half was worth keeping.
  */
 async function locateAndOpen(noteId: string, project: string): Promise<void> {
   if (!sidecarBaseUrl) return;
-  const bench = designBenchTarget(noteId, await designsForLink());
-  if (bench) { void navigateTo(bench); return; }
   try {
     const resp = await fetch(
       `${sidecarBaseUrl}/api/cockpit/locate?id=${encodeURIComponent(noteId)}`,
@@ -911,25 +905,6 @@ async function locateAndOpen(noteId: string, project: string): Promise<void> {
     void navigateTo(found.rel);
   } catch (err) {
     showStatus(`Could not open ${noteId}: ${String(err)}`, 'error');
-  }
-}
-
-/** The design register of the project on screen, fetched now, for a link.
- *  Any failure gives an empty list, so the link opens the note as before.
- *
- *  Not `fetchDesignRegister()`: that keeps the last good list when a fetch
- *  fails, and right after a project switch that list belongs to the project
- *  the reader just left. A failed fetch would then send `DES-0002` to this
- *  project's bench, which says "No design DES-0002". */
-async function designsForLink(): Promise<LinkDesign[]> {
-  if (!sidecarBaseUrl) return [];
-  try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/designs`);
-    if (!resp.ok) return [];
-    const data = await resp.json() as { designs?: unknown };
-    return Array.isArray(data.designs) ? data.designs : [];
-  } catch {
-    return [];
   }
 }
 
@@ -3815,9 +3790,8 @@ cockpitApi.deeplink.onUrl((url) => { void openCockpitLink(url); });
  * given above `suppressLandingOnce`: the arriving workspace's landing page
  * would otherwise overwrite the page the link asked for.
  *
- * A note ID is resolved by `locateAndOpen`, so an ID that names a design with
- * something to show opens the design bench, not the note (REQ-0062). A path
- * is opened as it stands, even when it is a design note's file.
+ * A note ID is resolved by `locateAndOpen`, which opens the note. A path is
+ * opened as it stands, including a `~view/` page (FEAT-0148).
  */
 async function openCockpitLink(url: string): Promise<void> {
   const link = parseCockpitLink(url);
