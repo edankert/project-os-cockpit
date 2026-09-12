@@ -15,7 +15,7 @@ source: []
 goal: "Wrap the existing Python cockpit in an Electron app that can be pointed at all project-os repos on a system — without breaking the per-project Flask-style install or the Obsidian Bases workflow."
 related: ["[[FEAT-0003-Embedded-Terminal]]", "[[FEAT-0006-Cockpit-Layout]]", "[[ADR-0005-Electron-Plus-Python-Sidecar]]"]
 requirements: []
-tasks: ["[[TASK-0058]]", "[[TASK-0059]]", "[[TASK-0060]]", "[[TASK-0061]]", "[[TASK-0062]]", "[[TASK-0063]]", "[[TASK-0064]]", "[[TASK-0065]]", "[[TASK-0144]]", "[[TASK-0145]]"]
+tasks: ["[[TASK-0058]]", "[[TASK-0059]]", "[[TASK-0060]]", "[[TASK-0061]]", "[[TASK-0062]]", "[[TASK-0063]]", "[[TASK-0064]]", "[[TASK-0065]]", "[[TASK-0144]]", "[[TASK-0145]]", "[[TASK-0605]]"]
 release: ""
 
 ---

@@ -60,29 +60,38 @@ counters:
   CHG:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 145
-  ISS: 292
+  FEAT: 146
+  ISS: 298
   PHASE: 41
-  REQ: 61
+  REQ: 62
   RISK: 7
   # A place in the product a check's area: names (TASK-0514). No SUR-* note
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 604
-  TST: 83
+  TASK: 607
+  TST: 85
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: "FEAT-0145"
-  phase: "PHASE-037"
+  feature: "FEAT-0146"
+  phase: "PHASE-005"
   issue: ""
-  note: "2026-09-08: FEAT-0145 IS BUILT and is at `review` -- CHG-20260908-Preparing-A-Release-Is-One-Workflow. All eight tasks TASK-0597..0604 done, REQ-0061 implemented, TST-0082 covers it (33 tests in tests/test_release_workflow.py) and TST-0083 is the unwalked acceptance check. The release page now sets version and platform on a release that exists, abandons a draft that will not ship, settles the checks it owes without leaving the page, and lists what it ships that nothing verifies. Four endpoints: release-update, release-abandon, release-delete, release-settle. `abandoned` is a NEW RELEASE STATUS and landed UPSTREAM FIRST in ~/Dev/repos/project-os (STATUSES.md + validate-docs.py, both uncommitted there) before being mirrored here into tools/ AND into src/project_os_cockpit/validate_docs_bundled.py, which sync-project-os.sh does not cover. TWO GUARDS WERE REWRITTEN, not holed: test_no_write_path_to_a_check_appears_on_the_release_page became test_no_attestation_path_... and now checks askForMark ON ITS ARGUMENT (`only:` must be a subset of na/excused/blocked), and test_the_gate_is_built_before_what_is_in_the_release names its allowed set instead of forbidding every append. INDEPENDENT REVIEW RETURNED `changes-requested` 2026-09-08 and all six findings are acted on -- five failing tests (four were pinned counts and one guard whose stronger form was true only by accident), a platform-order guard that passed on its own mutant because open_releases sorts version-descending, an abandoned release vanishing from the publication navigator, four unreproducible numbers, five notes naming fields the code does not have. THE REVIEW ALSO CAUGHT ME: I reported the suite green three times from BACKGROUND runs whose output files were empty -- the wrapper's exit code, not pytest's. Only a foreground run with visible output counts. NOT DONE: the fleet sync (release-to-project-os.sh + template sync writes into eleven other repos). The decision that opens it: ADR-0041 narrows ADR-0035 for three of the seven marks -- na/excused/blocked are decisions about whether a check is in SCOPE, not attestations that somebody walked it, and excused has no meaning away from a release because the ledger it sits in IS the release. pass/partial/fail stay on ~checks and the settle endpoint refuses them BY NAME. Two things reach outside the feature: `abandoned` is a template-owned release status and lands UPSTREAM first (TASK-0599), and tests/test_release_held_back.py::test_no_write_path_to_a_check_appears_on_the_release_page asserts a claim now three marks too wide -- REWRITTEN, not holed (TASK-0601); seven passes of independent review defeated looser versions of that test. Homed in PHASE-037, reopened: FEAT-0145 is FEAT-0142's successor and amends that phase's own ADR-0035. Previously 2026-09-07: links in the record resolve -- CHG-20260907-Links-In-The-Record-Resolve. 25 wikilinks in note bodies pointed at nothing and the cockpit drew each as a broken link; 3 task notes (TASK-0182/0183/0187) had been ZERO-BYTE FILES since 21-22 July, so their work shipped and the notes held nothing (reconstructed from commits 15d732c and 3536687, never invented). External URLs were always clean -- the weekly link-check workflow only ever read those, and validate-docs.py reads frontmatter relationships, so nobody had read a link in a body. The guard is tests/test_record_links.py (wikilinks resolve, relative links point at a file, no note is zero bytes), in tests/ because tools/scripts/ is template-owned; proposed upstream. PHASE-015 (record hygiene, standing) reopened and re-closed the same day. THE COUNT WAS WRONG TWICE FIRST: 232 raw matches (206 are syntax examples inside code), then 26 line-by-line (an inline span wrapping a line break makes a false pair), then 25 whole-document. Previously 2026-09-06: four acceptance-checks defects fixed and PHASE-037 closed again -- see CHG-20260906-Acceptance-Checks-Keep-Their-Place-And-Their-Comments; ISS-0283 fixed the three tests that pinned your-trainer's outstanding work."
+  note: "2026-09-12: FEAT-0146 is DONE, REQ-0062 is implemented (Edwin approved it in the cockpit on 2026-09-12), and PHASE-005 is closed again. A link naming a design ID opens the design bench: designBenchTarget in desktop/src/renderer/deep-link.ts decides from the design register, locateAndOpen in renderer.ts asks it first. Four issues fixed in the same reopening, all older than the feature: ISS-0293/0294/0295 (2026-09-10), ISS-0296 and ISS-0297 (found walking TST-0085), ISS-0298 (found by the independent review, which returned changes-requested with all 11 findings acted on; finding 6 declined on ADR-0038). Suite 2246 passed, 6 skipped, 1 failed (the known test_release_evidence case, whose docstring says to delete the assertion now that REL-0007 is repaired). STILL OPEN, asked twice and unanswered: should an in-repo [[DES-####]] wikilink open the bench too? A yes reopens PHASE-005 for one task. TST-0085 carries no ledger entry: 3 of its 10 steps were walked in a renderer harness rather than the running window, so the pass is Edwin's to record. His window needs a restart to pick up ISS-0296/0297/0298. Previously 2026-09-08: FEAT-0145 is done and PHASE-037 is still active."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0146:
+      file: "docs/features/design-links/FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench.md"
+      title: "A link that names a design's ID opens the design bench, not the design's note"
+      status: done
+      owner: user:edwin
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      requirements: ["REQ-0062"]
+      tasks: ["TASK-0606", "TASK-0607"]
+      note: "DONE 2026-09-12. designBenchTarget in desktop/src/renderer/deep-link.ts decides from the design register (not the DES- prefix); locateAndOpen in renderer.ts asks it before /api/cockpit/locate, which covers cockpit:// links, cross-repo links and either kind parked across a project switch. navigateTo untouched, so everything that opens a design note by path still does. Independent review: changes-requested, all 11 findings acted on, verdict left standing (ISS-0253); finding 6 declined on ADR-0038. Walk TST-0085, 10 steps. Open question (unanswered): in-repo [[DES-####]] wikilinks."
     FEAT-0145:
       file: "docs/features/release-workflow/FEAT-0145-Preparing-A-Release-Is-One-Workflow.md"
       title: "Preparing a release is one workflow: name the version, say which platform, settle the checks it owes — instead of four endpoints, a hand-written note and a rule nobody can see"
@@ -829,6 +838,27 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0606:
+      file: "docs/features/design-links/plan/tasks/TASK-0606-The-Design-Register-Decides-Where-An-ID-Opens.md"
+      title: "One pure function decides whether a note ID opens the design bench, reading the project's design register rather than the ID's prefix"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0146
+      phase: "[[PHASE-005-Desktop-Shell]]"
+    TASK-0607:
+      file: "docs/features/design-links/plan/tasks/TASK-0607-Links-Resolved-By-ID-Open-A-Design-In-The-Bench.md"
+      title: "A cockpit:// link or a cross-repo link that names a design opens the bench, because the one place that resolves a link by ID asks that function first"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0146
+      phase: "[[PHASE-005-Desktop-Shell]]"
+    TASK-0605:
+      file: "docs/features/desktop-shell/plan/tasks/TASK-0605-A-Cockpit-Link-Opens-The-Page-It-Names.md"
+      title: "A cockpit:// link opens the page it names, in the project it names, and a script can send one to the window running from source"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0007
+      phase: "[[PHASE-005-Desktop-Shell]]"
     TASK-0597:
       file: "docs/features/release-workflow/plan/tasks/TASK-0597-The-Platform-Is-Offered-Not-Typed.md"
       title: "The platform a release could ship is offered, not typed — the ledgers and the notes say which platforms this repo has evidence for"
@@ -972,27 +1002,6 @@ items:
     TASK-0556:
       file: "docs/features/tests-view/plan/tasks/TASK-0556-Incomplete-First.md"
       title: "The nav sorts surfaces by percentage incomplete and lists incomplete checks first; the generated page moves incomplete rows to the top of their section"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0552:
-      file: "docs/features/tests-view/plan/tasks/TASK-0552-The-navs-surfaces-get-their-own-address-and-their-ow.md"
-      title: "The nav's surfaces get their own address and their own children"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0553:
-      file: "docs/features/tests-view/plan/tasks/TASK-0553-A-surface-row-draws-its-progress-and-a-payload-field.md"
-      title: "A surface row draws its progress, and a payload field no renderer reads is a failure"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0554:
-      file: "docs/features/tests-view/plan/tasks/TASK-0554-A-surface-carries-no-test-status.md"
-      title: "A surface carries no test status"
       status: done
       owner: user:edwin
       parent: FEAT-0128
@@ -1719,6 +1728,60 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0298:
+      file: "docs/issues/ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First.md"
+      title: "A link whose project switch is still in flight is opened by whichever project arrives first, so picking another project on the rail lands the link in a project it never named"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      severity: medium
+      component: desktop-renderer
+      note: "2026-09-11, from the independent review of FEAT-0146 (finding 9). Predates the feature: the parked jump arrived with FEAT-0093 and widened when TASK-0605 parked cockpit:// links. Fix: the sidecar-ready handler consumes a parked link only when the arriving workspace is the project the link names, and says so when it drops one. Not yet seen in the running window."
+    ISS-0297:
+      file: "docs/issues/ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner.md"
+      title: "After a project switch, a design note is shown without its banner, because the renderer looks it up in the previous project's list of designs"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      severity: low
+      component: desktop-renderer
+      note: "2026-09-11, found walking TST-0085 step 5: designRegister (the renderer's cached design list) survives a project switch, and the note page refetches it only when empty, so DES-0003 was looked up in your-health's list and drawn without its banner. Fix: openWorkspace clears it with the other per-project caches."
+    ISS-0296:
+      file: "docs/issues/ISS-0296-A-Link-That-Switches-Project-In-Overview-Leaves-The-Left-Pane-Unloaded.md"
+      title: "A link that switches project while the reader is in Overview opens its page, but the left pane is never loaded for the new project"
+      status: fixed
+      owner: user:edwin
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      severity: medium
+      component: desktop-renderer
+      note: "2026-09-11, reported by a your-health session and reproduced in the harness: in Overview mode the left pane is drawn only by rendering ~overview, and a link's switch suppresses that landing so the link's page wins (TASK-0605). Fix: when loadWsNav skips the Overview landing, it still fetches the phase list and draws the scope pane."
+    ISS-0295:
+      file: "docs/issues/ISS-0295-A-File-Change-Moves-The-Reader-Off-The-Open-Note.md"
+      title: "In Design, Publication and the landing views, any file change in the project moves the reader off the note they have open and onto the view's landing page"
+      status: fixed
+      owner: user:edwin
+      phase: ""
+      severity: high
+      component: desktop-renderer
+      note: "2026-09-10, found verifying ISS-0293: scheduleSoftReload calls loadWsNav to refresh the list, and loadWsNav also lands the mode on its page, so in Design mode every file write replaced the open note with ~design. Fix: loadWsNav({ land: false }) from the soft reload."
+    ISS-0294:
+      file: "docs/issues/ISS-0294-Images-In-A-Note-Are-Broken-In-The-Desktop-App.md"
+      title: "Every image in a note body is a broken icon in the desktop app, because the sidecar writes root-relative paths and the window's page is a local file"
+      status: fixed
+      owner: user:edwin
+      phase: ""
+      severity: high
+      component: desktop-renderer
+      note: "2026-09-10, found verifying ISS-0293 by screenshot: the sidecar renders img src=/docs/..., and the desktop's index.html is file://, so every note image resolves to file:///docs/... The CSP already allows http://127.0.0.1:*; the fix points root-relative img src at the active sidecar after the doc HTML is inserted."
+    ISS-0293:
+      file: "docs/issues/ISS-0293-A-Cockpit-Link-Opens-The-Project-But-Not-The-Page.md"
+      title: "A cockpit:// link opens the project it names but not the page, so nothing outside the window can put a document in front of the reader"
+      status: fixed
+      owner: user:edwin
+      phase: ""
+      severity: medium
+      component: desktop-shell
+      note: "2026-09-10, from a your-health session: an agent wrote a design note and could not open it in the window. The deep-link handler reads the host as a workspace hash and ignores the path. cockpit focus does not cover it, because the window listens only to the sidecar of the project on screen. Fix: host matches a project id too, the path or note ID is opened through the cross-repo jump's parked target, a second instance quits before whenReady, and desktop/scripts/open-link.sh delivers a link from source."
     ISS-0291:
       file: "docs/issues/ISS-0291-The-Fourth-Dated-Measurement-In-A-Corpus-Test.md"
       title: "A corpus test pinned the baseline tag as a literal, so it went red the day your-trainer shipped v2.1.8 — the fourth time a dated measurement has been written into an assertion about a live repo"
@@ -2855,6 +2918,14 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0062:
+      file: "docs/requirements/REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench.md"
+      title: "A link that names a design's ID opens that design in the design bench, and opens the design's note only when the design has nothing to show"
+      status: implemented
+      owner: user:edwin
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      implements: FEAT-0146
+      note: "Six criteria. Needs Edwin's approval before FEAT-0146 moves to doing (STATUSES.md, feature gate). The criterion most likely to be questioned is the second: a cross-repo link to a design now opens the bench, which narrows FEAT-0093's 'switches workspace and opens the note' for designs only."
     REQ-0061:
       file: "docs/requirements/REQ-0061-A-Release-Is-Written-Through-One-Workflow.md"
       title: "A release's version, platform and settled checks are written through one workflow, and every settle is an event carrying a reason and an author"
@@ -3332,6 +3403,8 @@ items:
       title: "Desktop shell (Electron + Python sidecar)"
       status: done
       path: "docs/phases/PHASE-005-Desktop-Shell.md"
+      features: ["FEAT-0007", "FEAT-0146"]
+      note: "REOPENED 2026-09-11 for FEAT-0146 (a link that names a design's ID opens the design bench). This phase is the desktop shell's home, and cockpit:// links are in FEAT-0007's scope; TASK-0605 (2026-09-10) already lives here. Close it again when FEAT-0146 is done (CLAUDE.md, reopen-and-close rule)."
     PHASE-006:
       title: "Native cockpit UI (TypeScript rewrite)"
       status: done
@@ -3381,6 +3454,26 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0084:
+      file: "docs/features/design-links/plan/tests/TST-0084-A-Design-ID-Opens-The-Bench-And-Other-IDs-Open-Their-Note.md"
+      title: "A design's ID opens the bench and every other ID opens its note: the rule runs in node, and a source guard pins where the renderer asks it"
+      status: active
+      owner: user:edwin
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      scope: feature
+      level: unit
+      features: [FEAT-0146]
+      note: "Planned, not written. The node half runs the built deep-link.js with no URL in scope, like the ISS-0293 parser test. The guard half reads renderer.ts, so it pins where the call is and not what the screen shows; TST-0085 is the walk that checks the screen."
+    TST-0085:
+      file: "docs/tests/acceptance/TST-0085-A-Link-To-A-Design-Shows-The-Design.md"
+      title: "A link to a design shows the design"
+      status: active
+      owner: user:edwin
+      phase: "[[PHASE-005-Desktop-Shell]]"
+      scope: feature
+      level: acceptance
+      features: [FEAT-0146]
+      note: "Walked in the running window with desktop/scripts/open-link.sh: your-health DES-0002 (has an artifact, and is proposed, so owed), project-os-cockpit DES-0003 (no artifact: opens the note), a feature ID, the note's path, the bench's ID chip, and the cross-repo link to project-os-deck#DES-0001 in PHASE-028's frontmatter."
     TST-0080:
       file: "docs/tests/TST-0080-The-Reconciliation-Writes-Only-What-The-Notes-Declare.md"
       title: "The backlink reconciliation writes only what the notes declare — it is idempotent, it never invents membership, and removal is reported before it happens"
@@ -3573,6 +3666,18 @@ items:
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260911-A-Link-That-Names-A-Design-Opens-The-Design-Bench:
+      title: "A link that names a design's ID now opens the design bench, not the design's note; and a link that switches project no longer leaves the left pane or a design note's banner behind"
+      status: merged
+      file: "docs/changes/CHG-20260911-A-Link-That-Names-A-Design-Opens-The-Design-Bench.md"
+      issues: ["ISS-0296", "ISS-0297", "ISS-0298"]
+      features: ["FEAT-0146"]
+    CHG-20260910-A-Cockpit-Link-Opens-The-Page-It-Names:
+      title: "A cockpit:// link now opens the page it names, in the project it names; images in a note load in the desktop app; and a file change no longer moves the reader off the open note"
+      status: merged
+      file: "docs/changes/CHG-20260910-A-Cockpit-Link-Opens-The-Page-It-Names.md"
+      issues: ["ISS-0293", "ISS-0294", "ISS-0295"]
+      features: ["FEAT-0007"]
     CHG-20260829-The-Fleet-Runs-One-Validator:
       title: "The fleet runs one validator — four repos migrated onto upstream's rules, two new scripts, and the drift is measured from now on"
       status: merged
@@ -4186,11 +4291,11 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 144
-    features_done: 132
-    tasks_total: 598
-    tasks_done: 562
-    tests_total: 48
+    features_total: 145
+    features_done: 133
+    tasks_total: 601
+    tasks_done: 565
+    tests_total: 49
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181

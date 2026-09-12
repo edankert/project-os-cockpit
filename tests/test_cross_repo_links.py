@@ -146,7 +146,12 @@ def test_the_jump_suppresses_the_arriving_landing_rather_than_racing_it() -> Non
     src = RENDERER.read_text(encoding="utf-8")
     assert "suppressLandingOnce" in src and "consumeLandingSuppression" in src
     nav = src.split("async function loadWsNav(", 1)[1].split("\nasync function", 1)[0]
-    assert "const skipLanding = consumeLandingSuppression();" in nav
+    # The suppression decides every landing. Since ISS-0295 a soft reload
+    # skips the landing outright, and that check comes FIRST so it does not
+    # consume a suppression armed for an arrival that has not happened yet.
+    assert re.search(
+        r"const skipLanding = opts\.land === false \|\| consumeLandingSuppression\(\);", nav
+    ), "skipLanding must come from the suppression, with land:false checked before it"
     # Every landing navigation inside loadWsNav is guarded.
     #
     # **A click handler is not one.** The race this guards is between an
@@ -169,6 +174,26 @@ def test_the_jump_suppresses_the_arriving_landing_rather_than_racing_it() -> Non
     # landing at all.
     ready = src.split("case 'ready': {", 1)[1].split("case 'failed'", 1)[0]
     assert "!pendingCrossRepoJump) void navigateTo('README.md')" in ready
+
+
+def test_a_skipped_overview_landing_still_loads_the_left_pane() -> None:
+    """ISS-0296. In Overview mode the left pane is drawn by rendering the
+    `~overview` page, and a link that switches project skips that page so its
+    own target wins. Skipping the pane with it left "Pick a workspace" on
+    screen, or the previous project's phases under the new project's name.
+    So the Overview branch draws the pane on the path that skips the page."""
+    from conftest import js_function_body
+    src = RENDERER.read_text(encoding="utf-8")
+    nav = js_function_body(src, "async function loadWsNav(")
+    overview = nav.split("if (currentNavMode === 'overview') {", 1)[1].split("return;", 1)[0]
+    assert re.search(
+        r"if \(!skipLanding\) void navigateTo\(target[^;]*;\s*(//[^\n]*\n\s*)*else void loadOverviewScopePane\(\);",
+        overview,
+    ), "the Overview branch skips the landing without drawing the left pane"
+    loader = js_function_body(src, "async function loadOverviewScopePane(")
+    assert "/api/cockpit/stats" in loader and "renderOverviewScopePane()" in loader
+    # A reply from the project the reader has since left is dropped.
+    assert "base !== sidecarBaseUrl" in loader
 
 
 def test_the_suppression_cannot_outlive_its_jump() -> None:

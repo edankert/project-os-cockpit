@@ -62,7 +62,7 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.stage.find` | find in page (⌘F) | `#find-bar` |
 | `shell.stage.quick-switch` | quick switch to any note (⌘P) | `#quick-switch` |
 | `shell.stage.capture` | file an issue at triage from anywhere | capture action |
-| `shell.reader.render` | a note rendered by the sidecar: frontmatter strip, wikilinks, cross-repo links (`project#ID`), image embeds, callouts, project-os IDs linked | `/api/render`, `renderer.py`, `wikilinks.py`, `callouts.py` |
+| `shell.reader.render` | a note rendered by the sidecar: frontmatter strip, wikilinks, cross-repo links (`project#ID`; one naming a design with an artifact or variants opens the design bench), image embeds (loaded from the sidecar in the desktop app too), callouts, project-os IDs linked; stays open through a file change in any mode | `/api/render`, `renderer.py`, `wikilinks.py`, `callouts.py`, `renderer.ts` `pointImagesAtSidecar` |
 | `shell.reader.actuators` | actuator row on a note: transition, tick a criterion with evidence, release gate, run a test, decide an ADR, mark or retire a check | `/api/notes/*` |
 | `shell.reader.design` | design pages: regions, comments, revisions, capture, offer for review, verdict | `/api/design/*`, `/api/cockpit/design-*` |
 | `shell.context.pane` | right pane: linked notes and backlinks grouped by type | `/api/cockpit/context` |
@@ -87,7 +87,7 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.validation` | validator report in the shell, failing notes marked | `/api/cockpit/validation` |
 | `shell.theme` | light and dark themes from the design system (DES-0002) | `cockpit:theme` |
 | `shell.settings` | settings popover (external hook) | `#settings-popover` |
-| `shell.windows` | New Window (a full second copy), window bounds persisted app-wide, deep links, context menus per surface, context-aware copy and paste | `main.ts`, `window-state.ts`, `ipc/context-menu.ts`, `ipc/clipboard.ts` |
+| `shell.windows` | New Window (a full second copy), window bounds persisted app-wide, deep links (`cockpit://<project>/<path or note ID>` opens that page in that project, and a note ID naming a design with an artifact or variants opens the design bench, `~design/<ID>`; `desktop/scripts/open-link.sh` sends one from source), context menus per surface, context-aware copy and paste | `main.ts`, `window-state.ts`, `ipc/context-menu.ts`, `ipc/clipboard.ts`, `renderer/deep-link.ts`, `scripts/open-link.sh` |
 | `shell.state.local` | nav mode, pane widths, theme, hide-completed, pins, follow, terminal open and height, design side, scope-completed, platform, left pane collapsed are kept in `localStorage`, read once at start | `renderer.ts` |
 
 ## Sidecar API

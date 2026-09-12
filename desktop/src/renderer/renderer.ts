@@ -592,6 +592,17 @@ function applyFleetHealthPayload(payload: unknown): void {
   refreshAttention();
 }
 
+// Declared by deep-link.js, loaded as a plain script before this one
+// (ISS-0293).
+declare function parseCockpitLink(url: string): {
+  project: string;
+  target: { kind: 'none' } | { kind: 'note'; id: string } | { kind: 'path'; rel: string };
+} | null;
+// Also from deep-link.js: where a link that names an ID lands (REQ-0062).
+// `LinkDesign` is the part of a design register entry that rule reads.
+interface LinkDesign { id: string; asset?: string; variants?: ReadonlyArray<unknown> }
+declare function designBenchTarget(noteId: string, designs: ReadonlyArray<LinkDesign>): string | null;
+
 // Declared by cache-temperature.js, loaded as a plain script before this
 // one (same arrangement as healthMarks).
 declare function cacheTemperature(
@@ -818,7 +829,9 @@ function withAlpha(color: string, alpha: number): string {
 // can answer the other's, which is why this is deferred through
 // `pendingCrossRepoJump` and consumed when the sidecar reports ready.
 
-let pendingCrossRepoJump: { project: string; noteId: string } | null = null;
+// A `cockpit://` link parks here too (ISS-0293), and may name a path rather
+// than an ID: `rel` is opened as it stands, `noteId` is located first.
+let pendingCrossRepoJump: { project: string; noteId?: string; rel?: string } | null = null;
 
 // A cross-repo jump has to beat the arriving workspace's own landing, and it
 // cannot win by being fast: both are async, and the landing has a head start.
@@ -841,6 +854,16 @@ function consumeLandingSuppression(): boolean {
   return true;
 }
 
+/** True when workspace `id` is the project a link named. A link names a
+ *  project id (`your-health`), and the shell's own workspace id is accepted
+ *  too, the same pair `openCockpitLink` matches on. */
+function workspaceIsProject(id: string, project: string): boolean {
+  const ws = workspaces.find((w) => w.id === id);
+  const wanted = project.toLowerCase();
+  return !!ws && (ws.id.toLowerCase() === wanted
+    || (ws.projectId ?? '').toLowerCase() === wanted);
+}
+
 async function jumpToCrossRepoNote(project: string, noteId: string): Promise<void> {
   const target = workspaces.find((w) => w.projectId === project);
   if (!target) {
@@ -860,8 +883,21 @@ async function jumpToCrossRepoNote(project: string, noteId: string): Promise<voi
   await openWorkspace(target.id);
 }
 
+/**
+ * Open the note `noteId` names in the project on screen. Every link resolved
+ * by ID passes through here: a `cockpit://` link, a cross-repo link, and
+ * either kind parked while the window switched project.
+ *
+ * An ID that names a design with something to show opens the design bench,
+ * `~design/<ID>`, instead of the note (REQ-0062). The design register decides
+ * that, through `designBenchTarget` in deep-link.ts. The rule lives here and
+ * not in `navigateTo`, because the bench's ID chip, its `Read <ID> as a note`
+ * button and an owed design's landing row open the note by path on purpose.
+ */
 async function locateAndOpen(noteId: string, project: string): Promise<void> {
   if (!sidecarBaseUrl) return;
+  const bench = designBenchTarget(noteId, await designsForLink());
+  if (bench) { void navigateTo(bench); return; }
   try {
     const resp = await fetch(
       `${sidecarBaseUrl}/api/cockpit/locate?id=${encodeURIComponent(noteId)}`,
@@ -875,6 +911,25 @@ async function locateAndOpen(noteId: string, project: string): Promise<void> {
     void navigateTo(found.rel);
   } catch (err) {
     showStatus(`Could not open ${noteId}: ${String(err)}`, 'error');
+  }
+}
+
+/** The design register of the project on screen, fetched now, for a link.
+ *  Any failure gives an empty list, so the link opens the note as before.
+ *
+ *  Not `fetchDesignRegister()`: that keeps the last good list when a fetch
+ *  fails, and right after a project switch that list belongs to the project
+ *  the reader just left. A failed fetch would then send `DES-0002` to this
+ *  project's bench, which says "No design DES-0002". */
+async function designsForLink(): Promise<LinkDesign[]> {
+  if (!sidecarBaseUrl) return [];
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/designs`);
+    if (!resp.ok) return [];
+    const data = await resp.json() as { designs?: unknown };
+    return Array.isArray(data.designs) ? data.designs : [];
+  } catch {
+    return [];
   }
 }
 
@@ -893,6 +948,17 @@ document.addEventListener('click', (ev) => {
 
 async function openWorkspace(id: string): Promise<void> {
   if (id === activeId) return;
+  // A parked link belongs to the project it names, and to no other (ISS-0298).
+  // Going somewhere else drops it HERE rather than on arrival, because the
+  // landing it suppressed is decided before the link is consumed — dropping
+  // it later left the reader on the project they picked with an empty centre
+  // pane.
+  let droppedLink = '';
+  if (pendingCrossRepoJump && !workspaceIsProject(id, pendingCrossRepoJump.project)) {
+    droppedLink = pendingCrossRepoJump.noteId || pendingCrossRepoJump.rel || 'the link';
+    pendingCrossRepoJump = null;
+    suppressLandingOnce = false;
+  }
   activeId = id;
   // Selecting a project releases every card you dismissed on it (TASK-0420).
   // A stronger signal than any card: you are looking at it. Nothing else
@@ -944,6 +1010,10 @@ async function openWorkspace(id: string): Promise<void> {
   //: within a workspace, never across one.
   checksData = null;
   checksHistory = {};
+  //: The design list is one repo's too. A design note looks itself up in it
+  //: for its banner and refetches only when it is empty, so a list left from
+  //: the project you left drew the note with no banner ([[ISS-0297]]).
+  designRegister = [];
   // Centre tabs are per-workspace context — reset on switch (TASK-0159).
   agentsTabOpen = false;
   lastDocRel = null;
@@ -958,7 +1028,12 @@ async function openWorkspace(id: string): Promise<void> {
   setSidecarStatus('spawning');
   refreshFooterPath();
   refreshFooterAgent();
-  showStatus('Starting cockpit…');
+  // Said after the spawn line, not before it, or it is overwritten within the
+  // same turn and the reader never learns why their link did not open. The
+  // footer's `spawning` state is the other half of what that line said.
+  showStatus(droppedLink
+    ? `${droppedLink} was not opened: you switched to another project.`
+    : 'Starting cockpit…');
   const res = await cockpitApi.workspaces.open(id);
   if (!res.ok) {
     showStatus(`Failed to open workspace: ${res.error ?? 'unknown error'}`, 'error');
@@ -1006,7 +1081,20 @@ cockpitApi.sidecar.onEvent((ev) => {
       if (pendingCrossRepoJump) {
         const jump = pendingCrossRepoJump;
         pendingCrossRepoJump = null;
-        void locateAndOpen(jump.noteId, jump.project);
+        // Only the project the link names may consume it (ISS-0298). Picking
+        // another project on the rail while the switch is in flight used to
+        // hand the parked link to whichever workspace reported ready next, so
+        // the link opened a page in a project it never named. `openWorkspace`
+        // drops such a link already; this is the same rule at the other end,
+        // for a `ready` that arrives without one.
+        const mine = workspaceIsProject(p.workspaceId, jump.project);
+        if (!mine) {
+          showStatus(`${jump.noteId || jump.rel} was not opened: you switched to another project.`);
+        } else if (jump.rel) {
+          void navigateTo(jump.rel);
+        } else if (jump.noteId) {
+          void locateAndOpen(jump.noteId, jump.project);
+        }
       }
       void renderInboxPanel();
       // ISS-0149: the badges' own refresh bails on `!sidecarBaseUrl`, and on a
@@ -1201,6 +1289,23 @@ function buildDocHeader(data: RenderResponse, rel: string): HTMLElement {
   if (right.childElementCount > 0) row.appendChild(right);
   bar.appendChild(row);
   return bar;
+}
+
+/**
+ * Point every root-relative image in `root` at the active sidecar (ISS-0294).
+ *
+ * The sidecar renders a note's images as `/docs/…`, which is right in a browser
+ * tab served by that sidecar. This window's page is `file://`, so the same path
+ * resolved to `file:///docs/…` and every image in every note was a broken icon.
+ * A protocol-relative `//host/…` is left alone; it names its own host.
+ */
+function pointImagesAtSidecar(root: HTMLElement): void {
+  if (!sidecarBaseUrl) return;
+  root.querySelectorAll<HTMLImageElement>('img[src^="/"]').forEach((img) => {
+    const src = img.getAttribute('src') || '';
+    if (src.startsWith('//')) return;
+    img.setAttribute('src', `${sidecarBaseUrl}${src}`);
+  });
 }
 
 async function navigateTo(
@@ -1436,6 +1541,7 @@ async function navigateToInner(
   // wikilinks already turned into `<a>` tags. The click handler on
   // #doc-view intercepts links in either section identically.
   docView.innerHTML = (data.metadata_html || '') + data.html;
+  pointImagesAtSidecar(docView);
   docView.classList.remove('overview-pane', 'agents-page',
     'design-page', 'is-design-shell');
   docView.hidden = false;
@@ -2360,6 +2466,7 @@ async function fillCheckProse(target: HTMLElement, rel: string): Promise<void> {
     const data = (await resp.json()) as RenderResponse;
     if (!data.html) return;
     target.innerHTML = data.html;
+    pointImagesAtSidecar(target);
     //: The note opens with the same `# Title` the dialog's own heading
     //: carries, and printing it twice, six pixels apart, reads as a bug.
     const first = target.querySelector('h1');
@@ -3681,18 +3788,54 @@ async function dispatchSelectionAsPrompt(text: string): Promise<void> {
   scheduleHide(2000);
 }
 
-cockpitApi.deeplink.onUrl((url) => {
-  // cockpit://<workspace-id>/<target>
-  showStatus(`Deeplink received: ${url}`);
-  scheduleHide(2000);
-  try {
-    const u = new URL(url);
-    const wsId = u.host;
-    if (wsId) void openWorkspace(wsId);
-  } catch {
-    /* malformed URL — already surfaced via showStatus */
+cockpitApi.deeplink.onUrl((url) => { void openCockpitLink(url); });
+
+/**
+ * Open what a `cockpit://<project>/<target>` link names (ISS-0293).
+ *
+ * This used to switch to the workspace and stop: the target was never read,
+ * so nothing outside the window could put a page in front of the reader. The
+ * project is matched by project id as well as workspace id, because a person
+ * or an agent writing a link knows `your-health` and cannot know the hash.
+ *
+ * A switch goes through the cross-repo jump's parked target, for the reason
+ * given above `suppressLandingOnce`: the arriving workspace's landing page
+ * would otherwise overwrite the page the link asked for.
+ *
+ * A note ID is resolved by `locateAndOpen`, so an ID that names a design with
+ * something to show opens the design bench, not the note (REQ-0062). A path
+ * is opened as it stands, even when it is a design note's file.
+ */
+async function openCockpitLink(url: string): Promise<void> {
+  const link = parseCockpitLink(url);
+  if (!link) {
+    showStatus(`Not a cockpit link: ${url}`, 'error');
+    return;
   }
-});
+  const wanted = link.project.toLowerCase();
+  const ws = workspaces.find((w) =>
+    w.id.toLowerCase() === wanted || (w.projectId ?? '').toLowerCase() === wanted);
+  if (!ws) {
+    showStatus(`No project “${link.project}” on this machine.`, 'error');
+    return;
+  }
+  const project = ws.projectId ?? ws.id;
+  const target = link.target;
+  if (target.kind === 'none') {
+    await openWorkspace(ws.id);
+    return;
+  }
+  if (ws.id === activeId && sidecarBaseUrl) {
+    if (target.kind === 'path') void navigateTo(target.rel);
+    else void locateAndOpen(target.id, project);
+    return;
+  }
+  pendingCrossRepoJump = target.kind === 'path'
+    ? { project, rel: target.rel }
+    : { project, noteId: target.id };
+  suppressLandingOnce = true;
+  await openWorkspace(ws.id);
+}
 
 // Vertical resize via divider drag.
 terminalDivider.addEventListener('mousedown', (downEv) => {
@@ -5489,11 +5632,17 @@ function setDesignSideOpen(open: boolean): void {
 }
 
 async function fetchDesignRegister(): Promise<DesignRecord[]> {
-  if (!sidecarBaseUrl) return [];
+  const base = sidecarBaseUrl;
+  if (!base) return [];
   try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/designs`);
+    const resp = await fetch(`${base}/api/cockpit/designs`);
     if (!resp.ok) return [];
     const data = await resp.json() as { designs?: DesignRecord[] };
+    // A reply from the project the reader has since left never lands
+    // (independent review, ISS-0297). `openWorkspace` clears this list on a
+    // switch, and a request already in flight would otherwise refill it with
+    // the previous project's designs — the symptom that reset removes.
+    if (base !== sidecarBaseUrl) return designRegister;
     designRegister = Array.isArray(data.designs) ? data.designs : [];
   } catch { /* keep the last good register */ }
   return designRegister;
@@ -7633,6 +7782,7 @@ async function fillReviewNoteBody(target: HTMLElement, rel: string): Promise<voi
     const data = (await resp.json()) as RenderResponse;
     // Same mount as the centre pane: metadata strip then body.
     target.innerHTML = (data.metadata_html || '') + data.html;
+    pointImagesAtSidecar(target);
     // Links inside a reviewed note stay navigable; the doc-view click
     // handler only covers #doc-view, so wire this subtree explicitly.
     target.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) => {
@@ -12834,16 +12984,30 @@ document.addEventListener('keydown', (e) => {
   if (!platformMenu.hidden && e.key === 'Escape') closePlatformMenu();
 });
 
-async function loadWsNav(): Promise<void> {
+/**
+ * Load the left pane for the current mode and, unless told not to, land the
+ * mode on its page.
+ *
+ * `land: false` is the soft reload's call (ISS-0295). A file change refreshes
+ * the list; it is not a request to leave the note that is open. Checked before
+ * `consumeLandingSuppression`, so a suppression armed for an arriving jump is
+ * still there when the arrival's own call comes.
+ */
+async function loadWsNav(opts: { land?: boolean } = {}): Promise<void> {
   if (!sidecarBaseUrl) return;
   // Checked once at the top: exactly one landing branch runs per call, and
   // reading it per-branch would clear it in whichever happened to be first.
-  const skipLanding = consumeLandingSuppression();
+  const skipLanding = opts.land === false || consumeLandingSuppression();
   if (currentNavMode === 'overview') {
     // Overview is a virtual page (FEAT-0023 / TASK-0130): route through
     // navigateTo so it lands in history and back/forward can reach it.
     const target = overviewScope ? `~overview/${overviewScope}` : '~overview';
     if (!skipLanding) void navigateTo(target, { replace: currentRel === target });
+    // The left pane is drawn by rendering that page. A link that switched
+    // project skips the page so its own target wins, and must not skip the
+    // pane with it: the pane read "Pick a workspace", or listed the previous
+    // project's phases under the new project's name (ISS-0296).
+    else void loadOverviewScopePane();
     return;
   }
   if (currentNavMode === 'review') {
@@ -15407,7 +15571,7 @@ function scheduleSoftReload(): void {
         void refreshOverviewInPlace();
         return;
       }
-      void loadWsNav();
+      void loadWsNav({ land: false });
       if (currentRel && !currentRel.startsWith('~')) {
         void loadRightPane(currentRel);
         // Hold the reader's place. A file changing under an open document is
@@ -18142,6 +18306,25 @@ function buildScopeRow(
     void navigateTo(target);
   });
   return row;
+}
+
+/** The Overview's left pane without its page (ISS-0296): the project's
+ *  phase list, fetched from the sidecar on screen and drawn only if that is
+ *  still the sidecar on screen when it arrives. */
+async function loadOverviewScopePane(): Promise<void> {
+  const base = sidecarBaseUrl;
+  if (!base) return;
+  try {
+    const r = await fetch(`${base}/api/cockpit/stats`);
+    if (!r.ok) return;
+    const phases = ((await r.json()) as StatsPayload).phases;
+    // Checked after the body is read, not before it: a switch while the reply
+    // is still arriving would otherwise draw the project the reader left,
+    // which is this issue's own symptom (independent review, ISS-0296).
+    if (base !== sidecarBaseUrl) return;
+    scopePhaseList = phases;
+    renderOverviewScopePane();
+  } catch { /* the pane fills on the next overview visit */ }
 }
 
 function renderOverviewScopePane(): void {

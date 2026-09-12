@@ -460,6 +460,12 @@ function buildMenu(): void {
 }
 
 app.whenReady().then(() => {
+  // A second instance exists only to hand its argv to the first, through
+  // `second-instance` above, and `app.quit()` does not stop this callback from
+  // running first. Without this return a second `electron . cockpit://…` built
+  // the menu, registered every IPC handler and started the agent-state poller
+  // and the url janitor before quitting (ISS-0293).
+  if (!gotLock) return;
   buildMenu();
   registerWorkspaceIpc();
   registerSidecarIpc({ getActiveWindow: () => mainWindow });
@@ -734,6 +740,8 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', (event) => {
+  // A second instance started nothing, so it has nothing to stop (ISS-0293).
+  if (!gotLock) return;
   // Quit guard (ISS-0008 / TASK-0145): fallback (non-tmux) terminals
   // die with us, so a graceful quit while an agent is mid-flight in
   // one deserves a deliberate confirmation. tmux-backed agents keep

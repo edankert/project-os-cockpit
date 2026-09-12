@@ -647,7 +647,7 @@ def test_the_tests_view_remembers_where_it_was_per_workspace() -> None:
     assert "cockpit:checks-place:${workspaceId}" in src, (
         "per workspace, like pinned documents and the platform picker — one "
         "repo's areas and covers: ids mean nothing in the next")
-    body = js_function_body(src, "async function loadWsNav()")
+    body = js_function_body(src, "async function loadWsNav(")
     assert "loadChecksPlace(activeId)" in body, (
         "the landing must read the stored place, or the Tests view goes on "
         "landing on ~tests and the fix is unreachable")

@@ -38,7 +38,7 @@ The cockpit is the only tool that can fix this. It discovers every `SNAPSHOT.yam
 - [x] Every workspace has a stable, writable **project id** — `project.id` in `SNAPSHOT.yaml`, defaulting to the repo's directory name, exposed on the workspace and in the sidecar's own payloads.
 - [x] `[[project-os-dev#ADR-0011]]` renders as a **link**, not as broken-wikilink text, in the note body and in the frontmatter strip — both of the two consumers `wikilinks.py` names.
 - [x] The link carries the two parts as data rather than a guessed URL: the sidecar cannot resolve another repo and must not pretend to.
-- [x] Clicking it **switches workspace and opens the note**, and back returns to where you were.
+- [x] Clicking it **switches workspace and opens the note**, and back returns to where you were. *(Narrowed 2026-09-11 by [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]: if the ID names a design with an artifact or variants, the link opens that design in the design bench instead of its note. Every other ID still opens the note.)*
 - [x] A reference to a project that is not on this machine says so and does not navigate — an unresolvable cross-repo link must not look identical to a resolvable one.
 - [x] `[[ADR-0011]]` with no prefix keeps its current meaning exactly: this repo, or broken. No existing link changes behaviour.
 

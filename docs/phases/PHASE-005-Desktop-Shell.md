@@ -7,9 +7,14 @@ status: done
 order: 5
 owner: user:edwin
 created: 2026-05-24
-updated: 2026-07-20
+updated: 2026-09-12
 features:
   - "[[FEAT-0007-Desktop-Shell]]"
+  - "[[FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]"
+issues:
+  - "[[ISS-0296-A-Link-That-Switches-Project-In-Overview-Leaves-The-Left-Pane-Unloaded]]"
+  - "[[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]]"
+  - "[[ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First]]"
 depends: ["[[PHASE-002-Project-OS-Adapter]]"]
 ---
 
@@ -59,6 +64,7 @@ project-os-adapter logic stays in one place and is not re-implemented.
   Obsidian, unmodified (mode 2 preserved).
 - An agent running `cockpit focus <id>` from any terminal — including the desktop
   app's own terminal — drives the desktop app's view.
+- [x] Reopened 2026-09-11: a link that names a design's ID opens that design in the design bench, and opens the design's note only when the design has nothing to show ([[FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench]], [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]). — evidence: REQ-0062 `implemented` on 2026-09-12 with all six criteria ticked; [[TST-0085-A-Link-To-A-Design-Shows-The-Design]] walked, 10 steps; [[CHG-20260911-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]. The bullets above are the original criteria, met at the 2026-07-20 close and written before this repo used checkboxes for exit criteria.
 
 ## Dependencies
 - PHASE-002 (project-os adapter / cockpit layout) — the sidecar is what PHASE-002
@@ -86,3 +92,17 @@ project-os-adapter logic stays in one place and is not re-implemented.
 ## Close-out (2026-07-20)
 
 The Electron desktop shell is complete and closed (FEAT-0007): per-workspace Python sidecar lifecycle, multi-workspace discovery/persistence, native window/menus/deep-links, tmux survivability + quit guard. Distribution (signing/notarization, TASK-0065) is deferred until external sharing matters. No open items remain.
+
+## Reopened 2026-09-11
+
+This phase is open again as the home for [[FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench]]: a link that names a design's ID opens the design bench instead of the design's note. `cockpit://` links are in [[FEAT-0007-Desktop-Shell]]'s scope, and the link fix of 2026-09-10 ([[TASK-0605-A-Cockpit-Link-Opens-The-Page-It-Names]]) was filed here without the phase being reopened.
+
+This repo's CLAUDE.md says a single request joins the standing phase for the surface it touches, rather than opening a phase of its own. A standing phase is reopened when work arrives and closed again when the work is done. Close this phase again when FEAT-0146 is done, after ticking the criterion added above.
+
+## Closed again (2026-09-12)
+
+[[FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench]] is `done` and [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]] is `implemented`, approved by Edwin the same day. The phase's one reopened criterion is ticked.
+
+Four issues were resolved in this reopening, and only the first was known when it started: [[ISS-0293-A-Cockpit-Link-Opens-The-Project-But-Not-The-Page]] (with [[ISS-0294-Images-In-A-Note-Are-Broken-In-The-Desktop-App]] and [[ISS-0295-A-File-Change-Moves-The-Reader-Off-The-Open-Note]], all 2026-09-10), then [[ISS-0296-A-Link-That-Switches-Project-In-Overview-Leaves-The-Left-Pane-Unloaded]] and [[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]], found by walking [[TST-0085-A-Link-To-A-Design-Shows-The-Design]], and [[ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First]], found by the independent review. Each was older than the feature that surfaced it.
+
+One question is left open and is not this phase's to answer: whether an in-repo `[[DES-####]]` wikilink should open the design bench. It is recorded in FEAT-0146. If Edwin says yes, this phase reopens for it — which is what a standing phase is for.
