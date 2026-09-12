@@ -63,16 +63,17 @@ TEST_RUN_FIELDS: frozenset[str] = frozenset({
 #: It is in the allow-list because it IS written, not as an exception.
 BOOKKEEPING_FIELDS: frozenset[str] = frozenset({"updated"})
 
-#: Fields a design review verdict may touch. `design_revision` records WHICH
-#: revision was accepted — without it an approval given to v3 silently launders
-#: v6, which is the one way a design review can be worse than none.
+#: Fields a design review verdict may touch.
+#:
+#: `design_revision` recorded WHICH revision was accepted. Nothing writes it
+#: since 2026-09-12 (FEAT-0148, RISK-0009) — the endpoint that did went with
+#: the design bench — and it stays in this set because **three notes still
+#: carry a value**: this repo's DES-0002 and DES-0004, and DES-0009. Dropping
+#: it from the allow-list would make those files unwritable through the
+#: actuator row for a field nobody is adding.
 DESIGN_REVIEW_FIELDS: frozenset[str] = frozenset({
     "reviewed_by", "review_date", "review_verdict", "design_revision",
 })
-
-#: Fields a design capture may touch. Nothing about status or review — a
-#: capture records that a revision happened, never that it was any good.
-DESIGN_CAPTURE_FIELDS: frozenset[str] = frozenset({"updated"})
 
 ALLOWED_FIELDS: frozenset[str] = (
     REVIEW_FIELDS | TEST_RUN_FIELDS | BOOKKEEPING_FIELDS | DESIGN_REVIEW_FIELDS
@@ -227,25 +228,23 @@ SEVERITIES: frozenset[str] = frozenset({"critical", "high", "medium", "low"})
 #: Types whose verdict must NOT go through the generic transition path, and
 #: the endpoint that owns each one instead (TASK-0375).
 #:
-#: **This is ISS-0056's hazard, and the generic table re-opened it.** A design
-#: accepted through `/api/notes/transition` gets `status: accepted` and no
-#: `design_revision` — so an approval given to revision 3 silently covers
-#: revision 6, which is the one way a design review is worse than no review at
-#: all. Rejection is worse still: it would write `cancelled` onto a design that
-#: may already be `implemented`.
+#: **Empty since 2026-09-12, and deliberately kept** (FEAT-0148 / RISK-0009).
+#: It held one entry, `design -> /api/design/verdict`, built by TASK-0218 so a
+#: design verdict named the revision it judged: an approval given to revision 3
+#: could not silently cover revision 6, which is ISS-0056's hazard and the one
+#: way a design review is worse than no review at all.
 #:
-#: TASK-0218 built `/api/design/verdict` precisely to make a verdict name the
-#: revision it judged, and validates that revision against real git history.
-#: The actuator row still offers the buttons — the vocabulary stays in this
-#: table — but they carry the endpoint that has to serve them.
-#: The value is the route itself, not a nickname for it: the renderer posts to
-#: what it is sent, and the refusal message below can name the real URL. A
-#: nickname needed translating on both sides, and got it wrong on the first
-#: try — the message said `/api/design-verdict`, an endpoint that does not
-#: exist, which is the kind of error a person reads and then cannot act on.
-VERDICT_ENDPOINTS: dict[str, str] = {
-    "design": "/api/design/verdict",
-}
+#: That endpoint went with the design bench, on Edwin's call — *"Drop the
+#: binding for now!"* — so a design's Accept and Decline now go through
+#: `/api/notes/transition` like every other type's. **The buttons were never
+#: the bench's**; only the endpoint behind them was. What is given up is the
+#: binding, and `RISK-0009` records it as an accepted risk rather than a
+#: solved problem: markdown-first weakened it anyway, since a design with no
+#: artifact has no artifact revision to name.
+#:
+#: The table stays because the mechanism is right and the way back is to add
+#: one entry: a verdict naming the commit of whatever the design IS.
+VERDICT_ENDPOINTS: dict[str, str] = {}
 
 #: What each verdict-routed action means to its endpoint, keyed by
 #: (type, target status). The endpoint speaks `verdict` + `accept`, not
@@ -253,10 +252,13 @@ VERDICT_ENDPOINTS: dict[str, str] = {
 #: table the verbs come from. A renderer inferring `accept` from the button's
 #: tone (or its label) is the status vocabulary leaking into TypeScript one
 #: field at a time, which is ISS-0023 in a new costume.
-VERDICT_SEMANTICS: dict[tuple[str, str], dict[str, Any]] = {
-    ("design", "accepted"): {"verdict": "approved", "accept": True},
-    ("design", "cancelled"): {"verdict": "changes-requested", "accept": False},
-}
+#: **Empty since 2026-09-12**, with `VERDICT_ENDPOINTS`. It held the two
+#: design entries that told the renderer what `Accept` and `Decline` meant to
+#: `/api/design/verdict`; with no type routed away from the generic path there
+#: is nothing to translate, and `legal_actions` reads it only when an endpoint
+#: is set. Kept beside the table it serves, so a type that needs its own
+#: endpoint again gets both halves in one place.
+VERDICT_SEMANTICS: dict[tuple[str, str], dict[str, Any]] = {}
 
 
 def legal_actions(
@@ -1029,125 +1031,6 @@ _COMMENT_RE = re.compile(
     r"(?: · (?P<author>[^—]+?))? — (?P<text>.+)$",
     re.MULTILINE,
 )
-
-
-def append_design_comment(
-    body: str, *, region: str, date: str, author: str, text: str,
-) -> str:
-    """Add one region-anchored comment under ``## Review``.
-
-    The anchor is a **region id, never a coordinate**. Pixel pins die on the
-    next revision, and the founding artifact went through six in one session —
-    coordinate anchoring would have produced a comment set that was worthless
-    by v2.
-
-    A region of ``""`` is the document-level lane, for criticism that has no
-    region: "too much violet everywhere", or a complaint about the relationship
-    between two areas. Inventing a region to host those would make the region
-    list a fiction.
-    """
-    label = region.strip() or "(document)"
-    who = f" · {author.strip()}" if author.strip() else ""
-    entry = f"- **{label}** · {date}{who} — {text.strip()}"
-    match = _REVIEW_HEADING_RE.search(body)
-    if not match:
-        return body.rstrip("\n") + "\n\n## Review\n\n" + entry + "\n"
-    rest = body[match.end():]
-    next_heading = re.search(r"^##\s", rest, re.MULTILINE)
-    cut = match.end() + (next_heading.start() if next_heading else len(rest))
-    head, tail = body[:cut], body[cut:]
-    return head.rstrip("\n") + "\n" + entry + "\n\n" + tail.lstrip("\n")
-
-
-def read_design_comments(body: str) -> list[dict[str, str]]:
-    """Parse ``## Review`` back into comments, in written order."""
-    match = _REVIEW_HEADING_RE.search(body)
-    if not match:
-        return []
-    rest = body[match.end():]
-    next_heading = re.search(r"^##\s", rest, re.MULTILINE)
-    section = rest[:next_heading.start()] if next_heading else rest
-    out = []
-    for m in _COMMENT_RE.finditer(section):
-        region = m.group("region").strip()
-        out.append({
-            "region": "" if region == "(document)" else region,
-            "date": m.group("date"),
-            "author": (m.group("author") or "").strip(),
-            "text": m.group("text").strip(),
-        })
-    return out
-
-
-def stamp_design_verdict(
-    index: Index,
-    note_id: str,
-    *,
-    reviewer: str,
-    verdict: str,
-    revision: str,
-    accept: bool | None = None,
-    mtime: float | None = None,
-) -> dict[str, Any]:
-    """Record a design review verdict, pinned to the revision it judged.
-
-    ``design_revision`` is the field that makes this honest. A verdict given to
-    v3 says nothing about v6, and a design surface that lost that distinction
-    would let an old approval launder a new design — the one way a design
-    review is worse than no review at all.
-
-    ``accept`` optionally advances the status through ``DECIDE_TRANSITIONS``:
-    ``accepted`` or ``cancelled``. Note that accepting a design does **not**
-    make it ``implemented`` — that is what the code shipping means, and only
-    the parity check can honestly claim it.
-    """
-    path = resolve_note(index, note_id)
-    record = index.get(path)
-    note_type = (getattr(record, "note_type", "") or "").lower()
-    if note_type != "design":
-        raise WriteError(f"{note_id} is a {note_type or 'note'}, not a design",
-                         status=409)
-    _check_mtime(path, mtime)
-
-    text = path.read_text(encoding="utf-8")
-    fm_lines, body = _split_frontmatter(text)
-    today = _dt.date.today().isoformat()
-
-    fm_lines = _set_field(fm_lines, "reviewed_by", reviewer)
-    fm_lines = _set_field(fm_lines, "review_date", today)
-    fm_lines = _set_field(fm_lines, "review_verdict", verdict)
-    fm_lines = _set_field(fm_lines, "design_revision", revision)
-    fm_lines = _set_field(fm_lines, "updated", today)
-
-    new_status = None
-    if accept is not None:
-        transitions = DECIDE_TRANSITIONS["design"]
-        candidate = transitions[0] if accept else transitions[1]
-        # Never move a design BACKWARDS (ISS-0056 round 2). `accepted` means
-        # "agreed, not yet built"; `implemented` means the code shipped. A
-        # design at `implemented` that is accepted at a revision would be
-        # demoted to a status that is no longer true — and every design that
-        # can be offered for review today is `implemented`, which is this
-        # feature's own premise. The verdict is still recorded; only the
-        # status move is declined, because the verdict is the honest part.
-        current = str(_get_field(fm_lines, "status") or "").strip().strip('"')
-        # Settled first, and for BOTH verdicts. The round-2 fix guarded only
-        # `accept`, so Reject still wrote `cancelled` over `implemented` — the
-        # mirror of the bug it fixed, and invisible to rank because `cancelled`
-        # sits above `implemented`.
-        if current in _DESIGN_SETTLED:
-            new_status = None
-        else:
-            # Unknown status fails CLOSED — it used to be demoted silently.
-            known = current in _DESIGN_KNOWN_STATUSES or not current
-            new_status = candidate if known else None
-        if new_status:
-            fm_lines = _set_field(fm_lines, "status", new_status)
-
-    path.write_text("---\n" + "\n".join(fm_lines) + "\n---\n" + body,
-                    encoding="utf-8")
-    return {"ok": True, "id": note_id, "verdict": verdict,
-            "design_revision": revision, "status": new_status}
 
 
 def append_revision_log(body: str, *, date: str, reason: str) -> str:
@@ -2748,61 +2631,6 @@ def attach_capture(
 
 
 CHOOSE_VARIANT_KEYS: frozenset[str] = frozenset({"id", "variant", "actor", "mtime"})
-
-
-def stamp_chosen_variant(
-    index: Index,
-    note_id: str,
-    *,
-    variant: str,
-    actor: str = "",
-    mtime: float | None = None,
-) -> dict[str, Any]:
-    """Record which variant a design chose (TASK-0302).
-
-    Writes `chosen_variant` and nothing else — **it does not accept the
-    design**. Choosing a shape and accepting a design are two judgments, and
-    collapsing them would let a click on a thumbnail carry an acceptance
-    nobody made. Acceptance still goes through `stamp_design_verdict`, pinned
-    to the revision it judged (ISS-0056's rule).
-
-    The variant must exist in the note. A `chosen_variant` naming a section
-    that was never written is a record of a decision about nothing.
-    """
-    from .cockpit import design_variants
-
-    wanted = (variant or "").strip()
-    if not wanted:
-        raise WriteError("a choice needs the variant's name")
-    path = resolve_note(index, note_id)
-    record = index.get(path)
-    if (record.note_type if record else "") != "design":
-        raise WriteError(f"{note_id} is not a design; variants live on designs")
-    _check_mtime(path, mtime)
-
-    text = path.read_text(encoding="utf-8")
-    names = [v["name"] for v in design_variants(text)]
-    if wanted not in names:
-        raise WriteError(
-            f"{note_id} has no variant named {wanted!r} "
-            f"(it has: {', '.join(names) or 'none'})"
-        )
-
-    fm_lines, body = _split_frontmatter(text)
-    fm_lines = _set_field(fm_lines, "chosen_variant", wanted)
-    fm_lines = _set_field(fm_lines, "updated", _today())
-    _write(path, fm_lines, body)
-    return {
-        "id": note_id,
-        "chosen_variant": wanted,
-        "variants": names,
-        "actor": (actor or "").strip(),
-        # Said explicitly so a caller cannot read silence as acceptance.
-        "accepted": False,
-    }
-
-
-# ----- capture at ship (FEAT-0107 / TASK-0445) ------------------------------
 
 
 def record_verification(

@@ -228,7 +228,13 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
     #: `release-settle`. Every one of them edits a note or appends a ledger
     #: event, so every one is loopback-only; the sweep below drives all four
     #: over a real socket and requires 403.
-    assert (len(guarded), len(open_)) == (32, 5), (
+    #: **32 -> 27 on 2026-09-12**, deliberately: the design bench was removed
+    #: ([[FEAT-0148]] / [[TASK-0615]]) and took five write paths with it —
+    #: `/api/design/verdict`, `/api/design/offer-review`, `/api/design/comment`,
+    #: `/api/design/capture` and `/api/notes/choose-variant`. A design's Accept
+    #: and Decline now go through `/api/notes/decide`, which was already
+    #: guarded and already knows a design's vocabulary.
+    assert (len(guarded), len(open_)) == (27, 5), (
         f"the dispatch split moved: {len(guarded)} guarded / {len(open_)} open. "
         "That is not automatically wrong — but it must be a deliberate edit here."
     )
@@ -299,7 +305,8 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
     #: above is what says so.
     #: 30 -> 34 on 2026-09-08, deliberately: [[FEAT-0145]]'s four release write
     #: handlers, one `_require_loopback` each.
-    assert sites == 34, f"expected 34 guard call sites, found {sites}"
+    # 34 -> 29 with the design bench's five write paths (TASK-0615).
+    assert sites == 29, f"expected 29 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:

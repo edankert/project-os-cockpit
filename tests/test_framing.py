@@ -60,17 +60,18 @@ def test_the_reason_is_written_where_the_attribute_is() -> None:
 # ---- the viewer (FEAT-0148 / REQ-0064) ------------------------------------
 
 
-def test_one_handler_serves_both_route_names() -> None:
-    """`/framed/<rel>` is the name that survives; `/design-asset/<rel>` is the
-    name it had when only a design could be framed, kept until the bench goes.
-    Both reach one handler, so the two cannot drift while both exist."""
+def test_the_framing_route_is_not_named_after_designs() -> None:
+    """`/framed/<rel>` is the name that survives. It was `/design-asset/<rel>`
+    while only a design could be framed; both names shared one handler for a
+    day, and the older one went with the bench (TASK-0615)."""
     from project_os_cockpit import server as server_mod
 
     src = inspect.getsource(server_mod)
     assert 'if path.startswith("/framed/"):' in src
-    assert src.count("self._serve_framed_file(") == 2, (
-        "the two route names no longer share a handler"
+    assert '"/design-asset/"' not in src, (
+        "the design-only route name came back; framing is not about designs"
     )
+    assert src.count("self._serve_framed_file(") == 1
 
 
 def test_the_viewer_frames_a_file_and_not_a_design() -> None:

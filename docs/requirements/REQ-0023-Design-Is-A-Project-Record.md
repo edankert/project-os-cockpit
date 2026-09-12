@@ -7,7 +7,7 @@ status: implemented
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
-updated: 2026-07-27
+updated: 2026-09-12
 source: ["[[DES-0001-Overview-Redesign]]"]
 priority: medium
 scope: "Design artifacts, their revision history, the reason for each revision, and their review verdicts live in the repo beside the features they specify, and are readable without the tool that renders them."
@@ -50,3 +50,14 @@ The "readable without the tool" clause is doing real work. If annotations lived 
 ## Traceability
 - Implements: [[FEAT-0042-Design-Bench]]
 - Verified by: the design notes themselves, read without the cockpit running
+
+## Checked against the bench's removal (2026-09-12)
+
+[[FEAT-0042-Design-Bench]] is `superseded` by [[FEAT-0148-One-HTML-Viewer]], and the surface this requirement's evidence was gathered on no longer exists. **This requirement is not superseded, and all four criteria still hold** — two of them hold better. Checked one by one, which is the point of writing them as things a person can check:
+
+1. **A design artifact beside its note, linked from what it specifies.** Holds, and is now the *exception* rather than the rule: most designs are pictures in the note, in `__attachments__/` beside it ([[REQ-0065-A-Design-Is-Markdown-First]]). Either way the design is a file in the repo next to the note that explains it.
+2. **Each revision is a commit carrying its reason, and appears in the note's `## Revisions` log.** Holds. `POST /api/design/capture` wrote those entries and is gone; the log is Markdown in the note and an agent or a person appends it, which is how `your-health` DES-0002's tenth entry was written on 2026-09-12.
+3. **Annotations and verdicts are Markdown in the note.** Holds, and holds *better*: the sixteen comments already written stay where they are, and the verdict is now the same Accept/Decline every other note type uses, writing the same frontmatter. What went is the anchoring UI, not the record.
+4. **No design state exists only in cockpit runtime or an external service.** Holds, and holds better: five write endpoints were removed and nothing replaced them. There is less runtime to hide state in than when this was written.
+
+This requirement is the clause that made the removal safe to do. A reader who wants to know why the bench could go without losing the record is reading it.

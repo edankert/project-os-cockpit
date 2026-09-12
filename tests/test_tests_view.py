@@ -1317,18 +1317,23 @@ def test_a_proposed_adr_is_this_views_obligation(owed_corpus: Index) -> None:
     assert "ADR-9002" in note_owed, "the fixture's proposed ADR is not owed"
 
 
-def test_a_design_verdict_cannot_go_through_the_transition_path(
+def test_a_design_verdict_goes_through_the_generic_path_now(
     tmp_path: Path,
 ) -> None:
-    """ISS-0056, which the generic transition table re-opened.
+    """The other side of ISS-0056, after Edwin dropped the revision binding.
 
-    A design accepted through `/api/notes/transition` gets `status: accepted`
-    and **no `design_revision`** — so an approval given to revision 3 silently
-    covers revision 6. Rejection is worse: it writes `cancelled` onto a design
-    that may already be `implemented`.
+    A design's verdict used to be refused here and routed to
+    `/api/design/verdict`, which named the revision it judged: an approval
+    given to revision 3 could not silently cover revision 6. That endpoint
+    went with the design bench on 2026-09-12 — Edwin: *"Drop the binding for
+    now!"* — so a design transitions like every other type.
 
-    Refused in the writer, not only in the UI. A design reaching
-    `stamp_transition` at all means something routed around the endpoint.
+    **What must still hold is the half of ISS-0056 that was never about
+    revisions**: a design must not be given a proposal's vocabulary. Accept
+    means `accepted`; declining means `cancelled`, never `superseded`, which
+    would claim a later design replaced it.
+
+    [[RISK-0009]] records what was given up and the way back.
     """
     from project_os_cockpit import note_writes
 
@@ -1342,41 +1347,45 @@ def test_a_design_verdict_cannot_go_through_the_transition_path(
         "---\n\n# DES-0001\n"
     ))
     index = Index.build(docs)
-    with pytest.raises(note_writes.WriteError) as exc:
-        note_writes.stamp_transition(index, "DES-0001", to_status="accepted")
-    assert exc.value.status == 403
-    assert "/api/design/verdict" in exc.value.message
-    assert "ISS-0056" in exc.value.message
-    # And the note is untouched — a refusal that half-wrote would be worse
-    # than the bug.
-    assert "status: proposed" in (docs / "designs" / "DES-0001-Demo.md").read_text()
+
+    assert note_writes.VERDICT_ENDPOINTS == {}, (
+        "a type routes its verdict away from the generic path again -- if that "
+        "is deliberate, this test is where it is recorded"
+    )
+    note_writes.stamp_transition(index, "DES-0001", to_status="accepted")
+    written = (docs / "designs" / "DES-0001-Demo.md").read_text()
+    assert 'status: "accepted"' in written or "status: accepted" in written
+
+    # The vocabulary, unchanged: decline is `cancelled`.
+    assert note_writes.DECIDE_TRANSITIONS["design"] == ("accepted", "cancelled")
 
 
 def test_the_buttons_still_appear_and_carry_their_endpoint() -> None:
-    """Refusing the path must not remove the action.
+    """Refusing the path must not remove the action — and now that nothing is
+    refused, the buttons must still be there.
 
-    The vocabulary stays in `HUMAN_TRANSITIONS` — a design at `proposed` is
-    still accepted or declined by a human — and each action names the endpoint
-    that has to serve it, plus what it means there. Deriving `accept` in the
-    renderer from the verb's name (or from the tone `confirm` carries) is the
-    status vocabulary leaking into TypeScript one field at a time.
+    The vocabulary stays in `HUMAN_TRANSITIONS`: a design at `proposed` is
+    accepted or declined by a human. Each action carries the endpoint that
+    serves it, which is the generic one since 2026-09-12. Deriving `accept` in
+    the renderer from the verb's name (or from the tone `confirm` carries) is
+    the status vocabulary leaking into TypeScript one field at a time.
     """
     from project_os_cockpit import note_writes
 
     actions = note_writes.legal_actions("design", "proposed")
     assert [a["verb"] for a in actions] == ["Accept", "Decline"]
-    assert all(a["endpoint"] == "/api/design/verdict" for a in actions)
-    assert actions[0]["accept"] is True and actions[0]["verdict"] == "approved"
-    assert actions[1]["accept"] is False
-    # Nothing else is routed away, so the field cannot become decoration.
-    assert all(
-        not a.get("endpoint")
-        for kind, status in (("adr", "proposed"), ("requirement", "draft"),
-                             ("issue", "triage"))
-        for a in note_writes.legal_actions(kind, status)
+    assert all(a["endpoint"] == "" for a in actions), (
+        "a design's buttons name an endpoint of their own again; the bench's "
+        "was removed with it (TASK-0615), and an empty endpoint means the "
+        "generic transition path"
     )
-
-
+    # `accept`/`verdict` came with the endpoint and went with it: they told the
+    # renderer what a click meant to `/api/design/verdict`. The generic path
+    # speaks statuses, which `to` already carries.
+    assert actions[0]["to"] == "accepted" and actions[1]["to"] == "cancelled"
+    assert "accept" not in actions[0], (
+        "an action carries verdict semantics with no endpoint to spend them on"
+    )
 def test_the_renderer_reads_the_field_not_the_type() -> None:
     """One place knows designs are special, and it is not this one.
 

@@ -755,7 +755,7 @@ items:
     FEAT-0042:
       file: "docs/features/design-bench/FEAT-0042-Design-Bench.md"
       title: "Design bench — render, revise, annotate and review designs in the cockpit"
-      status: done
+      status: superseded
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0023"]
       tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219", "TASK-0220", "TASK-0221", "TASK-0227", "TASK-0228", "TASK-0229"]
@@ -907,7 +907,7 @@ items:
     TASK-0615:
       file: "docs/features/html-viewer/plan/tasks/TASK-0615-Remove-The-Bench.md"
       title: "Remove the design bench: the view, eight endpoints, the variant strip, and the ~198 tests that covered them"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0148
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -1778,7 +1778,7 @@ items:
     ISS-0300:
       file: "docs/issues/ISS-0300-A-Design-With-No-HTML-Page-Is-Told-It-Has-Nothing-To-Show.md"
       title: "A design with no HTML page is told it 'declares no artifact yet — nothing to render', which will be the wrong message once Markdown is the default"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       severity: low
@@ -4436,15 +4436,15 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 147
-    features_done: 132
+    features_done: 131
     tasks_total: 611
-    tasks_done: 572
+    tasks_done: 573
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 17
+    issues_open: 16
     issues_triage: 12
     risks_open: 8
     releases_total: 1

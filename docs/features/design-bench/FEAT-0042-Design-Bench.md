@@ -3,11 +3,11 @@ type: "[[feature]]"
 id: FEAT-0042
 aliases: ["FEAT-0042"]
 title: "Design bench — render, revise, annotate and review designs in the cockpit"
-status: done
+status: superseded
 phase: "[[PHASE-009-Design-Surfaces]]"
 owner: user:edwin
 created: 2026-07-27
-updated: 2026-07-28
+updated: 2026-09-12
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-07-28
 review_verdict: approved  # feature rounds 1-3 + TASK-0229 rounds 1-4, 2026-07-28
@@ -27,12 +27,25 @@ tasks:
   - "[[TASK-0228-Living-Style-Guide]]"
   - "[[TASK-0229-Offer-A-Design-For-Review]]"
 release: ""
+superseded_by: "[[FEAT-0148-One-HTML-Viewer]]"
 design: ["[[DES-0001-Overview-Redesign]]"]
 related: ["[[FEAT-0041-Review-Desk]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[TST-0019-Status-Vocabulary-Parity]]"]
 
 ---
 
+
 # Design bench
+
+## Superseded 2026-09-12
+
+By [[FEAT-0148-One-HTML-Viewer]]. The bench framed one thing — an HTML artifact a design note claimed in `asset:` — and carried a review workflow around it: revisions, region-anchored comments, variants, a verdict bound to the revision it judged.
+
+**What was used, and what was not, measured across thirteen repos on the day it was removed.** 33 of 47 design notes declared an artifact, and 6 notes carried real `## Revisions` entries. Against that: 24 artifacts declared `data-design-region` and **12 region comments existed, all on one note, from one reviewer, in one pass**; one note used `## Variant`, and `chosen_variant` was set on none.
+
+So the frame was the feature. It is now `~view/<rel>`, which frames any file for a note of any type, and the revision log was always Markdown in the note. A design's Accept and Decline stay where they always were, on the note, through the path every other type uses ([[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]] records the binding that was given up).
+
+**The prose below is left as written.** Its tasks keep their statuses: finished work on a superseded feature is still finished.
+
 
 ## Goal
 

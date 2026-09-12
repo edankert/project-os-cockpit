@@ -1043,46 +1043,18 @@ def test_an_unresolved_child_of_any_policed_type_blocks_close_out(
             probe.unlink()
         assert offered(), f"removing the {note_type} probe did not restore the offer"
 
-def test_a_design_note_digest_ignores_what_recording_a_review_touches() -> None:
-    """ISS-0057. `at_revision` follows the artifact, so a design's Problem,
-    Approach, Regions or Tokens could be rewritten under a reviewer with every
-    staleness signal still reading current.
-
-    The objection that kept this in triage was that a review *appends to* the
-    note's `## Review` section, so a naive "did the note change" check would
-    invalidate itself the instant it was recorded. Asserted here in both
-    directions, because the fix is only correct if both hold.
-    """
-    class Rec:
-        def __init__(self, fm: dict, body: str) -> None:
-            self.frontmatter, self.body = fm, body
-
-    fm = {"id": "DES-0000", "title": "x", "review_verdict": "", "updated": "2026-01-01"}
-    body = "## Problem\n\nA thing is wrong.\n\n## Review\n\n<none yet>\n"
-    base = cockpit.design_note_digest(Rec(dict(fm), body))
-
-    appended = body.replace("<none yet>", "<none yet>\n\nRound one: approved.")
-    assert cockpit.design_note_digest(Rec(dict(fm), appended)) == base, (
-        "filing a review changed the digest, so a review would invalidate itself"
-    )
-
-    # Every field the accept path writes, not just the verdict. ISS-0071 found
-    # `status` missing: stamp_design_verdict flips draft -> accepted, so an
-    # accepting verdict changed its own digest — the objection this fix exists
-    # to answer, reintroduced by the fix.
-    stamped = {**fm, "review_verdict": "approved", "updated": "2026-07-30",
-               "status": "accepted", "reviewed_by": "user:edwin",
-               "review_date": "2026-07-30", "design_revision": "abc1234"}
-    assert cockpit.design_note_digest(Rec(stamped, body)) == base, (
-        "a field the accept path writes changed the digest, so recording a "
-        "verdict invalidates itself"
-    )
-
-    rewritten = body.replace("A thing is wrong.", "Actually a different thing.")
-    assert cockpit.design_note_digest(Rec(dict(fm), rewritten)) != base, (
-        "the substance changed and the digest did not — the whole point"
-    )
-
+# **ISS-0057's digest went with the design bench** (FEAT-0148 / TASK-0615).
+# `cockpit.design_note_digest` hashed a design note's substance — Problem,
+# Approach, Regions, Tokens — so a reviewer could be told the NOTE had moved
+# under them, not only the artifact. Nothing computes it now: a design review
+# request no longer carries `at_revision` or `at_note_digest`, because a
+# verdict no longer names a revision at all ([[RISK-0009]], Edwin's call).
+#
+# The test that lived here checked the digest ignored exactly the fields a
+# review WRITES — `reviewed_by`, `review_date`, `review_verdict`, `status` —
+# so recording a verdict could not make the design look changed. If the
+# binding comes back, that property comes back with it and this is where it
+# was checked.
 
 def test_every_task_note_on_disk_is_reachable(repo_index: Index) -> None:
     """ISS-0067, and the same assertion shape as the plan count: against a

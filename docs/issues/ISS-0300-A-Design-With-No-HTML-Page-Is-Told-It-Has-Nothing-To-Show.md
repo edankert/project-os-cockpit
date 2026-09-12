@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0300
 aliases: ["ISS-0300"]
 title: "A design with no HTML page is told it 'declares no artifact yet — nothing to render', which will be the wrong message once Markdown is the default"
-status: open
+status: fixed
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
@@ -50,3 +50,11 @@ Sibling found: [[ISS-0041-Artifactless-Design-Is-Unreadable]], filed 2026-07-28,
 ## Next Actions
 
 - [ ] Check the removal against this issue rather than assuming it covers it ([[TASK-0615-Remove-The-Bench]]).
+
+## Fixed (2026-09-12)
+
+A design note with no `asset:` now carries **no banner at all**. Saying "This design has no artifact yet" was telling the reader that the normal, recommended shape was unfinished — and the pictures were usually right above the line saying so.
+
+A design that *does* name a page says "This design has a page as well as this note" and offers to open it in the viewer. A design that names a page which is not there says so, with the path: that case was hidden behind the same apologetic wording before.
+
+Checked in the renderer harness on the built renderer: this repo's DES-0003 (no asset) rendered with `.design-note-banner` absent, `your-health`'s DES-0002 showed the page banner, and its button opened `~view/designs/DES-0002-recovery-and-food.html`.

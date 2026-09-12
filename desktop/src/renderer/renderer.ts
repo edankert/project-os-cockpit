@@ -5594,29 +5594,12 @@ let designRegister: DesignRecord[] = [];
 /** Viewport presets. 900 is not a breakpoint — it is the height REQ-0022
  *  asserts every state section fits within, so a design reviewed at another
  *  size is reviewed against the wrong question. */
-const DESIGN_VIEWPORTS: Array<{ key: string; label: string; w: number | null; h: number | null }> = [
-  { key: 'declared', label: 'Declared', w: null, h: 900 },
-  { key: 'w1240', label: '1240 × 900', w: 1240, h: 900 },
-  { key: 'w900', label: '900 × 900', w: 900, h: 900 },
-  { key: 'w420', label: '420 × 900', w: 420, h: 900 },
-  { key: 'fill', label: 'Fill', w: null, h: null },
-];
-let designViewport = 'declared';
 
 // The sidebar costs the artifact 260px of width. Measured against the real
 // renderer: a 1356px pane leaves the frame 1036px, and DES-0001's dossier is
 // authored at 1240px — so the design scrolled sideways inside its own frame,
 // which is what "the frame is not the right size" looked like on screen. The
 // sidebar therefore collapses, and the choice persists.
-let designSideOpen = (() => {
-  try { return localStorage.getItem('cockpit:design-side') !== 'closed'; }
-  catch { return true; }
-})();
-function setDesignSideOpen(open: boolean): void {
-  designSideOpen = open;
-  try { localStorage.setItem('cockpit:design-side', open ? 'open' : 'closed'); }
-  catch { /* localStorage unavailable */ }
-}
 
 async function fetchDesignRegister(): Promise<DesignRecord[]> {
   const base = sidecarBaseUrl;
@@ -5635,277 +5618,12 @@ async function fetchDesignRegister(): Promise<DesignRecord[]> {
   return designRegister;
 }
 
-function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
-  const wrap = document.createElement('div');
-  wrap.className = 'design-stage';
-  if (atSha) {
-    const tag = document.createElement('span');
-    tag.className = 'design-stage-tag';
-    const rev = designRevisions.find((r) => r.sha === atSha);
-    tag.textContent = rev ? `${rev.date} · ${rev.sha}` : atSha;
-    wrap.append(tag);
-  }
-
-  if (!d.asset) {
-    // Not a frame: the stage stretches its children so an iframe can fill it,
-    // which turned a one-line button into a full-height slab (Edwin,
-    // 2026-07-28). An empty stage is a message, not a surface.
-    wrap.classList.add('is-empty');
-    const empty = document.createElement('p');
-    empty.className = 'design-empty';
-    empty.textContent = `${d.id} declares no artifact yet — nothing to render.`;
-    wrap.append(empty);
-    // An empty stage must still lead somewhere. DES-0002 is the design SYSTEM
-    // and its whole content is prose; landing on "nothing to render" with no
-    // way through made the system unreadable inside the tool that exists to
-    // show it (ISS-0041).
-    const toNote = document.createElement('button');
-    toNote.type = 'button';
-    toNote.className = 'design-note-open';
-    toNote.textContent = `Read ${d.id} as a note`;
-    toNote.addEventListener('click', () => { void navigateTo(d.rel); });
-    wrap.append(toNote);
-    return wrap;
-  }
-  if (!d.has_asset && !atSha) {
-    // `has_asset` is an `is_file()` on the WORKING COPY, so it must not gate a
-    // HISTORICAL render: `design-asset-at` reads from git and serves an
-    // artifact deleted after it was committed. The outer caller was relaxed
-    // for this in round 2 and this inner return still refused, so only the
-    // message changed (independent review round 3).
-    //
-    // Distinguish "none declared" from "declared but missing". A blank pane
-    // for either would hide a typo committed weeks earlier.
-    wrap.classList.add('is-empty');
-    const missing = document.createElement('p');
-    missing.className = 'design-empty design-missing';
-    missing.textContent = `Artifact not found: ${d.asset}`;
-    wrap.append(missing);
-    return wrap;
-  }
-
-  const frame = document.createElement('iframe');
-  frame.className = 'design-frame';
-  // allow-scripts is required: DES-0001 carries a theme toggle, so a
-  // script-free sandbox would break the acceptance subject. Everything else
-  // stays denied — no same-origin, no top navigation, no forms.
-  //
-  // **The same-origin flag must never be added here, and since ADR-0042 its
-  // absence is the ONLY thing separating a framed document from the cockpit**
-  // (RISK-0008). The asset route used to serve just the files a design note
-  // claimed; it now serves anything under `docs/`, because `/docs/<rel>`
-  // always did and the allowlist was protecting nothing. What stops a framed
-  // page reading this API is the opaque origin this attribute gives it. A
-  // sandbox attribute does not restrict the network, so the route stays
-  // GET-only and cookie-free too. Two tests fail if the flag is ever added:
-  // `tests/test_framing.py` reads the values set here, and
-  // `test_design_bench.py` refuses the literal anywhere in this file — which
-  // is why this comment spells it without its prefix.
-  frame.setAttribute('sandbox', 'allow-scripts');
-  frame.setAttribute('referrerpolicy', 'no-referrer');
-  // The artifact cannot read the app's theme: it is sandboxed with an opaque
-  // origin and can reach neither the parent nor localStorage. So the theme
-  // travels in the URL, and an artifact may honour it or ignore it — a design
-  // mock that is deliberately light stays light, while the style guide (which
-  // documents both schemes) follows the app.
-  // Theme, plus the stylesheets the note declares (TASK-0231). The frame is
-  // sandboxed with an opaque origin, so it cannot fetch the designs API to
-  // discover them — the URL is the only channel. Passing them makes ONE
-  // style-guide page work for every project: everything project-specific
-  // arrives at runtime, so six repos share one artifact rather than six that
-  // drift.
-  const cssQ = (d.stylesheets || []).length
-    ? `&css=${encodeURIComponent((d.stylesheets || []).join(','))}` : '';
-  const themeQ = `?theme=${document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light'}${cssQ}`;
-  frame.src = atSha
-    ? `${sidecarBaseUrl}/design-asset-at/${encodeURIComponent(d.id)}/${encodeURIComponent(atSha)}${themeQ}`
-    : `${sidecarBaseUrl}/design-asset/${d.asset.split('/').map(encodeURIComponent).join('/')}${themeQ}`;
-
-  const preset = DESIGN_VIEWPORTS.find((v) => v.key === designViewport)
-    ?? DESIGN_VIEWPORTS[0];
-  // `declared` means: use the note's viewport if it declared one, otherwise
-  // let the artifact scroll. Absence is meaningful — a dossier framed at a
-  // device width demonstrates nothing.
-  const width = preset.key === 'declared' ? d.viewport : preset.w;
-  if (width) {
-    frame.style.width = `${width}px`;
-    wrap.classList.add('is-framed');
-  } else {
-    frame.style.width = '100%';
-  }
-  // Height follows the SAME absence rule as width, which it did not before
-  // (ISS-0039): `declared` carried h: 900 unconditionally, so a design that
-  // declared no viewport — a document, the case that should scroll freely —
-  // was forced into a 900px window inside a scrolling page. DES-0001 is that
-  // case and is the only design in the repo with an artifact, so the one
-  // thing that could be opened was the one thing framed wrongly.
-  //
-  // A declared viewport keeps its fixed height: the framing IS the point,
-  // and a phone-width design stretched to the window height demonstrates
-  // nothing. Everything else fills the stage, which the shell has already
-  // sized, and the artifact scrolls inside it — once.
-  const framedHeight = preset.key === 'declared' ? (d.viewport ? preset.h : null) : preset.h;
-  if (framedHeight) frame.style.height = `${framedHeight}px`;
-  else frame.style.height = '100%';
-
-  if (width && framedHeight) {
-    // Fit the declared viewport into the stage rather than letting the stage
-    // scroll (ISS-0044). A 900px frame in a ~767px stage made the stage a
-    // second scroller, and — centred in a wide pane — left a broad dead zone
-    // either side of the design where the wheel scrolled that stage by a few
-    // pixels instead of scrolling the artifact. "No way to scroll down the
-    // document" was pointing at exactly that.
-    //
-    // Scaling preserves what framing is FOR: the artifact still lays out at
-    // its declared width, so a 420px design is still a 420px design. Only the
-    // presentation shrinks, and only when it must.
-    const fit = () => {
-      const box = wrap.getBoundingClientRect();
-      if (!box.height || !box.width) return;
-      const scale = Math.min(1, box.height / framedHeight, box.width / width);
-      frame.style.transformOrigin = 'top center';
-      frame.style.transform = scale < 1 ? `scale(${scale})` : '';
-      // A scaled element still occupies its UNSCALED size in layout, so the
-      // negative bottom margin below is what actually reclaims the
-      // difference. (ISS-0055 §2: a `--design-fit` custom property used to
-      // be set here with a comment claiming it did this. It appeared in no
-      // stylesheet — the clipping comes from
-      // `.design-stage.is-framed { overflow: hidden }`. A comment naming a
-      // mechanism that does not exist is worse than none, because it gets
-      // believed.)
-      frame.style.marginBottom = scale < 1
-        ? `${-(framedHeight * (1 - scale))}px` : '';
-    };
-    requestAnimationFrame(fit);
-    // ISS-0055 §3: one observer per frame, and a frame is rebuilt on every
-    // viewport change, revision selection and compare toggle. Disconnect the
-    // previous one rather than leaking it per repaint.
-    designFitObserver?.disconnect();
-    designFitObserver = new ResizeObserver(fit);
-    designFitObserver.observe(wrap);
-  }
-  wrap.append(frame);
-  return wrap;
-}
 
 // The design stage has at most one framed artifact at a time, so at most
 // one fit observer should exist (ISS-0055 §3).
 let designFitObserver: ResizeObserver | null = null;
 
-function buildDesignHeader(d: DesignRecord, onViewport: () => void): HTMLElement {
-  const head = document.createElement('header');
-  head.className = 'design-head';
 
-  const h = document.createElement('h1');
-  h.textContent = d.title || d.id;
-  head.append(h);
-
-  const meta = document.createElement('div');
-  meta.className = 'design-meta';
-  const chip = (text: string, cls = '') => {
-    const el = document.createElement('span');
-    el.className = `design-chip ${cls}`.trim();
-    el.textContent = text;
-    return el;
-  };
-  // A design with no artifact renders an empty stage, and until now there was
-  // no way from here to the prose that explains it — the note banner points at
-  // the bench and nothing pointed back, so DES-0002 (asset: "") was readable
-  // only outside the app. The id chip is the link (ISS-0041).
-  const idChip = chip(d.id, 'design-chip-link');
-  idChip.setAttribute('role', 'link');
-  idChip.setAttribute('tabindex', '0');
-  idChip.title = `Open ${d.rel}`;
-  const openNote = () => { void navigateTo(d.rel); };
-  idChip.addEventListener('click', openNote);
-  idChip.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNote(); }
-  });
-  meta.append(idChip);
-  if (d.status) meta.append(chip(d.status, `status-${d.status}`));
-  meta.append(chip(d.role === 'system' ? 'design system' : 'proposal'));
-  if (d.viewport) meta.append(chip(`${d.viewport}px surface`));
-  else if (d.asset) meta.append(chip('document'));
-  for (const id of d.implements) meta.append(chip(id, 'design-implements'));
-  head.append(meta);
-
-  // The viewport chooser appears ONLY for a design that declares a viewport —
-  // that is, one that IS a surface (ISS-0045).
-  //
-  // Edwin: "why do we have these options on top if all we show is just a page
-  // with artefacts ... the page should always just show the page". Correct for
-  // a document, and both designs in this corpus are documents: the bar was
-  // five controls of which four were disabled, framing a page that has no
-  // device width. `viewport:` absence already means "this is a document, let
-  // it flow" everywhere else; the chrome had not been told.
-  if (d.viewport) {
-    const bar = document.createElement('div');
-    bar.className = 'design-viewports';
-    for (const v of DESIGN_VIEWPORTS) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'design-vp' + (v.key === designViewport ? ' is-active' : '');
-      b.textContent = v.label;
-      b.addEventListener('click', () => { designViewport = v.key; onViewport(); });
-      bar.append(b);
-    }
-    head.append(bar);
-  }
-  return head;
-}
-
-/** The decisions behind this design — the ADRs it links, and no others.
- *
- *  Returns null when there are none, so a design with no linked ADRs shows
- *  nothing at all. An empty "Rationale" heading would read as "no decisions
- *  were made here", which is a claim; absence is not.
- */
-function buildDesignRationale(d: DesignRecord): HTMLElement | null {
-  const entries = d.rationale || [];
-  if (!entries.length) return null;
-
-  const sec = document.createElement('section');
-  sec.className = 'design-rationale';
-  const h = document.createElement('h2');
-  h.textContent = 'Decisions behind this design';
-  sec.append(h);
-
-  for (const r of entries) {
-    const row = document.createElement('div');
-    row.className = 'design-rationale-row' + (r.missing ? ' is-missing' : '');
-
-    const id = document.createElement('span');
-    id.className = 'design-rationale-id';
-    id.textContent = shortNoteId(r.id);
-    id.title = r.id;
-    row.append(id);
-
-    const text = document.createElement('div');
-    text.className = 'design-rationale-text';
-    if (r.missing) {
-      // Named, not summarised. The link is broken and the surface says so.
-      text.textContent = `${r.id} is linked but no such note exists.`;
-    } else {
-      // The ADR's own `decision:` line — the sentence its author wrote to be
-      // quoted. Its title when that is absent, and never a paraphrase: a
-      // generated summary of a decision is the kind of confident restatement
-      // that misleads precisely where accuracy matters.
-      text.textContent = r.decision || r.title || r.id;
-    }
-    row.append(text);
-
-    if (!r.missing && r.url) {
-      const open = document.createElement('button');
-      open.type = 'button';
-      open.className = 'design-rationale-open';
-      open.textContent = 'Open';
-      open.addEventListener('click', () => { void navigateTo(r.url); });
-      row.append(open);
-    }
-    sec.append(row);
-  }
-  return sec;
-}
 
 /** What a design IS, in three words — the one thing the old register row
  *  carried that the shared landing row does not.
@@ -6001,78 +5719,6 @@ function designIsSettled(d: DesignRecord): boolean {
   return groupIsSettled([{ status: d.status }]);
 }
 
-interface DesignRevision {
-  sha: string; full_sha: string; date: string;
-  subject: string; reason: string; author: string;
-}
-let designRevisions: DesignRevision[] = [];
-let designDirty = false;
-let designCompareSha: string | null = null;   // null = working copy
-
-async function fetchDesignRevisions(id: string): Promise<void> {
-  designRevisions = [];
-  designDirty = false;
-  if (!sidecarBaseUrl) return;
-  try {
-    const resp = await fetch(
-      `${sidecarBaseUrl}/api/cockpit/design-revisions/${encodeURIComponent(id)}`);
-    if (!resp.ok) return;
-    const data = await resp.json() as
-      { revisions?: DesignRevision[]; dirty?: boolean };
-    designRevisions = Array.isArray(data.revisions) ? data.revisions : [];
-    designDirty = Boolean(data.dirty);
-  } catch { /* the surface still renders the working copy */ }
-}
-
-function buildDesignRevisionRail(d: DesignRecord, repaint: () => void): HTMLElement {
-  const rail = document.createElement('aside');
-  rail.className = 'design-revisions';
-
-  const h = document.createElement('h2');
-  h.textContent = 'Revisions';
-  rail.append(h);
-
-  if (designDirty) {
-    // An uncaptured edit is a revision the compare view cannot see and the
-    // note does not record. Saying so is the difference between "three
-    // revisions" and "three revisions plus whatever you have not committed".
-    const warn = document.createElement('p');
-    warn.className = 'design-dirty';
-    warn.textContent = 'Uncommitted changes — capture them or they are not history.';
-    rail.append(warn);
-  }
-
-  const mk = (label: string, meta: string, sha: string | null) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'design-rev' + (designCompareSha === sha ? ' is-active' : '');
-    const t = document.createElement('span');
-    t.className = 'design-rev-label';
-    t.textContent = label;
-    const m = document.createElement('span');
-    m.className = 'design-rev-meta';
-    m.textContent = meta;
-    b.append(t, m);
-    b.addEventListener('click', () => {
-      designCompareSha = designCompareSha === sha ? null : sha;
-      repaint();
-    });
-    return b;
-  };
-
-  rail.append(mk('Working copy', designDirty ? 'uncommitted' : 'current', null));
-  for (const r of designRevisions) {
-    rail.append(mk(r.reason || r.subject, `${r.date} · ${r.sha}`, r.sha));
-  }
-  if (!designRevisions.length) {
-    const p2 = document.createElement('p');
-    p2.className = 'design-empty';
-    p2.textContent = 'No committed revisions yet — a revision is recorded when this design is accepted.';
-    rail.append(p2);
-  }
-  return rail;
-}
-
 /** A banner on a design NOTE offering the artifact.
  *
  *  The note is prose *about* a design; the artifact is the design. Opening
@@ -6082,19 +5728,27 @@ function buildDesignRevisionRail(d: DesignRecord, repaint: () => void): HTMLElem
 function buildDesignNoteBanner(rel: string): HTMLElement | null {
   const d = designRegister.find((x) => x.rel === rel);
   if (!d) return null;
+  // **A design with no HTML page is a finished design, not an unfinished one**
+  // (ISS-0300). This used to say "This design has no artifact yet" on every
+  // note that was not an HTML file, which since REQ-0065 is the normal and
+  // recommended shape: the pictures are in the note, above this line. Saying
+  // nothing is the right answer there — the reader can see the design.
+  if (!d.asset) return null;
   const bar = document.createElement('div');
   bar.className = 'design-note-banner';
   const label = document.createElement('span');
   label.textContent = d.has_asset
-    ? 'This note describes a design.'
-    : 'This design has no artifact yet.';
+    ? 'This design has a page as well as this note.'
+    : `This design names a page that is not there: ${d.asset}`;
   bar.append(label);
   if (d.has_asset) {
     const open = document.createElement('button');
     open.type = 'button';
     open.className = 'design-note-open';
-    open.textContent = `Open ${d.id} in the design bench`;
-    open.addEventListener('click', () => { void navigateTo(`~design/${d.id}`); });
+    open.textContent = 'Open the page';
+    open.addEventListener('click', () => {
+      void navigateTo(`~view/${d.asset.split('/').map(encodeURIComponent).join('/')}`);
+    });
     bar.append(open);
   }
   return bar;
@@ -6645,147 +6299,31 @@ async function renderDesignPage(target: string): Promise<boolean> {
     placeholder.hidden = true;
     return true;
   }
+  // **The bench ended here** (FEAT-0148 / TASK-0615). `~design/<ID>` framed a
+  // design's artifact with revisions, region comments, variants and a verdict
+  // button. Measured across thirteen repos before removing it: 24 artifacts
+  // declared regions and twelve comments existed, all on one note from one
+  // reviewer in one pass; one note used `## Variant`, and `chosen_variant` was
+  // set on none. What people used was the frame and the revision log — the
+  // frame is now `~view/<rel>` for a file of any kind, and the log is Markdown
+  // in the note, which never needed a surface.
+  //
+  // A design ID now opens the design's NOTE, like every other ID, and under
+  // markdown-first the note holds the pictures (REQ-0065).
   const d = designs.find((x) => x.id === target);
-  if (!d) {
-    docView.classList.remove('is-design-shell');
-    // The register alone — no obligation block. A dead `~design/<id>` is an
-    // error being recovered from, not a landing, and putting what needs a
-    // person under a red toast would make the two read as one event.
-    const page = document.createElement('section');
-    page.className = 'view-landing';
-    page.dataset.view = 'intent';
-    page.appendChild(buildDesignRegisterList(designs));
-    docView.replaceChildren(page);
-    showStatus(`No design ${target}`, 'error');
-    docView.hidden = false;
-    placeholder.hidden = true;
-    return true;
-  }
-  await fetchDesignRevisions(d.id);
-  void loadRightPane(d.rel);
-  designCompareSha = null;
-  const paint = () => {
-    // App-shell, not a document (ISS-0039). The page itself does not scroll:
-    // the head pins, the stage takes the rest of the height, and the artifact
-    // frame is the only scroller for the artifact. Revisions and rationale go
-    // in a sidebar that scrolls on its own, so nothing ever ends up inside
-    // the artifact's scroller.
-    const root = document.createElement('div');
-    root.className = 'design-view is-shell';
-    const body = document.createElement('div');
-    body.className = 'design-body';
-    if (designCompareSha) {
-      // Side by side: the working copy against the chosen revision, both at
-      // the same viewport — comparing two renders at different sizes would
-      // show the layout changing rather than the design.
-      body.classList.add('is-compare');
-      body.append(buildDesignFrame(d), buildDesignFrame(d, designCompareSha));
-    } else if ((d.variants ?? []).length && !d.has_asset) {
-      // A note with variants and no artifact IS its variants — the strip is
-      // the stage rather than an addition to it (TASK-0301). With an artifact
-      // present the artifact stays the subject and the strip goes beneath.
-      const strip = buildVariantStrip(
-        d.variants ?? [], d.stylesheets ?? [], d.variant_scripts === true,
-        d.id, d.chosen_variant ?? '',
-      );
-      if (strip) body.append(strip);
-      else body.append(buildDesignFrame(d));
-    } else {
-      body.append(buildDesignFrame(d));
-      const strip = buildVariantStrip(
-        d.variants ?? [], d.stylesheets ?? [], d.variant_scripts === true,
-        d.id, d.chosen_variant ?? '',
-      );
-      if (strip) body.append(strip);
-    }
-    // `Annotate` — FEAT-0069. On the design page rather than a global verb:
-    // an annotation is always about a design, and offering it elsewhere would
-    // invite anchors to things that have no revisions to be lost across.
-    const annotate = document.createElement('button');
-    annotate.type = 'button';
-    annotate.className = 'review-btn';
-    annotate.textContent = 'Annotate selection';
-    annotate.title = 'Comment on the selected text, anchored to the quote';
-    annotate.addEventListener('click', () => void annotationFromSelection(d.id));
-    body.appendChild(annotate);
-
-    const side = document.createElement('aside');
-    side.className = 'design-side';
-    side.hidden = !designSideOpen;
-    side.append(buildDesignRevisionRail(d, paint));
-    const rationale = buildDesignRationale(d);
-    if (rationale) side.append(rationale);
-
-    const stage = document.createElement('div');
-    stage.className = 'design-shell-body';
-    stage.append(body, side);
-
-    const head = buildDesignHeader(d, paint);
-    // Offer this design for review WITHOUT touching its status (TASK-0229).
-    // The desk had two doors and designs could only use the status one, so a
-    // design that was genuinely `implemented` could never be put in front of a
-    // human without changing its status to something untrue.
-    const ask = document.createElement('button');
-    ask.type = 'button';
-    ask.className = 'design-ask-review';
-    ask.textContent = 'Ask for review';
-    ask.addEventListener('click', () => {
-      ask.disabled = true;
-      void (async () => {
-        try {
-          const resp = await fetch(`${sidecarBaseUrl}/api/design/offer-review`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: d.id }),
-          });
-          const data = await resp.json();
-          if (!resp.ok || data.ok === false) {
-            showStatus(`Could not offer ${d.id}: ${data.error || resp.status}`, 'error');
-            ask.disabled = false;
-            return;
-          }
-          // Idempotent server-side; say which happened rather than pretending
-          // a second press did something.
-          showStatus(data.already_open
-            ? `${d.id} is already waiting in Review`
-            : `${d.id} sent to Review`, 'info');
-          ask.textContent = 'Waiting in Review';
-          void refreshReviewBadge();
-        } catch (err) {
-          showStatus(`Could not offer ${d.id}: ${String(err)}`, 'error');
-          ask.disabled = false;
-        }
-      })();
-    });
-    head.append(ask);
-    // The toggle lives in the head so it is reachable whether or not the
-    // sidebar is showing — a control that disappears with the thing it
-    // controls cannot bring it back.
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'design-side-toggle';
-    const labelToggle = () => {
-      toggle.textContent = designSideOpen ? 'Hide details ›' : '‹ Show details';
-      toggle.setAttribute('aria-expanded', String(designSideOpen));
-    };
-    labelToggle();
-    toggle.addEventListener('click', () => {
-      setDesignSideOpen(!designSideOpen);
-      side.hidden = !designSideOpen;
-      labelToggle();
-    });
-    head.append(toggle);
-
-    root.append(head, stage);
-    docView.replaceChildren(root);
-    // The register scrolls; a stage does not. Toggled per render because the
-    // same element carries both.
-    docView.classList.add('is-design-shell');
-  };
-  paint();
+  if (d) { void navigateTo(d.rel); return true; }
+  docView.replaceChildren(buildDesignEmpty(`No design ${target} in this project.`));
   docView.hidden = false;
   placeholder.hidden = true;
   return true;
+}
+
+/** Said out loud rather than shown as a blank pane. */
+function buildDesignEmpty(text: string): HTMLElement {
+  const p = document.createElement('p');
+  p.className = 'design-empty';
+  p.textContent = text;
+  return p;
 }
 
 async function renderReviewPage(target: string): Promise<boolean> {
@@ -7412,6 +6950,18 @@ async function postJson(path: string, body: unknown): Promise<Record<string, unk
  *  status posted from the client.
  */
 function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
+  // **A design still must not go through the proposal path** (ISS-0056). That
+  // path stamps `verdict: plan-accepted` and rejects by writing
+  // `status: cancelled` onto a design that may already be `implemented`, so
+  // this branch exists to keep designs out of it — and it outlives the design
+  // bench, which is why it was rewritten rather than deleted with it.
+  //
+  // What changed on 2026-09-12 (FEAT-0148 / TASK-0615): the verdict no longer
+  // names the revision it judged. `/api/design/verdict` went with the bench,
+  // on Edwin's call — *"Drop the binding for now!"* — and the buttons now post
+  // to `/api/notes/decide`, whose `DECIDE_TRANSITIONS` already speaks a
+  // design's own vocabulary: accept means `accepted`, decline means
+  // `cancelled`. [[RISK-0009]] records what that gives up and the way back.
   const request = detail.request as ReviewQueueItem;
   const wrap = document.createElement('div');
   wrap.className = 'review-body design-review';
@@ -7424,146 +6974,81 @@ function buildDesignReviewView(detail: ReviewDetail): HTMLElement {
   comment.placeholder =
     'Optional note for the record — sent with Request changes, recorded with Accept.';
 
-  const act = async (
-    verdict: string, accept: boolean | null, outcome: string | null, said: string,
-  ) => {
-    try {
-      const res = await postJson('/api/design/verdict', {
-        id: note.id, reviewer: 'user:edwin', verdict,
-        revision: detail.at_revision, accept,
-      });
-      if (res && (res as { ok?: boolean }).ok === false) {
-        showStatus(`Could not record: ${(res as { error?: string }).error}`, 'error');
-        return;
-      }
-      // `outcome: null` = Request changes, which leaves the request open,
-      // exactly as the proposal path does.
-      if (outcome && request.request_id) {
-        await postJson('/api/cockpit/review-resolve', {
-          request_id: request.request_id, outcome, note: comment.value,
-        });
-      }
-      showStatus(said, 'info');
-      void navigateTo('~review');
-    } catch (err) {
-      showStatus(`Could not record: ${String(err)}`, 'error');
-    }
+  const feedback = document.createElement('p');
+  feedback.className = 'review-feedback';
+  feedback.hidden = true;
+  const say = (text: string, error = false): void => {
+    feedback.textContent = text;
+    feedback.hidden = false;
+    feedback.classList.toggle('is-error', error);
   };
 
   const actions = document.createElement('div');
   actions.className = 'review-actions';
-  const btn = (label: string, cls: string, run: () => void) => {
+  const btn = (label: string, cls: string, onClick: () => void): HTMLButtonElement => {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = cls;
     b.textContent = label;
-    b.addEventListener('click', run);
+    b.addEventListener('click', onClick);
     actions.append(b);
     return b;
   };
-  btn('Accept this revision', 'review-btn is-good', () => {
-    void act('accepted', true, 'accepted',
-             `${note.id} accepted at ${detail.at_revision}.`);
-  });
-  btn('Request changes', 'review-btn is-primary', () => {
-    void (async () => {
-      // The comment is the whole point of requesting changes, and the
-      // placeholder promises it is sent. The first cut recorded a verdict and
-      // silently dropped the text (ISS-0056 round 2). It goes on the note as a
-      // document-level design comment, which is where TASK-0217 puts review
-      // prose so it survives without the tool.
-      const text = comment.value.trim();
-      if (text) {
-        try {
-          await postJson('/api/design/comment', {
-            id: note.id, region: '', text, author: 'user:edwin',
-          });
-        } catch (err) {
-          showStatus(`Comment not saved: ${String(err)}`, 'error');
-          return;
-        }
-      }
-      await act('changes-requested', null, null,
-                `Changes requested on ${note.id}; it stays in the queue.`);
-    })();
-  });
-  btn('Reject', 'review-btn is-bad', () => {
-    void act('rejected', false, 'rejected',
-             `${note.id} rejected at ${detail.at_revision}.`);
-  });
 
-  const provenance = [
-    `revision ${detail.at_revision || '(none)'}`,
-    request.ts ? `${relativeAge(request.ts)} ago` : '',
-    'offered for review from the design surface',
-  ].filter(Boolean).join(' · ');
+  // The ledger row is closed with the same word the note was given, so the
+  // desk does not keep offering a decision that has been made.
+  const clearRequest = (outcome: string): Promise<unknown> => postJson(
+    '/api/cockpit/review-resolve',
+    { request_id: request.request_id, outcome, note: comment.value },
+  ).catch(() => undefined);
+
+  const decide = (accept: boolean, said: string): void => {
+    void postJson('/api/notes/decide', {
+      id: note.id, reviewer: 'user:edwin', accept,
+    }).then((res) => {
+      if (res && (res as { ok?: boolean }).ok === false) {
+        say(`Could not record: ${(res as { error?: string }).error}`, true);
+        return;
+      }
+      say(said);
+      void refreshReviewBadge();
+      void clearRequest(accept ? 'accepted' : 'rejected');
+    }).catch((err: Error) => say(err.message, true));
+  };
+
+  btn('Accept', 'review-btn is-good', () => decide(true, `${note.id} accepted.`));
+  btn('Request changes', 'review-btn is-primary', () => {
+    void postJson('/api/notes/review', {
+      ids: [note.id], reviewer: 'user:edwin', verdict: 'changes-requested',
+      comment: comment.value,
+    }).then(() => {
+      say(`Changes requested on ${note.id}.`);
+      void refreshReviewBadge();
+      void clearRequest('changes-requested');
+    }).catch((err: Error) => say(err.message, true));
+  });
+  btn('Decline', 'review-btn is-bad', () => decide(false, `${note.id} declined.`));
+
   wrap.appendChild(buildReviewHeader(
-    'review', note.title ? `${note.id} — ${note.title}` : String(note.id),
-    note.status, actions, provenance,
+    'design', note.title || note.id, note.status, actions,
+    'offered for review',
   ));
 
-  if (detail.revision_moved) {
-    const warn = document.createElement('p');
-    warn.className = 'review-stale';
-    warn.textContent = `The artifact has moved since you were asked: head is now `
-      + `${detail.head_revision}. A verdict here judges ${detail.at_revision}.`;
-    wrap.append(warn);
-  }
-  if (request.dirty_at_offer) {
-    const d0 = document.createElement('p');
-    d0.className = 'review-stale';
-    d0.textContent = 'This design had uncommitted changes when it was offered, '
-      + 'so the person who offered it may have been looking at edits that '
-      + `${detail.at_revision} does not contain.`;
-    wrap.append(d0);
-  } else if (detail.dirty) {
-    const d1 = document.createElement('p');
-    d1.className = 'review-stale';
-    d1.textContent = 'The working copy has uncommitted changes now. They are '
-      + 'not part of what you are reviewing here.';
-    wrap.append(d1);
-  }
-
-  // The artifact, at the revision under review — not the working copy.
-  const stage = document.createElement('div');
-  stage.className = 'review-design-stage';
-  const pending = document.createElement('p');
-  pending.className = 'meta';
-  pending.textContent = 'Loading the reviewed revision…';
-  stage.append(pending);
-  wrap.append(stage);
-  void (async () => {
-    const designs = await fetchDesignRegister();
-    const d = designs.find((x) => x.id === note.id);
-    if (!d) {
-      pending.textContent = `${note.id} is no longer in the design register.`;
-      return;
-    }
-    // `has_asset` is an `is_file()` on the WORKING COPY, so it must not gate a
-    // historical render: an artifact deleted after being offered still renders
-    // fine at the revision under review (ISS-0056 round 2). Without a revision
-    // there is nothing but the working copy to fall back on.
-    if (!d.has_asset && !detail.at_revision) {
-      pending.textContent = `${note.id} declares no artifact — there is nothing to show.`;
-      return;
-    }
-    stage.replaceChildren(buildDesignFrame(d, detail.at_revision || undefined));
-  })();
-
-  // The note's prose as well: the artifact is what it looks like, the note is
-  // why. `buildSingleNoteReview` mounts the body inline for the same reason.
+  // The design itself is one click away rather than framed here: a design is
+  // its note now, pictures included (REQ-0065), and a note renders better in
+  // the reader than in a review pane.
   if (note.rel) {
-    const body = document.createElement('section');
-    body.className = 'review-note';
-    wrap.appendChild(body);
-    void fillReviewNoteBody(body, note.rel);
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'review-btn';
+    open.textContent = `Read ${note.id}`;
+    open.addEventListener('click', () => { void navigateTo(note.rel!); });
+    wrap.append(open);
   }
-
-  wrap.append(comment);
+  wrap.append(comment, feedback);
   return wrap;
 }
 
-/** A request whose subject no longer exists. */
 function buildOrphanedRequestView(detail: ReviewDetail): HTMLElement {
   const request = detail.request as ReviewQueueItem;
   const root = document.createElement('div');
@@ -19472,100 +18957,7 @@ interface UnreleasedPayload {
 
 interface DesignVariant { name?: string; html?: string; }
 
-/** `## Variant <name>` fenced html, side by side (TASK-0300 / TASK-0301).
- *
- *  **Convention over machinery**: a variant is a markdown section, so it is
- *  authored with what an agent or a human already has. Rendered into
- *  `srcdoc` iframes so a mockup is a live fragment rather than a picture of
- *  one — and sandboxed **without** `allow-scripts` unless the note opts in,
- *  because a mockup that can run code is a mockup that can reach the cockpit.
- *  The artifact frame allows scripts (DES-0001 carries a theme toggle); a
- *  variant fenced inside a note has not earned that by default.
- */
-function buildVariantStrip(
-  variants: DesignVariant[], stylesheets: string[], allowScripts: boolean,
-  designId = '', chosen = '',
-): HTMLElement | null {
-  if (!variants.length) return null;
-  const strip = document.createElement('div');
-  strip.className = 'variant-strip';
-  for (const variant of variants) {
-    const cell = document.createElement('figure');
-    cell.className = 'variant-cell';
-    const cap = document.createElement('figcaption');
-    cap.className = 'variant-name';
-    cap.textContent = variant.name || 'unnamed';
-    if (chosen && variant.name === chosen) {
-      const mark = document.createElement('span');
-      mark.className = 'variant-chosen';
-      mark.textContent = 'chosen';
-      cap.appendChild(mark);
-    } else if (designId) {
-      // `Choose` records the shape and NOTHING else (TASK-0302). It does not
-      // accept the design: choosing a shape and accepting a design are two
-      // judgments, and a click on a thumbnail must not carry an acceptance
-      // nobody made. The ADR it offers arrives `proposed`, like any proposal.
-      const pick = document.createElement('button');
-      pick.type = 'button';
-      pick.className = 'variant-choose';
-      pick.textContent = 'Choose';
-      pick.title = `Record ${variant.name} as the chosen shape — this does not accept the design`;
-      pick.addEventListener('click', () => {
-        void postJson('/api/notes/choose-variant', {
-          id: designId, variant: variant.name, actor: loadDispatchActor(),
-        }).then(() => {
-          showStatus(`Chose ${variant.name} — the design is not accepted by this.`);
-          scheduleHide(3000);
-          offerVariantAdr(designId, variant.name ?? '', variants);
-          void navigateTo(`~design/${designId}`);
-        }).catch((err) => showStatus(`Could not record: ${String(err)}`, 'error'));
-      });
-      cap.appendChild(pick);
-    }
-    cell.appendChild(cap);
 
-    const frame = document.createElement('iframe');
-    frame.className = 'variant-frame';
-    frame.setAttribute('sandbox', allowScripts ? 'allow-scripts' : '');
-    frame.setAttribute('referrerpolicy', 'no-referrer');
-    // The design-system stylesheets are injected so a mockup wears real
-    // tokens. A variant whose note declares none renders unstyled rather
-    // than failing — an unstyled shape still answers "which arrangement",
-    // which is what a variant is for.
-    const links = stylesheets
-      .map((href) => `<link rel="stylesheet" href="${sidecarBaseUrl}/design-asset/${href}">`)
-      .join('');
-    frame.srcdoc =
-      `<!doctype html><html><head><meta charset="utf-8">${links}`
-      + `<style>body{margin:0;padding:12px;font:13px/1.5 system-ui}</style>`
-      + `</head><body>${variant.html ?? ''}</body></html>`;
-    cell.appendChild(frame);
-    strip.appendChild(cell);
-  }
-  return strip;
-}
-
-/** Offer the ADR that records WHY a shape was chosen (TASK-0302).
- *
- *  Dispatched, never written: the options-considered are prefilled from the
- *  variants, but the reasoning is the part that matters and the cockpit does
- *  not have it. `status: proposed` — nothing is auto-accepted, and the ADR
- *  waits for the actuator row like any other proposal.
- */
-function offerVariantAdr(designId: string, chosen: string, variants: DesignVariant[]): void {
-  const others = variants.map((v) => v.name).filter((n) => n && n !== chosen);
-  showActionStatus(`Chose ${chosen}`, 'record why (ADR)', () => {
-    const prompt =
-      `Author an ADR for the shape chosen on ${designId}: read docs/designs/, `
-      + `record the decision as \`status: proposed\` (never accepted — that is `
-      + `the actuator row's), with options considered = ${chosen} (chosen)`
-      + (others.length ? `, ${others.join(', ')}` : '')
-      + `. The variants are in the design note; the REASONING is not, and it is `
-      + `the only part worth writing down.`;
-    void dispatchToAgent(designId, '', prompt);
-  });
-  scheduleHide(8000);
-}
 
 interface ShapePayload {
   id?: string;
@@ -20665,40 +20057,3 @@ function renderMeasurePanel(): void {
 // esc costs nothing: the selection is read at click time, so dismissing the
 // prompt leaves the record untouched.
 
-/** Offer `Annotate` when text is selected inside a design note. */
-async function annotationFromSelection(designId: string): Promise<void> {
-  const sel = window.getSelection();
-  const quote = (sel?.toString() ?? '').trim();
-  if (!quote) {
-    showStatus('Select the text the comment is about first.', 'error');
-    return;
-  }
-  const text = await askForText({
-    title: 'Comment on this selection',
-    detail: `“${quote.slice(0, 160)}”`,
-    multiline: true,
-    confirm: 'Annotate',
-  });
-  if (text === null) return;                       // esc costs nothing
-  if (!text.trim()) { showStatus('An annotation needs a comment', 'error'); return; }
-
-  // The variant it sits in, when the selection is inside one — read from the
-  // nearest variant cell rather than guessed from position.
-  const node = sel?.anchorNode as Element | null;
-  const cell = (node?.nodeType === 1 ? node : node?.parentElement)?.closest('.variant-cell');
-  const variant = cell?.querySelector('.variant-name')?.firstChild?.textContent?.trim() ?? '';
-
-  void postJson('/api/cockpit/review-request', {
-    kind: 'annotation',
-    title: text.trim().slice(0, 120),
-    body: text.trim(),
-    items: [designId],
-    subject: designId,
-    // Quote first: it is what lets a moved anchor be re-found and a lost one
-    // admit it. No coordinates — the store's allow-list would drop them anyway.
-    anchor: { quote: quote.slice(0, 300), variant },
-  }).then(() => {
-    showStatus('Annotation recorded against the selection.');
-    scheduleHide(2500);
-  }).catch((err) => showStatus(`Could not record: ${String(err)}`, 'error'));
-}
