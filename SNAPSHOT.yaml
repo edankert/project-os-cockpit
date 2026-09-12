@@ -865,7 +865,7 @@ items:
     TASK-0609:
       file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0609-An-HTML-Page-May-Show-A-File-Beside-It.md"
       title: "An HTML page in the record can show an image that sits beside it, because the frame is served any file inside the workspace's `docs/`"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0147
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -1769,7 +1769,7 @@ items:
     ISS-0299:
       file: "docs/issues/ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It.md"
       title: "A design's HTML page cannot show an image stored beside it, so pictures get pasted in as base64 and one page reached 4.6 MB"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       severity: medium
@@ -4438,13 +4438,13 @@ metrics:
     features_total: 147
     features_done: 133
     tasks_total: 611
-    tasks_done: 568
+    tasks_done: 569
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 18
+    issues_open: 17
     issues_triage: 12
     risks_open: 8
     releases_total: 1

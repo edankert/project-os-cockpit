@@ -5701,10 +5701,19 @@ function buildDesignFrame(d: DesignRecord, atSha?: string): HTMLElement {
   frame.className = 'design-frame';
   // allow-scripts is required: DES-0001 carries a theme toggle, so a
   // script-free sandbox would break the acceptance subject. Everything else
-  // stays denied — no same-origin, no top navigation, no forms. The real
-  // protection against an artifact reaching a mutation endpoint is
-  // server-side (the asset route is GET-only and gated on the register);
-  // a sandbox attribute does not restrict network.
+  // stays denied — no same-origin, no top navigation, no forms.
+  //
+  // **The same-origin flag must never be added here, and since ADR-0042 its
+  // absence is the ONLY thing separating a framed document from the cockpit**
+  // (RISK-0008). The asset route used to serve just the files a design note
+  // claimed; it now serves anything under `docs/`, because `/docs/<rel>`
+  // always did and the allowlist was protecting nothing. What stops a framed
+  // page reading this API is the opaque origin this attribute gives it. A
+  // sandbox attribute does not restrict the network, so the route stays
+  // GET-only and cookie-free too. Two tests fail if the flag is ever added:
+  // `tests/test_framing.py` reads the values set here, and
+  // `test_design_bench.py` refuses the literal anywhere in this file — which
+  // is why this comment spells it without its prefix.
   frame.setAttribute('sandbox', 'allow-scripts');
   frame.setAttribute('referrerpolicy', 'no-referrer');
   // The artifact cannot read the app's theme: it is sandboxed with an opaque

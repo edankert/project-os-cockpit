@@ -3373,26 +3373,37 @@ def _make_handler(
             self.wfile.write(body)
 
         def _serve_design_asset(self, rel: str) -> None:
-            """``GET /design-asset/<rel>`` — a design artifact, read-only.
+            """``GET /design-asset/<rel>`` — a file served verbatim for framing.
 
             Deliberately separate from ``/api/render``: that endpoint renders
-            Markdown to the cockpit's own HTML, while this serves an artifact
-            *verbatim* for framing. Two rules, both load-bearing:
+            Markdown to the cockpit's own HTML, while this serves a file *as
+            it is* so a frame can show it.
 
-            * The path must resolve inside ``docs/`` and must be claimed by a
-              design note's ``asset:``. Serving any file under docs/ by path
-              would turn a render surface into a file browser.
-            * Response carries no cookies and the endpoint is GET-only, so a
-              script inside a framed artifact gains nothing by calling it.
+            **Any path that resolves inside ``docs/`` is served**
+            ([[ADR-0042]]). This used to require the path to be claimed by a
+            design note's ``asset:``, on the stated ground that serving any
+            file by path "would turn a render surface into a file browser".
+            Measured 2026-09-12: ``/docs/<rel>`` already serves every file
+            under ``docs/`` by path, with no allowlist and no authentication,
+            on a socket that binds ``0.0.0.0`` by design. The allowlist was
+            therefore protecting nothing — it was deciding which files the
+            cockpit would *present*, which is curation wearing a security
+            rule's clothes. Worse, it was a real cost: a page could not
+            reference an image file beside it, so pages embedded their
+            pictures as base64 and one grew to 4.6 MB ([[ISS-0299]]).
+
+            What remains is the boundary that was doing the work all along:
+
+            * The resolved path must lie inside ``docs_root``. ``..`` and a
+              symlink out both fail this, because the check runs after
+              ``resolve()``.
+            * The response carries no cookies and the endpoint is GET-only, so
+              a script inside a framed page gains nothing by calling it.
+            * The frame itself is sandboxed **without** ``allow-same-origin``
+              ([[RISK-0008]]), which is what keeps a framed document from
+              reading this API at all.
             """
             rel = urllib.parse.unquote(rel).lstrip("/")
-            claimed = {
-                d["asset"] for d in cockpit.designs_payload(index)["designs"]
-                if d["asset"]
-            }
-            if rel not in claimed:
-                self._respond_not_found(rel)
-                return
             root = docs_root.resolve()
             target = (root / rel).resolve()
             try:

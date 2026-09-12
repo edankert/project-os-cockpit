@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0299
 aliases: ["ISS-0299"]
 title: "A design's HTML page cannot show an image stored beside it, so pictures get pasted in as base64 and one page reached 4.6 MB"
-status: open
+status: fixed
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
@@ -59,3 +59,9 @@ No sibling found (searched `docs/issues/` for: image, asset, base64, embed, atta
 - [ ] [[ADR-0042-What-May-Be-Framed]] is accepted: any file inside the workspace's `docs/`, cross-repo included, with the sandbox as the boundary.
 - [ ] [[TASK-0609-An-HTML-Page-May-Show-A-File-Beside-It]] implements it.
 - [ ] [[TASK-0612-Convert-The-Largest-Embedded-Artifact]] converts `your-health` DES-0002 as the proof.
+
+## Fixed (2026-09-12)
+
+`/design-asset/<rel>` no longer gates on the design register's `claimed` set ([[ADR-0042-What-May-Be-Framed]]): any path resolving inside the workspace's `docs/` is served, so a page can reference `shot.png` beside it, `__attachments__/shot.png`, or a path further down. `tests/test_design_bench.py::test_design_asset_endpoint_serves_anything_inside_the_docs_root` asserts a picture beside a page serves, and that escaping the docs root still fails — encoded and unencoded.
+
+Nothing became newly readable: `/docs/<rel>` already served every one of those files by path. What the allowlist actually did was decide which files the cockpit would present, and it cost 4.6 MB of base64 in one design to do it.

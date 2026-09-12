@@ -162,14 +162,20 @@ def test_the_repos_own_designs_resolve() -> None:
 
 # ---- the artifact endpoint ------------------------------------------------
 
-def test_design_asset_endpoint_serves_only_claimed_artifacts(tmp_path: Path) -> None:
-    """The rule that stops a render surface becoming a file browser.
+def test_design_asset_endpoint_serves_anything_inside_the_docs_root(tmp_path: Path) -> None:
+    """What the route will serve, after ADR-0042 removed the allowlist.
 
-    `/design-asset/<rel>` serves an artifact verbatim so it can be framed. If
-    it served any file under `docs/` by path, the cockpit would expose every
-    note, every snapshot and every fixture over HTTP to anything that could
-    reach the sidecar. Only paths *claimed by a design note's* `asset:` are
-    served.
+    It used to serve only paths claimed by a design note's `asset:`, to stop
+    "a render surface becoming a file browser". That reasoning did not survive
+    measurement: `/docs/<rel>` already serves every file under `docs/` by
+    path, with no allowlist and no authentication, on a socket that binds
+    `0.0.0.0` by design. The allowlist decided what the cockpit would
+    *present*, not what could be read — and it cost real behaviour, because a
+    framed page could not reference an image beside it (ISS-0299).
+
+    So the assertions flip: an unclaimed file in `designs/` now serves, and
+    what must still fail is escaping the docs root. That check runs after
+    `resolve()`, so `..` and a symlink out fail the same way.
     """
     import threading
     import urllib.error
@@ -182,6 +188,8 @@ def test_design_asset_endpoint_serves_only_claimed_artifacts(tmp_path: Path) -> 
     docs = _corpus(tmp_path)
     (docs / "secret.md").write_text("# not an artifact\n", encoding="utf-8")
     (docs / "designs" / "unclaimed.html").write_text("<b>orphan</b>", encoding="utf-8")
+    (docs / "designs" / "__attachments__").mkdir(exist_ok=True)
+    (docs / "designs" / "__attachments__" / "shot.png").write_bytes(b"\x89PNG")
 
     server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
     index = Index.build(docs)
@@ -202,15 +210,20 @@ def test_design_asset_endpoint_serves_only_claimed_artifacts(tmp_path: Path) -> 
         status, body = get("/design-asset/designs/system.html")
         assert status == 200 and b"system" in body, "a claimed artifact must serve"
 
-        # Not claimed by any note's asset: — even though it is a real file
-        # sitting in designs/ next to the others.
-        assert get("/design-asset/designs/unclaimed.html")[0] == 404, (
-            "an unclaimed .html in designs/ was served; the endpoint must gate "
-            "on the design register, not on the directory"
+        # An .html beside the others that no note claims. Serving it is the
+        # point of ADR-0042: a page a note merely links is as legitimate as
+        # one it declares, and the register cannot know about a picture at all.
+        assert get("/design-asset/designs/unclaimed.html")[0] == 200, (
+            "an unclaimed file in designs/ was refused; the register is no "
+            "longer the gate (ADR-0042)"
         )
-        # An ordinary note.
-        assert get("/design-asset/secret.md")[0] == 404
-        # Traversal, unencoded and encoded.
+        # A picture beside a page — the case ISS-0299 was filed for.
+        assert get("/design-asset/designs/__attachments__/shot.png")[0] == 200
+        # Any file under docs/, including an ordinary note. Nothing here is
+        # newly readable: /docs/<rel> already served all of it.
+        assert get("/design-asset/secret.md")[0] == 200
+        # Outside the docs root is still refused, which is now the only path
+        # rule left. Traversal, unencoded and encoded.
         assert get("/design-asset/../../etc/passwd")[0] in (403, 404)
         assert get("/design-asset/%2e%2e%2f%2e%2e%2fetc%2fpasswd")[0] in (403, 404)
 
