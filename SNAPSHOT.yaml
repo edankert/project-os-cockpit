@@ -886,7 +886,7 @@ items:
     TASK-0612:
       file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0612-Convert-The-Largest-Embedded-Artifact.md"
       title: "Convert `your-health`'s 4.6 MB design page: 51 embedded images become files beside the note"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0147
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -4438,7 +4438,7 @@ metrics:
     features_total: 147
     features_done: 133
     tasks_total: 611
-    tasks_done: 569
+    tasks_done: 570
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182
