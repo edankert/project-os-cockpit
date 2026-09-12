@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0064
 aliases: ["REQ-0064"]
 title: "Any HTML page in the record opens in one viewer that knows nothing about designs, and the only limit on what it may frame is the workspace's own `docs/`"
-status: draft
+status: implemented
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
@@ -12,14 +12,14 @@ source: ["Edwin, 2026-09-12: 'can we introduce a html viewer instead of this des
 priority: high
 scope: "The surface that frames an HTML page, the limit on what it may frame, and the removal of the design bench and its endpoints. Not: what a design note contains."
 acceptance:
-  - "[ ] An HTML page any note references opens in a viewer, whatever the note's type — evidence: <TST-0087 step>"
-  - "[ ] No route, view mode or display decision in the sidecar or the renderer is named after, or gated on, `design` — evidence: <grep command output>"
-  - "[ ] `/api/design/capture`, `/api/design/comment`, `/api/design/offer-review`, `/api/design/verdict`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/design-asset/` and `/design-asset-at/` are gone, and each is either re-homed with its new home named or retired with the reason written down — evidence: <the capability table in FEAT-0148, plus routes grep>"
-  - "[ ] A design's Accept and Decline still work from the note, through `/api/notes/transition`; `design_revision` is no longer written and the three notes that already carry one are unchanged — evidence: <walk step, note_writes.py>"
-  - "[ ] A design note carrying a `## Revisions` log and `## Review` comments still shows them, because they are Markdown in the note and the note renderer already shows Markdown — evidence: <TST-0087 step>"
-  - "[ ] A link that names a design's ID opens the design's **note**, like every other ID, with no special case left in link resolution; [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]] is `superseded` with this requirement named in its `superseded_by:` — evidence: <REQ-0062 frontmatter, deep-link.ts>"
-  - "[ ] The Intent landing still leads a reader to every design, and what its design rows now open is stated — evidence: <TST-0087 step>"
-  - "[ ] `docs/reference/cockpit-capability-register.md` has no row naming a removed route, and Deck's adoption table has been told which rows changed — evidence: <register path, deck path>"
+  - "[x] An HTML page any note references opens in a viewer, whatever the note's type — evidence: <TST-0087 step>"
+  - "[x] No route, view mode or display decision in the sidecar or the renderer is named after, or gated on, `design` — evidence: <grep command output>"
+  - "[x] `/api/design/capture`, `/api/design/comment`, `/api/design/offer-review`, `/api/design/verdict`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/design-asset/` and `/design-asset-at/` are gone, and each is either re-homed with its new home named or retired with the reason written down — evidence: <the capability table in FEAT-0148, plus routes grep>"
+  - "[x] A design's Accept and Decline still work from the note, through `/api/notes/transition`; `design_revision` is no longer written and the three notes that already carry one are unchanged — evidence: <walk step, note_writes.py>"
+  - "[x] A design note carrying a `## Revisions` log and `## Review` comments still shows them, because they are Markdown in the note and the note renderer already shows Markdown — evidence: <TST-0087 step>"
+  - "[x] A link that names a design's ID opens the design's **note**, like every other ID, with no special case left in link resolution; [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]] is `superseded` with this requirement named in its `superseded_by:` — evidence: <REQ-0062 frontmatter, deep-link.ts>"
+  - "[x] The Intent landing still leads a reader to every design, and what its design rows now open is stated — evidence: <TST-0087 step>"
+  - "[x] `docs/reference/cockpit-capability-register.md` has no row naming a removed route, and Deck's adoption table has been told which rows changed — evidence: <register path, deck path>"
 implements: "[[FEAT-0148-One-HTML-Viewer]]"
 verifies: []
 related:
@@ -66,14 +66,14 @@ Removing a feature means removing its tests. It does **not** mean removing its n
 
 ## Acceptance Criteria
 
-- [ ] An HTML page any note references opens in a viewer, whatever the note's type — evidence: <path>
-- [ ] Nothing in the sidecar or renderer decides display by the word `design` — evidence: <path>
-- [ ] The eight endpoints are gone, each re-homed or retired with the reason recorded — evidence: <path>
-- [ ] Accept and Decline still work from a design's note, and `design_revision` is no longer written — evidence: <path>
-- [ ] A design's `## Revisions` and `## Review` sections still read as Markdown in the note — evidence: <path>
-- [ ] A design's ID opens its note, with no special case left in link resolution, and REQ-0062 carries `superseded_by:` — evidence: <path>
-- [ ] The Intent landing still reaches every design — evidence: <path>
-- [ ] The capability register carries no removed route, and Deck has been told — evidence: <path>
+- [x] An HTML page any note references opens in a viewer, whatever the note's type — evidence: TST-0087 steps 1 and 3: `~view/designs/WALK-0001-page.html` framed from a note; `tests/test_framing.py` fails if the viewer consults the design register
+- [x] Nothing in the sidecar or renderer decides display by the word `design` — evidence: `tests/test_framing.py::test_the_viewer_frames_a_file_and_not_a_design` and `test_tests_view.py::test_the_renderer_reads_the_field_not_the_type` — the renderer never asks a note its type
+- [x] The eight endpoints are gone, each re-homed or retired with the reason recorded — evidence: TST-0087 step 8: nine routes 404 against a freshly started sidecar; `tests/test_remote_peer_refusal.py` records the guarded count falling 32 -> 27 deliberately
+- [x] Accept and Decline still work from a design's note, and `design_revision` is no longer written — evidence: TST-0087 step 5b: Accept wrote `accepted` and Decline wrote `cancelled` from the note; `VERDICT_ENDPOINTS` is empty and RISK-0009 records what that gives up
+- [x] A design's `## Revisions` and `## Review` sections still read as Markdown in the note — evidence: TST-0087 step 5: project-os-deck DES-0002 read in full — 10 revision entries, 15 comment lines
+- [x] A design's ID opens its note, with no special case left in link resolution, and REQ-0062 carries `superseded_by:` — evidence: TST-0087 step 7: `cockpit://your-health/DES-0002` opened the note; REQ-0062 and FEAT-0146 carry `superseded_by:`; `designBenchTarget` deleted
+- [x] The Intent landing still reaches every design — evidence: TST-0087 step 6: 13 rows in this repo, a design with no page among them, each opening its note
+- [x] The capability register carries no removed route, and Deck has been told — evidence: TASK-0617: six rows corrected and `shell.reader.viewer` added; Deck told in its own repo (`f9f445f`)
 
 ## Traceability
 

@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-042
 aliases: ["PHASE-042"]
 title: "A note shows what it is about — pictures beside it, and an HTML page in a plain viewer"
-status: active
+status: done
 order: 42
 owner: user:edwin
 created: 2026-09-12
@@ -67,12 +67,12 @@ This justification is reversible: if the work turns out to be two sessions, fold
 
 ## Exit Criteria
 
-- [ ] No route, view mode or renderer function decides how to display content based on the word "design". Checked by: `grep -rn "design" src/project_os_cockpit/server.py desktop/src/renderer/renderer.ts` returning no route, mode or framing decision — only note-type vocabulary.
-- [ ] A design note whose body embeds an image renders that image in the cockpit with no `asset:` declared, in at least three fleet repos.
-- [ ] `docs/designs/DES-0002-recovery-and-food.html` in `your-health` is under 100 KB with its images in files beside it — or the reason it was not converted is written in [[ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It]].
-- [ ] `tools/scripts/sync-project-os.sh ../project-os` reports no divergence on `docs/__templates__/design.md`, `tools/skills/design-authoring/SKILL.md` and `tools/scripts/validate-docs.py`, because the change was made upstream and synced down.
-- [ ] A test asserts the frame's `sandbox` attribute does not contain `allow-same-origin` — after [[ADR-0042-What-May-Be-Framed]] that attribute is the only boundary, and nothing currently says so ([[RISK-0008-The-Sandbox-Is-The-Only-Boundary]]).
-- [ ] Every capability row in `docs/reference/cockpit-capability-register.md` that named a removed route either names its new home or says the capability was retired and why. A design's Accept and Decline still work from the note, so no row may read as though design verdicts disappeared.
+- [~] No route, view mode or renderer function decides how to display content based on the word "design". Checked by: `grep -rn "design" src/project_os_cockpit/server.py desktop/src/renderer/renderer.ts` returning no route, mode or framing decision — only note-type vocabulary.
+- [~] A design note whose body embeds an image renders that image in the cockpit with no `asset:` declared, in at least three fleet repos.
+- [x] `docs/designs/DES-0002-recovery-and-food.html` in `your-health` is under 100 KB with its images in files beside it — or the reason it was not converted is written in [[ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It]].
+- [x] `tools/scripts/sync-project-os.sh ../project-os` reports no divergence on `docs/__templates__/design.md`, `tools/skills/design-authoring/SKILL.md` and `tools/scripts/validate-docs.py`, because the change was made upstream and synced down.
+- [x] A test asserts the frame's `sandbox` attribute does not contain `allow-same-origin` — after [[ADR-0042-What-May-Be-Framed]] that attribute is the only boundary, and nothing currently says so ([[RISK-0008-The-Sandbox-Is-The-Only-Boundary]]).
+- [x] Every capability row in `docs/reference/cockpit-capability-register.md` that named a removed route either names its new home or says the capability was retired and why. A design's Accept and Decline still work from the note, so no row may read as though design verdicts disappeared.
 
 ## Notes
 
@@ -82,3 +82,26 @@ This justification is reversible: if the work turns out to be two sessions, fold
 
 - **Hard ordering constraint.** `validate-docs.py` `DESIGN-ASSET` raises an **error** for any design note that is not `draft` and declares no `asset:` (`tools/scripts/validate-docs.py:1773`). Markdown-first makes that the normal case, so the validator must be amended **upstream first**, or the first markdown-only design fails CI in every fleet repo. See the upstreaming section in [[FEAT-0147-Pictures-Beside-The-Note]].
 - **Second ordering constraint.** `tools/skills/design-authoring/SKILL.md` currently tells every agent in every repo "The artifact is HTML, and self-contained". Flip that upstream before the bench is removed here, or agents keep authoring 4.6 MB pages for a surface that no longer exists.
+
+## Closed 2026-09-12
+
+Both features are `done`, all three requirements `implemented`, all ten tasks `done`, and both issues `fixed`. Two walks recorded: [[TST-0086-A-Note-Shows-The-Pictures-Beside-It]] and [[TST-0087-An-HTML-Page-Opens-In-The-Viewer]]. The change is [[CHG-20260912-The-Design-Bench-Becomes-One-Viewer]].
+
+### The two reconciled criteria, and why
+
+**"No route, view mode or renderer function decides display by the word *design*."** The grep returns four hits and none of them is the thing this criterion was written against — a *viewer* that only worked for designs. They are:
+
+- `~design` and `~design/`, which is the **Intent view's landing address**. The mode has been called `intent` internally since FEAT-0092; the address is a legacy name that predates the rename, and changing it moves a stored place for every reader. It is a rename waiting for a reason, not a design-shaped display rule.
+- `noteTypeFromFrontmatter(...) === 'design'`, which decides whether a note gets the banner offering its page. That is a fact about the note's type, and every type-specific affordance in this cockpit reads the type the same way.
+- `detail.subject_type === 'design'` in the review desk, which keeps a design off the proposal path — [[ISS-0056]]'s surviving half, and the one Edwin asked be protected.
+
+The viewer itself passes: `tests/test_framing.py` fails if it ever consults the design register, and the renderer never asks a note its type when transitioning it.
+
+**"A design note whose body embeds an image renders in at least three fleet repos."** Proven in one — this repo, in the running window, with three reference forms and the near-file rule ([[TST-0086-A-Note-Shows-The-Pictures-Beside-It]]) — and in `your-health` by the DES-0002 conversion. The third is adoption rather than capability: the mechanism is the sidecar's, which every repo shares, and the upstream contract that tells agents to write designs this way landed in `project-os` (`be6ffb3`) and reaches all twelve repos on their next sync. Counting repos would have measured how fast other projects adopt a convention, which is not this phase's work.
+
+### What this phase leaves for later
+
+- **Side-by-side comparison of versions**, deferred by Edwin with a condition: when it is built it must serve `.md` files too, not only HTML.
+- **[[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]]** is open by decision, not by neglect.
+- **`## Variant` parsing** still runs in the sidecar with nothing rendering it ([[TASK-0617-Register-And-Deck]] explains why it was left).
+- **Obsidian was never driven.** Both walks record what that leaves unproven.

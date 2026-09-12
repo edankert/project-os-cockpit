@@ -85,7 +85,7 @@ items:
     FEAT-0147:
       file: "docs/features/pictures-beside-the-note/FEAT-0147-Pictures-Beside-The-Note.md"
       title: "A picture is a file beside the note that shows it, and a design is Markdown with pictures by default"
-      status: backlog
+      status: done
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       requirements: ["REQ-0063", "REQ-0065"]
@@ -94,7 +94,7 @@ items:
     FEAT-0148:
       file: "docs/features/html-viewer/FEAT-0148-One-HTML-Viewer.md"
       title: "One HTML viewer replaces the design bench — any note's page opens in it, and nothing about showing a page is specific to designs"
-      status: backlog
+      status: done
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       requirements: ["REQ-0064"]
@@ -2977,7 +2977,7 @@ items:
     REQ-0063:
       file: "docs/requirements/REQ-0063-An-Image-Lives-Beside-The-Note-That-Shows-It.md"
       title: "An image is a file beside the note that shows it, in `__attachments__`, and both the note and an HTML page in the record can reference it"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       implements: FEAT-0147
@@ -2985,7 +2985,7 @@ items:
     REQ-0064:
       file: "docs/requirements/REQ-0064-One-Viewer-And-One-Rule-About-What-May-Be-Framed.md"
       title: "Any HTML page in the record opens in one viewer that knows nothing about designs, and the only limit on what it may frame is the workspace's own `docs/`"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       implements: FEAT-0148
@@ -2993,7 +2993,7 @@ items:
     REQ-0065:
       file: "docs/requirements/REQ-0065-A-Design-Is-Markdown-First.md"
       title: "A design is a Markdown note with pictures by default; an HTML page is what an agent reaches for when Markdown will not do, and nothing errors when there is no HTML page"
-      status: draft
+      status: implemented
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       implements: FEAT-0147
@@ -3288,7 +3288,7 @@ items:
     PHASE-042:
       file: "docs/phases/PHASE-042-A-Note-Shows-What-It-Is-About.md"
       title: "A note shows what it is about — pictures beside it, and an HTML page in a plain viewer"
-      status: active
+      status: done
       owner: user:edwin
       goal: "Anything the project makes that has to be looked at — a photo, a mock, a rendered page — is shown from the note that owns it, using conventions every project-os repo already has, instead of from a surface built for designs alone."
       features: ["FEAT-0147", "FEAT-0148"]
@@ -3530,7 +3530,7 @@ items:
     RISK-0008:
       file: "docs/risks/RISK-0008-The-Sandbox-Is-The-Only-Boundary.md"
       title: "With the framing allowlist gone, the iframe sandbox is the only thing between a framed document and the cockpit — and nothing marks that attribute as load-bearing"
-      status: open
+      status: closed
       owner: user:edwin
       likelihood: low
       impact: high
@@ -4436,7 +4436,7 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 147
-    features_done: 131
+    features_done: 133
     tasks_total: 611
     tasks_done: 575
     tests_total: 49
@@ -4446,6 +4446,6 @@ metrics:
     tests_failing: 0
     issues_open: 16
     issues_triage: 12
-    risks_open: 8
+    risks_open: 7
     releases_total: 1
     decisions_total: 34

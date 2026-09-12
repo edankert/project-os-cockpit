@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0147
 aliases: ["FEAT-0147"]
 title: "A picture is a file beside the note that shows it, and a design is Markdown with pictures by default"
-status: backlog
+status: done
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12

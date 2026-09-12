@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0148
 aliases: ["FEAT-0148"]
 title: "One HTML viewer replaces the design bench — any note's page opens in it, and nothing about showing a page is specific to designs"
-status: backlog
+status: done
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12

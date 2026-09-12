@@ -3,7 +3,7 @@ type: "[[risk]]"
 id: RISK-0008
 aliases: ["RISK-0008"]
 title: "With the framing allowlist gone, the iframe sandbox is the only thing between a framed document and the cockpit — and nothing marks that attribute as load-bearing"
-status: open
+status: closed
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
@@ -56,3 +56,11 @@ Closes when the sandbox assertion exists as a test. Not when [[ADR-0042-What-May
 ## Amendment history
 
 **First version, 2026-09-12 (morning):** titled *"Framing becomes a file browser"*, on the assumption that the design allowlist was what kept the cockpit from serving arbitrary files. **Rewritten the same day** when that was checked and found false. The hazard the first version named does not exist; the hazard that does exist is the one the first version treated as already handled.
+
+## Closed 2026-09-12
+
+On the mitigation this risk named, not on the danger going away. The danger is unchanged: after [[ADR-0042-What-May-Be-Framed]] the absence of the same-origin flag is the only thing between a framed document and the cockpit.
+
+What closes it is that the absence is now **asserted and explained**. `tests/test_framing.py` reads every `sandbox` value the renderer sets and fails if the flag appears in any of them, and a second test requires the reason to be written at the attribute rather than only in a note — a boundary nobody names is one a refactor removes. `tests/test_design_bench.py` used to refuse the literal anywhere in `renderer.ts`; that file went with the bench, and the refusal moved into `test_framing.py` with it.
+
+Both tests were run against a deliberately broken renderer — the flag added to the viewer's frame — and both failed, which is the only evidence that matters for a guard.

@@ -13,7 +13,7 @@ scope: feature
 level: acceptance
 entrypoint: ""
 command: ""
-last_verified: ""
+last_verified: 2026-09-12
 covers: ["[[FEAT-0147-Pictures-Beside-The-Note]]"]
 issues: []
 tasks: ["[[TASK-0608-Pin-Image-Resolution-To-The-Note]]", "[[TASK-0609-An-HTML-Page-May-Show-A-File-Beside-It]]", "[[TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render]]", "[[TASK-0611-Upstream-The-Markdown-First-Contract]]", "[[TASK-0612-Convert-The-Largest-Embedded-Artifact]]"]
@@ -60,3 +60,22 @@ Walked in the running desktop app and in the browser cockpit. A renderer harness
 ## Evidence
 
 Record for each step: the date, whether it was the window or the browser, and what was on screen. A step walked in a harness says so.
+
+## Walked 2026-09-12 (model:claude-opus-5)
+
+**In the running window**, restarted by pid onto the build under test, with a temporary design note (`WALK-0001`) carrying pictures in `docs/designs/__attachments__/`. The note and its files were deleted after the walk; what they proved is below.
+
+1. **A picture in `__attachments__` by relative path** — shown, `naturalWidth` 240, served from `/docs/designs/__attachments__/WALK-shot.png`.
+2. **The same file as an Obsidian embed `![[WALK-shot.png]]`**, and as a bare filename — both resolved to the same file. Three forms, one picture.
+3. Not re-walked in the browser front door: the render path is the sidecar's and is the same code the window fetches. Recorded as a gap rather than claimed.
+4. **The near file wins.** A second `WALK-shot.png` in `docs/features/html-viewer/__attachments__/` did not win against the one beside the note.
+5. **No `DESIGN-ASSET` error** for `WALK-0001`, which sat at `proposed` with no `asset:` — the case that used to fail CI in every repo.
+6. **A framed page showed a file beside it**: `~view/designs/WALK-0001-page.html` rendered both images, one from `__attachments__/` and one three directories down. Screenshot taken.
+7. **No depth limit**: `/framed/` returned 200 for the file beside the page, the file three directories down, and one in a sibling feature's folder.
+8. **Traversal refused**: `/framed/../../etc/passwd` → 404, and the percent-encoded form → 403.
+9. **`your-health` DES-0002 after the conversion**: page 28,145 bytes, its plates loading from `__attachments__/`.
+10. **HTML in a note** (ADR-0043): the raw `<div>` rendered, and the fenced ```` ```html ```` block stayed source, in the same note, in the window.
+
+**Step 2b, in Obsidian, is not walked and is owed.** Nothing here drives Obsidian. The claim it would check — that a relative path and an Obsidian embed (the double-bracket form) both show — rests on Obsidian's documented behaviour, and it is the reason the relative path is the written convention.
+
+**The window is shared.** Two other agent sessions drove it during this walk, once switching projects mid-step. Every reading above was taken inline with its action; where a step needed several actions in sequence, it was re-walked in the renderer harness instead, which nobody else drives.

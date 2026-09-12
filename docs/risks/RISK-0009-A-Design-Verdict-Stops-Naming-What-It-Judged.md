@@ -4,7 +4,7 @@ id: RISK-0009
 aliases: ["RISK-0009"]
 title: "A design verdict stops naming what it judged, so an approval given to revision 3 silently covers revision 6 — knowingly accepted by Edwin on 2026-09-12, with 'for now' in the sentence"
 status: open
-phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-09-12
 updated: 2026-09-12
@@ -63,3 +63,9 @@ A verdict names the commit of **whatever the design is** — the note, or the no
 ## Closing condition
 
 Closes when a verdict names what it judged again, or when Edwin says the trade-off is permanent — in which case this becomes a decision note rather than an open risk. It does **not** close because the bench was removed.
+
+## Re-homed to [[PHASE-999-Future]] (2026-09-12)
+
+PHASE-042 closed and this risk did not, which is the honest pair: Edwin accepted the trade-off knowingly — *"Drop the binding for now!"* — and "for now" is a decision to revisit, not a problem solved. A phase may not close with an unresolved child, and `deferred` would not resolve it either, so it is parked where open work with no scheduled home belongs.
+
+It comes back to a real phase the day someone wants a design verdict to name what it judged again. The way back is one task, written in this note.
