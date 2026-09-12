@@ -44,7 +44,7 @@ docs_system:
   # fix, every run, forever. Proposed upstream instead.
 
 counters:
-  ADR: 41
+  ADR: 43
   # ADR-0030: one note per acceptance check. Raised by sync-snapshot.py like any
   # other counter — the checks themselves are deliberately NOT snapshot items
   # (a repo can hold hundreds; the snapshot is active-and-recent context).
@@ -60,29 +60,46 @@ counters:
   CHG:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 146
-  ISS: 298
-  PHASE: 41
-  REQ: 62
-  RISK: 7
+  FEAT: 148
+  ISS: 300
+  PHASE: 42
+  REQ: 65
+  RISK: 9
   # A place in the product a check's area: names (TASK-0514). No SUR-* note
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 607
-  TST: 85
+  TASK: 617
+  TST: 87
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: "FEAT-0146"
-  phase: "PHASE-005"
-  issue: ""
-  note: "2026-09-12: FEAT-0146 is DONE, REQ-0062 is implemented (Edwin approved it in the cockpit on 2026-09-12), and PHASE-005 is closed again. A link naming a design ID opens the design bench: designBenchTarget in desktop/src/renderer/deep-link.ts decides from the design register, locateAndOpen in renderer.ts asks it first. Four issues fixed in the same reopening, all older than the feature: ISS-0293/0294/0295 (2026-09-10), ISS-0296 and ISS-0297 (found walking TST-0085), ISS-0298 (found by the independent review, which returned changes-requested with all 11 findings acted on; finding 6 declined on ADR-0038). Suite 2246 passed, 6 skipped, 1 failed (the known test_release_evidence case, whose docstring says to delete the assertion now that REL-0007 is repaired). STILL OPEN, asked twice and unanswered: should an in-repo [[DES-####]] wikilink open the bench too? A yes reopens PHASE-005 for one task. TST-0085 carries no ledger entry: 3 of its 10 steps were walked in a renderer harness rather than the running window, so the pass is Edwin's to record. His window needs a restart to pick up ISS-0296/0297/0298. Previously 2026-09-08: FEAT-0145 is done and PHASE-037 is still active."
-
+  task: "TASK-0611"
+  feature: "FEAT-0147"
+  phase: "PHASE-042"
+  issue: "ISS-0299"
+  note: "2026-09-12: PHASE-042 is PLANNED, not started, and Edwin has now ANSWERED FIVE OF SIX open questions - the notes below were rewritten against his answers and each keeps its first version visible. HIS FOUR DECISIONS: the design bench is removed and replaced by a generic HTML viewer any note can use; images are files on disk in __attachments__ beside the note, not base64 inside a document; Markdown with pictures is the DEFAULT way to show a design and an HTML page is the exception; a block of HTML in a note is displayed without the code fence's language slot deciding it. Side-by-side version compare is DEFERRED by him and must serve .md notes when built. ANSWERED 2026-09-12: (Q1) a design's ID opens ITS NOTE like every other ID - the rule is DELETED, not re-pointed, designBenchTarget goes, FEAT-0146 and REQ-0062 are superseded; (Q3) tools/instructions/OBSIDIAN.md owns BOTH the __attachments__ convention AND the HTML-in-a-note rules, because it is the file any LLM reads for how notes are written; (Q4) NO reachability rule - any file inside the workspace's docs/, cross-repo included - ADR-0042 was REWRITTEN, and RISK-0008 with it, because /docs/<rel> already serves every file under docs/ with no gate on a 0.0.0.0 socket, so the allowlist protected nothing and the sandbox without allow-same-origin is the whole boundary; (Q5) rewriting your-health's 4.6 MB artifact is APPROVED as a deliberate cross-repo task; (Q6) relative paths are the convention, and the fleet-wide filename fallback STAYS because Obsidian writes ![[name.png]] when you paste an image and resolves it vault-wide. STILL OPEN, WITH EDWIN: how a note shows HTML (ADR-0043). The research moved the answer - Obsidian renders raw HTML natively and so does the cockpit, so a ```html render marker would show as SOURCE in Obsidian, which he rejected; the likely decision is no marker at all with four authoring constraints. ADR-0043 will be REWRITTEN, not amended; TASK-0610 and TST-0086 step 10 are blocked on it and nothing else is. START HERE: TASK-0611, upstream in ~/Dev/repos/project-os. validate-docs.py:1773 DESIGN-ASSET raises an ERROR for a non-draft design with no asset:, so the first markdown-only design fails CI in all twelve repos; and design-authoring/SKILL.md still opens with 'The artifact is HTML, and self-contained'. Those files CANNOT be edited here - MANIFEST.yaml marks them template-owned, this repo has no generator, sync-project-os.sh would report the edit as divergence. ADR-0042 still needs Edwin's acceptance before any route is widened. MEASURED 2026-09-12 over 47 design notes in 12 repos: 33 declare asset:, 6 carry a real ## Revisions entry, 12 region-anchored comments exist FLEET-WIDE and all are on project-os-deck DES-0002 from one reviewer on one day, 1 note uses ## Variant, chosen_variant: is set on NONE. test_design_bench.py alone is 170 tests over 3174 lines. your-health DES-0002 is 4,607,604 bytes with 51 inline PNGs. REQ-0023 is NOT superseded and must not be - all four criteria still hold and two hold better. ONE MORE CORRECTION, 2026-09-12: Edwin challenged FEAT-0148's capability table on design verdicts and the table was WRONG. Accept/Decline for a design were never bench-hosted - they are on the NOTE, from the actuator table every type shares - so they are KEPT and only their endpoint changes to the generic /api/notes/transition. What is actually retired is the verdict's binding to an artifact commit ('Drop the binding for now!'), which re-opens ISS-0056's hazard and is recorded as RISK-0009 with the way back written down. The same table's region-comments row also claimed the feature was never used; 12 region-anchored comments exist. Both corrections are visible in the note, not absorbed. Previously 2026-09-12: FEAT-0146 done, REQ-0062 implemented, PHASE-005 closed again."
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0147:
+      file: "docs/features/pictures-beside-the-note/FEAT-0147-Pictures-Beside-The-Note.md"
+      title: "A picture is a file beside the note that shows it, and a design is Markdown with pictures by default"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      requirements: ["REQ-0063", "REQ-0065"]
+      tasks: ["TASK-0608", "TASK-0609", "TASK-0610", "TASK-0611", "TASK-0612"]
+      note: "PLANNED 2026-09-12, not started; REWRITTEN the same day against Edwin's answers (relative paths are the convention, the Obsidian filename fallback stays, OBSIDIAN.md owns both conventions, the your-health conversion is approved). Edwin: 'why embed the images, why not simply store the images on disk'. The measured answer to why not: /design-asset serves only files a design note claims in asset:, so a relative <img src> in a framed page is 404 - and your-health DES-0002 is 4,607,604 bytes with 51 inline PNGs as a result (ISS-0299). ATTACHMENT_DIR_NAMES in index.py:49 has accepted __attachments__ for months; ZERO such directories exist in the fleet and NO instruction file, skill or template mentions the word, so the code was ready and nobody was told. TASK-0611 is the hard blocker and it is UPSTREAM: validate-docs.py DESIGN-ASSET errors on a non-draft design with no asset:, which markdown-first makes the normal case, and design-authoring/SKILL.md still says 'The artifact is HTML, and self-contained'. Those files are template-owned - edit them in ~/Dev/repos/project-os and sync down; they cannot be edited here. The feature note carries the full upstream/local table; OBSIDIAN.md now carries two rows, attachments and HTML-in-a-note, the second blocked on ADR-0043."
+    FEAT-0148:
+      file: "docs/features/html-viewer/FEAT-0148-One-HTML-Viewer.md"
+      title: "One HTML viewer replaces the design bench — any note's page opens in it, and nothing about showing a page is specific to designs"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      requirements: ["REQ-0064"]
+      tasks: ["TASK-0613", "TASK-0614", "TASK-0615", "TASK-0616", "TASK-0617"]
+      note: "PLANNED 2026-09-12, not started; amended the same day - Edwin answered that a design ID opens ITS NOTE, so TASK-0614 DELETES the link rule rather than re-pointing it. Edwin: 'I don't think the current bench provides much ... so I would remove it and instead have a generic html viewer'. The corpus agrees: of 47 design notes, 33 declare asset:, 6 carry a real ## Revisions entry, 12 region comments exist fleet-wide and all are on project-os-deck DES-0002 from one reviewer on 2026-09-05, 1 note uses ## Variant and chosen_variant: is set on none. The bench costs 170 tests over 3174 lines in test_design_bench.py plus 28 more across three files. The feature note carries the capability table, CORRECTED TWICE on 2026-09-12 and both corrections left visible: design Accept/Decline are KEPT on the note (never bench-hosted; only the endpoint was), with the verdict's revision binding retired under RISK-0009; and region comments HAVE been used - 12 of them - so the retirement row now says what is given up. THE REVISIONS LOG SURVIVES FOR FREE - it is Markdown in the note. REQ-0023 is NOT superseded: all four criteria still hold. FEAT-0042, FEAT-0146 and REQ-0062 are superseded, not deleted or rewritten. Build the viewer beside the bench first; remove only after the upstream skill flip (TASK-0611) has landed. TASK-0613 also decides whether the viewer needs its own route at all, now that ADR-0042 removed the only thing distinguishing it from /docs/<rel>."
     FEAT-0146:
       file: "docs/features/design-links/FEAT-0146-A-Link-That-Names-A-Design-Opens-The-Design-Bench.md"
       title: "A link that names a design's ID opens the design bench, not the design's note"
@@ -838,6 +855,76 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0608:
+      file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0608-Pin-Image-Resolution-To-The-Note.md"
+      title: "A relative path is the convention, image resolution prefers the note's own folder and `__attachments__` beside it, and the fleet-wide filename search is documented as Obsidian's fallback rather than an accident"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0147
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0609:
+      file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0609-An-HTML-Page-May-Show-A-File-Beside-It.md"
+      title: "An HTML page in the record can show an image that sits beside it, because the frame is served any file inside the workspace's `docs/`"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0147
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0610:
+      file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render.md"
+      title: "A note marks a block of HTML as something to render, with a marker that is not the code fence's language"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0147
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0611:
+      file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0611-Upstream-The-Markdown-First-Contract.md"
+      title: "Upstream in `~/Dev/repos/project-os`: the validator stops requiring an HTML artifact, the template and the authoring skill say Markdown with pictures first, and OBSIDIAN.md carries both the `__attachments__` convention and the rules for HTML in a note"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0147
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0612:
+      file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0612-Convert-The-Largest-Embedded-Artifact.md"
+      title: "Convert `your-health`'s 4.6 MB design page: 51 embedded images become files beside the note"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0147
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0613:
+      file: "docs/features/html-viewer/plan/tasks/TASK-0613-A-Generic-HTML-Viewer.md"
+      title: "A viewer frames any HTML page a note references, with no design vocabulary in the route, the mode or the frame"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0148
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0614:
+      file: "docs/features/html-viewer/plan/tasks/TASK-0614-Links-Stop-Asking-For-The-Bench.md"
+      title: "The design-ID link rule is removed: a design's ID opens its note like every other ID, and REQ-0062 is superseded rather than rewritten"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0148
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0615:
+      file: "docs/features/html-viewer/plan/tasks/TASK-0615-Remove-The-Bench.md"
+      title: "Remove the design bench: the view, eight endpoints, the variant strip, and the ~198 tests that covered them"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0148
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0616:
+      file: "docs/features/html-viewer/plan/tasks/TASK-0616-Intent-After-The-Bench.md"
+      title: "The Intent landing keeps leading a reader to every design once there is no bench for its rows to open"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0148
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+    TASK-0617:
+      file: "docs/features/html-viewer/plan/tasks/TASK-0617-Register-And-Deck.md"
+      title: "The capability register loses every row that names a removed route, and Deck is told which rows changed"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0148
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
     TASK-0606:
       file: "docs/features/design-links/plan/tasks/TASK-0606-The-Design-Register-Decides-Where-An-ID-Opens.md"
       title: "One pure function decides whether a note ID opens the design bench, reading the project's design register rather than the ID's prefix"
@@ -915,30 +1002,9 @@ items:
       owner: user:edwin
       parent: FEAT-0145
       phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0579:
-      file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0579-Count-The-Flood-By-Rule.md"
-      title: "Count the flood by rule — run the upstream validator against all four fleet repos in report-only mode and record what it actually reports"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0143
-      phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
     TASK-0580:
       file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0580-The-Migration-Is-A-Tool-Not-A-Session.md"
       title: "The migration is a tool, not a session — force-sync the template files and reconcile the parent/tasks relationship from the notes that declare it"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0143
-      phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
-    TASK-0581:
-      file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0581-Migrate-Obsidian-Supernote-Sync.md"
-      title: "Migrate `obsidian-supernote-sync` — the rehearsal, at 3% of the hard repo's size and with nothing to lose"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0143
-      phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
-    TASK-0582:
-      file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0582-Migrate-Your-Health.md"
-      title: "Migrate `your-health` — the second rehearsal, now at real corpus scale"
       status: done
       owner: user:edwin
       parent: FEAT-0143
@@ -985,34 +1051,6 @@ items:
       owner: user:edwin
       parent: FEAT-0003
       phase: "[[PHASE-004-Embedded-Terminal]]"
-    TASK-0557:
-      file: "docs/features/surfaces-report/plan/tasks/TASK-0557-One-Release-Per-Platform.md"
-      title: "One preparing release per platform — `preparing()` returns one per platform, not one overall"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0129
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0558:
-      file: "docs/features/surfaces-report/plan/tasks/TASK-0558-A-Release-Composes-Its-Contents.md"
-      title: "Add and remove a feature on a preparing release, from the release page"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0129
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0556:
-      file: "docs/features/tests-view/plan/tasks/TASK-0556-Incomplete-First.md"
-      title: "The nav sorts surfaces by percentage incomplete and lists incomplete checks first; the generated page moves incomplete rows to the top of their section"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0555:
-      file: "docs/features/tests-view/plan/tasks/TASK-0555-The-check-id-renders-once-at-the-start-and-is-select.md"
-      title: "The check id renders once, at the start, and is selectable"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0128
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0435:
       file: "docs/features/publication-view/plan/tasks/TASK-0435-The-Cycling-Mark-And-Its-Paired-Write.md"
       title: "The cycling mark and its paired write — one click advances the mark and writes it, and Confirm pairs the exception with its justification in the release note"
@@ -1728,6 +1766,24 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0299:
+      file: "docs/issues/ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It.md"
+      title: "A design's HTML page cannot show an image stored beside it, so pictures get pasted in as base64 and one page reached 4.6 MB"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      severity: medium
+      component: sidecar-routes
+      note: "2026-09-12, Edwin: 'why embed the images, why not simply store the images on disk'. _serve_design_asset (server.py:3375) builds the servable set from every design note's asset: and 404s everything else, so a relative <img src> in a framed page cannot resolve. Measured: your-health DES-0002-recovery-and-food.html is 4,607,604 bytes with 51 data:image/png;base64 occurrences; zero design artifacts in the fleet reference a relative image file; the same repo keeps 71 images as plain siblings under docs/design/widgets-v2/ that nothing can show. The route's docstring says serving anything under docs/ would make a file browser; checked 2026-09-12 and that is already true - /docs/<rel> (server.py:4233) serves every file under docs/ with no gate. So the fix is NO rule, not a better one: ADR-0042 was rewritten to allow any path inside the workspace's docs/, cross-repo included."
+    ISS-0300:
+      file: "docs/issues/ISS-0300-A-Design-With-No-HTML-Page-Is-Told-It-Has-Nothing-To-Show.md"
+      title: "A design with no HTML page is told it 'declares no artifact yet — nothing to render', which will be the wrong message once Markdown is the default"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      severity: low
+      component: desktop-renderer
+      note: "2026-09-12. renderer.ts:5669. Second issue of its kind - ISS-0041 (2026-07-28) is the sibling, same surface, same cause, and was patched with a 'Read as a note' button rather than fixed. Fixed by REMOVAL (TASK-0615), not by rewording; filed separately so the removal is checked against it rather than assumed to cover it."
     ISS-0298:
       file: "docs/issues/ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First.md"
       title: "A link whose project switch is still in flight is opened by whichever project arrives first, so picking another project on the rail lands the link in a project it never named"
@@ -2918,6 +2974,30 @@ items:
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       note: "Found while designing external review (project-os-dev FEAT-0018). Blocks adding Kimi as a dispatch target — a third value is silently misattributed to Claude in session records."
   requirements:
+    REQ-0063:
+      file: "docs/requirements/REQ-0063-An-Image-Lives-Beside-The-Note-That-Shows-It.md"
+      title: "An image is a file beside the note that shows it, in `__attachments__`, and both the note and an HTML page in the record can reference it"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      implements: FEAT-0147
+      note: "Five criteria. Needs Edwin's approval before FEAT-0147 moves to doing. Criterion 4 ANSWERED 2026-09-12: RELATIVE PATHS are the convention ('this needs to work in obsidian, so simply use the relative path???'), and the fleet-wide filename fallback STAYS - Obsidian writes ![[plate-3.png]] when a user pastes an image and resolves it vault-wide by filename, so deleting it would break what a person gets by pasting a screenshot. Two spellings on purpose: an agent writes the relative path, a person pasting gets the wikilink, both resolve. Criterion 5 now names OBSIDIAN.md as the owner."
+    REQ-0064:
+      file: "docs/requirements/REQ-0064-One-Viewer-And-One-Rule-About-What-May-Be-Framed.md"
+      title: "Any HTML page in the record opens in one viewer that knows nothing about designs, and the only limit on what it may frame is the workspace's own `docs/`"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      implements: FEAT-0148
+      note: "Seven criteria. Criterion 5 ANSWERED 2026-09-12: a design ID opens ITS NOTE, like every other ID - the rule is deleted, not re-pointed (the alternative is kept in the note's Approval section, not erased). Criterion 2 ANSWERED the same day and in the opposite direction from the first draft: NO allowlist and NO reachability test, any file inside the workspace's docs/ including cross-repo (ADR-0042, rewritten). Criterion 3 ANSWERED 2026-09-12 after Edwin corrected two rows: design Accept/Decline are KEPT on the note through /api/notes/transition - they were never the bench's - while the verdict's binding to an artifact commit is retired ('Drop the binding for now!') under RISK-0009; region comments are retired with their 12 real uses stated. Nothing in this requirement now waits on Edwin except accepting ADR-0042 and settling ADR-0043."
+    REQ-0065:
+      file: "docs/requirements/REQ-0065-A-Design-Is-Markdown-First.md"
+      title: "A design is a Markdown note with pictures by default; an HTML page is what an agent reaches for when Markdown will not do, and nothing errors when there is no HTML page"
+      status: draft
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      implements: FEAT-0147
+      note: "Five criteria, all of them UPSTREAM in ~/Dev/repos/project-os. Criterion 1 is a hard blocker on the whole phase: validate-docs.py:1773 raises an ERROR for a non-draft design declaring no asset:, which markdown-first makes the normal case, so the first such design fails CI in all twelve repos. The proposed replacement is 'a design past draft must have something to look at' - an asset:, OR an image reference in the body - but whether the check exists at all is Edwin's. DESIGN-ORPHAN needs the same look. A second argument for markdown-first, added 2026-09-12: Obsidian cannot open a standalone .html file without a community plugin, so an HTML page is a COCKPIT-ONLY artifact by nature - which is the REQ-0023 'readable without the tool' clause, and markdown-with-images satisfies it where an HTML artifact never really did. Criterion 4 is BLOCKED on ADR-0043."
     REQ-0062:
       file: "docs/requirements/REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench.md"
       title: "A link that names a design's ID opens that design in the design bench, and opens the design's note only when the design has nothing to show"
@@ -3205,6 +3285,16 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-042:
+      file: "docs/phases/PHASE-042-A-Note-Shows-What-It-Is-About.md"
+      title: "A note shows what it is about — pictures beside it, and an HTML page in a plain viewer"
+      status: active
+      owner: user:edwin
+      goal: "Anything the project makes that has to be looked at — a photo, a mock, a rendered page — is shown from the note that owns it, using conventions every project-os repo already has, instead of from a surface built for designs alone."
+      features: ["FEAT-0147", "FEAT-0148"]
+      requirements: ["REQ-0063", "REQ-0064", "REQ-0065"]
+      issues: ["ISS-0299", "ISS-0300"]
+      note: "Opened 2026-09-12. Justified against CLAUDE.md's two questions in the phase note, and the justification is stated as REVERSIBLE: if this turns out to be two sessions, fold it into PHASE-005 and supersede this. NOT PHASE-009 (Design surfaces, done) because this retires what PHASE-009 built and generalises the rest beyond design; reopening a closed phase to delete its own delivery would make the registry describe it as something it was not. NOT PHASE-005 because only the renderer half is desktop-shell work - the sidecar routes, the note template, the authoring skill and the validator are not, and three of those are owned upstream. Five exit criteria, four of them checkable by command."
     PHASE-041:
       file: "docs/phases/PHASE-041-The-Gate-Runs-Where-The-Checks-Are.md"
       title: "The gate runs where the checks are, and the fleet stops drifting"
@@ -3428,6 +3518,24 @@ items:
       # Sentinel parking-lot — does NOT advance the PHASE counter above.
 
   risks:
+    RISK-0009:
+      file: "docs/risks/RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged.md"
+      title: "A design verdict stops naming what it judged, so an approval given to revision 3 silently covers revision 6 — knowingly accepted by Edwin on 2026-09-12, with 'for now' in the sentence"
+      status: open
+      owner: user:edwin
+      likelihood: medium
+      impact: medium
+      related: [FEAT-0148, TASK-0615, ISS-0056, TASK-0375, REQ-0064]
+      note: "AN ACCEPTED TRADE-OFF, not a defect - record it as such. Edwin challenged the plan's claim that design verdict buttons were being retired ('why can we not have these, we currently allow for the other items to be triaged and providing review info?') and he was right: Accept/Decline for a design were NEVER bench-hosted - they sit on the note from the actuator table every type shares, and note_writes.py:239 says so. Only the ENDPOINT was design-specific. Offered three options, he chose 'Drop the binding for now!'. So VERDICT_ENDPOINTS loses its design entry, DESIGN_REVIEW_FIELDS and design_revision writing go, /api/design/verdict and /api/design/offer-review are retired, and the BUTTONS STAY on the note through /api/notes/transition. THE HAZARD, in note_writes.py:230's own words: a design accepted through the generic path gets status: accepted and no design_revision, 'so an approval given to revision 3 silently covers revision 6, which is the one way a design review is worse than no review at all'. This is what ISS-0056 and TASK-0375 exist for and the phase re-opens it deliberately. 'FOR NOW' IS LOAD-BEARING - revisitable, which is why this is a risk and not a closed decision. Measured: 3 designs carry a design_revision (this repo's DES-0002, DES-0004, DES-0009) and they are LEFT ALONE; 7 designs carry a verdict at all, 4 of them the plan-accepted value ISS-0056 is about. Markdown-first weakened the protection anyway: design_revision names a commit of the ARTIFACT FILE, and a design with no artifact has none, so the binding needed widening regardless. THE WAY BACK, one task: a verdict names the commit of whatever the design IS - the note, or the note and its page - written from the generic path, keeping the git validation that already exists."
+    RISK-0008:
+      file: "docs/risks/RISK-0008-The-Sandbox-Is-The-Only-Boundary.md"
+      title: "With the framing allowlist gone, the iframe sandbox is the only thing between a framed document and the cockpit — and nothing marks that attribute as load-bearing"
+      status: open
+      owner: user:edwin
+      likelihood: low
+      impact: high
+      related: [FEAT-0148, REQ-0064, ADR-0042, TASK-0609, ISS-0299]
+      note: "REWRITTEN 2026-09-12, same day it was created. The first version was 'framing becomes a file browser' and rested on the belief that the design asset: allowlist was what kept the cockpit from serving arbitrary files. Checked: /docs/<rel> (server.py:4233) already serves every file under docs/ by path with no gate, and the render server binds 0.0.0.0 by design (cockpit.py:2108). So framing widens no read access and that hazard does not exist. What does: after ADR-0042 the ONLY separation between a framed document and the cockpit is one attribute - sandbox without allow-same-origin, at renderer.ts:5708, with allow-scripts already beside it. Low likelihood, high impact. Closes when a test asserts allow-same-origin is absent, not when the ADR is accepted."
     RISK-0007:
       file: "docs/risks/RISK-0007-Remote-Workspace-Trust-Boundary.md"
       title: "Remote workspace trust boundary — on a host you do not own alone, loopback authorises strangers, and the cockpit's write surface includes agent dispatch"
@@ -3454,6 +3562,26 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0086:
+      file: "docs/features/pictures-beside-the-note/plan/tests/TST-0086-A-Note-Shows-The-Pictures-Beside-It.md"
+      title: "A note shows the pictures beside it, and an HTML page shows the pictures beside it"
+      status: active
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      scope: feature
+      level: acceptance
+      features: [FEAT-0147]
+      note: "Planned, not walked. Ten steps. Steps 1-4 and 10 are the note surface (2b opens the note in OBSIDIAN, which is why the convention is a relative path), 5 is the validator, 6-8 are the frame - depth, traversal and containment, which are the only path rules left - and 9 is the your-health conversion. Step 10 is BLOCKED on ADR-0043. Walk it in the RUNNING window - TST-0085 left three of ten steps on a harness and the pass could not be recorded."
+    TST-0087:
+      file: "docs/features/html-viewer/plan/tests/TST-0087-An-HTML-Page-Opens-In-The-Viewer.md"
+      title: "An HTML page opens in the viewer, whatever kind of note references it, and nothing that mattered about the bench was lost silently"
+      status: active
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      scope: feature
+      level: acceptance
+      features: [FEAT-0148]
+      note: "Planned, not walked. Ten steps. Step 4 is ISS-0300. Step 5 opens project-os-deck DES-0002 - 10 revision entries and 12 region comments - to prove the removal left the record intact. Step 7 checks that a design ID opens its NOTE. Step 8 curls all eight removed endpoints. Step 9 frames a page in ANOTHER workspace and reads the frame's sandbox attribute, which is the only boundary left. Step 10 re-runs every detection command in the capability register."
     TST-0084:
       file: "docs/features/design-links/plan/tests/TST-0084-A-Design-ID-Opens-The-Bench-And-Other-IDs-Open-Their-Note.md"
       title: "A design's ID opens the bench and every other ID opens its note: the rule runs in node, and a source guard pins where the renderer asks it"
@@ -4168,6 +4296,22 @@ items:
       phase: "[[PHASE-008-State-And-Review-Surfaces]]"
       note: "Migrated from REF-0001 when the design type landed (project-os-dev FEAT-0019). implemented, not accepted: PHASE-008 shipped from it."
   decisions:
+    ADR-0042:
+      file: "docs/decisions/ADR-0042-What-May-Be-Framed.md"
+      title: "Any file under a repo's `docs/` may be framed, in any workspace the shell holds — because serving it was never the boundary, and the sandbox is"
+      status: proposed
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      supersedes: ""
+      note: "REWRITTEN 2026-09-12, same day, after Edwin asked 'what is the issue if this isn't limited? yes cross repo is allowed. Rewrite ADR-0042'. The first version decided REFERENCE REACHABILITY - a file may be framed when a note points at it - on the belief that the design asset: allowlist was what kept the cockpit from serving arbitrary files. That belief was checked and is false: /docs/<rel> (server.py:4233) serves every file under docs/ by path with no allowlist, no auth and no gate beyond rejecting .. and checking docs_root containment, and the render server binds 0.0.0.0 by design so a tablet can read (cockpit.py:2108). The allowlist was a CURATION rule wearing a security rule's clothes. DECIDED: any path resolving inside the workspace's docs/, cross-repo included - the shell holds one sidecar URL per workspace and each sidecar still bounds its own docs_root. WHAT REMAINS THE BOUNDARY: the frame is sandboxed WITHOUT allow-same-origin so it has an opaque origin; .. rejected; containment checked; GET-only, no cookies, nosniff. Consequence to carry: the sandbox attribute is now the ONLY thing between a framed document and the cockpit, so changing it is a security change - RISK-0008. Also lets /design-asset be deleted rather than generalised, and TASK-0613 decides whether the viewer needs its own route at all or is /docs/<rel> with different headers. The first version's Amendment history section keeps the record."
+    ADR-0043:
+      file: "docs/decisions/ADR-0043-How-A-Note-Marks-HTML-To-Render.md"
+      title: "How a note says 'render this HTML' rather than 'show this HTML as code' — the marker is not the code fence's language slot"
+      status: proposed
+      owner: user:edwin
+      phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
+      supersedes: ""
+      note: "STILL OPEN WITH EDWIN as of 2026-09-12, and the note below is the FIRST version's reasoning - the research since has moved the answer and the ADR will be REWRITTEN rather than amended, so do not build against it. What moved it: Obsidian renders raw HTML in a note NATIVELY and so does the cockpit's renderer, so a fenced ```html render marker would render in the cockpit and show as SOURCE in Obsidian - which Edwin rejected outright ('we cannot have the source be visible in obsidian that doesn't make any sense'). No core Obsidian plugin renders fenced HTML; the HTML plugins that exist open .html FILES. Likely decision: NO MARKER, raw HTML is the notation, with four authoring constraints - no blank lines inside an HTML block, no Markdown inside HTML elements, scripts never run, no style isolation. Whatever is decided is written into tools/instructions/OBSIDIAN.md upstream, per Edwin. FIRST VERSION, for the record: proposed 2026-09-12 from Edwin's 'we should not use the src tag to identify html content ... do some research online'. Four families, with the prior art: overload the language (rejected - this repo's notes are full of HTML examples that must stay examples); INFO-STRING METADATA after the language, ```html render, as Docusaurus does with ```jsx live (RECOMMENDED - degrades to a highlighted code block on GitHub and in Obsidian); generic directives, remark-directive ::: or MyST ```{name} (the better answer IF more embeddable kinds are coming); Pandoc/djot attribute syntax. THE REQUEST IS AMBIGUOUS and the ADR records both readings: (a) the fenced-block marker, which is what is planned and what his 'others have fixed this before' supports, or (b) a frontmatter field rename away from asset:/source:, which is an hour of work in the upstream template. Also retires ## Variant, which makes a heading's TEXT a functional identifier and has 1 user fleet-wide."
     ADR-0041:
       file: "docs/decisions/ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One.md"
       title: "A release page may settle a check; it may never pass one — `na`, `excused` and `blocked` are decisions about scope and belong to the release, while `pass`, `partial` and `fail` are attestations and stay where the procedure is"
@@ -4291,17 +4435,17 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 145
+    features_total: 147
     features_done: 133
-    tasks_total: 601
+    tasks_total: 611
     tasks_done: 565
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 16
+    issues_open: 18
     issues_triage: 12
-    risks_open: 6
+    risks_open: 8
     releases_total: 1
-    decisions_total: 32
+    decisions_total: 34
