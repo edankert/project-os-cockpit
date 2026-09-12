@@ -4299,7 +4299,7 @@ items:
     ADR-0042:
       file: "docs/decisions/ADR-0042-What-May-Be-Framed.md"
       title: "Any file under a repo's `docs/` may be framed, in any workspace the shell holds — because serving it was never the boundary, and the sandbox is"
-      status: proposed
+      status: accepted
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       supersedes: ""

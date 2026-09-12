@@ -3,11 +3,11 @@ type: "[[adr]]"
 id: ADR-0042
 aliases: ["ADR-0042"]
 title: "Any file under a repo's `docs/` may be framed, in any workspace the shell holds — because serving it was never the boundary, and the sandbox is"
-status: proposed
+status: "accepted"
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
-updated: 2026-09-12
+updated: "2026-09-12"
 source: ["Edwin, 2026-09-12: 'I don't think we need that rule, what is the issue if this isn't limited? yes cross repo is allowed. Rewrite ADR-0042'", "src/project_os_cockpit/server.py:3375", "src/project_os_cockpit/server.py:4233"]
 decision: "The viewer may frame any file that resolves inside a workspace's docs/ directory, in any workspace the shell has open. No allowlist, no reachability test, no same-repo restriction. The boundary that remains is the sandbox with no allow-same-origin, plus path containment in docs_root."
 context: "The design bench frames only files a design note claims in asset:, and the rule's stated purpose was to stop the render surface becoming a file browser. Measured: /docs/<rel> already serves every file under docs/ to anyone who can reach the sidecar, so the render surface was already a file browser and the allowlist was protecting nothing."
@@ -27,6 +27,7 @@ related:
   - "[[RISK-0008-The-Sandbox-Is-The-Only-Boundary]]"
   - "[[FEAT-0148-One-HTML-Viewer]]"
 tags: [adr, security, render]
+decided_option: "3"
 ---
 
 # What may be framed
