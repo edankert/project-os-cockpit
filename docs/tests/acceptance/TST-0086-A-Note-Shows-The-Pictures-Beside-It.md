@@ -63,7 +63,9 @@ Record for each step: the date, whether it was the window or the browser, and wh
 
 ## Walked 2026-09-12 (model:claude-opus-5)
 
-**In the running window**, restarted by pid onto the build under test, with a temporary design note (`WALK-0001`) carrying pictures in `docs/designs/__attachments__/`. The note and its files were deleted after the walk; what they proved is below.
+**Venue, per step.** Steps 1, 2, 4, 5, 6, 7, 8, 9 and 10 were walked in the **running window**, restarted by pid onto the build under test; step 3 (the browser front door) was **not walked at all** and is recorded below as a gap. Nothing in this walk was re-done in the harness — the closing paragraph about the harness belongs to TST-0087, and saying it here was wrong.
+
+The window walk used with a temporary design note (`WALK-0001`) carrying pictures in `docs/designs/__attachments__/`. The note and its files were deleted after the walk; what they proved is below.
 
 1. **A picture in `__attachments__` by relative path** — shown, `naturalWidth` 240, served from `/docs/designs/__attachments__/WALK-shot.png`.
 2. **The same file as an Obsidian embed `![[WALK-shot.png]]`**, and as a bare filename — both resolved to the same file. Three forms, one picture.
@@ -78,4 +80,4 @@ Record for each step: the date, whether it was the window or the browser, and wh
 
 **Step 2b, in Obsidian, is not walked and is owed.** Nothing here drives Obsidian. The claim it would check — that a relative path and an Obsidian embed (the double-bracket form) both show — rests on Obsidian's documented behaviour, and it is the reason the relative path is the written convention.
 
-**The window is shared.** Two other agent sessions drove it during this walk, once switching projects mid-step. Every reading above was taken inline with its action; where a step needed several actions in sequence, it was re-walked in the renderer harness instead, which nobody else drives.
+**The window is shared.** Two other agent sessions drove it during this walk, once switching projects mid-step. Every reading above was taken inline with its action, so a switch between actions could not corrupt one. The multi-action sequences that *were* re-walked in the harness belong to [[TST-0087-An-HTML-Page-Opens-In-The-Viewer]], and that note names them step by step.
