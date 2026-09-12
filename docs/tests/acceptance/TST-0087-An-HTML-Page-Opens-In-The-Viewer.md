@@ -15,7 +15,7 @@ entrypoint: ""
 command: ""
 last_verified: ""
 covers: ["[[FEAT-0148-One-HTML-Viewer]]"]
-issues: ["[[ISS-0300-A-Design-With-No-HTML-Page-Is-Told-It-Has-Nothing-To-Show]]", "[[ISS-0056-Offered-Design-Routes-To-Plan-Verdicts]]"]
+issues: []
 tasks: ["[[TASK-0613-A-Generic-HTML-Viewer]]", "[[TASK-0614-Links-Stop-Asking-For-The-Bench]]", "[[TASK-0615-Remove-The-Bench]]", "[[TASK-0616-Intent-After-The-Bench]]", "[[TASK-0617-Register-And-Deck]]"]
 artifacts: []
 last_run: ""
@@ -24,11 +24,16 @@ mutation_score: ""
 reviewed_by: ""
 review_date: ""
 review_verdict: ""
-related: ["[[REQ-0064-One-Viewer-And-One-Rule-About-What-May-Be-Framed]]", "[[ADR-0042-What-May-Be-Framed]]", "[[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]]"]
+related: ["[[REQ-0064-One-Viewer-And-One-Rule-About-What-May-Be-Framed]]", "[[ADR-0042-What-May-Be-Framed]]", "[[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]]", "[[ISS-0300-A-Design-With-No-HTML-Page-Is-Told-It-Has-Nothing-To-Show]]", "[[ISS-0056-Offered-Design-Routes-To-Plan-Verdicts]]"]
 tier: "1"
 area: "the viewer"
 tags: [test, acceptance, render]
 ---
+
+<!-- `issues:` is empty on purpose: a check that names an ISS-* reads as a
+     regression check ("this defect was fixed"), and this is a behaviour claim
+     about a new surface. The issues this walk happens to close are in
+     `related:` instead (ADR-0039 decision 4, `acceptance.section_of`). -->
 
 # An HTML page opens in the viewer
 

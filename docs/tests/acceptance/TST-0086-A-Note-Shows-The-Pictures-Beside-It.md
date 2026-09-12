@@ -15,7 +15,7 @@ entrypoint: ""
 command: ""
 last_verified: ""
 covers: ["[[FEAT-0147-Pictures-Beside-The-Note]]"]
-issues: ["[[ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It]]"]
+issues: []
 tasks: ["[[TASK-0608-Pin-Image-Resolution-To-The-Note]]", "[[TASK-0609-An-HTML-Page-May-Show-A-File-Beside-It]]", "[[TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render]]", "[[TASK-0611-Upstream-The-Markdown-First-Contract]]", "[[TASK-0612-Convert-The-Largest-Embedded-Artifact]]"]
 artifacts: []
 last_run: ""
@@ -24,11 +24,16 @@ mutation_score: ""
 reviewed_by: ""
 review_date: ""
 review_verdict: ""
-related: ["[[REQ-0063-An-Image-Lives-Beside-The-Note-That-Shows-It]]", "[[REQ-0065-A-Design-Is-Markdown-First]]"]
+related: ["[[REQ-0063-An-Image-Lives-Beside-The-Note-That-Shows-It]]", "[[REQ-0065-A-Design-Is-Markdown-First]]", "[[ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It]]"]
 tier: "1"
 area: "notes and attachments"
 tags: [test, acceptance, images]
 ---
+
+<!-- `issues:` is empty on purpose: a check that names an ISS-* reads as a
+     regression check ("this defect was fixed"), and this is a behaviour claim
+     about a new surface. The issues this walk happens to close are in
+     `related:` instead (ADR-0039 decision 4, `acceptance.section_of`). -->
 
 # A note shows the pictures beside it
 

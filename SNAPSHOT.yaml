@@ -879,7 +879,7 @@ items:
     TASK-0611:
       file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0611-Upstream-The-Markdown-First-Contract.md"
       title: "Upstream in `~/Dev/repos/project-os`: the validator stops requiring an HTML artifact, the template and the authoring skill say Markdown with pictures first, and OBSIDIAN.md carries both the `__attachments__` convention and the rules for HTML in a note"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0147
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -3563,7 +3563,7 @@ items:
 
   tests:
     TST-0086:
-      file: "docs/features/pictures-beside-the-note/plan/tests/TST-0086-A-Note-Shows-The-Pictures-Beside-It.md"
+      file: "docs/tests/acceptance/TST-0086-A-Note-Shows-The-Pictures-Beside-It.md"
       title: "A note shows the pictures beside it, and an HTML page shows the pictures beside it"
       status: active
       owner: user:edwin
@@ -3573,7 +3573,7 @@ items:
       features: [FEAT-0147]
       note: "Planned, not walked. Ten steps. Steps 1-4 and 10 are the note surface (2b opens the note in OBSIDIAN, which is why the convention is a relative path), 5 is the validator, 6-8 are the frame - depth, traversal and containment, which are the only path rules left - and 9 is the your-health conversion. Step 10 is BLOCKED on ADR-0043. Walk it in the RUNNING window - TST-0085 left three of ten steps on a harness and the pass could not be recorded."
     TST-0087:
-      file: "docs/features/html-viewer/plan/tests/TST-0087-An-HTML-Page-Opens-In-The-Viewer.md"
+      file: "docs/tests/acceptance/TST-0087-An-HTML-Page-Opens-In-The-Viewer.md"
       title: "An HTML page opens in the viewer, whatever kind of note references it, and nothing that mattered about the bench was lost silently"
       status: active
       owner: user:edwin
@@ -4438,7 +4438,7 @@ metrics:
     features_total: 147
     features_done: 133
     tasks_total: 611
-    tasks_done: 565
+    tasks_done: 566
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182
