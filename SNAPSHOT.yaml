@@ -858,7 +858,7 @@ items:
     TASK-0608:
       file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0608-Pin-Image-Resolution-To-The-Note.md"
       title: "A relative path is the convention, image resolution prefers the note's own folder and `__attachments__` beside it, and the fleet-wide filename search is documented as Obsidian's fallback rather than an accident"
-      status: backlog
+      status: done
       owner: user:edwin
       parent: FEAT-0147
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -871,8 +871,8 @@ items:
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
     TASK-0610:
       file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render.md"
-      title: "A note marks a block of HTML as something to render, with a marker that is not the code fence's language"
-      status: backlog
+      title: "A note shows HTML by containing it: no marker, no fenced-block convention, and the four authoring rules written where an agent reads them"
+      status: done
       owner: user:edwin
       parent: FEAT-0147
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
@@ -4438,7 +4438,7 @@ metrics:
     features_total: 147
     features_done: 133
     tasks_total: 611
-    tasks_done: 566
+    tasks_done: 568
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182

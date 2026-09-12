@@ -2,8 +2,8 @@
 type: "[[task]]"
 id: TASK-0610
 aliases: ["TASK-0610"]
-title: "A note marks a block of HTML as something to render, with a marker that is not the code fence's language"
-status: backlog
+title: "A note shows HTML by containing it: no marker, no fenced-block convention, and the four authoring rules written where an agent reads them"
+status: done
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
@@ -18,28 +18,25 @@ tests: ["[[TST-0086-A-Note-Shows-The-Pictures-Beside-It]]"]
 tags: [task, markdown, convention]
 ---
 
-# A note marks a block of HTML to render
 
-## Blocked, and the answer moved
+# A note marks nothing
 
-**Do not start.** [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] is with Edwin as of 2026-09-12 and the research changed its recommendation, so this task will be rewritten with it rather than amended.
+**This task changed shape before it was built, and the note keeps both versions.** It was written to add a marker — a word after the language in a fenced block, so ` ```html render ` would render while ` ```html ` stayed source. [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] rejected every marker after research, on Edwin's constraint: *"we cannot have the source be visible in obsidian that doesn't make any sense."* A fenced block with a marker renders in the cockpit and shows as source in Obsidian, because nothing in Obsidian knows the word.
 
-What changed: Obsidian renders raw HTML in a note **natively**, and the cockpit's renderer passes raw HTML through too. So a fenced ` ```html render ` marker — the first recommendation — would render in the cockpit and show as **source** in Obsidian. Edwin, 2026-09-12: *"we cannot have the source be visible in obsidian that doesn't make any sense."* No core Obsidian plugin renders fenced HTML; the HTML plugins that exist open `.html` files. The likely decision is therefore **no marker at all** — raw HTML is the notation — with four authoring constraints: no blank lines inside an HTML block, no Markdown inside HTML elements, scripts never run, and no style isolation. The Definition of Done below is the *first* version's and is kept only so the change is visible.
+What replaced it: **nothing to build.** Obsidian renders raw HTML in a note natively, and so does this cockpit's renderer. The two already agree, so the work is to write the rules down and to pin the agreement with tests.
 
 ## Definition of Done
 
-- [ ] [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] is `accepted` with one option chosen by Edwin, and the two prior-art claims it inherits are re-verified first (see Steps).
-- [ ] A fenced HTML block carrying the marker renders as a live fragment in the note, in the browser cockpit and in the desktop shell.
-- [ ] A fenced HTML block **without** the marker still renders as highlighted source. A test pins this, using one of this repo's existing notes that contains an HTML example.
-- [ ] The rendered fragment is sandboxed at least as tightly as the current variant strip: no `allow-same-origin`, and no `allow-scripts` unless the note opts in.
-- [ ] The convention is written into the upstream template and skill (rolled into [[TASK-0611-Upstream-The-Markdown-First-Contract]] if that has not landed, otherwise a follow-up upstream commit).
+- [x] [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] is `accepted`, deciding no marker. Edwin: *"q2: agree"*.
+- [x] The four authoring rules are in `tools/instructions/OBSIDIAN.md`, upstream, under **HTML in a note** — landed with [[TASK-0611-Upstream-The-Markdown-First-Contract]] and synced down. No blank line inside a block; no Markdown inside elements; scripts never run; pictures are Markdown images, never `<img>` tags.
+- [x] A test pins that raw HTML in a note body survives to the rendered output, and that a fenced ` ```html ` block is still shown as source (`tests/test_note_attachments.py`).
+- [x] A test pins the cockpit half of the claim: the shell writes the sidecar's HTML into the document unaltered, and the page's CSP blocks inline scripts. ADR-0043 rests on that pair, so a change to either should be loud.
+- [x] The style-isolation cost is recorded rather than solved: a `<style>` in a note restyles the page in both applications. The way back, if it bites, is our own fence plus a small fleet Obsidian plugin — ADR-0043 names it and `registerMarkdownCodeBlockProcessor` is the API.
 
-## Steps
+## What was NOT built, from the first version of this task
 
-- [ ] **Re-verify the research before the ADR is accepted.** The calling session found the prior art; this note does not re-check it. Confirm: Docusaurus's ` ```jsx live ` and remark-mdx-code-meta as the info-string precedent; the Pandoc brace-as-language highlighting problem (pandoc issue 8174). The directive family is confirmed — [remark-directive](https://github.com/remarkjs/remark-directive) and [MyST](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html), whose colon-fence form renders acceptably in plain Markdown editors.
-- [ ] Implement in `src/project_os_cockpit/renderer.py` and whatever the desktop renderer needs.
-- [ ] Retire `## Variant <name>`: it makes a heading's text a functional identifier, it has one user fleet-wide, and `chosen_variant:` is set on none of 47 design notes (measured 2026-09-12). The strip itself is deleted by [[TASK-0615-Remove-The-Bench]]; this task removes the convention from the documentation.
+The marker, a parser change, a renderer change, and the sandboxed fragment. The first version also required the rendered fragment to be *"sandboxed at least as tightly as the current variant strip"* — that requirement disappears with the variant strip itself, which [[TASK-0615-Remove-The-Bench]] removes.
 
 ## Notes
 
-Independent of the rest of the feature. If it slips, nothing is blocked — which is the argument for doing it last rather than first, and it is now genuinely blocked, which makes that ordering free.
+Obsidian cannot open a standalone `.html` file without a community plugin, which is the other half of why markdown-first is right: pictures in a note are readable everywhere, and an HTML page is a cockpit-only artifact by nature.
