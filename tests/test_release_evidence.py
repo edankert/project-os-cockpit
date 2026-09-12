@@ -285,21 +285,26 @@ def test_a_box_naming_nothing_the_record_holds_is_unknowable() -> None:
 @needs_trainer
 def test_both_corrupt_store_artifacts_are_reported_and_the_others_are_not(
 ) -> None:
-    """Two of seven, both ending with leaked tool-call closing tags after the
-    root element — in the declared source of truth for store copy in ten
-    locales."""
+    """One of seven ends with leaked tool-call closing tags after the root
+    element — in the declared source of truth for store copy in ten locales.
+
+    **It was two, and the assertion is narrowed rather than widened**
+    (2026-09-12). `REL-0007-v2.0.0-play-store-descriptions.xml` was repaired
+    in `your-trainer`, which is what this check exists to provoke, and the
+    docstring below said what to do when it happened: delete the name, do not
+    relax the comparison. The remaining one is REL-0009's.
+    """
     bad, good = [], []
     for number in range(1, 14):
         for art in publication.artifacts_for(TRAINER / "docs", f"REL-{number:04d}"):
             (bad if art.get("checked") and not art["ok"] else good).append(
                 art["name"])
-    # Named, because these two files are the evidence this check exists for.
-    # If Edwin repairs them this fails, and the right response is to delete the
-    # assertion rather than to widen it — the finding will have been acted on.
-    assert sorted(bad) == [
-        "REL-0007-v2.0.0-play-store-descriptions.xml",
-        "REL-0009-v2.0.4-play-store-listing.xml",
-    ]
+    # Named, because this file is the evidence this check exists for. When it
+    # is repaired this fails, and the right response is to delete the name
+    # rather than to widen the comparison — the finding will have been acted
+    # on, and an assertion that accepts "any number of broken files" is not a
+    # check, it is a counter.
+    assert sorted(bad) == ["REL-0009-v2.0.4-play-store-listing.xml"]
     assert len(good) >= 4, "the well-formed listings still parse"
 
 
