@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-09-10
 updated: 2026-09-10
 source: ["Edwin, 2026-09-10, in a your-health session: 'But can you show the document in the cockpit?', then '2 please' to having the cockpit taught to open a page from a link"]
-commit: ""
+commit: "a6a33a6"
 pr: ""
 impacts: ["desktop/src/renderer/deep-link.ts", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/index.html", "desktop/src/main.ts", "desktop/scripts/open-link.sh", "desktop/tests/deep-link.test.mjs", "tests/test_desktop_note_mounts.py", "tests/test_cross_repo_links.py", "tests/test_checks_view.py", "docs/reference/cockpit-capability-register.md"]
 issues: ["[[ISS-0293-A-Cockpit-Link-Opens-The-Project-But-Not-The-Page]]", "[[ISS-0294-Images-In-A-Note-Are-Broken-In-The-Desktop-App]]", "[[ISS-0295-A-File-Change-Moves-The-Reader-Off-The-Open-Note]]"]

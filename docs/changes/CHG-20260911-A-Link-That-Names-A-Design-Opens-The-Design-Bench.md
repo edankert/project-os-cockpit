@@ -8,7 +8,7 @@ owner: user:edwin
 created: 2026-09-11
 updated: 2026-09-11
 source: ["Edwin, 2026-09-11, in a your-health session: 'Create the feature/requirement/tasks etc ... in the cockpit project to open the design bench whenever a link names a design's ID. So the cockpit LLM can take over.'"]
-commit: ""
+commit: "a6a33a6"
 pr: ""
 impacts: ["desktop/src/renderer/deep-link.ts", "desktop/src/renderer/renderer.ts", "desktop/tests/deep-link.test.mjs", "tests/test_design_links.py", "tests/test_cross_repo_links.py", "docs/reference/cockpit-capability-register.md"]
 issues: ["[[ISS-0296-A-Link-That-Switches-Project-In-Overview-Leaves-The-Left-Pane-Unloaded]]", "[[ISS-0297-After-A-Project-Switch-A-Design-Note-Loses-Its-Banner]]", "[[ISS-0298-A-Parked-Link-Opens-In-Whichever-Project-Arrives-First]]"]
