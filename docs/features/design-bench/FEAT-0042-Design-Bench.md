@@ -40,7 +40,7 @@ related: ["[[FEAT-0041-Review-Desk]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[
 
 By [[FEAT-0148-One-HTML-Viewer]]. The bench framed one thing — an HTML artifact a design note claimed in `asset:` — and carried a review workflow around it: revisions, region-anchored comments, variants, a verdict bound to the revision it judged.
 
-**What was used, and what was not, measured across thirteen repos on the day it was removed.** 33 of 47 design notes declared an artifact, and 6 notes carried real `## Revisions` entries. Against that: 24 artifacts declared `data-design-region` and **12 region comments existed, all on one note, from one reviewer, in one pass**; one note used `## Variant`, and `chosen_variant` was set on none.
+**What was used, and what was not, measured across the fleet on the day it was removed.** 21 of 23 design notes declared an artifact, and 6 notes carried real `## Revisions` entries. Against that: 7 artifacts declared `data-design-region` and **12 region comments existed, all on one note, from one reviewer, in one pass**; one note used `## Variant`, and `chosen_variant` was set on none.
 
 So the frame was the feature. It is now `~view/<rel>`, which frames any file for a note of any type, and the revision log was always Markdown in the note. A design's Accept and Decline stay where they always were, on the note, through the path every other type uses ([[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]] records the binding that was given up).
 
@@ -173,3 +173,7 @@ Two rows, correctly scheme-labelled, correctly file-attributed — and the four 
 - Phase: [[PHASE-009-Design-Surfaces]]
 - Requirement: [[REQ-0023-Design-Is-A-Project-Record]]
 - First subject: [[DES-0001-Overview-Redesign]]
+
+## Corrected measurement
+
+**Corrected 2026-09-12 by independent review.** The counts first written here — 47 design notes, 33 declaring an artifact, 24 artifacts declaring regions, across thirteen repos — were wrong: they counted `__templates__` copies as designs and region *markers* inside one artifact as artifacts. Measured again by the `type:` field, excluding templates: **23 design notes across 8 repos, 21 declaring an artifact, and 7 HTML artifacts declaring regions**. The conclusion is unchanged and slightly stronger — 21 of 23 designs were an HTML file, which is what the frame was for, while the review machinery around it stayed at 12 comments on one note, one `## Variant`, and `chosen_variant` set nowhere.

@@ -64,3 +64,15 @@ On the mitigation this risk named, not on the danger going away. The danger is u
 What closes it is that the absence is now **asserted and explained**. `tests/test_framing.py` reads every `sandbox` value the renderer sets and fails if the flag appears in any of them, and a second test requires the reason to be written at the attribute rather than only in a note — a boundary nobody names is one a refactor removes. `tests/test_design_bench.py` used to refuse the literal anywhere in `renderer.ts`; that file went with the bench, and the refusal moved into `test_framing.py` with it.
 
 Both tests were run against a deliberately broken renderer — the flag added to the viewer's frame — and both failed, which is the only evidence that matters for a guard.
+
+## Corrected 2026-09-12 (independent review)
+
+**"The sandbox is the only boundary" is true of reads and false of writes**, and this note said it without the distinction.
+
+The opaque origin stops a framed page **reading** anything from the sidecar — it cannot see a reply, so it cannot exfiltrate the record. It does not stop it **sending**: the page runs on the machine, so `_require_loopback` passes, and `_read_json_body` ignores `Content-Type`, so a `text/plain` POST — the kind a browser sends cross-origin with no preflight — is parsed as JSON. Demonstrated by the reviewer against a real sidecar.
+
+That is filed as [[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]] and **predates this risk and the viewer**: the design bench framed pages the same way. [[ADR-0042-What-May-Be-Framed]] widened which files may be framed, not what a framed file may do.
+
+This risk stays `closed` on what it actually claimed — that nothing named the read boundary and a refactor could remove it silently. Two tests now do, and both die when the flag is added. The write surface is a different hazard with its own note, which is where it belongs.
+
+Also corrected: this note's `source:` pointed at `renderer.ts:5708`, which after the removal is a different line. The frame it means is the viewer's, in `renderViewerPage`.

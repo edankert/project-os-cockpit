@@ -1360,6 +1360,69 @@ def test_a_design_verdict_goes_through_the_generic_path_now(
     assert note_writes.DECIDE_TRANSITIONS["design"] == ("accepted", "cancelled")
 
 
+def test_a_decision_may_not_rewrite_a_settled_design(tmp_path: Path) -> None:
+    """ISS-0056's other half, and the one the bench's removal broke.
+
+    The guard lived inside `stamp_design_verdict`, which went with the bench;
+    `_DESIGN_SETTLED` was left with no caller, and `/api/notes/decide` would
+    write `cancelled` over a design at `implemented` — *"rejects by writing
+    cancelled onto a design that may already be implemented"*, which three
+    comments in this codebase claim the desk's design branch prevents.
+
+    Found by independent review on 2026-09-12, after the routing change and
+    before anybody used it.
+    """
+    from project_os_cockpit import note_writes
+
+    for settled in ("implemented", "superseded", "cancelled"):
+        docs = tmp_path / settled / "docs"
+        _write(docs / "designs" / "DES-0001-Demo.md", (
+            "---\n"
+            'type: "[[design]]"\n'
+            "id: DES-0001\n"
+            f"status: {settled}\n"
+            "---\n\n# DES-0001\n"
+        ))
+        index = Index.build(docs)
+        for accept in (True, False):
+            with pytest.raises(note_writes.WriteError) as exc:
+                note_writes.stamp_decision(
+                    index, "DES-0001", reviewer="user:edwin", accept=accept)
+            assert exc.value.status == 403
+        # Refused without writing: a half-applied refusal is worse than the bug.
+        assert f"status: {settled}" in (
+            docs / "designs" / "DES-0001-Demo.md").read_text()
+
+
+def test_a_design_decision_is_not_recorded_as_a_plan_decision(tmp_path: Path) -> None:
+    """A design is not a proposal, and the word matters (ISS-0056).
+
+    `plan-accepted` on a design says a plan was accepted; what happened is
+    that a design was. The bench's endpoint wrote `approved`, and routing
+    designs through the generic decide path must not quietly change the word —
+    which it did, until the same review caught it.
+    """
+    from project_os_cockpit import note_writes
+
+    docs = tmp_path / "docs"
+    _write(docs / "designs" / "DES-0001-Demo.md", (
+        '---\ntype: "[[design]]"\nid: DES-0001\nstatus: proposed\n---\n\n# DES-0001\n'))
+    _write(docs / "decisions" / "ADR-0001-Demo.md", (
+        '---\ntype: "[[adr]]"\nid: ADR-0001\nstatus: proposed\n---\n\n# ADR-0001\n'))
+    index = Index.build(docs)
+
+    design = note_writes.stamp_decision(
+        index, "DES-0001", reviewer="user:edwin", accept=True)
+    assert design["review_verdict"] == "approved"
+    assert 'review_verdict: "approved"' in (
+        docs / "designs" / "DES-0001-Demo.md").read_text()
+
+    # The default is unchanged for the types the proposal vocabulary fits.
+    adr = note_writes.stamp_decision(
+        index, "ADR-0001", reviewer="user:edwin", accept=True)
+    assert adr["review_verdict"] == note_writes.PLAN_ACCEPTED_VERDICT
+
+
 def test_the_buttons_still_appear_and_carry_their_endpoint() -> None:
     """Refusing the path must not remove the action — and now that nothing is
     refused, the buttons must still be there.

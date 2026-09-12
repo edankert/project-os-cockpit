@@ -31,6 +31,9 @@ related:
   - "[[ADR-0043-How-A-Note-Marks-HTML-To-Render]]"
   - "[[FEAT-0148-One-HTML-Viewer]]"
   - "[[REQ-0023-Design-Is-A-Project-Record]]"
+reviewed_by: model:claude-opus-5
+review_date: 2026-09-12
+review_verdict: changes-requested
 tags: [feature, images, attachments, upstream]
 ---
 
@@ -107,3 +110,24 @@ The boundary is mechanical, not a judgement call: `tools/sync/MANIFEST.yaml` mar
 - Tasks: [[TASK-0608-Pin-Image-Resolution-To-The-Note]], [[TASK-0609-An-HTML-Page-May-Show-A-File-Beside-It]], [[TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render]], [[TASK-0611-Upstream-The-Markdown-First-Contract]], [[TASK-0612-Convert-The-Largest-Embedded-Artifact]]
 - Check: [[TST-0086-A-Note-Shows-The-Pictures-Beside-It]]
 - Repo paths: `src/project_os_cockpit/index.py`, `src/project_os_cockpit/server.py`, `src/project_os_cockpit/renderer.py`, `desktop/src/renderer/renderer.ts`
+
+
+## Independent review — changes-requested (2026-09-12, model:claude-opus-5)
+
+Fresh context, separate session: the notes and the committed diff, no author transcript. Same model family as the author, recorded in `reviewed_by`.
+
+What held up. The image resolver's order is as documented, and `tests/test_note_attachments.py` exercises the last-resort search where it actually runs. The upstream template, the authoring skill and `OBSIDIAN.md` are byte-identical to `~/Dev/repos/project-os` (`be6ffb3`). `src/project_os_cockpit/validate_docs_bundled.py` is byte-identical to `tools/scripts/validate-docs.py`. `your-health` `9c76562` carries 51 plate files and a 28,145-byte page. `bash tools/scripts/validate-docs.sh` is green.
+
+Findings against this feature.
+
+1. **Three requirements reached `implemented` with ticked criteria whose evidence is an unfilled placeholder.** `REQ-0063` (5), `REQ-0064` (8) and `REQ-0065` (5) each carry `acceptance:` entries ticked `[x]` reading `evidence: <TST-0086 step, test path>`, `evidence: <grep command output>` and so on. `grep -c 'evidence: <' docs/requirements/*.md` returns a non-zero count for exactly these three notes and no other requirement in the repo, so this is not the house style.
+
+2. **`REQ-0065`'s body criteria carry the wrong evidence, shifted by one row.** Criterion 2 is about the *template* and its evidence is TST-0087 step 4 (the banner, ISS-0300); criterion 3 is about the *authoring skill* and its evidence names `docs/__templates__/design.md`; criterion 4 is about *HTML in a note* and its evidence names `design-authoring/SKILL.md`; criterion 5 is about a *sync reporting no divergence* and its evidence is the `your-health` conversion, which is not a sync. Criterion 4 is also ticked while its own text still reads "STILL OPEN with Edwin as of 2026-09-12 — do not build against this criterion".
+
+3. **The `[x]` sync exit criterion is refuted by the command it names.** `PHASE-042` ticks "`tools/scripts/sync-project-os.sh ../project-os` reports no divergence on `docs/__templates__/design.md`, `tools/skills/design-authoring/SKILL.md` and `tools/scripts/validate-docs.py`". Run: `.venv/bin/python tools/scripts/sync-project-os.py ../project-os --dry-run` prints `ACTION REQUIRED — locally diverged template-owned files: LOCAL-CONTENT tools/scripts/validate-docs.py`. The first two files are clean. The criterion is true of two thirds of what it names and should be reconciled, not ticked.
+
+4. **The measurement the retirements rest on does not reproduce.** See FEAT-0148's review section; the same numbers appear in this feature's change note and in `project-os` `be6ffb3`'s commit message.
+
+5. **TST-0086 does not say which of its ten steps were window and which harness.** The evidence block is headed "In the running window" and then closes with "where a step needed several actions in sequence, it was re-walked in the renderer harness instead", naming no step. The note's own Evidence rule is "Record for each step: the date, whether it was the window or the browser". TST-0087 does it properly; this one does not. Step 3 (the browser cockpit) is recorded as not walked, while the Purpose says the check was "Walked in the running desktop app and in the browser cockpit".
+
+Leads, not reproduced as defects: the suite here prints `2061 passed, 5 skipped, 1 failed` where the change note records `2060 passed, 6 skipped` — one conditional skip, probably environmental. `9c76562`'s message says 28,132 bytes where the committed blob is 28,145. The 4.6 MB "before" size and the five byte-identical scroll captures cannot be checked: the original page was never committed and no captures were kept.

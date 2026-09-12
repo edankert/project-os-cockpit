@@ -1530,8 +1530,7 @@ async function navigateToInner(
   // #doc-view intercepts links in either section identically.
   docView.innerHTML = (data.metadata_html || '') + data.html;
   pointImagesAtSidecar(docView);
-  docView.classList.remove('overview-pane', 'agents-page',
-    'design-page', 'is-design-shell');
+  clearDocPageClasses();
   docView.hidden = false;
   placeholder.hidden = true;
   currentRel = normalised;
@@ -4653,7 +4652,7 @@ async function renderOverviewPage(scope: string | null): Promise<boolean> {
 
 function renderProjectOverview(data: StatsPayload): void {
   docView.classList.add('overview-pane');
-  docView.classList.remove('agents-page');
+  clearDocPageClasses();
   // Phase-less projects get a live Now board instead of an empty phase
   // grid (TASK-0165) — the same in-flight data as the Active nav mode.
   const middle = data.phases.length === 0
@@ -5337,8 +5336,7 @@ async function renderInboxItemView(name: string): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   const items = await fetchInboxItems();
   const item = items.find((i) => i.name === name);
-  docView.classList.remove('overview-pane', 'agents-page', 'review-page',
-    'design-page', 'is-design-shell');
+  clearDocPageClasses();
   docView.classList.add('inbox-page');
 
   const root = document.createElement('div');
@@ -6126,10 +6124,24 @@ function viewerTarget(rel: string): ViewerTarget | null {
   return { base, path: rel.slice(slash + 1), project: ws.projectId ?? ws.id };
 }
 
+/** Every class that makes `#doc-view` a particular kind of page. Cleared as a
+ *  set by whichever page renders next, because a page class that outlives its
+ *  page takes its layout with it: `viewer-page` carries `overflow: hidden`,
+ *  and when it was missing from these lists every page after the viewer
+ *  stopped scrolling ([[ISS-0302]]). Named once so a new page cannot be added
+ *  to nine lists and forgotten in the tenth. */
+const DOC_PAGE_CLASSES = [
+  'overview-pane', 'agents-page', 'review-page', 'design-page',
+  'inbox-page', 'viewer-page', 'history-page',
+] as const;
+
+function clearDocPageClasses(): void {
+  docView.classList.remove(...DOC_PAGE_CLASSES);
+}
+
 async function renderViewerPage(rel: string): Promise<boolean> {
   const target = viewerTarget(rel);
-  docView.classList.remove('overview-pane', 'agents-page', 'review-page',
-    'is-design-shell', 'design-page');
+  clearDocPageClasses();
   docView.classList.add('viewer-page');
   if (!target) {
     // Said out loud, never a blank pane: a workspace that is not open is a
@@ -6197,8 +6209,7 @@ async function renderViewerPage(rel: string): Promise<boolean> {
 async function renderDesignPage(target: string): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
   const designs = await fetchDesignRegister();
-  docView.classList.remove('overview-pane', 'agents-page', 'review-page',
-    'is-design-shell');
+  clearDocPageClasses();
   docView.classList.add('design-page');
   rightPaneContent.replaceChildren();
   // A design note has real links — DES-0002 names DES-0001, TST-0019,
@@ -6297,8 +6308,7 @@ async function renderReviewPage(target: string): Promise<boolean> {
   renderReviewQueuePane(payload);
   void refreshReviewBadge();
 
-  docView.classList.remove('overview-pane', 'agents-page',
-    'design-page', 'is-design-shell');
+  clearDocPageClasses();
   docView.classList.add('review-page');
   rightPaneContent.replaceChildren();
 
@@ -7497,8 +7507,7 @@ async function renderReleasePage(releaseId: string): Promise<boolean> {
   if (!data) return false;
 
   if (currentNavMode !== 'publication') setNavMode('publication');
-  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
-    'is-design-shell', 'review-page');
+  clearDocPageClasses();
   rightPaneContent.replaceChildren();
   docView.replaceChildren(buildReleasePage(data, releaseId));
   docView.hidden = false;
@@ -7544,8 +7553,7 @@ async function renderReleaseItemPage(
   } catch { return false; }
   if (!data?.exists) return false;
   if (currentNavMode !== 'publication') setNavMode('publication');
-  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
-    'is-design-shell', 'review-page');
+  clearDocPageClasses();
   rightPaneContent.replaceChildren();
   docView.replaceChildren(buildReleaseItemPage(data, releaseId));
   docView.hidden = false;
@@ -9636,8 +9644,7 @@ async function renderChecksPage(
     suppressLandingOnce = true;
     setNavMode('tests');
   }
-  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
-    'is-design-shell', 'review-page');
+  clearDocPageClasses();
   rightPaneContent.replaceChildren();
   //: **The address decides the filters; a repaint does not** ([[ISS-0262]]).
   //:
@@ -10631,8 +10638,7 @@ async function renderTestRunPage(noteId: string): Promise<boolean> {
   // A run is one row of that list being walked, not a separate place.
   if (currentNavMode !== 'tests') setNavMode('tests');
 
-  docView.classList.remove('overview-pane', 'agents-page',
-    'design-page', 'is-design-shell', 'review-page');
+  clearDocPageClasses();
   rightPaneContent.replaceChildren();
   docView.replaceChildren(buildTestRunner(detail));
   docView.hidden = false;
@@ -11814,8 +11820,7 @@ const HISTORY_PAGE_COMMITS = 60;
 
 async function renderHistoryPage(at: string | null = null): Promise<boolean> {
   if (!sidecarBaseUrl) return false;
-  docView.classList.remove('overview-pane', 'agents-page', 'design-page',
-    'is-design-shell');
+  clearDocPageClasses();
   docView.classList.add('history-page');
   docView.replaceChildren();
 
@@ -17281,8 +17286,7 @@ async function renderSessionDetailPage(sessionId: string): Promise<boolean> {
     mountPlaceholder(`session ${sessionId}`);
     return false;
   }
-  docView.classList.remove('overview-pane', 'agents-page',
-    'design-page', 'is-design-shell');
+  clearDocPageClasses();
   docView.replaceChildren();
 
   const head = document.createElement('header');
@@ -17457,8 +17461,7 @@ async function renderAgentsPage(preserveScroll = false): Promise<boolean> {
   // user left it so a peer workspace's state change doesn't yank the
   // headline fleet screen back to the top (review finding F1).
   const prevScroll = docView.scrollTop;
-  docView.classList.remove('overview-pane', 'agents-page',
-    'design-page', 'is-design-shell');
+  clearDocPageClasses();
   docView.classList.add('agents-page');
   docView.replaceChildren();
 

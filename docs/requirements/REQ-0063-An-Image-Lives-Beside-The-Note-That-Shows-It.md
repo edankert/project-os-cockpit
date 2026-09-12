@@ -12,11 +12,11 @@ source: ["Edwin, 2026-09-12: 'why embed the images, why not simply store the ima
 priority: high
 scope: "How image files are stored and resolved for notes and for HTML pages the cockpit frames. Not: what a design is, which is REQ-0023."
 acceptance:
-  - "[x] An image placed in `__attachments__/` beside a note renders in that note in the cockpit, with the note referencing it as `![](__attachments__/name.png)` or `![[name.png]]`, in the browser cockpit and in the desktop shell — evidence: <TST-0086 step, test path>"
-  - "[x] An HTML page in the record can show an image that sits beside it, with a relative `src` and no base64 — evidence: <test path>"
-  - "[x] A path with `..`, or one resolving outside `docs_root`, is refused by the frame; every path inside it is served, at any depth. There is no allowlist ([[ADR-0042-What-May-Be-Framed]]) — evidence: <test path>"
-  - "[x] A note references an image by **relative path** — `![](__attachments__/plate-3.png)` — and that is the stated convention, because it is what Obsidian resolves without a vault setting. Resolution prefers the path as written relative to the note, then `__attachments__`, then the other accepted directory names; the fleet-wide filename search stays as a documented last resort — evidence: <src path:line, test path>"
-  - "[x] `tools/instructions/OBSIDIAN.md` upstream names `__attachments__/` beside the note as where a picture goes and the relative path as how to reference it, so an agent in any repo is told — evidence: <upstream path>"
+  - "[x] An image placed in `__attachments__/` beside a note renders in that note in the cockpit, with the note referencing it as `![](__attachments__/name.png)` or `![[name.png]]`, in the browser cockpit and in the desktop shell — evidence: TST-0086 steps 1, 2 and 4 in the running window — three reference forms, one picture, and the near file winning"
+  - "[x] An HTML page in the record can show an image that sits beside it, with a relative `src` and no base64 — evidence: TST-0086 step 6 in the window: a framed page showed a file beside it and one three directories down, no base64"
+  - "[x] A path with `..`, or one resolving outside `docs_root`, is refused by the frame; every path inside it is served, at any depth. There is no allowlist ([[ADR-0042-What-May-Be-Framed]]) — evidence: TST-0086 steps 7 and 8: 200 at any depth inside docs/, 404 and 403 for the two traversal forms"
+  - "[x] A note references an image by **relative path** — `![](__attachments__/plate-3.png)` — and that is the stated convention, because it is what Obsidian resolves without a vault setting. Resolution prefers the path as written relative to the note, then `__attachments__`, then the other accepted directory names; the fleet-wide filename search stays as a documented last resort — evidence: TASK-0608 — `index.py` states the order and why the last resort stays; `tests/test_note_attachments.py`, 9 cases, two written twice after mutation"
+  - "[x] `tools/instructions/OBSIDIAN.md` upstream names `__attachments__/` beside the note as where a picture goes and the relative path as how to reference it, so an agent in any repo is told — evidence: project-os commit `be6ffb3`, OBSIDIAN.md 'Attachments'"
 implements: "[[FEAT-0147-Pictures-Beside-The-Note]]"
 verifies: []
 related:

@@ -8,7 +8,7 @@ severity: low
 phase: "[[PHASE-011-Unproven-Claims]]"
 owner: user:edwin
 created: 2026-07-28
-updated: 2026-07-28
+updated: 2026-09-12
 source: ["independent review of TASK-0229 rounds 2–3, 2026-07-28"]
 related: ["[[TASK-0229-Offer-A-Design-For-Review]]", "[[TASK-0216-Revisions-And-Compare]]", "[[TASK-0220-Revision-Capture]]", "[[TASK-0218-Design-Review-In-The-Desk]]"]
 fixed_by: []
@@ -64,3 +64,9 @@ That is precisely "filing a review would invalidate itself the instant it was re
 **The disclosed limit is real and load-bearing.** `note_moved` has no consumer anywhere — not `renderer.ts`, not `static/cockpit.js`. The note names this honestly, which is worth crediting; but `test_the_reviewer_is_told_when_the_artifact_moved` exists in `tests/test_design_bench.py` specifically because the artifact half shipped in that state once already, and the new work reproduces the shape without extending that guard. An `ISS-*` for the desk rendering, or leaving this note short of `fixed`, would both be more accurate than closing it.
 
 **And the failure this issue describes occurred in this same commit range, on the design that specifies it.** `DES-0004`'s accepting verdict was recorded in `4daa6c1`; `0e8008a` then appended a Correction section retracting the "9 tests last verified 66–83 days ago" measurement that the *unproven* mark's justification rests on. `design_revision` still reads `55a743d`, `review_date` is unchanged, and `## Revisions` has no entry for it. Nothing flagged it, because the only mechanism that could have is the one this fix added and no surface reads.
+
+## The mechanism that fixed this is gone (2026-09-12)
+
+`cockpit.design_note_digest` hashed a design note's substance, so a reviewer could be told the **note** had moved under them and not only the artifact. It was removed with the design bench ([[CHG-20260912-The-Design-Bench-Becomes-One-Viewer]]): a design review request no longer carries `at_revision` or `at_note_digest`, because a verdict no longer names a revision at all ([[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]], Edwin's decision).
+
+**This issue stays `fixed`** — the defect it names was real and was fixed, and the status records that. What a later reader needs to know is that the staleness signals it created are not running today, and that they come back with the revision binding if that risk is taken up. Recorded here after an independent review found this note pointing at a mechanism that no longer exists.

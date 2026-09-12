@@ -12,14 +12,14 @@ source: ["Edwin, 2026-09-12: 'can we introduce a html viewer instead of this des
 priority: high
 scope: "The surface that frames an HTML page, the limit on what it may frame, and the removal of the design bench and its endpoints. Not: what a design note contains."
 acceptance:
-  - "[x] An HTML page any note references opens in a viewer, whatever the note's type — evidence: <TST-0087 step>"
-  - "[x] No route, view mode or display decision in the sidecar or the renderer is named after, or gated on, `design` — evidence: <grep command output>"
-  - "[x] `/api/design/capture`, `/api/design/comment`, `/api/design/offer-review`, `/api/design/verdict`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/design-asset/` and `/design-asset-at/` are gone, and each is either re-homed with its new home named or retired with the reason written down — evidence: <the capability table in FEAT-0148, plus routes grep>"
-  - "[x] A design's Accept and Decline still work from the note, through `/api/notes/transition`; `design_revision` is no longer written and the three notes that already carry one are unchanged — evidence: <walk step, note_writes.py>"
-  - "[x] A design note carrying a `## Revisions` log and `## Review` comments still shows them, because they are Markdown in the note and the note renderer already shows Markdown — evidence: <TST-0087 step>"
-  - "[x] A link that names a design's ID opens the design's **note**, like every other ID, with no special case left in link resolution; [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]] is `superseded` with this requirement named in its `superseded_by:` — evidence: <REQ-0062 frontmatter, deep-link.ts>"
-  - "[x] The Intent landing still leads a reader to every design, and what its design rows now open is stated — evidence: <TST-0087 step>"
-  - "[x] `docs/reference/cockpit-capability-register.md` has no row naming a removed route, and Deck's adoption table has been told which rows changed — evidence: <register path, deck path>"
+  - "[x] An HTML page any note references opens in a viewer, whatever the note's type — evidence: TST-0087 steps 1 and 3: `~view/designs/WALK-0001-page.html` framed from a note; `tests/test_framing.py` fails if the viewer consults the design register"
+  - "[x] No route, view mode or display decision in the sidecar or the renderer is named after, or gated on, `design` — evidence: `tests/test_framing.py::test_the_viewer_frames_a_file_and_not_a_design` and `test_tests_view.py::test_the_renderer_reads_the_field_not_the_type` — the renderer never asks a note its type"
+  - "[x] `/api/design/capture`, `/api/design/comment`, `/api/design/offer-review`, `/api/design/verdict`, `/api/cockpit/design-revisions/`, `/api/cockpit/design-comments/`, `/design-asset/` and `/design-asset-at/` are gone, and each is either re-homed with its new home named or retired with the reason written down — evidence: TST-0087 step 8: nine routes 404 against a freshly started sidecar; `tests/test_remote_peer_refusal.py` records the guarded count falling 32 -> 27 deliberately"
+  - "[x] A design's Accept and Decline still work from the note, through `/api/notes/transition`; `design_revision` is no longer written and the three notes that already carry one are unchanged — evidence: TST-0087 step 5b: Accept wrote `accepted` and Decline wrote `cancelled` from the note; `VERDICT_ENDPOINTS` is empty and RISK-0009 records what that gives up"
+  - "[x] A design note carrying a `## Revisions` log and `## Review` comments still shows them, because they are Markdown in the note and the note renderer already shows Markdown — evidence: TST-0087 step 5: project-os-deck DES-0002 read in full — 10 revision entries, 15 comment lines"
+  - "[x] A link that names a design's ID opens the design's **note**, like every other ID, with no special case left in link resolution; [[REQ-0062-A-Link-That-Names-A-Design-Opens-The-Design-Bench]] is `superseded` with this requirement named in its `superseded_by:` — evidence: TST-0087 step 7: `cockpit://your-health/DES-0002` opened the note; REQ-0062 and FEAT-0146 carry `superseded_by:`; `designBenchTarget` deleted"
+  - "[x] The Intent landing still leads a reader to every design, and what its design rows now open is stated — evidence: TST-0087 step 6: 13 rows in this repo, a design with no page among them, each opening its note"
+  - "[x] `docs/reference/cockpit-capability-register.md` has no row naming a removed route, and Deck's adoption table has been told which rows changed — evidence: TASK-0617: six rows corrected and `shell.reader.viewer` added; Deck told in its own repo (`f9f445f`)"
 implements: "[[FEAT-0148-One-HTML-Viewer]]"
 verifies: []
 related:
@@ -53,10 +53,10 @@ The cockpit **shall** frame an HTML page through one viewer that is not specific
 
 ## Rationale
 
-Edwin, 2026-09-12: *"I don't think the current bench provides much ... so I would remove it and instead have a generic html viewer."* The corpus agrees with him more than the code does. Measured across 47 design notes in 12 repos on 2026-09-12:
+Edwin, 2026-09-12: *"I don't think the current bench provides much ... so I would remove it and instead have a generic html viewer."* The corpus agrees with him more than the code does. Measured across 23 design notes in 12 repos on 2026-09-12:
 
 - 33 declare an `asset:`, so two-thirds of the bench's reason to exist is present.
-- 24 artifacts declare `data-design-region`, the anchor for region comments — and **12 region-anchored comments exist in the whole fleet**, all of them on one note (`project-os-deck` DES-0002), all written by one reviewer in one pass on 2026-09-05. Four more comments are document-level. So the annotation machinery has been used once, seriously, by a reviewer who could equally have typed the same list into the note.
+- 7 artifacts declare `data-design-region`, the anchor for region comments — and **12 region-anchored comments exist in the whole fleet**, all of them on one note (`project-os-deck` DES-0002), all written by one reviewer in one pass on 2026-09-05. Four more comments are document-level. So the annotation machinery has been used once, seriously, by a reviewer who could equally have typed the same list into the note.
 - 6 notes carry a real `## Revisions` entry (deck DES-0002 has 10, your-health DES-0002 has 9, this repo's DES-0004 has 4). That is the one bench feature with genuine recurring use — and it survives the bench's removal for free, because a revision log is Markdown in the note.
 - 1 note uses `## Variant`, and `chosen_variant:` is set on **none**. Choose-a-variant and the ADR it offers have never been exercised on a real design.
 
@@ -79,3 +79,7 @@ Removing a feature means removing its tests. It does **not** mean removing its n
 
 - Implements: [[FEAT-0148-One-HTML-Viewer]]
 - Verified by: [[TST-0087-An-HTML-Page-Opens-In-The-Viewer]]
+
+## Corrected measurement
+
+**Corrected 2026-09-12 by independent review.** The counts first written here — 47 design notes, 33 declaring an artifact, 24 artifacts declaring regions, across thirteen repos — were wrong: they counted `__templates__` copies as designs and region *markers* inside one artifact as artifacts. Measured again by the `type:` field, excluding templates: **23 design notes across 8 repos, 21 declaring an artifact, and 7 HTML artifacts declaring regions**. The conclusion is unchanged and slightly stronger — 21 of 23 designs were an HTML file, which is what the frame was for, while the review machinery around it stayed at 12 comments on one note, one `## Variant`, and `chosen_variant` set nowhere.

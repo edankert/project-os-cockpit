@@ -82,6 +82,6 @@ Scaffolds by *section*, not by platform. A design opens with the problem, not th
 
 ## What was retired with the bench, and why it is not here
 
-`data-design-region` annotation, the token-parity contract and `viewport:` all served bench machinery that is being removed. Measured across thirteen repos on 2026-09-12: 24 artifacts declared regions and **12 region comments existed, all on one note, from one reviewer, in one pass**; one note used `## Variant`; `chosen_variant` was set on none. A contract nobody exercises is a contract that teaches a false cost.
+`data-design-region` annotation, the token-parity contract and `viewport:` all served bench machinery that was removed. Measured across the fleet on 2026-09-12, by the `type:` field and excluding template copies: **23 design notes in 8 repos, 21 of them declaring an HTML artifact — and against that, 7 artifacts declaring regions, 12 region-anchored comments in total (all on one note, from one reviewer, in one pass), one note using `## Variant`, and `chosen_variant` set on none.** A contract nobody exercises is a contract that teaches a false cost.
 
 If a design still wants to name its parts — and a good one does — name them in prose, and let a comment quote the name.

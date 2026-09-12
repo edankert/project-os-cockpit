@@ -70,7 +70,7 @@ This justification is reversible: if the work turns out to be two sessions, fold
 - [~] No route, view mode or renderer function decides how to display content based on the word "design". Checked by: `grep -rn "design" src/project_os_cockpit/server.py desktop/src/renderer/renderer.ts` returning no route, mode or framing decision — only note-type vocabulary.
 - [~] A design note whose body embeds an image renders that image in the cockpit with no `asset:` declared, in at least three fleet repos.
 - [x] `docs/designs/DES-0002-recovery-and-food.html` in `your-health` is under 100 KB with its images in files beside it — or the reason it was not converted is written in [[ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It]].
-- [x] `tools/scripts/sync-project-os.sh ../project-os` reports no divergence on `docs/__templates__/design.md`, `tools/skills/design-authoring/SKILL.md` and `tools/scripts/validate-docs.py`, because the change was made upstream and synced down.
+- [~] `tools/scripts/sync-project-os.sh ../project-os` reports no divergence on `docs/__templates__/design.md`, `tools/skills/design-authoring/SKILL.md` and `tools/scripts/validate-docs.py`, because the change was made upstream and synced down.
 - [x] A test asserts the frame's `sandbox` attribute does not contain `allow-same-origin` — after [[ADR-0042-What-May-Be-Framed]] that attribute is the only boundary, and nothing currently says so ([[RISK-0008-The-Sandbox-Is-The-Only-Boundary]]).
 - [x] Every capability row in `docs/reference/cockpit-capability-register.md` that named a removed route either names its new home or says the capability was retired and why. A design's Accept and Decline still work from the note, so no row may read as though design verdicts disappeared.
 
@@ -87,13 +87,17 @@ This justification is reversible: if the work turns out to be two sessions, fold
 
 Both features are `done`, all three requirements `implemented`, all ten tasks `done`, and both issues `fixed`. Two walks recorded: [[TST-0086-A-Note-Shows-The-Pictures-Beside-It]] and [[TST-0087-An-HTML-Page-Opens-In-The-Viewer]]. The change is [[CHG-20260912-The-Design-Bench-Becomes-One-Viewer]].
 
-### The two reconciled criteria, and why
+### The three reconciled criteria, and why
+
+**"A sync reports no divergence on the three template files."** Two of the three hold: `docs/__templates__/design.md` and `tools/skills/design-authoring/SKILL.md` are byte-identical to upstream. **`tools/scripts/validate-docs.py` is not, and cannot be** — this repo's copy carries about 1,580 lines of its own checks, so the sync reports `LOCAL-CONTENT` for it by design and the upstream change was hand-merged into both copies (TASK-0611, which says so). The criterion was written expecting three files to match and ticked on two; it is reconciled rather than ticked because the third will never match while this repo keeps local checks. Caught by independent review running the criterion's own command.
 
 **"No route, view mode or renderer function decides display by the word *design*."** The grep returns four hits and none of them is the thing this criterion was written against — a *viewer* that only worked for designs. They are:
 
-- `~design` and `~design/`, which is the **Intent view's landing address**. The mode has been called `intent` internally since FEAT-0092; the address is a legacy name that predates the rename, and changing it moves a stored place for every reader. It is a rename waiting for a reason, not a design-shaped display rule.
+- `~design`, `~design/`, `navigateTo('~design')` and `RETIRED_NAV_MODES`, which are all the **Intent view's landing address** and the mapping that keeps an old stored mode working. The mode has been called `intent` internally since FEAT-0092; the address is a legacy name that predates the rename, and changing it moves a stored place for every reader. It is a rename waiting for a reason, not a design-shaped display rule.
 - `noteTypeFromFrontmatter(...) === 'design'`, which decides whether a note gets the banner offering its page. That is a fact about the note's type, and every type-specific affordance in this cockpit reads the type the same way.
-- `detail.subject_type === 'design'` in the review desk, which keeps a design off the proposal path — [[ISS-0056]]'s surviving half, and the one Edwin asked be protected.
+- `detail.subject_type === 'design'` in the review desk and `it.type === 'design'` beside it, which keep a design off the proposal path — [[ISS-0056]]'s surviving half, and the one Edwin asked be protected. Independent review found that half **broken** on 2026-09-12 and it is now fixed and tested: a decision may not move a settled design, and a design's verdict is recorded as `approved`, never `plan-accepted`.
+
+*(The first version of this reconciliation said the grep returns four hits. It returns seven; the three it missed are the two named above and `it.type === 'design'`. Corrected by independent review.)*
 
 The viewer itself passes: `tests/test_framing.py` fails if it ever consults the design register, and the renderer never asks a note its type when transitioning it.
 

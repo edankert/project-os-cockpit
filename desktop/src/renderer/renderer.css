@@ -4409,21 +4409,10 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 .viewer-view > .design-body { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; }
 .viewer-view > .design-body > .design-frame { flex: 1 1 auto; width: 100%; }
-/* App shell (ISS-0039). The page stops scrolling so the artifact frame can be
-   the only scroller for the artifact; before this, a fixed-height frame sat
-   inside a scrolling page and every long design produced a scrollbar inside a
-   scrollbar. `is-design-shell` is toggled per render because the register —
-   which IS a list and must scroll — mounts on the same element. */
-.doc-view.design-page.is-design-shell {
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  /* The shell tightened the page against its chrome; a design needs room
-     around it to read as a design rather than as part of the app. */
-  padding: 18px 26px 20px;
-  gap: 4px;
-}
+/* The bench's app-shell rule (ISS-0039) was here: `design-page.is-design-shell`
+   stopped the page scrolling so the artifact frame could be the only scroller.
+   The bench is gone and nothing adds `is-design-shell` any more; the viewer
+   carries the same rule under `.doc-view.viewer-page` above. */
 .design-view.is-shell > .design-head { margin-bottom: 10px; }
 .design-view.is-shell {
   display: flex; flex-direction: column;

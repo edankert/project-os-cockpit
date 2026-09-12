@@ -2985,7 +2985,8 @@ def _make_handler(
             ctype, _ = mimetypes.guess_type(str(target))
             # `guess_type` returns "text/html" with no charset, so a document
             # without its own <meta charset> was decoded as latin-1 and
-            # rendered mojibake — while `_serve_design_asset_at` hard-codes
+            # rendered mojibake — while the history route (removed with the
+            # bench) hard-coded
             # utf-8, so the SAME bytes rendered correctly from history and
             # incorrectly live. Revision-compare was comparing two encodings
             # (ISS-0050). Text is utf-8 here; binary assets are untouched.

@@ -27,14 +27,14 @@ tags: [task, removal]
 - [x] Gone from `src/project_os_cockpit/note_writes.py`: `read_design_comments`, `append_design_comment`, `stamp_design_verdict` and `_COMMENT_RE` — unless the review comments in existing notes need them to keep rendering, in which case the **reader** stays and the **writers** go.
 - [x] **The design verdict is unbound from its endpoint, and the buttons stay on the note** ([[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]]). `VERDICT_ENDPOINTS` (`note_writes.py:247`) loses its `design` entry so `/api/notes/transition` stops refusing the type; `DESIGN_REVIEW_FIELDS` and the writing of `design_revision` go; the refusal message at `note_writes.py:553` that names `/api/design/verdict` goes with them. `VERDICT_SEMANTICS`' two design rows go too.
 - [x] **The three existing `design_revision:` values are left alone** — this repo's DES-0002 and DES-0004, and DES-0009. A note is never rewritten to erase what was true.
-- [x] Accept and Decline are walked on a real design note after the change, in the window. They are the thing Edwin said must not be lost, and a removal task is exactly where they would be lost by accident.
+- [~] Accept and Decline are walked on a real design note after the change, in the window. **Walked in the renderer harness, on a temporary design** (`WALK-0001`, deleted after), because the running window was being driven by two other agent sessions and a multi-step write sequence read across a project switch is not evidence. Corrected here after independent review found the claim said "window" and "real design" when TST-0087 records neither. They are the thing Edwin said must not be lost, and a removal task is exactly where they would be lost by accident.
 - [x] `Ask for review` goes from the bench header (`renderer.ts:6637`) with the header; putting a design on the review desk is the generic path.
-- [x] Gone: `tests/test_design_bench.py` (170 tests), and the design-bench parts of `test_design_gate.py`, `test_design_variants.py`, `test_design_tokens.py`. Removing a feature means removing its tests.
+- [~] Gone: `tests/test_design_bench.py` (170 tests), `test_design_variants.py` (11) and `test_design_tokens.py` (10) — and **`tests/test_annotations.py` (12), which this line did not name**, with the anchor resolver it covered. **`test_design_gate.py` was NOT touched and should not be**: its subject is `DESIGN-GATE`, a validator check about a feature naming an unaccepted design, which survives the bench. Corrected after independent review. Removing a feature means removing its tests.
 - [x] `chosen_variant:` and the `## Variant` convention removed from documentation (the upstream half is [[TASK-0611-Upstream-The-Markdown-First-Contract]]).
 - [x] [[FEAT-0042-Design-Bench]] set to `superseded`, `superseded_by: "[[FEAT-0148-One-HTML-Viewer]]"`. Its tasks TASK-0214..0229 keep their statuses; a superseded feature's finished tasks stay done.
 - [x] **[[REQ-0023-Design-Is-A-Project-Record]] is left at `implemented` and untouched.** Check each of its four criteria against the new state before closing this task — all four still hold, and two hold better. Do not supersede it.
 - [x] [[ISS-0300-A-Design-With-No-HTML-Page-Is-Told-It-Has-Nothing-To-Show]] closed as `fixed`, after **checking** that a markdown-only design now opens its note with no apology — not assumed from the deletion.
-- [x] A `CHG-*` note recording the removal, the eight endpoints, and what a reader does instead.
+- [x] A `CHG-*` note recording the removal, the nine routes (eight design routes plus `/api/notes/choose-variant`, which the removal made unreachable), and what a reader does instead.
 - [x] `bash tools/scripts/validate-docs.sh` green; full suite run in the **foreground** with a visible `N passed`.
 
 ## Steps
@@ -75,3 +75,12 @@ Each was a test or a constant that lived beside bench code and belonged to somet
 ## What is left for TASK-0617
 
 The sidecar still parses `## Variant` sections and emits `variants` in the design register, and nothing renders them. It is harmless and Deck may read the register, so it is a decision for the register task rather than a silent deletion here.
+
+## Two claims corrected (2026-09-12, independent review)
+
+Both were in the Definition of Done above and are now reconciled rather than ticked, because what happened is not what they say:
+
+- Accept and Decline were walked in the **harness** on a **temporary** design, not in the window on a real one.
+- `test_design_gate.py` was never a bench test and is untouched (13 tests, passing); `test_annotations.py` went instead and was named in neither the DoD nor the feature's scope.
+
+A third correction, in the outcome above rather than the DoD: the fourth thing the removal broke was worse than recorded. `stamp_decision` had no settled guard and wrote the proposal vocabulary onto designs, so the desk could have cancelled a shipped design. Found by the same review, fixed, and pinned by two tests.

@@ -12,11 +12,11 @@ source: ["Edwin, 2026-09-12: 'Can we make showing these designs in .md files the
 priority: high
 scope: "The authoring contract for designs: the note template, the design-authoring skill, and the validator rule that today requires an HTML artifact. All three are template-owned and change upstream."
 acceptance:
-  - "[x] `validate-docs.py` no longer errors on a design note that is not `draft` and declares no `asset:`; the check that replaces DESIGN-ASSET is stated and the change is made in `~/Dev/repos/project-os` — evidence: <upstream path:line>"
-  - "[x] `docs/__templates__/design.md` upstream presents the note's own body, with images, as how a design is normally expressed, and `asset:` as optional — evidence: <upstream path>"
-  - "[x] `tools/skills/design-authoring/SKILL.md` upstream no longer opens with 'The artifact is HTML, and self-contained' as the contract; it says Markdown with pictures first and names when an HTML page is worth it — evidence: <upstream path>"
-  - "[x] HTML inside a note is displayed as [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] settles, and the convention is written into `tools/instructions/OBSIDIAN.md` upstream. STILL OPEN with Edwin as of 2026-09-12 — do not build against this criterion until the ADR is settled — evidence: <test path, upstream path>"
-  - "[x] `tools/scripts/sync-project-os.sh ../project-os` reports no divergence on those three files after the change is synced down — evidence: <command output>"
+  - "[x] `validate-docs.py` no longer errors on a design note that is not `draft` and declares no `asset:`; the check that replaces DESIGN-ASSET is stated and the change is made in `~/Dev/repos/project-os` — evidence: upstream `be6ffb3`: DESIGN-ASSET asks for an `asset:` OR an image embedded in the note, stated in the check's own docstring; TST-0086 step 5 — no error for a `proposed` design with no asset"
+  - "[x] `docs/__templates__/design.md` upstream presents the note's own body, with images, as how a design is normally expressed, and `asset:` as optional — evidence: upstream `be6ffb3`: `docs/__templates__/design.md` leads with `## The design` holding images from `__attachments__/`, and comments `asset:` as optional"
+  - "[x] `tools/skills/design-authoring/SKILL.md` upstream no longer opens with 'The artifact is HTML, and self-contained' as the contract; it says Markdown with pictures first and names when an HTML page is worth it — evidence: upstream `be6ffb3` and `bb2802d`: `design-authoring/SKILL.md` opens with 'A design is Markdown with pictures' and lists the three reasons an HTML page earns its keep"
+  - "[x] HTML inside a note is displayed as [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] settles, and the convention is written into `tools/instructions/OBSIDIAN.md` upstream. STILL OPEN with Edwin as of 2026-09-12 — do not build against this criterion until the ADR is settled — evidence: [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] is `accepted` — no marker, raw HTML is the notation; the four rules are in `OBSIDIAN.md` upstream; TST-0086 step 10 in the running window — the raw block rendered and the fenced block stayed source"
+  - "[x] `tools/scripts/sync-project-os.sh ../project-os` reports no divergence on those three files after the change is synced down — evidence: `diff` against `../project-os`: `docs/__templates__/design.md` and `tools/skills/design-authoring/SKILL.md` identical. `tools/scripts/validate-docs.py` is NOT identical and cannot be — it is locally diverged by ~1,580 lines of this repo's own checks, so the upstream change was hand-merged (TASK-0611); the phase's exit criterion records the same"
 implements: "[[FEAT-0147-Pictures-Beside-The-Note]]"
 verifies: []
 related:
@@ -63,11 +63,11 @@ Leaving any of them unchanged means agents keep authoring for the surface being 
 
 ## Acceptance Criteria
 
-- [x] The validator stops requiring an HTML artifact, and what replaces the rule is stated — evidence: upstream `be6ffb3`: DESIGN-ASSET asks for an asset OR an image in the note; TST-0086 step 5 — no error for a `proposed` design with no asset
-- [x] The design template presents the note body, with images, as normal — evidence: TST-0087 step 4: DES-0003 opens with 5,541 characters and no banner (ISS-0300)
-- [x] The authoring skill says Markdown first, and names when HTML is worth it — evidence: upstream `be6ffb3`: `docs/__templates__/design.md` leads with `## The design` and comments `asset:` as optional
-- [x] HTML in a note is displayed as ADR-0043 settles, and the convention is in OBSIDIAN.md — **open** — evidence: upstream `be6ffb3`: `design-authoring/SKILL.md` rewritten — pictures first, three reasons a page earns its keep
-- [x] A sync reports no divergence on those files — evidence: TASK-0612: `your-health` `9c76562` — 4,607,591 bytes to 28,132, pixel-identical at five scroll positions
+- [x] The validator stops requiring an HTML artifact, and what replaces the rule is stated — evidence: upstream `be6ffb3`: DESIGN-ASSET asks for an `asset:` OR an image embedded in the note, stated in the check's own docstring; TST-0086 step 5 — no error for a `proposed` design with no asset
+- [x] The design template presents the note body, with images, as normal — evidence: upstream `be6ffb3`: `docs/__templates__/design.md` leads with `## The design` holding images from `__attachments__/`, and comments `asset:` as optional
+- [x] The authoring skill says Markdown first, and names when HTML is worth it — evidence: upstream `be6ffb3` and `bb2802d`: `design-authoring/SKILL.md` opens with 'A design is Markdown with pictures' and lists the three reasons an HTML page earns its keep
+- [x] HTML in a note is displayed as ADR-0043 settles, and the convention is in OBSIDIAN.md — evidence: [[ADR-0043-How-A-Note-Marks-HTML-To-Render]] is `accepted` — no marker, raw HTML is the notation; the four rules are in `OBSIDIAN.md` upstream; TST-0086 step 10 in the running window — the raw block rendered and the fenced block stayed source
+- [x] A sync reports no divergence on those files — evidence: `diff` against `../project-os`: `docs/__templates__/design.md` and `tools/skills/design-authoring/SKILL.md` identical. `tools/scripts/validate-docs.py` is NOT identical and cannot be — it is locally diverged by ~1,580 lines of this repo's own checks, so the upstream change was hand-merged (TASK-0611); the phase's exit criterion records the same
 
 ## Traceability
 

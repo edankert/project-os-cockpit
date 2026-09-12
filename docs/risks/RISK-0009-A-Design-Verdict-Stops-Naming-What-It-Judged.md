@@ -69,3 +69,12 @@ Closes when a verdict names what it judged again, or when Edwin says the trade-o
 PHASE-042 closed and this risk did not, which is the honest pair: Edwin accepted the trade-off knowingly — *"Drop the binding for now!"* — and "for now" is a decision to revisit, not a problem solved. A phase may not close with an unresolved child, and `deferred` would not resolve it either, so it is parked where open work with no scheduled home belongs.
 
 It comes back to a real phase the day someone wants a design verdict to name what it judged again. The way back is one task, written in this note.
+
+## Corrected 2026-09-12 (independent review)
+
+This note said the change "keeps the buttons and drops the second field", which understates it. Two corrections:
+
+- **From the note's actuator row, Accept writes a status and no verdict at all** — not "one field fewer". That is how every type behaves through `stamp_transition`, and it is not a change this work made; the bench's endpoint was the only path that wrote a verdict from a button.
+- **From the review desk, a design's decision does write a verdict**, and since this review it writes `approved` / `changes-requested` rather than the proposal vocabulary. The same review found the desk path would also have moved a *settled* design — writing `cancelled` over `implemented`, which is ISS-0056's own example — because the guard that prevented it lived inside the deleted endpoint. Both are fixed and tested (`test_tests_view.py`).
+
+What this risk records is unchanged: no verdict names the revision it judged.

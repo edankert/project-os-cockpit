@@ -98,7 +98,16 @@ def test_the_viewer_page_is_routed_before_the_bench() -> None:
     src = RENDERER.read_text(encoding="utf-8")
     nav = js_function_body(src, "async function navigateToInner(")
     assert "normalised.startsWith('~view/')" in nav, "the viewer has no route"
-    assert nav.index("normalised.startsWith('~view/')") < nav.index("normalised === '~design'")
+    # Compared at the same anchor, not one branch's prefix test against
+    # another's equality test — the first version compared a `startsWith` index
+    # with an `=== '~design'` index and would have passed whatever the order
+    # (independent review, 2026-09-12).
+    view_at = nav.index("if (normalised.startsWith('~view/'))")
+    design_at = nav.index("if (normalised === '~design'")
+    assert view_at < design_at, (
+        "the Intent landing's `~design` branch is tested before the viewer's; "
+        "while both exist, whichever runs first claims the prefix"
+    )
 
 
 def test_the_viewer_reaches_another_workspaces_sidecar() -> None:
@@ -121,3 +130,45 @@ def test_the_way_back_is_recorded_on_the_way_in() -> None:
     outer = js_function_body(src, "async function navigateTo(")
     assert "viewerCameFrom = currentRel" in outer
     assert outer.index("viewerCameFrom") < outer.index("await navigateToInner(")
+
+
+# ---- a page class must not outlive its page (ISS-0302) --------------------
+
+
+def test_every_page_class_is_cleared_by_the_next_page() -> None:
+    """ISS-0302, reported by Edwin within the hour the viewer landed: after
+    opening a framed page, nothing scrolled — not the acceptance checks page,
+    not a long note.
+
+    `viewer-page` carries `overflow: hidden`, which is right for the viewer
+    (the framed file is the only scroller, ISS-0039) and wrong everywhere
+    else. It was added and never removed, because clearing was done by
+    thirteen hand-written `classList.remove(...)` lists and the new class was
+    in none of them.
+
+    So the set is named once and cleared once, and this test fails if a page
+    adds a class the clear does not know — which is the shape of the bug, not
+    the instance of it.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    declared = re.search(r"const DOC_PAGE_CLASSES = \[(.*?)\] as const;", src, re.S)
+    assert declared, "the page-class set is gone; clearing is back to hand-written lists"
+    known = set(re.findall(r"'([a-z-]+)'", declared.group(1)))
+
+    added = set(re.findall(r"docView\.classList\.add\('([a-z-]+)'\)", src))
+    unknown = added - known
+    assert not unknown, (
+        f"these page classes are added but never cleared: {sorted(unknown)} — "
+        "add them to DOC_PAGE_CLASSES, or the page after them inherits their layout"
+    )
+
+    # And nothing clears them by hand any more: one path, so a fourteenth list
+    # cannot drift from the other thirteen.
+    # One clearing path. The helper's own line is the only `remove` allowed:
+    # a fourteenth hand-written list is how the thirteenth drifted.
+    removes = re.findall(r"docView\.classList\.remove\(([^)]*)\)", src)
+    assert removes == ["...DOC_PAGE_CLASSES"], (
+        f"a page clears doc-view classes by hand again: {removes} — "
+        "use clearDocPageClasses()"
+    )
+    assert src.count("clearDocPageClasses();") >= 13

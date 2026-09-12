@@ -89,7 +89,7 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.theme` | light and dark themes from the design system (DES-0002) | `cockpit:theme` |
 | `shell.settings` | settings popover (external hook) | `#settings-popover` |
 | `shell.windows` | New Window (a full second copy), window bounds persisted app-wide, deep links (`cockpit://<project>/<path or note ID>` opens that page in that project; `desktop/scripts/open-link.sh` sends one from source), context menus per surface, context-aware copy and paste | `main.ts`, `window-state.ts`, `ipc/context-menu.ts`, `ipc/clipboard.ts`, `renderer/deep-link.ts`, `scripts/open-link.sh` |
-| `shell.state.local` | nav mode, pane widths, theme, hide-completed, pins, follow, terminal open and height, design side, scope-completed, platform, left pane collapsed are kept in `localStorage`, read once at start | `renderer.ts` |
+| `shell.state.local` | nav mode, pane widths, theme, hide-completed, pins, follow, terminal open and height, scope-completed, platform, left pane collapsed are kept in `localStorage`, read once at start | `renderer.ts` |
 
 ## Sidecar API
 
@@ -105,7 +105,7 @@ Grouped from the route table in `server.py` at the baseline. A row is a group, n
 | `api.read.agents` | sessions and their instruments | `/api/cockpit/sessions`, `/api/cockpit/agents`, `/api/cockpit/agent-state`, `/api/cockpit/session-cache`, `/api/cockpit/approvals`, `/api/cockpit/dispatch-requests`, `/api/cockpit/runtime`, `/api/cockpit/identity` |
 | `api.read.validation` | the validator's report | `/api/cockpit/validation` |
 | `api.read.state` | the user's view, for the CLI and following | `/api/cockpit/state`, `/api/cockpit/focus`, `/api/cockpit/tab-state` |
-| `api.write.notes` | guarded writes to frontmatter, never body text | `/api/notes/transition`, `tick`, `tick-owed`, `check-toggle`, `mark-check`, `retire-check`, `create`, `attach`, `decide`, `shape`, `review`, `test-run`, `acceptance-run`, `acceptance`, `release-prepare`, `release-verified`, `release-mark-released`, `release-contents`, `release-update`, `release-abandon`, `release-delete`, `release-settle`, `seal-ledger`, `choose-variant`, `actions` |
+| `api.write.notes` | guarded writes to frontmatter, never body text | `/api/notes/transition`, `tick`, `tick-owed`, `check-toggle`, `mark-check`, `retire-check`, `create`, `attach`, `decide`, `shape`, `review`, `test-run`, `acceptance-run`, `acceptance`, `release-prepare`, `release-verified`, `release-mark-released`, `release-contents`, `release-update`, `release-abandon`, `release-delete`, `release-settle`, `seal-ledger`, `actions` |
 | ~~`api.write.design`~~ | **retired 2026-09-12**: `/api/design/capture`, `comment`, `offer-review` and `verdict` are gone with the design bench, and so is `/api/notes/choose-variant`. **What moved rather than went**: a design's Accept and Decline are still offered, on the note, through `api.write.note` — `/api/notes/decide` and `/api/notes/transition`, which already knew a design accepts to `accepted` and declines to `cancelled`. What is genuinely gone is the verdict naming the revision it judged ([[RISK-0009-A-Design-Verdict-Stops-Naming-What-It-Judged]]) | — |
 | `api.write.agents` | approve, dispatch, review requests, caught-up | `/api/cockpit/approve`, `dispatch`, `review-request`, `review-resolve`, `reviewed`, `review/`, `caught-up` |
 | `api.write.inbox` | inbox store and discard | `/api/inbox`, `/api/inbox/store`, `/api/inbox/discard` |

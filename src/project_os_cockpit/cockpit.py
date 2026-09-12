@@ -1868,58 +1868,6 @@ DESIGN_REVISIONS_MAX = 50
 _REGION_RE = re.compile(r'data-design-region="([^"]+)"')
 
 
-def design_regions(docs_root: Path, asset_rel: str) -> list[str]:
-    """Region ids an artifact declares, in document order, deduped.
-
-    Read from the artifact rather than from the note, so the note cannot claim
-    a region the artifact does not have — the note documents what the regions
-    are *for*, the artifact is what actually carries them.
-    """
-    path = docs_root / asset_rel
-    if not path.is_file():
-        return []
-    try:
-        text = path.read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return []
-    seen, out = set(), []
-    for rid in _REGION_RE.findall(text):
-        if rid not in seen:
-            seen.add(rid)
-            out.append(rid)
-    return out
-
-
-def design_asset_at(
-    project_root: Path, index: Index, design_id: str, sha: str,
-) -> bytes | None:
-    """The artifact as it was at one revision, without touching the tree.
-
-    ``git show <sha>:<path>`` rather than a checkout — reading history must
-    never mutate the working copy, and a compare view that stashed the user's
-    uncommitted work to render a diff would be a data-loss bug wearing a
-    feature's clothes.
-    """
-    import re as _re
-    import subprocess
-
-    if not _re.fullmatch(r"[0-9a-fA-F]{4,40}", sha or ""):
-        return None
-    record = next((d for d in designs_payload(index)["designs"]
-                   if d["id"] == design_id), None)
-    if record is None or not record["asset"]:
-        return None
-    try:
-        proc = subprocess.run(  # noqa: S603 — fixed argv, sha validated above
-            ["git", "-C", str(project_root), "show",
-             f"{sha}:docs/{record['asset']}"],
-            capture_output=True, timeout=5, check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return None
-    return proc.stdout if proc.returncode == 0 else None
-
-
 def commits_payload(
     project_root: Path, index: Index, limit: int = COMMITS_DEFAULT_LIMIT
 ) -> dict[str, Any]:

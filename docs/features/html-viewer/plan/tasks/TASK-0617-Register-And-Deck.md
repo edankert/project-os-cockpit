@@ -52,4 +52,4 @@ Six rows corrected and one added. `shell.reader.viewer` is the new row; `shell.r
 
 ## The variant question this task inherited
 
-`## Variant` sections are still parsed by the sidecar and still emitted as `variants` in `/api/cockpit/designs`, and nothing renders them. **Left in place, deliberately**: the register is a read API Deck shares, removing a field is a narrowing that needs its own notice, and one note in thirteen repos uses the convention. The capability register does not claim a variant surface, because there is none. If it is still unused when something else touches that payload, that is the moment to drop it.
+`## Variant` sections are still parsed by the sidecar and still emitted as `variants` in `/api/cockpit/designs`, and nothing renders them. **Left in place, deliberately**: the register is a read API Deck shares, removing a field is a narrowing that needs its own notice, and one note in the fleet uses the convention. The capability register does not claim a variant surface, because there is none. If it is still unused when something else touches that payload, that is the moment to drop it.

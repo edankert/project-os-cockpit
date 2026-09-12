@@ -121,31 +121,6 @@ ALLOWED_TRANSITIONS: dict[str, frozenset[str]] = {
     "test-run": frozenset({"passing", "failing"}),
 }
 
-#: Deciding a *lone* queued note is a real lifecycle move, and the move
-#: differs by type — which is why the set-review path's single `cancelled`
-#: transition left ADR-0007 and every draft requirement un-actionable
-#: (reported 2026-07-26). Each entry is (accept, decline), drawn from that
-#: type's own vocabulary in STATUSES.md:
-#:
-#: * ADR — `proposed → accepted`. There is no "reject": STATUSES.md is
-#:   explicit that a decision not taken is *deleted or superseded*, never
-#:   marked rejected, because a rejected proposal worth keeping is worth
-#:   recording as the alternative it lost to.
-#: * Requirement — `draft → approved`, or `cancelled` if it will not be built.
-#: The design statuses this module knows how to reason about. Used for ONE
-#: thing: failing closed on a status it has never seen, which otherwise got
-#: silently demoted.
-#:
-#: This was a rank table until independent review proved the ranks were dead —
-#: replacing the whole backwards comparison with `False` left all 496 tests
-#: passing, because accept's candidate is `accepted` and every status ranking
-#: above it is in `_DESIGN_SETTLED`, which is checked first. The comment said
-#: the ranks refused a move that would rewrite history; `_DESIGN_SETTLED`
-#: refuses it. Keeping ordering nobody consults, under a comment claiming it
-#: guards something, is the exact defect this review kept finding elsewhere.
-_DESIGN_KNOWN_STATUSES: frozenset[str] = frozenset({
-    "draft", "proposed", "accepted", "implemented", "superseded", "cancelled",
-})
 
 #: Statuses a review verdict must never move a design out of. Rank alone
 #: cannot express this: `cancelled` ranks ABOVE `implemented`, so cancelling a
@@ -155,6 +130,31 @@ _DESIGN_KNOWN_STATUSES: frozenset[str] = frozenset({
 _DESIGN_SETTLED: frozenset[str] = frozenset({
     "implemented", "superseded", "cancelled",
 })
+
+#: Statuses a **decision** must never move a note out of, by type. Rank alone
+#: cannot express this: `cancelled` ranks ABOVE `implemented`, so cancelling a
+#: shipped design reads as a forward move.
+#:
+#: **Restored 2026-09-12** (independent review of FEAT-0148, finding 1). This
+#: guard lived inside `stamp_design_verdict`, which went with the design bench,
+#: and `_DESIGN_SETTLED` was left with no caller — so `POST /api/notes/decide`
+#: would write `cancelled` over a design at `implemented`, which is exactly the
+#: half of [[ISS-0056]] three separate comments claimed the desk's design
+#: branch existed to prevent.
+SETTLED_BY_TYPE: dict[str, frozenset[str]] = {
+    "design": _DESIGN_SETTLED,
+}
+
+#: What verdict a decision records, by type. The default is the proposal
+#: vocabulary, which is right for an ADR or a requirement queued as a plan.
+#:
+#: **A design is not a proposal** ([[ISS-0056]], same review). `plan-accepted`
+#: on a design says a plan was accepted; what happened is that a design was.
+#: The bench's endpoint wrote `approved` / `changes-requested`, and routing
+#: designs through the generic path must not quietly change the word.
+DECIDE_VERDICTS: dict[str, tuple[str, str]] = {
+    "design": ("approved", "changes-requested"),
+}
 
 #: The human-owned transition table, as data (TASK-0278).
 #:
@@ -879,6 +879,20 @@ def stamp_decision(
     if not reviewer.strip():
         raise WriteError("missing reviewer")
 
+    # A decision may not rewrite a settled note (ISS-0056). Checked against the
+    # note's CURRENT status, which the transition table cannot see: its pair is
+    # keyed by type alone, so without this a decline writes `cancelled` over a
+    # design that shipped.
+    settled = SETTLED_BY_TYPE.get(note_type, frozenset())
+    current = (getattr(record, "status", "") or "").strip().lower()
+    if current in settled:
+        raise WriteError(
+            f"{note_id} is {current}; a review decision may not move it. "
+            f"Deciding it again would rewrite what already happened — "
+            f"supersede it with a later {note_type} instead",
+            status=403,
+        )
+
     _check_mtime(path, mtime)
     try:
         text = path.read_text(encoding="utf-8")
@@ -892,15 +906,15 @@ def stamp_decision(
     # `review_verdict`", not a status check. Writing it here keeps a
     # lone-note decision legible to that gate if the advisory phase ever
     # promotes — and legible to the measurement in the meantime.
+    accepted_word, declined_word = DECIDE_VERDICTS.get(
+        note_type, (PLAN_ACCEPTED_VERDICT, PLAN_REJECTED_VERDICT))
     fm_lines = _set_field(
-        fm_lines, "review_verdict",
-        PLAN_ACCEPTED_VERDICT if accept else PLAN_REJECTED_VERDICT,
-    )
+        fm_lines, "review_verdict", accepted_word if accept else declined_word)
     fm_lines = _set_field(fm_lines, "updated", _today())
     _write(path, fm_lines, body)
     return {
         "id": note_id, "status": normalised, "accepted": accept,
-        "review_verdict": PLAN_ACCEPTED_VERDICT if accept else PLAN_REJECTED_VERDICT,
+        "review_verdict": accepted_word if accept else declined_word,
     }
 
 
