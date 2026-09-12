@@ -91,6 +91,33 @@ def discover(root, only=None):
     return out
 
 
+def ci_suite_command(root):
+    """The one command CI runs for this repo, or "" when none is declared.
+
+    **A repo's test notes usually carry filtered commands, and CI should not run
+    them one by one.** your-health has 26 notes whose command is the same Gradle
+    task with different `--tests` filters, each a subset of the whole suite: 26
+    cold runs for an answer one run already gives. A repo declares the covering
+    command in `SNAPSHOT.yaml`, and CI runs that instead:
+
+        ci:
+          suite_command: "./gradlew test --rerun-tasks"
+
+    Declaring nothing keeps the old behaviour — every command runs — so a repo
+    that has not thought about this loses no checking.
+    """
+    try:
+        text = (root / "SNAPSHOT.yaml").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    block = re.search(r"^ci:[ \t]*$((?:\n(?:[ \t]+.*)?)*)", text, re.M)
+    if not block:
+        return ""
+    line = re.search(r"^[ \t]+suite_command:[ \t]*(.+?)[ \t]*$", block.group(1), re.M)
+    if not line:
+        return ""
+    return line.group(1).strip().strip('"').strip("'")
+
 def run_one(root, cmd, timeout):
     """Return (outcome, exit_code, detail)."""
     try:
@@ -120,6 +147,9 @@ def main(argv=None):
                     help="Accepted and ignored: an automated test records no verdict (ADR-0038)")
     ap.add_argument("--filter", action="append", default=None, help="Only these TST ids")
     ap.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
+    ap.add_argument("--ci", action="store_true",
+                    help="Run the repo's declared ci.suite_command once instead of every "
+                         "TST-* command; falls back to running them all when none is declared.")
     args = ap.parse_args(argv)
 
     root = Path(args.repo_root).resolve()
@@ -135,6 +165,31 @@ def main(argv=None):
     if args.write:
         print("run-tests: --write is ignored; an automated test records no verdict (ADR-0038)",
               file=sys.stderr)
+    suite = ci_suite_command(root) if args.ci else ""
+    if suite:
+        # The declared command covers what the filtered ones check, so running it
+        # is the verdict for all of them. The notes still exist and still run in
+        # full locally; this is the one non-bypassable run, not a smaller one.
+        print("== RUN  %s (ci: the declared suite, covering %d test note(s)) =="
+              % (root.name, len(tests)))
+        outcome, _code, detail, output = run_one(root, suite, args.timeout)
+        print("   %-12s %-10s %s%s"
+              % ("ci.suite", outcome, suite[:48], ("  — " + detail[:60]) if detail else ""))
+        for line in output:
+            print("      | %s" % line)
+        if outcome == "passing":
+            return 0
+        if outcome == "failing":
+            return 1
+        ci_env = (os.environ.get("CI") or "").strip().lower()
+        if ci_env not in ("", "0", "false", "no") and not os.environ.get("PROJECT_OS_ALLOW_UNRUNNABLE"):
+            print("   CI could not run the declared suite, so it has no verdict")
+            return 1
+        print("   note: an unrunnable suite is an environment gap, not a failure")
+        return 0
+    if args.ci:
+        print("   note: no ci.suite_command in SNAPSHOT.yaml; running every command")
+
     counts = {"passing": 0, "failing": 0, "unrunnable": 0}
     print("== %s ==" % root.name)
     for _path, tid, cmd in tests:
