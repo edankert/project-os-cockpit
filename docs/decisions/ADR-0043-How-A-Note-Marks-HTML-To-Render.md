@@ -2,77 +2,79 @@
 type: "[[adr]]"
 id: ADR-0043
 aliases: ["ADR-0043"]
-title: "How a note says 'render this HTML' rather than 'show this HTML as code' — the marker is not the code fence's language slot"
-status: proposed
+title: "A note marks nothing: HTML written plainly in a note is rendered by Obsidian and by the cockpit already, and anything needing images or scripts is a file the viewer frames"
+status: accepted
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
 updated: 2026-09-12
-source: ["Edwin, 2026-09-12: 'I think we should not use the src tag to identify html content, I think we need another tag to do this, I would say other people would have fixed this before, do some research online.'"]
-decision: "PROPOSED, not decided. Option 2 — a marker in the fence's info string after the language (```html render) — is the recommendation; Edwin chooses."
-context: "A note needs a way to say that a block of HTML is a thing to display, not a thing to read as source. Overloading the language slot (```html) makes every HTML example in every note render, and makes a syntax-highlighting hint carry a rendering instruction."
+source: ["Edwin, 2026-09-12: 'I think we should not use the src tag to identify html content, I think we need another tag to do this, I would say other people would have fixed this before, do some research online.'", "Edwin, 2026-09-12, on the constraint: 'using render after the html tag (option 2) is fine as long as it renders as html in obsidian or does nto show at all, we cannot have the source be visible in obsidian that doesn't make any sense.'", "Edwin, 2026-09-12, accepting the researched recommendation: 'q2: agree'"]
+decision: "No marker and no new syntax. HTML written plainly in a note is the notation, because Obsidian and the cockpit both render it already. A fenced block stays what it looks like — source shown as source. HTML that needs images or scripts is not written in a note at all: it is a file, and the viewer frames it."
+context: "A marker was wanted so a note could say 'render this' rather than 'show this as code'. Edwin's constraint killed every marker: a fenced block renders in the cockpit and shows as SOURCE in Obsidian, which he rejected outright. Research then found the marker unnecessary — Obsidian renders raw HTML natively, as does the cockpit's renderer."
 alternatives:
-  - "Overload the language: ```html always renders"
-  - "Info-string metadata after the language: ```html render"
-  - "A generic directive: ::: render / ```{render}"
-  - "Pandoc/Quarto/djot attribute syntax: {.render}"
+  - "Info-string metadata after the language (```html render), as Docusaurus does with ```jsx live — rejected: shows as source in Obsidian, which is the constraint"
+  - "Adopt a community plugin's fence (```html-block, 409 downloads; ```html-preview, 179) — rejected: a fringe dependency every reader must install, and each plugin invents its own tag"
+  - "Our own fence plus a small fleet Obsidian plugin via registerMarkdownCodeBlockProcessor — rejected for now: it is the only option that also fixes style isolation, and is the way back if collisions bite"
+  - "A generic directive (:::render) or Pandoc attributes ({.render}) — rejected: same source-in-Obsidian problem, more machinery"
 consequences:
-  - "Whatever is chosen becomes a project-os authoring convention, so it is upstream work in docs/__templates__ and tools/skills/"
-  - "GitHub, Obsidian and any other Markdown reader must degrade to a readable code block, not to broken text"
+  - "Four authoring rules come with raw HTML and must be written into OBSIDIAN.md: no blank line inside an HTML block (it breaks the block in Obsidian and in Python-Markdown), no Markdown inside HTML elements (Obsidian does not parse it), scripts never run (Obsidian sanitises, the cockpit CSP blocks), and there is no style isolation — a <style> in a note restyles the page in both apps"
+  - "An <img> with a RELATIVE src inside raw HTML does not display in Obsidian: path resolution happens only for wikilinks and Markdown image syntax. So pictures are Markdown embeds, never HTML tags"
+  - "HTML with images or scripts belongs in a separate file framed by the viewer — which Obsidian cannot open without a community plugin, making it a cockpit-only artifact by nature"
+  - "TASK-0610 changes from building a marker to writing these rules down; no parser or renderer change is needed"
 supersedes: ""
 superseded: ""
 related:
   - "[[REQ-0065-A-Design-Is-Markdown-First]]"
+  - "[[REQ-0063-An-Image-Lives-Beside-The-Note-That-Shows-It]]"
   - "[[FEAT-0147-Pictures-Beside-The-Note]]"
   - "[[TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render]]"
+  - "[[ADR-0042-What-May-Be-Framed]]"
 tags: [adr, markdown, convention]
 ---
 
-# How a note marks HTML to render
-
-## Context
-
-Once a design is Markdown first, a note sometimes needs to show a small rendered thing inline — a styled component, a state, a fragment of a page — without a separate HTML file. The note needs a way to distinguish *here is HTML to look at* from *here is HTML to read as source*, and the two appear in the same corpus: the cockpit's own notes are full of HTML examples that must stay examples.
-
-The convention this project already has is the wrong shape. `## Variant <name>` makes a **heading's text** load-bearing: rename the heading and the render disappears. It is used on exactly one note fleet-wide (`DES-0009-The-Standing-Worker`), and `chosen_variant:` is set on none of 47 design notes (measured 2026-09-12). A convention with one user is not evidence of anything, so this decision is open rather than a migration.
-
-Edwin's instruction was to look at how others have solved it. Three families exist.
-
-## Options
-
-1. **Overload the language slot — ` ```html ` always renders.** Nothing to invent. It also means every HTML example in every note becomes a live fragment, including examples of markup that is being discussed as text. The instruction to render and the hint for syntax highlighting become the same token, and they are not the same thing. Rejected on the corpus alone: this repo's notes contain HTML samples that must stay samples.
-
-2. **Metadata in the fence's info string, after the language — ` ```html render `.** The info string after the language is free text in CommonMark and every parser hands it to the renderer. This is what Docusaurus does with ` ```jsx live `, and what remark-mdx-code-meta generalises. Degrades perfectly: GitHub, Obsidian and any editor see a fenced `html` block, highlight it as HTML, and ignore the trailing word. Costs: the marker is invisible to anything that does not know it, so a reader in Obsidian sees source where the cockpit shows a rendering.
-
-3. **A generic directive — `:::render` (remark-directive) or ` ```{render} ` (MyST).** The most expressive: attributes, nesting, and one syntax for every future extension rather than a new convention each time. Costs: it is a whole extension to implement and to teach, and the MyST brace-in-the-language form is the variant known to break syntax highlighting on other readers. `:::`-style colon fences avoid that and render acceptably in plain Markdown editors.
-
-4. **Pandoc/Quarto/djot attribute syntax — `{.render key=val}`.** Established and expressive. The brace-as-language form is the one with the known highlighting problem on GitHub; the attribute-block form is fine. Brings a syntax the project uses nowhere else.
+# A note marks nothing
 
 ## Decision
 
-**Proposed: Option 2.** A marker in the info string after the language. It is the smallest change that keeps the language slot meaning "this is HTML" and adds a separate token meaning "show it". It degrades to a highlighted code block everywhere else, which matters because these notes are read in Obsidian and on GitHub as well as in the cockpit.
+**There is no marker.** HTML written plainly in a note is the notation. A fenced ```` ```html ```` block keeps meaning what it looks like: source, shown as source, in every reader.
 
-Option 3 is the better long-term answer if the project expects more than one kind of embedded thing. That is a real possibility and the reason this ADR is `proposed` rather than `accepted`: if Edwin expects diagrams, tables from data, or embedded views next, the directive pays for itself and Option 2 becomes a second convention to retire later.
+Content decides where it lives:
 
-The exact word (`render`, `live`, `show`, `preview`) is deliberately not decided here; pick it when the option is picked.
+| What it is | Where it goes | Renders in |
+| --- | --- | --- |
+| A picture | a Markdown embed, `![](__attachments__/plate-3.png)` | Obsidian, the cockpit, GitHub |
+| Light structure or styling | raw HTML in the note | Obsidian, the cockpit |
+| Anything with images or scripts | a separate `.html` file the viewer frames | the cockpit only |
 
-## Ambiguity in the request, recorded rather than resolved
+## Why the marker died
 
-Edwin's sentence was *"we should not use the src tag to identify html content, I think we need another tag to do this"*. It admits two readings and they lead to different work:
+Edwin set the constraint that decided it: *"we cannot have the source be visible in obsidian that doesn't make any sense."* Every marker fails it. A fenced block with metadata after the language — ```` ```html render ````, which is how Docusaurus spells `​```jsx live` — renders in the cockpit and shows as a code block in Obsidian, because nothing in Obsidian knows the word.
 
-- **(a)** the fenced-block reading, above: do not let the fence's language (or an `src`-like attribute) be what says "render me"; use a separate marker. This is the reading this ADR takes, and the one his follow-up — *"other people would have fixed this before, do some research online"* — supports, because the prior art is all about fenced blocks.
-- **(b)** a frontmatter reading: do not use the note's `asset:`/`source:` field to identify the HTML belonging to a note; use a differently-named field. That is a smaller change and lands in [[REQ-0065-A-Design-Is-Markdown-First]] instead.
+Then the research removed the need for one. **Obsidian renders raw HTML in a note natively**; its own help says "Obsidian supports HTML to allow you to display your notes the way you want", sanitising `<script>`. The cockpit's renderer passes raw HTML through in the same way — measured on 2026-09-09 by rendering a `<div>` and a fenced block through `render_markdown_text` and reading the output. Two renderers already agree on a notation. Inventing a third thing for them to disagree about buys nothing.
 
-Reading (a) is built. If (b) was meant, say so and the field rename moves into the upstream template task, where it is roughly an hour.
+## The plugins, and why not one of them
 
-## Consequences
+Three Obsidian plugins render fenced HTML, and no two agree on the fence:
 
-- Whatever is chosen is a **project-os authoring convention**, not a cockpit feature, so it lands in `docs/__templates__/design.md` and `tools/skills/design-authoring/SKILL.md` **upstream** in `~/Dev/repos/project-os`, and reaches this repo by sync.
-- The renderer that honours the marker is local to the cockpit (`renderer.py` / `renderer.ts`), so the convention exists in the record even in repos whose notes nobody opens in the cockpit.
-- `## Variant <name>` should be retired in the same pass. It has one user and it makes a heading's text a functional identifier. Retiring it means deleting the variant strip and `chosen_variant:`, which [[TASK-0615-Remove-The-Bench]] already does.
+| Plugin | Fence | Isolation | Downloads |
+| --- | --- | --- | --- |
+| HTML Blocks | ```` ```html-block ```` | Shadow DOM per block, inline scripts in an isolated scope | 409 |
+| HTML-Preview | ```` ```html-preview ```` | sandboxed iframe, `allow-scripts allow-forms` | 179 |
+| Polyglot Renderer | its own | sandboxed iframe, scripts blocked | — |
 
-## Sources
+HTML Blocks is the technically strongest: Shadow DOM is real style isolation, which is the one thing raw HTML does not give us. But adopting it means every person and every agent reading any of these repos installs a 409-download plugin, and the convention becomes a stranger's naming decision. The download counts are the argument: these are not standards, they are three parallel attempts at one.
 
-- [remark-directive](https://github.com/remarkjs/remark-directive) — the generic-directive family.
-- [MyST roles and directives](https://myst-parser.readthedocs.io/en/latest/syntax/roles-and-directives.html) and [MyST directives](https://mystmd.org/guide/directives) — the ` ```{name} ` and `:::` colon-fence forms, and the note that colon fences render correctly in standard Markdown editors.
-- Re-verify before implementing: the Docusaurus ` ```jsx live ` precedent and the Pandoc syntax-highlighting issue were researched in the calling session on 2026-09-12 and are **not** re-checked in this note. [[TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render]] confirms them.
+## What comes back if this hurts
+
+The pain this accepts is style collision: a `<style>` block in a note restyles the page around it, in Obsidian and in the cockpit alike. If that bites, the way back is **our own fence plus a small fleet plugin** — `registerMarkdownCodeBlockProcessor` is the documented Obsidian API all three plugins use, and a shadow-DOM renderer for one fence is a small thing to own. It is rejected today for maintenance, not for merit.
+
+## Consequences for the work
+
+[[TASK-0610-A-Note-Marks-A-Block-Of-HTML-To-Render]] stops being an implementation task. Nothing is parsed and nothing is rendered differently; what the task now does is write four rules into `OBSIDIAN.md` upstream, where an agent will read them:
+
+1. **No blank line inside an HTML block.** Obsidian's help says a blank line breaks the block, and Python-Markdown treats it the same way.
+2. **No Markdown inside HTML elements.** Obsidian does not parse it, deliberately.
+3. **Scripts never run.** Obsidian sanitises them; the cockpit's CSP (`script-src 'self'`) blocks them.
+4. **Pictures are Markdown embeds, never `<img>` tags.** A relative `src` inside raw HTML does not resolve in Obsidian — path resolution happens only for wikilinks and Markdown image syntax — so an HTML-embedded picture is broken in the place these notes are most often read.
+
+Rule 4 also explains the artifact this phase exists to retire: `your-health`'s 4.6 MB design page carries 51 base64 PNGs, and base64 is the only way an image inside raw HTML survives Obsidian.

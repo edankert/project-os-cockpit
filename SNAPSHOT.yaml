@@ -4306,8 +4306,8 @@ items:
       note: "REWRITTEN 2026-09-12, same day, after Edwin asked 'what is the issue if this isn't limited? yes cross repo is allowed. Rewrite ADR-0042'. The first version decided REFERENCE REACHABILITY - a file may be framed when a note points at it - on the belief that the design asset: allowlist was what kept the cockpit from serving arbitrary files. That belief was checked and is false: /docs/<rel> (server.py:4233) serves every file under docs/ by path with no allowlist, no auth and no gate beyond rejecting .. and checking docs_root containment, and the render server binds 0.0.0.0 by design so a tablet can read (cockpit.py:2108). The allowlist was a CURATION rule wearing a security rule's clothes. DECIDED: any path resolving inside the workspace's docs/, cross-repo included - the shell holds one sidecar URL per workspace and each sidecar still bounds its own docs_root. WHAT REMAINS THE BOUNDARY: the frame is sandboxed WITHOUT allow-same-origin so it has an opaque origin; .. rejected; containment checked; GET-only, no cookies, nosniff. Consequence to carry: the sandbox attribute is now the ONLY thing between a framed document and the cockpit, so changing it is a security change - RISK-0008. Also lets /design-asset be deleted rather than generalised, and TASK-0613 decides whether the viewer needs its own route at all or is /docs/<rel> with different headers. The first version's Amendment history section keeps the record."
     ADR-0043:
       file: "docs/decisions/ADR-0043-How-A-Note-Marks-HTML-To-Render.md"
-      title: "How a note says 'render this HTML' rather than 'show this HTML as code' — the marker is not the code fence's language slot"
-      status: proposed
+      title: "A note marks nothing: HTML written plainly in a note is rendered by Obsidian and by the cockpit already, and anything needing images or scripts is a file the viewer frames"
+      status: accepted
       owner: user:edwin
       phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
       supersedes: ""
