@@ -4363,6 +4363,24 @@ _SECTION_ORDER_INDEX: dict[str, int] = {
 #: mode: the suite lives inside Tests, and a ninth mode would put one corpus in
 #: two places — ISS-0068's defect, which this project has already paid for.
 CHECKS_VIEW_ROUTE = "~checks"
+#: The walk page's address ([[FEAT-0149]]). One platform per walk, always —
+#: `~walk` alone lets the sidecar resolve the open release's platform, and the
+#: ladder names the platform it means.
+WALK_VIEW_ROUTE = "~walk"
+
+
+def _ledger_platforms(index: Index) -> list[str]:
+    """Which platforms this repo keeps a ledger for.
+
+    Wrapped so the one caller that needs it does not import the ledger module
+    for a single call, and so a repo with no ledger answers `[]` rather than
+    raising on a surface that is only offering a link.
+    """
+    from . import ledger as _ledger
+    try:
+        return _ledger.platforms(index.docs_root)
+    except OSError:
+        return []
 
 
 def _area_slug(area: str) -> str:
@@ -5111,6 +5129,46 @@ def _release_content_rows(
             # FILES under a label that reads as a count of TESTS.
             label = (f"Acceptance tests · {unchecked} unchecked" if unchecked
                      else "Acceptance tests · all settled")
+            #: **The door to the walk** ([[TASK-0621]]). The row above says how
+            #: many are owed and opens the list; this one opens the procedure —
+            #: the same rows in the order the repo authored, with each check's
+            #: setup and steps on it.
+            #:
+            #: Only while a release is in preparation, and only while something
+            #: is owed: a link to an empty walk is the permanent blank button
+            #: FEAT-0102 records the rule about twice. And only when the repo
+            #: keeps a ledger for the platform, because a walk asked for by a
+            #: name no ledger carries reads no verdicts and reports every check
+            #: in the repo as owed.
+            _draft = _pub.preparing(index)
+            _draft_platform = str((_draft or {}).get("platform") or "").strip().lower()
+            if _draft and _draft_platform in _ledger_platforms(index):
+                #: **The count is the walk's own, taken on the walk's
+                #: platform.** `unchecked` above is the UNION across every
+                #: ledger, because this call passes no platform — 327 on
+                #: `your-trainer`, where its open Android release owes **39**.
+                #: Printing the union beside a link to a page that renders 39
+                #: would put two answers to one question a click apart, which
+                #: is [[ISS-0289]] one surface over. Same computation as the
+                #: walk payload's row set: `gate_payload` on the platform and
+                #: `ledger.owed` return the same 39.
+                _owed = sum(
+                    int(c.get("unchecked") or 0) for c in
+                    (_acceptance.gate_payload(
+                        index.docs_root, index=index,
+                        platform=_draft_platform).get("counts") or {}).values())
+                if _owed:
+                    tests.append({
+                        "id": "",
+                        "title": "Walk them",
+                        "subtitle": (
+                            f"{_owed} owed on {_draft_platform} — the checks in "
+                            "walking order, each with its setup, steps and "
+                            "expected result"),
+                        "status": "blocked",
+                        "type": "test",
+                        "url": f"{WALK_VIEW_ROUTE}/{_draft_platform}",
+                    })
     if tests:
         groups.append({"key": "rel-tests",
                        "label": label,

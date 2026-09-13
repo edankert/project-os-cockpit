@@ -1054,6 +1054,65 @@ def _make_handler(
                 })
                 return
 
+            if path == "/api/cockpit/walk":
+                #: **The owed checks as a procedure** ([[FEAT-0149]] /
+                #: [[TASK-0618]]). The same rows `/api/cockpit/acceptance`
+                #: reports as owed, in the order the browsed repo authored in
+                #: `docs/tests/acceptance/WALK.md`, with each check's setup,
+                #: steps and expected result on the row.
+                _params = urllib.parse.parse_qs(parsed.query)
+                _platform = (_params.get("platform", [""])[0]).strip().lower()
+                from . import ledger as _led_walk
+                _known = _led_walk.platforms(docs_root)
+                #: **`all` is refused rather than answered.** The acceptance
+                #: route accepts it because a gate over two ledgers must fail
+                #: closed by taking the union. A walk is a person at one bench
+                #: with one build, and a union walk would ask them to tick a
+                #: check for a platform they are not holding.
+                if _platform == "all":
+                    self._respond_json(
+                        {"ok": False, "error": (
+                            "a walk is on one platform. Ask for one of: "
+                            + (", ".join(_known) or "(this repo keeps no "
+                                                    "ledger)")),
+                         "platforms": _known},
+                        HTTPStatus.BAD_REQUEST)
+                    return
+                if not _platform:
+                    from . import publication as _pub_walk
+
+                    _open = _pub_walk.open_releases(index)
+                    _platform = (
+                        str((_open[0].get("platform") or "")).strip().lower()
+                        if _open else ""
+                    )
+                    if not _platform and len(_known) == 1:
+                        _platform = _known[0]
+                #: **An unknown name is refused, never answered.** A ledger
+                #: read for a platform that has none returns no verdicts, so
+                #: every check in the repo comes back owed — 545 rows on
+                #: `your-trainer` for `--platform andriod`, printed with total
+                #: confidence. Upstream refuses the generation for this reason
+                #: and so does this.
+                if _platform not in _known:
+                    self._respond_json(
+                        {"ok": False, "error": (
+                            "no ledger for platform %r. This repo keeps one "
+                            "for: %s" % (_platform, ", ".join(_known)
+                                         or "(none)")),
+                         "platforms": _known},
+                        HTTPStatus.BAD_REQUEST)
+                    return
+                self._respond_json({
+                    "schema_version": cockpit.SCHEMA_VERSION,
+                    **acceptance.walk_payload(
+                        docs_root, index, platform=_platform,
+                        release=(_params.get("release") or [""])[0],
+                    ),
+                    "platforms": _known,
+                })
+                return
+
             if path == "/api/cockpit/release-item":
                 # `~release/<id>/<ITEM-ID>` — what this item is, in this
                 # release (TASK-0472). Read-only.

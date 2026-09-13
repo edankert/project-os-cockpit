@@ -1377,6 +1377,17 @@ async function navigateToInner(
     if (ok) commitVirtualPage(normalised, opts);
     return;
   }
+  //: `~walk/<platform>` — the owed checks as a procedure ([[FEAT-0149]]). A
+  //: page inside the publication view rather than a section of the release
+  //: page: a walk is long, and the release page already carries the ladder,
+  //: the gate and the settle section. The release page links to it.
+  if (normalised === '~walk' || normalised.startsWith('~walk/')) {
+    const platform = normalised === '~walk'
+      ? '' : decodeURIComponent(normalised.slice('~walk/'.length));
+    const ok = await renderWalkPage(platform);
+    if (ok) commitVirtualPage(normalised, opts);
+    return;
+  }
   if (normalised === '~history' || normalised.startsWith('~history/')) {
     const at = normalised === '~history'
       ? null : normalised.slice('~history/'.length);
@@ -5865,6 +5876,10 @@ const VIEW_LANDING_RELS: ReadonlySet<string> = new Set([
  *  same rule made available to the three views that use `VIEW_LANDING_RELS`. */
 const VIEW_OWNED_PAGES: Readonly<Record<string, readonly string[]>> = {
   tests: ['~checks'],
+  //: `~walk/<platform>` is the publication view ([[TASK-0619]]). Without this
+  //: row, reselecting Publication mid-walk lands on `~release/next` — which is
+  //: not a landing, it is an eviction ([[ISS-0263]]).
+  publication: ['~release', '~walk'],
 };
 
 /** Is the reader already somewhere this view owns? */
@@ -9161,6 +9176,27 @@ function buildGateSection(
     hist.textContent = gate.delta.summary;
     g.appendChild(hist);
   }
+  //: **The door to the walk** ([[TASK-0621]]). The gate reports; the walk is
+  //: where the checks are actually done. This page records nothing new —
+  //: [[ADR-0035]] keeps marks off it and the settle section below still offers
+  //: only `na`, `excused` and `blocked` ([[ADR-0041]]). It offers a link.
+  //:
+  //: Only while the release is in preparation, and only on a release that
+  //: names a platform: a walk is one person at one bench with one build, so a
+  //: release that has not said which platform it ships has no walk to open.
+  //: A permanent blank button is the failure [[FEAT-0102]] records twice.
+  if (d.preparing && unchecked && d.platform) {
+    const walk = document.createElement('button');
+    walk.type = 'button';
+    walk.className = 'file-row release-gate-walk';
+    walk.textContent = `${unchecked} owed · walk them`;
+    walk.title = `Open the walk for ${d.platform} — every owed check in `
+      + 'order, with its setup, steps and expected result';
+    walk.addEventListener('click', () => {
+      void navigateTo(walkLink(d.platform || ''));
+    });
+    g.appendChild(walk);
+  }
 
   // The acceptance tests are a FILE, and this page already has one way of
   // showing a file you can open: a row you click, the same shape a feature, a
@@ -9403,7 +9439,15 @@ async function holdFeatureBack(
 
 
 async function walkOneCheck(
-  item: GateItem, repaint: () => Promise<unknown>,
+  item: GateItem,
+  //: **The repaint is told what was recorded** ([[TASK-0619]]). `~checks`
+  //: ignores it and re-reads the whole payload; the walk page needs it,
+  //: because the common verdict — a `pass` — removes the check from
+  //: `ledger.owed`, so the row the walker just ticked is in no payload the
+  //: page can fetch afterwards. Without this the row kept the `[ ]` it had:
+  //: *nobody has walked this*, under the walker's own cursor, a second after
+  //: they walked it.
+  repaint: (chosen?: { verdict: string; reason: string }) => Promise<unknown>,
 ): Promise<void> {
   const chosen = await askForMark({
     number: item.id || item.number, name: item.name, current: item.mark || ' ',
@@ -9446,7 +9490,7 @@ async function walkOneCheck(
   // — because layout lands a frame after the children are replaced, which is
   // exactly how ISS-0188's fix came to do nothing.
   const held = docView.scrollTop;
-  await repaint();
+  await repaint(chosen);
   docView.scrollTop = held;
   requestAnimationFrame(() => { docView.scrollTop = held; });
 }
@@ -9486,6 +9530,10 @@ interface ChecksView {
   history?: Record<string, CheckEvent[]>;
   facets: Record<string, { value: string; label: string; count: number }[]>;
   blocking: number; total: number; settled: number;
+  /** Whose verdicts these are ([[ADR-0037]]). The open release's platform
+   *  when the client sent none, and `''` when the reader chose `All` — which
+   *  is the union, and a union has no walk. */
+  platform?: string;
 }
 
 /** Which facet values are selected, per axis. Empty means *no filter on this
@@ -9718,6 +9766,25 @@ function buildChecksPage(v: ChecksView): HTMLElement {
     ? `${v.blocking} unwalked — a release is blocked`
     : `all ${v.settled} settled`;
   head.appendChild(state);
+  //: **And the way to walk them** ([[TASK-0621]]). This page is the suite as
+  //: a list; the walk is the same rows in the repo's own order with each
+  //: check's procedure on it. The link appears only while something is
+  //: unwalked and the payload named the platform these verdicts are about —
+  //: which is the open release's platform when the client sent none
+  //: ([[ISS-0289]]), and empty when the reader chose `All`. A union walk is
+  //: refused by the route, so offering it here would be a button that opens
+  //: a refusal.
+  if (v.blocking && v.platform) {
+    const walk = document.createElement('button');
+    walk.type = 'button';
+    walk.className = 'file-row checks-walk-link';
+    walk.textContent = 'walk them';
+    walk.title = `Open the walk for ${v.platform} — the same checks in the `
+      + 'order this repo authored, each with its setup, steps and expected '
+      + 'result';
+    walk.addEventListener('click', () => { void navigateTo(walkLink(v.platform || '')); });
+    head.appendChild(walk);
+  }
   wrap.appendChild(head);
 
   if (!v.exists) {
@@ -9979,7 +10046,9 @@ function checkPercent(items: GateItem[]): HTMLElement {
  *  sixth pass, 2026-08-21.
  */
 function buildCheckRow(item: GateItem, manual: boolean = true,
-                       controls: boolean = true): HTMLElement {
+                       controls: boolean = true,
+                       onMark: (item: GateItem) => Promise<void> = markCheckRow,
+                      ): HTMLElement {
   const row = document.createElement('div');
   row.className = 'checks-row';
   if (!manual) row.classList.add('is-automated');
@@ -9997,7 +10066,7 @@ function buildCheckRow(item: GateItem, manual: boolean = true,
   // earned — and the row says what DOES execute it instead, which is the one
   // fact about it that can go stale.
   if (manual && controls) {
-    row.appendChild(checkMark(item));
+    row.appendChild(checkMark(item, onMark));
   }
   //: **Retire, beside the mark** ([[ISS-0249]]). Offered only on a manual
   //: check, for the same reason the mark is: a machine-executed check is
@@ -10133,7 +10202,15 @@ function buildCheckRow(item: GateItem, manual: boolean = true,
 /** The same control the gate row and the document row wear, on the view.
  *  `acc-mark` carries every colour and glyph rule, so three surfaces cannot
  *  drift into three vocabularies for one vocabulary of marks. */
-function checkMark(item: GateItem): HTMLElement {
+function checkMark(
+  item: GateItem,
+  //: **Which page repaints after the write** ([[TASK-0619]]). `~checks` and
+  //: `~walk` draw the same row and must repaint themselves, not each other —
+  //: the walk page repainting the checks list is how a walker would be
+  //: teleported off the sheet they are halfway down. The default keeps every
+  //: existing caller exactly as it was.
+  onMark: (item: GateItem) => Promise<void> = markCheckRow,
+): HTMLElement {
   const mark = item.mark || ' ';
   const btn = document.createElement('button');
   btn.type = 'button';
@@ -10144,7 +10221,7 @@ function checkMark(item: GateItem): HTMLElement {
   btn.addEventListener('click', (ev) => {
     ev.preventDefault();
     ev.stopPropagation();
-    void markCheckRow(item);
+    void onMark(item);
   });
   return btn;
 }
@@ -10216,6 +10293,568 @@ async function markCheckRow(item: GateItem): Promise<void> {
  *  beside the wrong one. */
 async function repaintChecksPage(): Promise<boolean> {
   return renderChecksPage('', '', { keepFilters: true });
+}
+
+// ---------------------------------------------------------------------------
+// The walk page — the owed checks as a procedure (FEAT-0149 / TASK-0619).
+//
+// `~checks` is the suite as a list. This is the same rows in the order the
+// browsed repo authored, grouped into sittings that each say what state they
+// need and what must be on the bench, with every check's setup, steps and
+// expected result printed on its row. A walker reads it top to bottom.
+//
+// **It is not a stepper.** TASK-0465 measured the retired runner against the
+// checks list: transient per-step results recorded in a batch at the end, one
+// step at a time, one test's scope. The walk page keeps the list's properties
+// — a persistent verdict per row, written the moment it is chosen — and adds
+// only the procedure text and the order. A walker who wants to read ahead can.
+//
+// **Nothing on it moves.** TASK-0556 recorded Edwin's rule for `~checks`:
+// *"a list that reorders itself as you tick things is one you lose your place
+// in."* This goes further — a ticked row changes its mark and stays exactly
+// where it is, because a row that vanished on tick would leave the walker
+// wondering whether the tick landed.
+// ---------------------------------------------------------------------------
+
+interface WalkRow extends GateItem {
+  /** The text under the check's own `## Setup` / `## Steps` / `## Expect`
+   *  headings, or `null` where the note has none. Read by the template's
+   *  bundled module, never re-parsed here. */
+  setup?: string | null;
+  steps?: string | null;
+  expect?: string | null;
+  /** The note's unheaded description, printed ONLY when it states no steps.
+   *  53 of `your-trainer`'s 61 owed rows are in that shape. */
+  lead?: string | null;
+  after?: string[];
+}
+interface WalkSitting {
+  name: string; state: string; bench: string[];
+  surfaces: string[]; checks: string[]; rows: WalkRow[];
+}
+interface WalkCause { id: string; title: string | null; reopened: string | null; }
+interface WalkSurvey {
+  surface: string; surface_note: string | null;
+  checks: string[]; changes: WalkCause[];
+}
+interface WalkPayload {
+  platform: string; release: string; gallery: string | null;
+  survey: WalkSurvey[]; sittings: WalkSitting[]; unplaced: WalkRow[];
+  counts: { owed: number; placed: number; unplaced: number };
+  order_source: string; walk_rel: string; template_rel: string;
+  errors: string[]; warnings: string[]; notices: string[];
+  history?: Record<string, CheckEvent[]>;
+  platforms?: string[];
+}
+
+/** The payload the open walk is drawn from. Read by the repaint, which
+ *  replaces one row and never rebuilds the sittings. */
+let walkData: WalkPayload | null = null;
+
+/** Where the walker was, per workspace — the mechanism ISS-0280 built for
+ *  `~checks`, one page over.
+ *
+ *  **Its own key, not a generalisation of `checksPlaceKey`.** The two pages
+ *  store different things: `~checks` stores an address plus five filter axes,
+ *  and a walk has no filters at all — its address IS its whole state. Widening
+ *  `ChecksPlace` to carry an empty `filters` for one of its two writers would
+ *  buy shared code and a field that means nothing half the time. Recorded as a
+ *  decision in [[TASK-0619]] rather than left to the next reader.
+ */
+function walkPlaceKey(workspaceId: string): string {
+  return `cockpit:walk-place:${workspaceId}`;
+}
+
+function saveWalkPlace(rel: string): void {
+  if (!activeId) return;
+  try {
+    localStorage.setItem(walkPlaceKey(activeId), rel);
+  } catch { /* localStorage unavailable — the place just won't persist */ }
+}
+
+function loadWalkPlace(workspaceId: string): string | null {
+  try {
+    const raw = localStorage.getItem(walkPlaceKey(workspaceId));
+    //: A stored value that is not a `~walk` address is not restored, for the
+    //: reason `loadChecksPlace` gives: it could only have arrived by a bug or
+    //: a hand-edit, and navigating to it would be this teleporting the reader
+    //: somewhere they never were.
+    if (!raw || !raw.startsWith('~walk')) return null;
+    return raw;
+  } catch { return null; }
+}
+
+/** The address of one platform's walk. One helper, so the release rung, the
+ *  release page and the checks page cannot build three different links
+ *  ([[TASK-0621]]). */
+function walkLink(platform: string): string {
+  const p = (platform || '').trim().toLowerCase();
+  return p ? `~walk/${encodeURIComponent(p)}` : '~walk';
+}
+
+async function renderWalkPage(platform: string): Promise<boolean> {
+  if (!sidecarBaseUrl) return false;
+  const query = platform ? `?platform=${encodeURIComponent(platform)}` : '';
+  let payload: WalkPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/walk${query}`);
+    //: **A refusal is rendered, not swallowed.** The route refuses `all` and
+    //: any name no ledger carries, because a walk read from no ledger reports
+    //: every check in the repo as owed. Returning `false` here would drop the
+    //: reader back on the release page with no explanation.
+    if (!resp.ok) {
+      const why = await resp.json().catch(() => null) as
+        { error?: string; platforms?: string[] } | null;
+      clearDocPageClasses();
+      rightPaneContent.replaceChildren();
+      docView.replaceChildren(buildWalkRefusal(platform, why));
+      docView.hidden = false;
+      placeholder.hidden = true;
+      return true;
+    }
+    payload = await resp.json() as WalkPayload;
+  } catch { return false; }
+  walkData = payload;
+  //: The dialog's history comes from the payload the page already fetched,
+  //: for the reason `walkOneCheck` gives: it opens on a click, and a round
+  //: trip there draws the history after the reader has read the buttons.
+  checksHistory = payload.history || {};
+  if (currentNavMode !== 'publication') {
+    //: The landing suppression `renderChecksPage` documents (ISS-0193).
+    //: `setNavMode` fires `loadWsNav`, which lands publication on
+    //: `~release/next` because `currentRel` is not `~walk` yet — so the walk
+    //: would be painted over by the page whose button nobody pressed.
+    suppressLandingOnce = true;
+    setNavMode('publication');
+  }
+  clearDocPageClasses();
+  rightPaneContent.replaceChildren();
+  docView.replaceChildren(buildWalkPage(payload));
+  docView.hidden = false;
+  placeholder.hidden = true;
+  saveWalkPlace(walkLink(payload.platform));
+  return true;
+}
+
+/** What the page says when the route refused the request. */
+function buildWalkRefusal(
+  platform: string, why: { error?: string; platforms?: string[] } | null,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body walk-page';
+  const head = document.createElement('div');
+  head.className = 'release-head';
+  const h = document.createElement('h2');
+  h.textContent = 'The walk';
+  head.appendChild(h);
+  wrap.appendChild(head);
+  const note = document.createElement('p');
+  note.className = 'empty-note';
+  note.textContent = why?.error
+    || `No walk for ${platform || 'this repo'}.`;
+  wrap.appendChild(note);
+  for (const known of why?.platforms || []) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'file-row';
+    btn.textContent = `walk ${known}`;
+    btn.addEventListener('click', () => { void navigateTo(walkLink(known)); });
+    wrap.appendChild(btn);
+  }
+  return wrap;
+}
+
+function buildWalkPage(v: WalkPayload): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'review-body walk-page';
+
+  const head = document.createElement('div');
+  head.className = 'release-head';
+  const h = document.createElement('h2');
+  h.textContent = v.release
+    ? `Walk — ${v.release}, ${v.platform}` : `Walk — ${v.platform}`;
+  head.appendChild(h);
+  const state = document.createElement('span');
+  state.className = 'release-state';
+  //: Counts of rows are the only numbers on this page ([[TASK-0449]]'s guard
+  //: rail): no minutes, no estimate, no schedule.
+  state.textContent = v.counts.owed === 1
+    ? '1 owed check' : `${v.counts.owed} owed checks`;
+  head.appendChild(state);
+  wrap.appendChild(head);
+
+  if (!v.counts.owed) {
+    const none = document.createElement('p');
+    none.className = 'empty-note';
+    //: Never a bare zero, and never an empty panel: it says what the page is
+    //: for, which is this project's standing rule about both.
+    none.textContent = `Nothing is owed on ${v.platform}. Every manual check `
+      + 'has a verdict that clears, so there is no walk to do — the gate on '
+      + 'the release page says the same thing one level up.';
+    wrap.appendChild(none);
+    return wrap;
+  }
+
+  if (v.order_source !== 'walk.md') {
+    const banner = document.createElement('div');
+    banner.className = 'walk-banner';
+    //: The sentence goes in a child, not in the banner's own `textContent`:
+    //: assigning that and then appending a button leaves two ways of holding
+    //: the banner's text, and which one a reader sees depends on the order the
+    //: two lines happen to run in.
+    const said = document.createElement('span');
+    said.textContent = 'Unordered — this repo has no walk order. The '
+      + 'sittings below are one per surface in id order, which is a grouping '
+      + 'and not a walk.';
+    banner.appendChild(said);
+    const how = document.createElement('button');
+    how.type = 'button';
+    how.className = 'file-row';
+    how.textContent = `write one · docs/${v.walk_rel}`;
+    //: The template to copy, opened rather than described. A sentence naming
+    //: a path the reader then has to find is the blank button one layer down.
+    how.addEventListener('click', () => {
+      void navigateTo(`/docs/${v.template_rel}`);
+    });
+    banner.appendChild(how);
+    wrap.appendChild(banner);
+  }
+  for (const line of v.errors) wrap.appendChild(walkNotice(line, 'is-error'));
+  for (const line of v.warnings) wrap.appendChild(walkNotice(line, 'is-warn'));
+  for (const line of v.notices) wrap.appendChild(walkNotice(line, ''));
+
+  wrap.appendChild(buildSurveySection(v));
+
+  const list = document.createElement('div');
+  list.className = 'walk-sittings';
+  list.id = 'walk-sittings';
+  v.sittings.forEach((sitting, i) => {
+    list.appendChild(buildSittingSection(sitting, `Sitting ${i + 1}`));
+  });
+  if (v.unplaced.length) {
+    const section = buildSittingSection(
+      { name: 'Unplaced', state: '', bench: [], surfaces: [], checks: [],
+        rows: v.unplaced }, '');
+    const why = document.createElement('p');
+    why.className = 'walk-sitting-why';
+    why.textContent = 'These rows are owed and no sitting in the walk order '
+      + 'claims their surface. That is the walk order’s worklist, not a '
+      + 'defect in this page: add a sitting that claims them, or add the '
+      + 'surface to one that exists.';
+    section.insertBefore(why, section.children[1] || null);
+    list.appendChild(section);
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+
+function walkNotice(text: string, cls: string): HTMLElement {
+  const el = document.createElement('p');
+  el.className = `walk-notice${cls ? ` ${cls}` : ''}`;
+  el.textContent = text;
+  return el;
+}
+
+/** The survey — the surfaces this release changed, before any scripted check
+ *  ([[TASK-0620]]).
+ *
+ *  Edwin, 2026-09-13: *"one thing I notice the tests do not suggest me doing
+ *  is to look at the changed screens at all, which is strange because that is
+ *  normally the first step I would do."* Every fact it needs was already in
+ *  the ledger; nothing asked for it. */
+function buildSurveySection(v: WalkPayload): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'walk-survey';
+  const h = document.createElement('h3');
+  h.textContent = 'Survey — the surfaces this release changed';
+  section.appendChild(h);
+
+  if (v.gallery) {
+    const cmd = document.createElement('div');
+    cmd.className = 'walk-gallery';
+    const say = document.createElement('span');
+    say.textContent = 'Regenerate and compare before walking anything:';
+    cmd.appendChild(say);
+    const code = document.createElement('code');
+    code.className = 'mono';
+    //: Verbatim, because it is a command somebody will run. The repo authored
+    //: it in WALK.md and this page does not reflow it.
+    code.textContent = v.gallery;
+    cmd.appendChild(code);
+    section.appendChild(cmd);
+  }
+
+  if (!v.survey.length) {
+    const none = document.createElement('p');
+    none.className = 'empty-note';
+    none.textContent = 'Nothing on the owed list was reopened by a change. '
+      + 'Every row below is owed because it has never been walked on this '
+      + 'platform, or because its last verdict did not clear.';
+    section.appendChild(none);
+    return section;
+  }
+
+  const lead = document.createElement('p');
+  lead.className = 'walk-survey-lead';
+  lead.textContent = 'Before any check, open these screens and look. Each one '
+    + 'has an owed check that a change reopened.';
+  section.appendChild(lead);
+
+  for (const entry of v.survey) {
+    const block = document.createElement('div');
+    block.className = 'walk-survey-surface';
+    const name = document.createElement('h4');
+    name.textContent = entry.surface_note
+      ? `${entry.surface} (${entry.surface_note})` : entry.surface;
+    if (entry.surface_note) {
+      name.classList.add('is-link');
+      name.addEventListener('click', () => {
+        void openWalkNote(entry.surface_note as string);
+      });
+    }
+    block.appendChild(name);
+
+    const checks = document.createElement('div');
+    checks.className = 'walk-survey-checks';
+    for (const id of entry.checks) {
+      const link = document.createElement('button');
+      link.type = 'button';
+      link.className = 'checks-chip';
+      link.textContent = id;
+      link.addEventListener('click', () => { void openWalkNote(id); });
+      checks.appendChild(link);
+    }
+    block.appendChild(checks);
+
+    for (const cause of entry.changes) {
+      const row = document.createElement('div');
+      row.className = 'walk-survey-cause';
+      const who = document.createElement('button');
+      who.type = 'button';
+      who.className = 'file-row';
+      //: **An id the index cannot resolve is named, never dropped.** A cause
+      //: the walker cannot trace is still the reason their check reopened.
+      who.textContent = cause.title
+        ? `${cause.id} — ${cause.title}` : `${cause.id} — (not in this repo)`;
+      who.addEventListener('click', () => { void openWalkNote(cause.id); });
+      row.appendChild(who);
+      if (cause.reopened) {
+        const quote = document.createElement('blockquote');
+        quote.className = 'walk-reopened';
+        quote.textContent = cause.reopened;
+        row.appendChild(quote);
+      }
+      block.appendChild(row);
+    }
+    section.appendChild(block);
+  }
+  return section;
+}
+
+/** Open a note the survey names, by id.
+ *
+ *  Through `locateAndOpen`, which is the one path every id-resolved link in
+ *  the shell takes. The survey's ids come from the ledger and from `area:`,
+ *  so some of them legitimately resolve to nothing — a change note deleted, a
+ *  surface a repo does not keep — and that path already says so out loud
+ *  instead of navigating nowhere.
+ */
+async function openWalkNote(noteId: string): Promise<void> {
+  await locateAndOpen(noteId, activeId || 'this project');
+}
+
+function buildSittingSection(sitting: WalkSitting, ordinal: string): HTMLElement {
+  const section = document.createElement('section');
+  section.className = 'walk-sitting';
+  const h = document.createElement('h3');
+  h.textContent = ordinal ? `${ordinal} — ${sitting.name}` : sitting.name;
+  section.appendChild(h);
+
+  //: **The two facts the hand-written run plan carried and no note could**:
+  //: the state the sitting starts from, and what must be on the bench. They
+  //: are rendered verbatim and never parsed.
+  if (sitting.state) {
+    const state = document.createElement('p');
+    state.className = 'walk-sitting-state';
+    state.textContent = `State this sitting needs: ${sitting.state}`;
+    section.appendChild(state);
+  }
+  if (sitting.bench.length) {
+    const bench = document.createElement('ul');
+    bench.className = 'walk-bench';
+    for (const item of sitting.bench) {
+      const li = document.createElement('li');
+      li.textContent = item;
+      bench.appendChild(li);
+    }
+    section.appendChild(bench);
+  }
+  const count = document.createElement('span');
+  count.className = 'walk-sitting-count';
+  count.textContent = sitting.rows.length === 1
+    ? '1 row' : `${sitting.rows.length} rows`;
+  section.appendChild(count);
+
+  for (const row of sitting.rows) section.appendChild(buildWalkRow(row));
+  return section;
+}
+
+/** One walk row: the `~checks` row, with the procedure under it.
+ *
+ *  `buildCheckRow` is reused rather than forked, so a check looks the same
+ *  wherever it is drawn and one renderer carries every mark rule. What this
+ *  adds is the part [[ADR-0041]] decision 4 requires of any surface that
+ *  records a verdict: the procedure, on the page where the verdict is given. */
+function buildWalkRow(row: WalkRow): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'walk-row';
+  //: Addressed, so a repaint after a mark can replace this one element and
+  //: leave every other row and the scroll position untouched.
+  wrap.id = walkRowId(row.id || row.number);
+  wrap.appendChild(buildCheckRow(row, true, true, markWalkRow));
+
+  const proc = document.createElement('div');
+  proc.className = 'walk-proc';
+  proc.appendChild(walkBlock('Setup', row.setup, row,
+    'Setup: not stated. This check has no Setup heading — write one while '
+    + 'you walk it.'));
+  //: Steps has two fallbacks and Setup has none, which is what "not stated"
+  //: means: a check whose setup nobody wrote is a check a stranger cannot
+  //: walk, and the row says so rather than guessing.
+  //: **The note's own prose stands in for missing steps.** Printing nothing
+  //: for a note written before the four headings existed would make the page
+  //: useless on the one corpus large enough to need it.
+  if (row.steps) {
+    proc.appendChild(walkBlock('Steps', row.steps, row, ''));
+  } else if (row.lead) {
+    proc.appendChild(walkBlock(
+      'Steps: no heading', row.lead, row,
+      'The note states no steps. Open it and write them while you walk it.',
+      'The note states no steps. Its own description is below; give it '
+      + 'numbered steps while you walk it.'));
+  } else {
+    proc.appendChild(walkBlock('Steps', null, row,
+      'The note states no steps. Open it and write them while you walk it.'));
+  }
+  proc.appendChild(walkBlock('Expect', row.expect, row,
+    'The note states no expected result.'));
+  wrap.appendChild(proc);
+  return wrap;
+}
+
+function walkRowId(id: string): string {
+  return `walk-row-${(id || '').replace(/[^A-Za-z0-9_-]/g, '_')}`;
+}
+
+/** One labelled block of the procedure, or the sentence that says it is
+ *  missing — which is a link to the note, because the fix is to write it. */
+function walkBlock(label: string, text: string | null | undefined,
+                   row: WalkRow, missing: string,
+                   //: **What to say when there IS text and it is not what the
+                   //: heading asked for.** Separate from `missing` because the
+                   //: two are different sentences, and conflating them printed
+                   //: *"Setup: not stated"* above a setup the note states in
+                   //: full — seen on `TST-0088`'s own row during its walk, on
+                   //: three of the four checks this repo owes. The first cut
+                   //: reused `missing` for both.
+                   note: string = ''): HTMLElement {
+  const block = document.createElement('div');
+  block.className = 'walk-proc-block';
+  const head = document.createElement('div');
+  head.className = 'walk-proc-label';
+  head.textContent = label;
+  block.appendChild(head);
+  //: **The explanation and the prose are both shown.** The first cut passed
+  //: the *"no Steps heading — its own description is below"* sentence as
+  //: `missing` and printed it only when there was nothing else, so the one
+  //: case it was written for — a note with prose and no headings, which is 53
+  //: of `your-trainer`'s 61 owed rows — showed the prose with no word about
+  //: why it was not numbered steps. Found by the node suite before it shipped.
+  if (text && note) {
+    const why = document.createElement('div');
+    why.className = 'walk-proc-why';
+    why.textContent = note;
+    block.classList.add('is-partial');
+    block.appendChild(why);
+  }
+  const body = document.createElement('div');
+  body.className = 'walk-proc-text';
+  if (text) {
+    body.textContent = text;
+  } else {
+    body.textContent = missing;
+    block.classList.add('is-missing');
+  }
+  block.appendChild(body);
+  //: The note is offered whenever something is missing — writing it is the
+  //: fix — and never on a row that states all three, where a fourth button
+  //: would be the id repeated under its own procedure.
+  if (!text) {
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'file-row';
+    open.textContent = `open ${row.id || row.number}`;
+    open.addEventListener('click', () => {
+      if (row.rel) void navigateTo(`/docs/${row.rel}`);
+    });
+    block.appendChild(open);
+  }
+  return block;
+}
+
+/** Mark one row on the walk, then repaint **that row and nothing else**.
+ *
+ *  The page is read once from top to bottom, so it must not rebuild itself
+ *  around the reader: the sittings keep their order, every other row keeps its
+ *  element, and the scroll position is held by `walkOneCheck` exactly as it is
+ *  on `~checks`. */
+async function markWalkRow(item: GateItem): Promise<void> {
+  await walkOneCheck(item, (chosen) => repaintWalkRow(
+    item.id || item.number, chosen));
+}
+
+async function repaintWalkRow(
+  id: string, chosen?: { verdict: string; reason: string },
+): Promise<boolean> {
+  if (!sidecarBaseUrl || !walkData) return false;
+  let fresh: WalkPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/walk?platform=${
+      encodeURIComponent(walkData.platform)}`);
+    if (!resp.ok) return false;
+    fresh = await resp.json() as WalkPayload;
+  } catch { return false; }
+  checksHistory = fresh.history || {};
+  const found = [...fresh.sittings.flatMap((s) => s.rows), ...fresh.unplaced]
+    .find((r) => (r.id || r.number) === id);
+  const host = document.getElementById(walkRowId(id));
+  //: **A row that has left the owed set keeps its place and says so.** The
+  //: common tick is a `pass`, which removes the check from `ledger.owed` — so
+  //: the fresh payload no longer carries it, and rebuilding from the payload
+  //: would make the row the walker just ticked disappear under their cursor.
+  if (!host) return false;
+  if (!found) {
+    //: Redrawn from the row the page already holds, with the verdict the
+    //: walker just chose written onto it — so the row says what was recorded
+    //: rather than keeping the `[ ]` the payload it came from was built with.
+    const stale = [...walkData.sittings.flatMap((s) => s.rows),
+                   ...walkData.unplaced].find((r) => (r.id || r.number) === id);
+    if (stale && chosen) {
+      const settled = buildWalkRow({
+        ...stale, mark: chosen.verdict,
+        verdict_reason: chosen.reason, verdict_method: 'manual',
+      });
+      settled.classList.add('is-walked');
+      host.replaceWith(settled);
+      return true;
+    }
+    host.classList.add('is-walked');
+    return true;
+  }
+  //: The new row is spliced into the same position rather than appended:
+  //: `replaceWith` keeps the element's place in its sitting.
+  host.replaceWith(buildWalkRow(found));
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -12604,7 +13243,16 @@ async function loadWsNav(opts: { land?: boolean } = {}): Promise<void> {
     // Intent's shape exactly: BOTH a nav list and a page. The left pane lists
     // releases, the centre pane frames whichever is open, and reselecting the
     // mode while a release is open must not lose your place (FEAT-0107).
-    if ((!currentRel || !currentRel.startsWith('~release')) && !skipLanding) {
+    //: **A walk survives leaving the project** ([[TASK-0619]], the mechanism
+    //: [[ISS-0280]] built for `~checks`). `openWorkspace` clears `currentRel`,
+    //: so without this the reader comes back to `~release/next` and the walk
+    //: they were halfway down starts again at the top. Edwin walks a release a
+    //: few checks at a time between other work, which is the whole reason that
+    //: issue exists.
+    const parked = (!currentRel && activeId) ? loadWalkPlace(activeId) : null;
+    if (parked) {
+      if (!skipLanding) void navigateTo(parked, { replace: false });
+    } else if (!onOwnedPage('publication', currentRel || '') && !skipLanding) {
       void navigateTo('~release/next', { replace: false });
     }
   }

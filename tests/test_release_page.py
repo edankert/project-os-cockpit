@@ -167,6 +167,21 @@ def _body_of(src: str, signature: str) -> str:
     computed. Brace-counted from the opening `{` of the signature.
     """
     start = src.index(signature)
+    #: **The parameter list is walked by paren depth first.** A parameter
+    #: whose TYPE carries a brace — `repaint: (chosen?: { verdict: string })
+    #: => …` — opens and closes one before the body starts, so taking the
+    #: first `{` after the signature returned a 90-character "body" and every
+    #: assertion over it failed for a reason that had nothing to do with the
+    #: behaviour. The same correction `conftest.js_function_body` records.
+    depth = 0
+    for i in range(src.index("(", start), len(src)):
+        if src[i] == "(":
+            depth += 1
+        elif src[i] == ")":
+            depth -= 1
+            if depth == 0:
+                start = i
+                break
     depth = 0
     for i in range(src.index("{", start), len(src)):
         if src[i] == "{":
@@ -313,7 +328,9 @@ def test_the_walk_holds_the_readers_place() -> None:
         return body.index(needle)
 
     read = at("const held = docView.scrollTop;")
-    repaint = at("await repaint()")
+    #: The repaint is handed what was recorded ([[TASK-0619]]); `~checks`
+    #: ignores the argument and the walk page needs it.
+    repaint = at("await repaint(chosen)")
     restore = at("docView.scrollTop = held;")
     frame = at("requestAnimationFrame(")
     assert read < repaint < restore, body[read:]

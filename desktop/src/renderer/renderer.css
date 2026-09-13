@@ -6315,3 +6315,132 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .gate-breakdown-count {
   color: var(--text-faint);
 }
+
+/* ----- the walk page (FEAT-0149 / TASK-0619) ----------------------------
+ *
+ * The owed checks as a procedure: survey first, then sittings in the order the
+ * browsed repo authored, each row carrying the check's setup, steps and
+ * expected result. It reuses `.checks-row` for the row itself and
+ * `.release-head` for the header, so a check looks the same wherever it is
+ * drawn — the same argument the acceptance view makes one block up.
+ *
+ * Nothing here is a bar, a percentage or a time. Counts of rows are the only
+ * numbers on this page (TASK-0449's guard rail, which outlived that task).
+ */
+.walk-page { padding-bottom: 3rem; }
+
+.walk-banner,
+.walk-notice {
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-muted, var(--text-faint));
+}
+.walk-banner { border-left-color: var(--accent, #58a6ff); }
+.walk-notice.is-warn { border-left-color: var(--warn, #d29922); }
+.walk-notice.is-error { border-left-color: var(--danger, #f85149); }
+
+/* The survey — the surfaces a change reopened, before any scripted check.
+   It is the first thing on the page because it is the first thing to do. */
+.walk-survey {
+  margin: 0 0 22px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.walk-survey > h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.walk-survey-lead { margin: 0 0 10px; font-size: 12px; color: var(--text-muted); }
+.walk-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.walk-gallery code { overflow-wrap: anywhere; }
+.walk-survey-surface { margin: 0 0 14px; }
+.walk-survey-surface > h4 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.walk-survey-surface > h4.is-link { cursor: pointer; }
+.walk-survey-surface > h4.is-link:hover { text-decoration: underline; }
+.walk-survey-checks { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
+.walk-survey-cause { margin: 0 0 6px; }
+.walk-reopened {
+  margin: 4px 0 0 10px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* A sitting: the group of checks that share one product state. `state` and
+   `bench` are rendered verbatim and never parsed — they are the two facts the
+   hand-written run plan's pre-flight carried and no note could. */
+.walk-sitting { margin: 0 0 26px; }
+.walk-sitting > h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.walk-sitting-state,
+.walk-sitting-why {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.walk-bench { margin: 0 0 8px 1.1rem; padding: 0; font-size: 12px; }
+.walk-sitting-count {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+
+/* One row: the checks row, then the procedure under it. The border groups the
+   two so a long Steps block cannot be read as belonging to the next check. */
+.walk-row {
+  margin: 0 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.walk-row.is-walked { opacity: 0.6; }
+.walk-proc {
+  padding: 6px 10px 10px;
+  border-top: 1px solid var(--border);
+}
+.walk-proc-block { margin: 8px 0 0; }
+.walk-proc-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+.walk-proc-text {
+  font-size: 12px;
+  /* The check's own words, wrapped as the author wrote them: a walker follows
+     these, and reflowing a numbered list into a paragraph would be putting
+     words nobody wrote in front of the person recording the verdict. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.walk-proc-block.is-missing .walk-proc-text,
+.walk-proc-block.is-partial .walk-proc-text { color: var(--text-muted); }
+.walk-proc-why {
+  font-size: 11px;
+  color: var(--text-faint);
+}

@@ -336,12 +336,29 @@ def test_a_release_row_does_not_call_a_manual_check_automated() -> None:
     CI."*
 
     `manual` comes from the item; `controls` comes from the surface.
+
+    **A fourth parameter joined them on 2026-09-13** ([[TASK-0619]]): `onMark`,
+    which page repaints after the write. It is a third independent fact and
+    belongs to neither of the two above — `~checks` and `~walk` draw the same
+    row and must repaint themselves rather than each other. The enumeration is
+    kept exact so a fifth is a deliberate edit here, which is the whole
+    mechanism: this assertion is what caught the fourth.
     """
     src = RENDERER.read_text(encoding="utf-8")
     sig = re.search(r"function buildCheckRow\(([^)]*)\)", src)
     assert sig, "buildCheckRow moved"
-    params = [p.split(":")[0].strip() for p in sig.group(1).split(",")]
-    assert params == ["item", "manual", "controls"], params
+    params = [p.split(":")[0].strip() for p in sig.group(1).split(",") if p.strip()]
+    assert params == ["item", "manual", "controls", "onMark"], params
+
+    #: **And it defaults to the checks page's writer**, so every caller that
+    #: does not name one behaves exactly as it did. A row built on a release
+    #: surface passes `controls: false` and draws no mark at all, which is what
+    #: keeps [[ADR-0035]] true whatever the fourth parameter says.
+    #: Read from the declaration rather than from `sig`, whose `[^)]*` stops
+    #: at the first `)` — which is now inside the arrow type, not at the end of
+    #: the parameter list.
+    decl = src[sig.start():src.index("): HTMLElement {", sig.start())]
+    assert "onMark: (item: GateItem) => Promise<void> = markCheckRow" in decl
 
     #: The two facts must not be read as one: the automated styling keys on
     #: `manual` alone and the buttons on both.

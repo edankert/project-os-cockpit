@@ -60,28 +60,36 @@ counters:
   CHG:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 148
-  ISS: 302
-  PHASE: 42
+  FEAT: 149
+  ISS: 304
+  PHASE: 43
   REQ: 65
   RISK: 9
   # A place in the product a check's area: names (TASK-0514). No SUR-* note
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 617
-  TST: 87
+  TASK: 621
+  TST: 88
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: ""
-  phase: ""
+  task: "TASK-0618"
+  feature: "FEAT-0149"
+  phase: "PHASE-043"
   issue: ""
-  note: "2026-09-12: PHASE-042 is DONE and reviewed. A note shows what it is about: a design is Markdown with pictures in __attachments__ beside it, and one viewer (~view/<rel>, served by /framed/<rel>) frames any file inside a workspace docs/ for a note of any type. The bench is removed (nine routes gone, FEAT-0042 superseded) and with it FEAT-0146/REQ-0062 — a design ID opens its NOTE, which also answers the old wikilink question. INDEPENDENT REVIEW returned changes-requested; all ten findings acted on and the verdict left standing (see review_response on FEAT-0147/FEAT-0148). The serious one: stamp_decision had no settled guard and wrote plan-accepted onto designs, so the desk could have cancelled a shipped design — fixed and tested. The corpus figures cited for the retirement were wrong and are corrected here and upstream (bb2802d): 23 design notes in 8 repos, 21 with an artifact, 7 artifacts with regions. ISS-0302, found by Edwin: the viewer left a page class set, so every page after it stopped scrolling — fixed, one named set cleared by one helper, and its guard found history-page with the same defect. ISS-0301 is filed at triage: a framed page can POST to loopback write endpoints (the sandbox denies reads, not writes) — pre-existing, not fixed. RISK-0009 (a verdict no longer names what it judged) is open by Edwin decision on PHASE-999. Deferred: side-by-side comparison, which must serve .md too. Never walked: anything in Obsidian. Suite 2063 passed, 6 skipped, 1 failed (the known test_release_evidence case). The window is shared with other agent sessions; restart by pid only." 
+  note: "2026-09-12: PHASE-042 is DONE and reviewed. A note shows what it is about: a design is Markdown with pictures in __attachments__ beside it, and one viewer (~view/<rel>, served by /framed/<rel>) frames any file inside a workspace docs/ for a note of any type. The bench is removed (nine routes gone, FEAT-0042 superseded) and with it FEAT-0146/REQ-0062 — a design ID opens its NOTE, which also answers the old wikilink question. INDEPENDENT REVIEW returned changes-requested; all ten findings acted on and the verdict left standing (see review_response on FEAT-0147/FEAT-0148). The serious one: stamp_decision had no settled guard and wrote plan-accepted onto designs, so the desk could have cancelled a shipped design — fixed and tested. The corpus figures cited for the retirement were wrong and are corrected here and upstream (bb2802d): 23 design notes in 8 repos, 21 with an artifact, 7 artifacts with regions. ISS-0302, found by Edwin: the viewer left a page class set, so every page after it stopped scrolling — fixed, one named set cleared by one helper, and its guard found history-page with the same defect. ISS-0301 is filed at triage: a framed page can POST to loopback write endpoints (the sandbox denies reads, not writes) — pre-existing, not fixed. RISK-0009 (a verdict no longer names what it judged) is open by Edwin decision on PHASE-999. Deferred: side-by-side comparison, which must serve .md too. Never walked: anything in Obsidian. Suite 2063 passed, 6 skipped, 1 failed (the known test_release_evidence case). The window is shared with other agent sessions; restart by pid only. 2026-09-13: PHASE-043 (the walk page) is IN FLIGHT. The upstream walk module landed and this repo was synced, so the hard dependency is met: tools/scripts/walk-sheet.py is bundled verbatim as src/project_os_cockpit/walk_sheet_bundled.py, the way validate_docs_bundled.py is, and a byte-identity test guards it. TASK-0618 builds acceptance.walk_payload over it; TASK-0619 the ~walk/<platform> page; TASK-0620 the survey; TASK-0621 the links from the release rung, the release page and the checks page." 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0149:
+      file: "docs/features/walk-page/FEAT-0149-The-Walk-Page.md"
+      title: "The walk page — the owed checks as a procedure, survey first, sittings in the consumer's order, the steps on the page"
+      status: done
+      owner: user:edwin
+      phase: "[[PHASE-043-The-Walk-Page]]"
+      tasks: ["TASK-0618", "TASK-0619", "TASK-0620", "TASK-0621"]
+      note: "DOCUMENTED 2026-09-13, not started. Edwin: 'I find it increasingly difficult to understand what steps need to be done to satisfy the outstanding acceptance tests' and 'the tests do not suggest me doing is to look at the changed screens at all'. The cockpit has a list (~checks) and a ledger and nothing between them: view_payload orders section/area/id and models no setup, order, session or screen; ledger.owed() calls itself the run list and nothing turns it into a run. This builds ~walk/<platform> in the publication view: survey (surfaces whose owed checks carry an invalidation as latest event, with the invalidating change ids) FIRST, then sittings in the consumer's authored WALK.md order, each row with Setup/Steps/Expect inline (ADR-0041 decision 4), ticks through askForMark to the ledger. NOT a second store (ADR-0040), NOT a reordering list (TASK-0556), NOT a schedule and NOT an inference (TASK-0449 cancelled: no minutes, no tags, no prose scan), NOT a new close-out obligation (ADR-0036). HARD DEPENDENCY: project-os-dev FEAT-0029 ships tools/scripts/walk-sheet.py and the cockpit BUNDLES it like validate_docs_bundled.py; the rules are stated once upstream in TESTING.md 'The walk'. First corpus: your-trainer, whose 719-line hand-written run plan (315 rows addressed into a deleted document) becomes WALK.md under its FEAT-0119. No RISK owed (bundling is the existing validator pattern); no DES warranted (shape fixed by ADR-0041/DES-0012)."
     FEAT-0147:
       file: "docs/features/pictures-beside-the-note/FEAT-0147-Pictures-Beside-The-Note.md"
       title: "A picture is a file beside the note that shows it, and a design is Markdown with pictures by default"
@@ -855,6 +863,39 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0618:
+      file: "docs/features/walk-page/plan/tasks/TASK-0618-The-Walk-Payload.md"
+      title: "The walk payload: the owed checks grouped into the consumer's sittings, from the template's bundled module"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0149
+      phase: "[[PHASE-043-The-Walk-Page]]"
+      blocks: ["TASK-0619", "TASK-0620"]
+    TASK-0619:
+      file: "docs/features/walk-page/plan/tasks/TASK-0619-The-Walk-Page.md"
+      title: "The walk page: ~walk/<platform> in the publication view, sittings in order, the procedure on every row, a tick that writes the ledger"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0149
+      phase: "[[PHASE-043-The-Walk-Page]]"
+      depends: ["TASK-0618"]
+      blocks: ["TASK-0620", "TASK-0621"]
+    TASK-0620:
+      file: "docs/features/walk-page/plan/tasks/TASK-0620-The-Survey.md"
+      title: "The survey: the surfaces this release changed, derived from the ledger's invalidation events, rendered before any scripted check"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0149
+      phase: "[[PHASE-043-The-Walk-Page]]"
+      depends: ["TASK-0618", "TASK-0619"]
+    TASK-0621:
+      file: "docs/features/walk-page/plan/tasks/TASK-0621-The-Release-Rung-Points-At-The-Walk.md"
+      title: "The release rung, the release page and the checks page point at the walk while a release is draft, and none of them gains a mark"
+      status: done
+      owner: user:edwin
+      parent: FEAT-0149
+      phase: "[[PHASE-043-The-Walk-Page]]"
+      depends: ["TASK-0619"]
     TASK-0608:
       file: "docs/features/pictures-beside-the-note/plan/tasks/TASK-0608-Pin-Image-Resolution-To-The-Note.md"
       title: "A relative path is the convention, image resolution prefers the note's own folder and `__attachments__` beside it, and the fleet-wide filename search is documented as Obsidian's fallback rather than an accident"
@@ -1009,30 +1050,9 @@ items:
       owner: user:edwin
       parent: FEAT-0143
       phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
-    TASK-0583:
-      file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0583-Migrate-Your-Sudoku.md"
-      title: "Migrate `your-sudoku` — the first repo where the gate has something to say"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0143
-      phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
-    TASK-0584:
-      file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0584-Migrate-Your-Trainer.md"
-      title: "Migrate `your-trainer` — 625 checks, 2519 notes, and the only repo where release-scoped verification currently pays"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0143
-      phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
     TASK-0585:
       file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0585-Drift-Is-Measured-Not-Noticed.md"
       title: "Drift is measured, not noticed — a check that reports every fleet validator's divergence from upstream and fails past a stated threshold"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0143
-      phase: "[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]"
-    TASK-0586:
-      file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0586-Your-Trainer-Scopes-Its-Release.md"
-      title: "`your-trainer` scopes REL-0013's acceptance checks from its own note — replacing the hand-written 32-of-623 markdown table with something derived"
       status: done
       owner: user:edwin
       parent: FEAT-0143
@@ -3303,6 +3323,15 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-043:
+      file: "docs/phases/PHASE-043-The-Walk-Page.md"
+      title: "The walk page — the publication view hands the owed checks over as a procedure"
+      status: done
+      owner: user:edwin
+      goal: "When a release is in preparation, the publication view gives the person walking it one page that says what to do and in what order: the surfaces the release changed first, then every owed check inside the sitting it belongs to, with its setup, steps and expected result on the page, and a tick that writes the ledger."
+      features: ["FEAT-0149"]
+      tasks: ["TASK-0618", "TASK-0619", "TASK-0620", "TASK-0621"]
+      note: "Documented 2026-09-13, unstarted. Justified against CLAUDE.md's two questions in the note, reversibly: if the payload is a filter over view_payload and the page a variant of buildChecksPage, fold into PHASE-037 and supersede. NOT PHASE-034 (closed four times; its TASK-0449 inferred order from prose and was cancelled, this authors it once in the consumer's WALK.md). NOT PHASE-037 (the checks page's defects; this is a third surface, TASK-0465 measured why list and stepper do not converge). Five exit criteria, four checkable by command. Blocked upstream: project-os-dev FEAT-0029 must ship the walk module before TASK-0618 bundles it."
     PHASE-042:
       file: "docs/phases/PHASE-042-A-Note-Shows-What-It-Is-About.md"
       title: "A note shows what it is about — pictures beside it, and an HTML page in a plain viewer"
@@ -4453,10 +4482,10 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 147
-    features_done: 133
-    tasks_total: 611
-    tasks_done: 575
+    features_total: 148
+    features_done: 134
+    tasks_total: 615
+    tasks_done: 579
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182

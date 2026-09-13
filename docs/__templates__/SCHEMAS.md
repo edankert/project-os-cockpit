@@ -218,6 +218,7 @@ An acceptance test is the thing a person walks. It carries the fields below and 
 - (required) `tier` (int): `1` feature check, `2` regression check, `3` verification check for one build. Tiers 1 and 2 gate a release (`tools/instructions/TESTING.md`).
 - ~~`burden`~~, ~~`migrated_from`~~, ~~`merged_from`~~ — **removed (ISS-0233).** Provenance of migrations that are finished, plus a field empty on every check in the fleet. Git holds the first two, with the shas ADR-0030 and ADR-0031 name; a field is the wrong place for a fact already immutable somewhere better.
 - (required) `area` (string): the human grouping — "The navigator", "Agents and sessions". One walk's worth of related checks.
+- (optional) `after` (list of check ids): the checks that should have passed before this one is walked — `after: ["TST-0044"]`. Read by `tools/scripts/walk-sheet.py` to order rows inside a sitting (`tools/instructions/TESTING.md`, "The walk", rule 4). It gates nothing: a check whose prerequisite has not passed still appears on the sheet and still blocks the release, it is simply printed later.
 - ~~`section`~~, ~~`ordinal`~~ — **removed (ISS-0224).** They were a check's position in `ACCEPTANCE_TESTS.md`, a document that exists in no migrated repo. Order is `(tier, id)` and grouping is `area` alone; measured before removing them, `(tier, id)` reproduces the old order byte-for-byte in every repo, and no area spans two sections anywhere. `migrated_from:` keeps the old address **and the sha** — a record of the past, not a claim about the present.
 
 Where NOT used:
@@ -228,6 +229,25 @@ Where NOT used:
 
 Where used:
 - Tracked in `SNAPSHOT.yaml` (`items.tests`) for agent context and linked from test notes.
+
+## `walk.md` — the walk order (`WALK.md`)
+
+Purpose: the one file per project that says in what order a release is walked. Instantiated from `walk.md` to `docs/tests/acceptance/WALK.md`, typed `[[reference]]`, resting at `active` (or `deprecated`). What a walk sheet does with it is stated once in `tools/instructions/TESTING.md`, "The walk"; this entry is the syntax alone.
+
+Frontmatter: the standing-document fields (`type`, `title`, `status`, `owner`, `created`, `updated`), plus one optional key:
+
+- (optional) `gallery` (string): a command that regenerates the project's screen gallery. The walk sheet prints it at the top of the survey, as the thing to run and compare before walking anything.
+
+Body: prose the walker reads once, then **one `### ` heading per sitting with one fenced `yaml` block under it**. The heading is the sitting's name as the sheet prints it. The block's keys:
+
+| key | required | what it holds |
+|---|---|---|
+| `surfaces` (list) | one of the two | The `area:` strings this sitting claims, or `SUR-*` ids whose note title is that area string. A check joins the **first** sitting in file order that claims its area. |
+| `checks` (list) | one of the two | Check ids pulled into this sitting regardless of area. |
+| `state` (string) | recommended | The product state the sitting needs and the cheapest way to reach it, in the same register as a check's Setup line. |
+| `bench` (list) | recommended | What must be physically present, signed in or installed before the sitting starts, one line each. |
+
+A sitting block with neither `surfaces` nor `checks` claims nothing, and the generator reports it. No key carries a duration.
 
 ## `check.md` — removed (ADR-0031)
 

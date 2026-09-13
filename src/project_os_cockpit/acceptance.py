@@ -2370,3 +2370,302 @@ def issue_refs_in(reason: str) -> tuple[str, ...]:
     for the index, which this module deliberately does not import.
     """
     return tuple(dict.fromkeys(_REASON_ID_RE.findall(reason or "")))
+
+
+# ---------------------------------------------------------------- the walk
+#
+# The walk page's payload ([[FEAT-0149]] / [[TASK-0618]]). `view_payload`
+# above is the suite as a list; this is the same rows as a **procedure** — the
+# order a person should walk them in, the state each group of them needs, and
+# each check's setup, steps and expected result on the row.
+#
+# **Every rule it applies is upstream's.** Ordering, placement into sittings,
+# the survey join and the reading of the procedure headings are
+# `tools/scripts/walk-sheet.py` (project-os-dev FEAT-0029), bundled here
+# verbatim as `walk_sheet_bundled.py` the way the validator is. This module
+# supplies three things the template's generator has no access to and which are
+# lookups rather than rules: the cockpit's own check scoping, its ledger
+# reader, and the note index that turns an id into a title.
+
+#: Upstream reads `docs/tests/acceptance/WALK.md`; the constant is its own.
+WALK_REL = "tests/acceptance/WALK.md"
+
+
+def _walk_module() -> "Any":
+    """The bundled walk module, with the bundled validator wired into it.
+
+    Upstream's `_validator()` loads `validate-docs.py` from **its own
+    directory**, which is `tools/scripts/` in a repo and this package here —
+    where the file is named `validate_docs_bundled.py`. Seeding the global is
+    the whole of the adaptation, and it is done here rather than by editing the
+    copy because the copy is asserted byte-identical to upstream
+    (`tests/test_walk_bundle.py`).
+    """
+    from . import validate_docs_bundled as _vd
+    from . import walk_sheet_bundled as _walk
+    if _walk._VD is None:
+        _walk._VD = _vd
+    return _walk
+
+
+def _walk_events(docs_root: Path, platform: str) -> list["Any"]:
+    """The platform's ledger entries as the walk module's `Event`s.
+
+    A field-for-field mapping, not a second reader: `ledger.load` is the
+    cockpit's one ledger parser and it validates what it reads, so a malformed
+    entry is refused here exactly as it is on every other surface.
+    """
+    from . import ledger as _ledger
+    walk = _walk_module()
+    out = []
+    #: Sealed ledgers first, the open one last — the order upstream's
+    #: `load_events` establishes and `resolve` depends on. `ledger.load`
+    #: returns them in filename order, which puts `WORKING` where the W
+    #: happens to sort.
+    ledgers = sorted(_ledger.load(docs_root, platform),
+                     key=lambda l: (l.is_working, l.release))
+    for led in ledgers:
+        for entry in sorted(led.entries, key=lambda e: e.date):
+            out.append(walk.Event(
+                check=entry.check, date=entry.date, mark=entry.mark,
+                reason=entry.reason, invalidated_by=entry.invalidated_by,
+                release=led.release, working=led.is_working,
+            ))
+    return out
+
+
+def _walk_check(item: "Item", body: str, after: tuple[str, ...]) -> "Any":
+    """One cockpit `Item` as the walk module's `Check`.
+
+    The procedure text is read by upstream's `section` and `lead_paragraph`,
+    so the four headings and the fallback for a note that has none are stated
+    once. Nothing here parses a note.
+    """
+    walk = _walk_module()
+    return walk.Check(
+        id=item.note_id, title=item.name, path=item.rel, area=item.area,
+        after=list(after), covers=list(item.refs), command=item.command,
+        setup=walk.section(body, "Setup"),
+        steps=walk.section(body, "Steps", "Procedure"),
+        expect=walk.section(body, "Expect", "Expected results"),
+        lead=walk.lead_paragraph(body),
+    )
+
+
+def _walk_row(item: "Item", check: "Any") -> dict[str, Any]:
+    """A `~checks` row plus the procedure, so the page has one row renderer.
+
+    `_row` is reused rather than forked for the reason it was written: every
+    surface that draws a check draws the same shape, and a second one drifts.
+    """
+    return _row(
+        item,
+        setup=check.setup or None,
+        steps=check.steps or None,
+        expect=check.expect or None,
+        #: The note's unheaded description, printed by the page **only** when
+        #: the note states no steps. 53 of `your-trainer`'s 61 owed rows are
+        #: in that shape, and a row that printed nothing for them would be a
+        #: walk sheet nobody can walk.
+        lead=check.lead or None,
+        after=list(check.after),
+    )
+
+
+#: Upstream's wording for an ordering cycle, which is the one warning the
+#: payload reports as an **error** rather than as something to tidy in
+#: `WALK.md`. Pinned by `tests/test_walk_payload.py`, and the bundle is
+#: asserted byte-identical, so a reword upstream fails a test here rather than
+#: silently demoting the report.
+_CYCLE_PHRASE = "forms a cycle"
+
+
+def walk_payload(docs_root: Path, index: "Any | None" = None, *,
+                 platform: str, release: str = "") -> dict[str, Any]:
+    """The owed checks for one platform, as a procedure somebody walks.
+
+    The row set is `ledger.owed` over the manual sections and nothing else —
+    the same predicate the gate reads, so the walk and the gate cannot come to
+    disagree about what a release owes. The order, the sittings and the survey
+    are the template's rules, applied by the bundled module.
+
+    **One platform, never the union.** `/api/cockpit/acceptance` accepts `all`
+    because a gate over two ledgers must fail closed; a walk is a person at one
+    bench with one build, and a union walk would ask them to tick a check for a
+    platform they are not holding.
+    """
+    walk = _walk_module()
+    platform = (platform or "").strip().lower()
+    suite = load(docs_root, index, platform=platform)
+    manual = [i for i in suite.items
+              if i.note_id and section_of(i) in MANUAL_SECTIONS]
+
+    from . import ledger as _ledger
+    owed_ids = set(_ledger.owed(docs_root, platform,
+                                [i.note_id for i in manual]))
+    owed = [i for i in manual if i.note_id in owed_ids]
+
+    bodies, afters, titles, surfaces = _walk_notes(index, docs_root, owed)
+    checks = {i.note_id: _walk_check(i, bodies.get(i.note_id, ""),
+                                     afters.get(i.note_id, ()))
+              for i in owed}
+    by_id = {i.note_id: i for i in owed}
+
+    walk_path = docs_root / WALK_REL
+    authored = walk_path.is_file()
+    gallery, sittings, warnings = "", [], []
+    if authored:
+        gallery, sittings, warnings = walk.parse_walk_order(
+            walk_path.read_text(encoding="utf-8"))
+    else:
+        sittings = walk.unordered_sittings(list(checks.values()))
+
+    sheet = walk.build_walk(
+        checks, _walk_events(docs_root, platform), sittings,
+        release=release, platform=platform,
+        titles=titles, surfaces=surfaces,
+        changes=walk.change_notes(docs_root),
+        gallery=gallery, warnings=warnings, authored_order=authored,
+    )
+
+    #: **A row the cockpit says is owed and the module dropped is reported.**
+    #: Both implement `TESTING.md`'s owed predicate — the module from the
+    #: ledger files, this from `ledger.owed` — and they are supposed to agree
+    #: on every corpus. If they ever do not, the walker is entitled to know
+    #: which check went missing rather than to walk a list that is quietly one
+    #: row short.
+    errors = [w for w in sheet.warnings if _CYCLE_PHRASE in w]
+    kept = {c.id for p in sheet.sittings for c in p.rows}
+    kept.update(c.id for c in sheet.unplaced)
+    dropped = sorted(owed_ids - kept)
+    if dropped:
+        errors.append(
+            "the ledger says %s %s owed and the walk module resolved %s as "
+            "settled; the walk is showing the smaller set"
+            % (", ".join(dropped), "is" if len(dropped) == 1 else "are",
+               "it" if len(dropped) == 1 else "them"))
+
+    out_sittings = []
+    for placed in sheet.sittings:
+        out_sittings.append({
+            "name": placed.sitting.name,
+            "state": placed.sitting.state,
+            "bench": list(placed.sitting.bench),
+            "surfaces": list(placed.sitting.surfaces),
+            "checks": list(placed.sitting.checks),
+            "rows": [_walk_row(by_id[c.id], c) for c in placed.rows],
+        })
+    unplaced = [_walk_row(by_id[c.id], c) for c in sheet.unplaced]
+    placed_n = sum(len(s["rows"]) for s in out_sittings)
+
+    return {
+        "platform": platform,
+        "release": release,
+        #: The command a repo declares for regenerating its screenshots, read
+        #: verbatim from `WALK.md`'s frontmatter and rendered at the head of
+        #: the survey. One field on the payload rather than one per survey
+        #: entry: it is a property of the repo, and repeating it under every
+        #: surface would be one fact printed many times.
+        "gallery": gallery or None,
+        "survey": [{
+            "surface": entry.surface,
+            "surface_note": entry.surface_id or None,
+            "checks": list(entry.checks),
+            "changes": [{"id": cid, "title": title or None,
+                         "reopened": quoted or None}
+                        for cid, title, quoted in entry.causes],
+        } for entry in sheet.survey],
+        "sittings": out_sittings,
+        "unplaced": unplaced,
+        "counts": {
+            "owed": placed_n + len(unplaced),
+            "placed": placed_n,
+            "unplaced": len(unplaced),
+        },
+        "order_source": "walk.md" if authored else "fallback",
+        #: **Every verdict ever recorded against the rows on this page**
+        #: ([[ISS-0281]]). The mark dialog renders it, and it travels with the
+        #: payload rather than behind a lookup for the reason `view_payload`
+        #: gives: the dialog opens on a click, and a round trip there draws the
+        #: history a moment after the reader has read the buttons.
+        #:
+        #: Restricted to the walk's own rows, which `view_payload` cannot do —
+        #: it is the whole suite. 39 owed rows on `your-trainer` against 624
+        #: checks, so the walk carries a fraction of what the list does.
+        "history": {c: h for c, h in _history(docs_root).items()
+                    if c in kept},
+        #: Where the template's WALK.md lives, so a repo with no walk order
+        #: can be pointed at the file to copy rather than at a sentence about
+        #: it.
+        "walk_rel": WALK_REL,
+        "template_rel": "__templates__/walk.md",
+        "errors": errors,
+        "warnings": [w for w in sheet.warnings if w not in errors],
+        "notices": list(sheet.notices),
+    }
+
+
+def _walk_notes(
+    index: "Any | None", docs_root: Path, items: list["Item"],
+) -> tuple[dict[str, str], dict[str, tuple[str, ...]], dict[str, tuple[str, Path]],
+           dict[str, str]]:
+    """The four lookups the template's generator gets from the validator.
+
+    Read from the cockpit's own index where there is one, so the walk sees
+    exactly the notes every other surface sees, and off the filesystem when a
+    caller passed none (the tests, and the CLI).
+    """
+    bodies: dict[str, str] = {}
+    afters: dict[str, tuple[str, ...]] = {}
+    titles: dict[str, tuple[str, Path]] = {}
+    surfaces: dict[str, str] = {}
+    wanted = {i.note_id for i in items}
+    if index is not None:
+        for record in index.iter_records():
+            note_id = record.note_id or ""
+            if note_id:
+                titles[note_id] = (str(record.frontmatter.get("title") or ""),
+                                   record.path)
+            if (record.note_type or "").lower() == "surface":
+                title = str(record.frontmatter.get("title") or "").strip()
+                if title and note_id:
+                    surfaces.setdefault(title, note_id)
+            if note_id in wanted:
+                bodies[note_id] = record.body
+                #: Ids, in either the `[[TST-0001]]` or bare form, read by
+                #: upstream's own extractor so the walk order and the sheet
+                #: cannot disagree about what an `after:` names.
+                afters[note_id] = tuple(
+                    _walk_module()._ids(record.frontmatter.get("after")))
+        return bodies, afters, titles, surfaces
+    for item in items:
+        path = docs_root / item.rel
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        bodies[item.note_id] = _split_frontmatter(text)
+        afters[item.note_id] = tuple(
+            _walk_module()._ids(_frontmatter_field(text, "after")))
+    return bodies, afters, titles, surfaces
+
+
+_AFTER_RE = re.compile(r"^\s*after\s*:\s*(.*)$", re.MULTILINE)
+
+
+def _frontmatter_field(text: str, name: str) -> list[str]:
+    """One inline list field, for the index-less path. `after: [A, B]`.
+
+    Deliberately small: the cockpit always has an index in the server, and the
+    tests that exercise this path write the field inline.
+    """
+    if name != "after":
+        return []
+    found = _AFTER_RE.search(text.split("\n---", 2)[0] if text.startswith("---")
+                             else "")
+    if not found:
+        return []
+    raw = found.group(1).strip()
+    if raw.startswith("[") and raw.endswith("]"):
+        raw = raw[1:-1]
+    return [p.strip().strip("\"'") for p in raw.split(",") if p.strip()]
