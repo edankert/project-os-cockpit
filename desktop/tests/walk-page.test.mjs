@@ -520,3 +520,86 @@ test('a row that has left the owed set keeps its place and is marked walked',
     //: walking TST-0088.
     assert.equal(all(el, 'checks-row')[0].dataset.mark, 'pass');
   });
+
+// ------------------------------------------------- whose ledger a tick lands in
+//
+// **The defect this pins is invisible on a one-ledger repo, and silent on a
+// two-ledger one.** `walkOneCheck` used to take the platform from the nav
+// picker. A walk is one platform by construction — it is in the address — so
+// with the picker on `ios`, a tick on `~walk/android` wrote the Android walk's
+// verdict into the iOS ledger and the row redrew as still owed, with no error.
+// Found by independent review, 2026-09-13.
+
+async function loadMark({ posts, picker, ledgers, walkData }) {
+  const src = await source();
+  const bodies = ['walkOneCheck', 'markWalkRow'].map((n) => extract(src, n))
+    .join('\n');
+  const stub = `
+async function askForMark() { return { verdict: 'pass', reason: 'held' }; }
+async function postJson(path, body) { posts.push({ path, body }); return {}; }
+function showStatus() {}
+function scheduleHide() {}
+function verdictPlatform() {
+  if (picker && picker !== 'all') return picker;
+  return ledgers.length === 1 ? ledgers[0] : '';
+}
+async function repaintWalkRow() { return true; }
+const docView = { scrollTop: 0 };
+const requestAnimationFrame = (fn) => fn();
+const checksHistory = {};
+`;
+  const fn = new Function(
+    'posts', 'picker', 'ledgers', 'walkData',
+    `${stub}\n${bodies}\nreturn { markWalkRow };`,
+  );
+  return fn(posts, picker, ledgers, walkData);
+}
+
+test('a tick on the walk is recorded against the walk\'s own platform',
+  async () => {
+    const posts = [];
+    const { markWalkRow } = await loadMark({
+      posts, picker: 'ios', ledgers: ['android', 'ios'],
+      walkData: { platform: 'android' },
+    });
+    await markWalkRow({ id: 'TST-0001', number: 'TST-0001', name: 'C', mark: 'todo' });
+    assert.equal(posts.length, 1);
+    assert.equal(posts[0].path, '/api/notes/mark-check');
+    assert.equal(posts[0].body.platform, 'android',
+      'the nav picker won over the address the walk was opened at');
+    assert.equal(posts[0].body.verdict, 'pass');
+  });
+
+test('the walk does not need the checks page to have been opened first',
+  async () => {
+    //: `ledgerPlatforms` is filled in by `renderChecksPage`. A walker who
+    //: arrives from the publication ladder has not been there, so the picker
+    //: fallback returned `''` — and the server refuses a mark that names no
+    //: platform, on the one page the whole feature exists for.
+    const posts = [];
+    const { markWalkRow } = await loadMark({
+      posts, picker: 'all', ledgers: [], walkData: { platform: 'macos' },
+    });
+    await markWalkRow({ id: 'TST-0001', number: 'TST-0001', name: 'C', mark: 'todo' });
+    assert.equal(posts[0].body.platform, 'macos');
+  });
+
+test('unplaced rows say something a reader can act on in either order',
+  async () => {
+    const document = makeDom();
+    const { buildWalkPage } = await load({ document });
+    const authored = buildWalkPage(payload({
+      unplaced: [row('TST-0009')],
+      counts: { owed: 4, placed: 3, unplaced: 1 },
+    }));
+    assert.match(authored.textContent, /walk order’s worklist/);
+    const fallback = buildWalkPage(payload({
+      order_source: 'fallback',
+      unplaced: [row('TST-0009', { area: '' })],
+      counts: { owed: 4, placed: 3, unplaced: 1 },
+    }));
+    //: With no walk order there is no sitting to add, so the page must not
+    //: send the reader to a file that does not exist.
+    assert.ok(!/add a sitting/.test(fallback.textContent));
+    assert.match(fallback.textContent, /name no surface in `area:`/);
+  });

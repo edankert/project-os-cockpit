@@ -112,6 +112,12 @@ def test_the_rows_are_exactly_what_the_ledger_says_is_owed(tmp_path: Path) -> No
 
     assert sorted(_ids(payload)) == sorted(owed) == ["TST-0001", "TST-0004"]
     assert payload["counts"]["owed"] == 2
+    #: **And silently.** Without the `MANUAL_SECTIONS` filter the automated
+    #: check reaches the bundled module, which drops it as automated — so the
+    #: row set stays right and the payload reports a disagreement instead.
+    #: Asserting only the ids let that mutation through (independent review,
+    #: 2026-09-13).
+    assert payload["errors"] == []
 
 
 def test_a_blocking_verdict_is_still_owed(tmp_path: Path) -> None:
@@ -409,13 +415,16 @@ def test_the_payload_carries_no_time_estimate(tmp_path: Path) -> None:
     _ledger(docs, "android", [])
     payload = _payload(docs)
 
-    banned = {"minutes", "minute", "duration", "estimate", "eta"}
+    #: **Substrings, not whole names** (independent review, 2026-09-13). The
+    #: first version compared the key exactly, so `setup_minutes` or
+    #: `est_duration` would have passed a guard written against exactly that.
+    banned = ("minute", "duration", "estimate", "eta")
     seen: list[str] = []
 
     def walk_keys(node, where: str) -> None:
         if isinstance(node, dict):
             for key, value in node.items():
-                if str(key).lower() in banned:
+                if any(word in str(key).lower() for word in banned):
                     seen.append(f"{where}.{key}")
                 walk_keys(value, f"{where}.{key}")
         elif isinstance(node, list):
@@ -503,3 +512,41 @@ def test_the_live_corpus_row_set_equals_ledger_owed() -> None:
     assert sorted(got) == sorted(owed)
     assert payload["counts"]["owed"] == len(owed)
     assert not payload["errors"], payload["errors"]
+
+
+def test_a_row_the_module_drops_is_reported_not_dropped(
+        tmp_path: Path, monkeypatch) -> None:
+    """The reconciliation, exercised by forcing the disagreement it exists for.
+
+    `ledger.owed` and the bundled module both implement `TESTING.md`'s owed
+    predicate, and on every corpus measured they agree — so nothing in the
+    corpus can reach this branch, and it was written and never run
+    (independent review, 2026-09-13). Monkeypatching the module's `resolve` is
+    the only honest way to produce the state: it says *if these two ever
+    disagree*, which is the whole premise of the branch.
+
+    The walker is entitled to know which check went missing rather than to
+    walk a list that is quietly one row short.
+    """
+    from project_os_cockpit import walk_sheet_bundled as walk
+
+    docs = tmp_path / "docs"
+    _check(docs, "TST-0001", area="Profile")
+    _check(docs, "TST-0002", area="Profile")
+    _ledger(docs, "android", [])
+
+    real = walk.resolve
+
+    def cleared(events):
+        out = dict(real(events))
+        out["TST-0001"] = walk.Event(
+            check="TST-0001", date="2026-09-01", mark="pass")
+        return out
+
+    monkeypatch.setattr(walk, "resolve", cleared)
+    payload = _payload(docs)
+
+    assert _ids(payload) == ["TST-0002"], "the module kept a row it resolved"
+    assert payload["errors"], "a row the module dropped was not reported"
+    assert "TST-0001" in payload["errors"][0]
+    assert "is owed" in payload["errors"][0]

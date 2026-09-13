@@ -9185,7 +9185,15 @@ function buildGateSection(
   //: names a platform: a walk is one person at one bench with one build, so a
   //: release that has not said which platform it ships has no walk to open.
   //: A permanent blank button is the failure [[FEAT-0102]] records twice.
-  if (d.preparing && unchecked && d.platform) {
+  //: **And a ledger for that platform.** The walk route refuses a platform
+  //: no ledger carries, because reading one that does not exist returns no
+  //: verdicts and reports every check in the repo as owed. Without this the
+  //: button rendered on every repo that has a draft release and has never
+  //: recorded a mark — which is every repo before its first one — and opened
+  //: a refusal. Found by independent review, 2026-09-13.
+  const walkable = (d.platforms || []).some(
+    (p) => p.id === d.platform && p.ledger);
+  if (d.preparing && unchecked && d.platform && walkable) {
     const walk = document.createElement('button');
     walk.type = 'button';
     walk.className = 'file-row release-gate-walk';
@@ -9440,6 +9448,17 @@ async function holdFeatureBack(
 
 async function walkOneCheck(
   item: GateItem,
+  //: **Whose ledger this verdict belongs to**, when the surface knows and the
+  //: picker cannot be trusted to. `~checks` grades whatever the picker says
+  //: and passes nothing. A walk is one platform by construction — it is in
+  //: the address — and reading the picker there was wrong in both directions:
+  //: on a one-ledger repo reached without opening `~checks` first,
+  //: `ledgerPlatforms` was empty and `verdictPlatform()` returned `''`, which
+  //: the write path refuses outright; on a two-ledger repo with the picker on
+  //: `ios`, a tick on `~walk/android` wrote the Android walk's verdict into
+  //: the iOS ledger, and the row simply redrew as still owed. Found by
+  //: independent review, 2026-09-13.
+  platform: string,
   //: **The repaint is told what was recorded** ([[TASK-0619]]). `~checks`
   //: ignores it and re-reads the whole payload; the walk page needs it,
   //: because the common verdict — a `pass` — removes the check from
@@ -9477,7 +9496,7 @@ async function walkOneCheck(
       // pre-ledger path and writes a scalar into the note — which is refused
       // outright in a repo that keeps ledgers, so the failure is loud rather
       // than a second source for one fact.
-      platform: verdictPlatform(),
+      platform,
       by: 'user:edwin', method: 'manual',
     });
   } catch (err: unknown) {
@@ -9774,7 +9793,10 @@ function buildChecksPage(v: ChecksView): HTMLElement {
   //: ([[ISS-0289]]), and empty when the reader chose `All`. A union walk is
   //: refused by the route, so offering it here would be a button that opens
   //: a refusal.
-  if (v.blocking && v.platform) {
+  //: `ledgerPlatforms` is the repo's ledger filenames, captured from the same
+  //: payload this view came from. Same reason as the release page's button:
+  //: a link to a refusal is worse than no link.
+  if (v.blocking && v.platform && ledgerPlatforms.includes(v.platform)) {
     const walk = document.createElement('button');
     walk.type = 'button';
     walk.className = 'file-row checks-walk-link';
@@ -10276,7 +10298,7 @@ async function retireCheckRow(item: GateItem): Promise<void> {
  *  this defect on the document surface; the new one holds the property from
  *  its first commit rather than earning it back. */
 async function markCheckRow(item: GateItem): Promise<void> {
-  await walkOneCheck(item, repaintChecksPage);
+  await walkOneCheck(item, verdictPlatform(), repaintChecksPage);
 }
 
 /** Repaint `~checks` after a write, **without moving the reader** ([[ISS-0262]]).
@@ -10415,6 +10437,10 @@ async function renderWalkPage(platform: string): Promise<boolean> {
     payload = await resp.json() as WalkPayload;
   } catch { return false; }
   walkData = payload;
+  //: Captured here as well as on `~checks`, so a repo that adopts a ledger
+  //: mid-session routes correctly without a restart and without the reader
+  //: having to visit the list first ([[ISS-0272]]).
+  if (Array.isArray(payload.platforms)) ledgerPlatforms = payload.platforms;
   //: The dialog's history comes from the payload the page already fetched,
   //: for the reason `walkOneCheck` gives: it opens on a click, and a round
   //: trip there draws the history after the reader has read the buttons.
@@ -10537,10 +10563,19 @@ function buildWalkPage(v: WalkPayload): HTMLElement {
         rows: v.unplaced }, '');
     const why = document.createElement('p');
     why.className = 'walk-sitting-why';
-    why.textContent = 'These rows are owed and no sitting in the walk order '
-      + 'claims their surface. That is the walk order’s worklist, not a '
-      + 'defect in this page: add a sitting that claims them, or add the '
-      + 'surface to one that exists.';
+    //: **What to say depends on whether there is a walk order to edit.** With
+    //: no `WALK.md` the sittings are one per surface, so a row lands here only
+    //: when its check names no surface at all — and telling that reader to
+    //: "add a sitting" points them at a file that does not exist. Found by
+    //: independent review, 2026-09-13.
+    why.textContent = v.order_source === 'walk.md'
+      ? 'These rows are owed and no sitting in the walk order claims their '
+        + 'surface. That is the walk order’s worklist, not a defect in this '
+        + 'page: add a sitting that claims them, or add the surface to one '
+        + 'that exists.'
+      : 'These rows are owed and their checks name no surface in `area:`, so '
+        + 'the grouping above has nowhere to put them. Give each check an '
+        + 'area — that is what a walk order would group on too.';
     section.insertBefore(why, section.children[1] || null);
     list.appendChild(section);
   }
@@ -10809,7 +10844,9 @@ function walkBlock(label: string, text: string | null | undefined,
  *  element, and the scroll position is held by `walkOneCheck` exactly as it is
  *  on `~checks`. */
 async function markWalkRow(item: GateItem): Promise<void> {
-  await walkOneCheck(item, (chosen) => repaintWalkRow(
+  //: The walk's own platform, from the payload behind the page, never the
+  //: nav picker. The address says which walk this is.
+  await walkOneCheck(item, walkData?.platform || '', (chosen) => repaintWalkRow(
     item.id || item.number, chosen));
 }
 
@@ -10824,7 +10861,11 @@ async function repaintWalkRow(
     if (!resp.ok) return false;
     fresh = await resp.json() as WalkPayload;
   } catch { return false; }
-  checksHistory = fresh.history || {};
+  //: **Merged, not replaced.** The walk payload carries history for the rows
+  //: it still holds, and a clearing tick removes the row from that set — so
+  //: assigning outright erased the history of the check just walked, and
+  //: reopening its dialog showed nothing anybody had ever said about it.
+  checksHistory = { ...checksHistory, ...(fresh.history || {}) };
   const found = [...fresh.sittings.flatMap((s) => s.rows), ...fresh.unplaced]
     .find((r) => (r.id || r.number) === id);
   const host = document.getElementById(walkRowId(id));

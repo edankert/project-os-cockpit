@@ -500,8 +500,13 @@ def test_marking_a_check_does_not_clear_the_readers_filters() -> None:
     src = _renderer()
     i = src.index("async function markCheckRow")
     body = src[i:i + 220]
-    assert "walkOneCheck(item, repaintChecksPage)" in body, body
-    assert "walkOneCheck(item, renderChecksPage)" not in body, \
+    #: **The platform sits between the item and the repaint since 2026-09-13**
+    #: ([[TASK-0619]]): `~walk` passes the platform its address names, and
+    #: `~checks` passes what the picker says, which is what it always sent.
+    #: The property this test is about is the LAST argument — which function
+    #: repaints — and it is asserted on that.
+    assert "walkOneCheck(item, verdictPlatform(), repaintChecksPage)" in body, body
+    assert "renderChecksPage)" not in body, \
         "the address-driven render is being used as a repaint again"
 
 

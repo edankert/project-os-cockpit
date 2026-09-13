@@ -5,7 +5,7 @@ aliases: ["ISS-0304"]
 title: "A comma inside a quoted walk-order entry splits it into two, so one item on the bench becomes two half-sentences"
 status: fixed
 severity: low
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-13
 updated: 2026-09-13
@@ -14,7 +14,7 @@ area: "the walk"
 component: "tools/scripts/walk-sheet.py"
 severity_note: ""
 affects: ["[[FEAT-0149-The-Walk-Page]]"]
-related: ["[[TASK-0618-The-Walk-Payload]]", "[[PHASE-043-The-Walk-Page]]"]
+related: ["[[TASK-0618-The-Walk-Payload]]"]
 tags: [issue, acceptance, upstream]
 ---
 
@@ -61,9 +61,9 @@ Until then, this repo's `WALK.md` says so and writes bench entries without comma
 
 project-os-dev, FEAT-0029.
 
-## Why this is parked under PHASE-999 and not under PHASE-043
+## Homed under PHASE-043, after a detour through the parking lot
 
-It was found by PHASE-043 and it is not PHASE-043's to fix: the file is upstream's and the bundled copy here is asserted byte-identical to it. A phase cannot close while a note naming it in `phase:` is unresolved, and holding this phase open for a repair that belongs in another repository would make its status say something false. The relationship is kept in `related:`, which is what records where it came from.
+It was parked under [[PHASE-999-Future]] for part of a day, on the argument that a phase should not stay open for a repair that belongs in another repository. That argument stopped applying the moment the repair landed: a note at `fixed` sitting in the parking lot is what `test_no_terminal_note_sits_in_the_parking_lot` exists to catch, and it caught this. The issue was found by PHASE-043, fixed the same day, and belongs to it.
 
 ## Fixed upstream, 2026-09-13
 

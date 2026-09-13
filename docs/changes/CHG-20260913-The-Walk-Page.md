@@ -54,10 +54,12 @@ The ordering, placement and survey rules are the template's, stated once upstrea
 
 That arrangement earned its keep immediately. Running the generator beside the page on this repo produced two answers that differed, and both differences were real:
 
-- **[[ISS-0303-The-Walk-Sheet-Lists-Retired-Checks]]** — the sheet lists a check at `status: retired`, so the one thing retiring does is undone by the document a walker reads. The page does not, because it reads the cockpit's suite.
-- **[[ISS-0304-The-Walk-Order-Reader-Splits-Inside-A-Quoted-String]]** — a comma inside a quoted `bench:` entry splits it in two, so *"a second device on the same Wi-Fi, for the tablet row"* becomes a bench item that is not a thing.
+- **[[ISS-0303-The-Walk-Sheet-Lists-Retired-Checks]]** — the sheet listed a check at `status: retired`, so the one thing retiring does was undone by the document a walker reads. The page never did, because it reads the cockpit's suite.
+- **[[ISS-0304-The-Walk-Order-Reader-Splits-Inside-A-Quoted-String]]** — a comma inside a quoted `bench:` entry split it in two, so *"a second device on the same Wi-Fi, for the tablet row"* printed as a bench item that is not a thing.
 
-Both are upstream's to fix and neither is patched here: a local patch to a bundled copy is how one rule becomes two.
+**Both were fixed upstream the same day and re-synced here**, and the bundled copy was re-copied with them. Neither was patched locally, which is the part that matters: a local patch to a bundled copy is how one rule becomes two. The sheet and the page now agree at 3 owed rows on this repo's `macos` ledger. The correction is much larger on `your-trainer`, which carries 217 retired checks: its Android sheet goes from 61 owed rows to 39, the number the page has reported all along.
+
+*(Written first as "neither is patched here", present tense, while both were still open. Corrected after independent review, 2026-09-13.)*
 
 ## Paths and contracts
 

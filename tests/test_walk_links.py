@@ -212,6 +212,32 @@ def test_the_publication_view_owns_the_walk() -> None:
     assert owned and "'~walk'" in owned.group(1)
 
 
+def test_the_two_renderer_links_require_a_ledger_to_walk_against() -> None:
+    """**A link to a refusal is worse than no link** (independent review,
+    2026-09-13).
+
+    The ladder's row has always checked `ledger.platforms`; the release page's
+    button and the checks header did not, so both rendered on any repo with a
+    draft release and no ledger — which is every repo before its first
+    recorded mark — and opened the route's 400.
+
+    A source guard rather than a rendered one because both conditions are
+    single expressions inside functions the node suite does not build: what is
+    asserted is that the ledger is consulted at all, and the wording of each
+    is pinned so a rename fails here.
+    """
+    gate = _function_body("buildGateSection")
+    assert "p.id === d.platform && p.ledger" in _code_only(gate), (
+        "the release page offers the walk without checking the repo keeps a "
+        "ledger for that platform"
+    )
+    checks = _function_body("buildChecksPage")
+    assert "ledgerPlatforms.includes(v.platform)" in _code_only(checks), (
+        "the checks header offers the walk without checking the repo keeps a "
+        "ledger for that platform"
+    )
+
+
 def test_the_three_links_build_one_address() -> None:
     """`walkLink` is the only place a walk address is spelled, so the rung,
     the release page and the checks page cannot come to disagree about it."""

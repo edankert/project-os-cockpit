@@ -20,6 +20,11 @@ release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0088-The-Walk-Page-Hands-Over-The-Owed-Checks]]"
 design: ""
+reviewed_by: model:claude-opus-5
+review_date: 2026-09-13
+review_verdict: changes-requested
+review_response: "All ten findings acted on. Both blocking ones fixed: a tick on the walk now carries the walk's own platform rather than the nav picker's (it could write to the wrong ledger, or to none), and the two upstream issues are re-homed out of the parking lot now that they are fixed. Seven non-blocking findings fixed with tests; one filed as ISS-0305 because it is a decision about CI."
+review_response_date: 2026-09-13
 depends:
   - "[[ADR-0037-A-Verdict-Is-An-Event]]"
   - "[[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]]"
@@ -120,8 +125,64 @@ The template half shipped: `tools/scripts/walk-sheet.py`, `tools/scripts/test-wa
 
 All four tasks are `done` and the change note is [[CHG-20260913-The-Walk-Page]]. The capability register carries `shell.pages.walk`, `shell.pages.walk.survey`, `api.read.walk` and `cli.walk-sheet`, and records the link each of the three existing surfaces gained.
 
-**The scoping question this note left open is answered, and not by choosing.** The payload reads the cockpit's own suite — the same set `~checks` and the gate read — and reports in `errors` any owed row the bundled module then drops. Running the generator beside the page on this repo found a real difference on the first try: the sheet lists a check at `status: retired`, which the page does not ([[ISS-0303-The-Walk-Sheet-Lists-Retired-Checks]]). A second upstream defect came out of writing this repo's walk order ([[ISS-0304-The-Walk-Order-Reader-Splits-Inside-A-Quoted-String]]). Both are upstream's to fix and neither is patched here; the bundled copy stays byte-identical, verified by `tests/test_walk_bundle.py`.
+**The scoping question this note left open is answered, and not by choosing.** The payload reads the cockpit's own suite — the same set `~checks` and the gate read — and reports in `errors` any owed row the bundled module then drops. Running the generator beside the page on this repo found a real difference on the first try: the sheet lists a check at `status: retired`, which the page does not ([[ISS-0303-The-Walk-Sheet-Lists-Retired-Checks]]). A second upstream defect came out of writing this repo's walk order ([[ISS-0304-The-Walk-Order-Reader-Splits-Inside-A-Quoted-String]]). Both were fixed upstream the same day and re-synced here rather than patched locally; the bundled copy stays byte-identical to `tools/scripts/walk-sheet.py`, verified by `tests/test_walk_bundle.py`. The sheet and the page now agree at 3 owed rows on this repo.
 
 **This repo now has a walk order of its own**, `docs/tests/acceptance/WALK.md`: five sittings that climb from the server in a browser through the shell and one workspace to the rows that write. It was written to have an authored order to render against, and it is the artefact the fallback exists to replace.
 
 **Walked, and the walk found two defects.** [[TST-0088-The-Walk-Page-Hands-Over-The-Owed-Checks]] carries the record: a check that states its Setup was told "Setup: not stated", and a row a walker had just ticked kept the glyph that means nobody has walked it. Both fixed, both with a test that fails without the fix. Its verdict is `partial` because step 13 walks the register's own detection commands, which are written in the same commit.
+
+## Independent review 2026-09-13 (model:claude-opus-5) — changes-requested
+
+Fresh context, separate session, commit `199c0fd` reviewed from the notes and the diff alone. Same model family as the author, which is recorded in `reviewed_by:` as provenance; independence here is the context, not the weights ([[project-os-dev#ADR-0013]], `tools/instructions/QUALITY.md` "Independent review (clean-context)").
+
+### Blocking
+
+**1. A tick on the walk is not recorded against the walk's platform.** `walkOneCheck` sends `platform: verdictPlatform()` (`desktop/src/renderer/renderer.ts:9480`). `verdictPlatform()` (same file, 2346-2350) reads the nav picker's stored value, falls back to the single ledger platform, and otherwise returns `''`. It never sees the walk's platform, and `renderWalkPage` sets neither input — `ledgerPlatforms` is assigned in exactly one place, inside `renderChecksPage` (9676), and `loadStoredPlatform()` returns `'all'` until somebody clicks the picker, which `renderPlatformBar` hides on a one-platform repo. Two failures follow. On a one-platform repo, a walker who reaches the walk from the publication ladder without opening `~checks` first sends no platform, and `note_writes` refuses the mark outright — *"this verdict has no platform to belong to"* — on the page the whole feature exists for. On a two-platform repo the picker wins: `../your-trainer` keeps `WORKING-android.json` and `WORKING-ios.json`, so opening `~walk/android` with the picker on `ios` writes the verdict to the iOS ledger. The repaint then refetches `~walk?platform=android`, finds the row still owed, and redraws it unchanged, so there is no error and no visible effect. `TST-0088` step 9 verified the write on this repo, which keeps one ledger and so cannot show either case.
+
+**2. The test suite is red at this commit.** `tests/test_coverage_registers.py::test_no_terminal_note_sits_in_the_parking_lot` fails on `['ISS-0303 (issue, fixed)', 'ISS-0304 (issue, fixed)']`. Both notes are created by this commit at `status: fixed` with `phase: "[[PHASE-999-Future]]"`. [[ISS-0303-The-Walk-Sheet-Lists-Retired-Checks]] argues for the parking under a heading of its own, and that argument was written while the issue was open; once the same commit marked it `fixed`, the guard fired.
+
+### Non-blocking findings
+
+**3. Two of the three links appear when there is no walk.** `cockpit._release_content_rows` guards on `_ledger_platforms(index)`; the release page's gate button (`d.preparing && unchecked && d.platform`) and the checks page's header (`v.blocking && v.platform`) do not. On a repo with a draft release naming a platform and no ledger — the state of every repo before its first mark — both render and both open the route's 400 refusal. [[CHG-20260913-The-Walk-Page]] says *"Each appears only when there is a walk to do"*; for two of the three that is not what the code does.
+
+**4. The dropped-rows reconciliation is unguarded.** Replacing `dropped = sorted(owed_ids - kept)` in `acceptance.walk_payload` with `dropped = []` leaves all 42 walk tests green. The mechanism whose stated purpose is to catch the two owed predicates disagreeing has no test that it fires.
+
+**5. The headline claim is guarded only by a skippable test.** Removing `section_of(i) in MANUAL_SECTIONS` from `walk_payload` fails only `test_the_live_corpus_row_set_equals_ledger_owed`, which is skipped unless `../your-trainer` is checked out. `test_the_rows_are_exactly_what_the_ledger_says_is_owed` survives the mutation because it asserts the row ids and not `payload["errors"]`, which the mutation makes non-empty.
+
+**6. The walk page's behavioural tests run nowhere but a developer's machine.** `desktop/tests/walk-page.test.mjs` reads `desktop/dist/renderer/renderer.js`, which `desktop/.gitignore` excludes, and no workflow in `.github/workflows/` runs `node --test`. A stale build silently tests the previous renderer.
+
+**7. A checked-off row loses its own history.** `repaintWalkRow` sets `checksHistory = fresh.history`, and the payload restricts `history` to the rows it kept — so a check just marked `pass` is no longer in it. Reopening the dialog on the row still on screen shows no past verdicts, including the one just written, and the row's *"N comments"* meta disappears.
+
+**8. The change note describes two defects that this commit fixes.** [[CHG-20260913-The-Walk-Page]] says the sheet *"lists a check at `status: retired`"* and that *"neither is patched here"*. Both were fixed upstream and re-synced in this same commit (`.project-os-sync` moves to `bb2802d`), and `python3 tools/scripts/walk-sheet.py --release REL-0002 --platform macos` now reports 3 owed rows — the same 3 `walk_payload` returns. The issue notes record the upstream fix correctly; the change note reads as though both are still live.
+
+**9. The unplaced section gives fallback readers an instruction they cannot follow.** With no `WALK.md` and a check carrying no `area:`, `unordered_sittings` makes no sitting for it, so it lands under *"add a sitting that claims them, or add the surface to one that exists"* — about a walk order that does not exist.
+
+**10. The payload's time-estimate guard matches whole key names only.** `str(key).lower() in banned`, so `setup_minutes` would pass. The renderer's guard uses a word-boundary regex and is the stronger of the two.
+
+### What was attacked and held
+
+Disabling the chosen-verdict redraw in `repaintWalkRow`, and disabling `walkBlock`'s `note` branch, each fail a node test — the two defects the walk found are really guarded. Loosening the survey's invalidation predicate fails two tests. The route's two refusals are end-to-end tests against a live server. The `_VD` seeding is safe: it assigns the same module object idempotently, and every bundled entry point that needs the validator is reached only after `_walk_module()` has seeded it. Bundle byte-identity holds, the page and the CLI agree at 3 owed rows on this repo, and `validate-docs.sh` is green. Both edited guards are corrections rather than weakenings: the `buildCheckRow` parameter pin is updated *and* strengthened with an assertion on `onMark`'s default, and `_body_of`'s new paren-walk fixes a helper that a brace inside a parameter type would otherwise mis-bound.
+
+**On the randomized-order failure of `test_a_fresh_process_is_not_stale`:** unrelated to this change. `sidecar_stale` is *newest `.py` mtime under the package > this process's start*; no test writes into `src/project_os_cockpit/` (every reference there is a read), so ordering cannot produce it. An external write under `src/` while the run is in flight can, which is the cross-process hazard `test_source_newer_than_the_process_reads_as_stale` documents in its own docstring.
+
+## What was done about the review, 2026-09-13
+
+The verdict stands as the reviewer wrote it ([[project-os-dev#ADR-0011]]: a verdict is the reviewer's, and clearing it yourself turns an independent gate into a formality). This records what was done.
+
+**Blocking 1 — a tick went to the wrong ledger, or to none.** `walkOneCheck` took the platform from the nav picker. A walk is one platform by construction, and reading the picker was wrong in both directions: on a one-ledger repo reached from the publication ladder without opening `~checks` first, `ledgerPlatforms` was empty and the platform resolved to `''`, which the write path refuses outright — the mark failed on the page the whole feature exists for. On a two-ledger repo with the picker on `ios`, a tick on `~walk/android` wrote the verdict into the iOS ledger and the row redrew as still owed, with no error. `walkOneCheck` now takes the platform as an argument; the walk passes its payload's, `~checks` passes `verdictPlatform()` and is unchanged. Two node tests pin it, and they fail if the argument goes back to the picker. `renderWalkPage` also fills `ledgerPlatforms` from its payload, so the rest of the app stops depending on the reader having visited the list.
+
+**Blocking 2 — the suite was red.** `ISS-0303` and `ISS-0304` were written at `triage` and parked under [[PHASE-999-Future]] so they would not hold this phase open; upstream fixed both the same day and another session marked them `fixed`, leaving two terminal notes in the parking lot — exactly what `test_no_terminal_note_sits_in_the_parking_lot` exists to catch. Both are re-homed to this phase, where they were found and where they were resolved.
+
+**3 — two of the three links appeared with no walk behind them.** The release page's button and the checks header did not check that the repo keeps a ledger for the platform, so both rendered on any repo with a draft release and no ledger — every repo before its first recorded mark — and opened the route's 400. Both now consult the ledger, guarded by a test.
+
+**4, 5, 10 — three assertions that would have survived the behaviour being removed.** The dropped-rows reconciliation had no test and now has one that forces the disagreement by monkeypatching the bundled module's `resolve`; the fixture for *the rows are the owed set* now also asserts `errors == []`, which is what a missing `MANUAL_SECTIONS` filter shows up as; and the banned-key guard matches a key that *contains* `minute`, `duration` or `estimate` rather than one spelled exactly that.
+
+**7 — a ticked row lost its own history.** `repaintWalkRow` assigned `checksHistory` from a payload restricted to the rows still owed, so the check just walked lost everything anybody had said about it. Merged now, not replaced.
+
+**8 — the change note described the two upstream defects as unfixed.** True when it was written and false within hours. Corrected, with the correction dated and the original wording named.
+
+**9 — the "Unplaced" sentence pointed at a file that does not exist.** With no walk order, a row reaches Unplaced only when its check names no `area:`, and telling that reader to add a sitting sends them to a `WALK.md` that is not there. The page says something different in each case.
+
+**6 — filed rather than fixed** ([[ISS-0305-The-Desktop-Node-Suite-Runs-Nowhere-But-A-Developers-Machine]]). The node suite skips on CI because `desktop/dist/` is gitignored and no workflow builds it, so the twenty-three tests holding this page's behaviour run only where somebody has built the desktop. It is not this feature's defect and it predates it by a year; it is filed because this feature put its strongest assertions there. Whether CI grows a node install is Edwin's call.
+
+**The randomized-order flake is not ours.** The reviewer reached the same conclusion independently: `sidecar_stale` compares the newest `.py` mtime under the package against the process start, no test writes there, and an external write under `src/` mid-run is the cross-process hazard the sibling test's own docstring records.

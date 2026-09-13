@@ -5,7 +5,7 @@ aliases: ["ISS-0303"]
 title: "The generated walk sheet lists retired checks; the walk page does not, so the two disagree about what a release owes"
 status: fixed
 severity: medium
-phase: "[[PHASE-999-Future]]"
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-13
 updated: 2026-09-13
@@ -47,9 +47,9 @@ grep -n "_is_retired" src/project_os_cockpit/acceptance.py    # the cockpit's
 
 project-os-dev, FEAT-0029. File it there; this note records the finding and the measurement that produced it.
 
-## Why this is parked under PHASE-999 and not under PHASE-043
+## Homed under PHASE-043, after a detour through the parking lot
 
-It was found by PHASE-043 and it is not PHASE-043's to fix: the file is upstream's and the bundled copy here is asserted byte-identical to it. A phase cannot close while a note naming it in `phase:` is unresolved, and holding this phase open for a repair that belongs in another repository would make its status say something false. The relationship is kept in `related:`, which is what records where it came from.
+It was parked under [[PHASE-999-Future]] for part of a day, on the argument that a phase should not stay open for a repair that belongs in another repository. That argument stopped applying the moment the repair landed: a note at `fixed` sitting in the parking lot is what `test_no_terminal_note_sits_in_the_parking_lot` exists to catch, and it caught this. The issue was found by PHASE-043, fixed the same day, and belongs to it.
 
 ## Fixed upstream, 2026-09-13
 
