@@ -2537,11 +2537,30 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
     changes = walk.load_changes(docs_root, repo_root,
                                 only=added if usable else set())
 
+    #: **Every check a procedure may legally cite, not only the owed ones.**
+    #: A procedure covers its whole sitting and the sheet prints the owed part
+    #: of it, so its tags name checks that have already passed. Passing only
+    #: `checks` here made every such tag read as naming no check at all, and
+    #: this page and `walk-sheet.py` then disagreed about one procedure —
+    #: which is the thing `TESTING.md` rule 7 says bundling the module
+    #: prevents. Found by independent review, 2026-09-14. Only the checks a
+    #: procedure actually cites are read, so a repo with 431 of them pays for
+    #: the handful its scripts name.
+    cited = {tag[0] for p in procedures for s in p.steps
+             for e in s.expectations for tag in e.tags}
+    extra = [i for i in manual if i.note_id in cited and i.note_id not in by_id]
+    known = dict(checks)
+    if extra:
+        more, more_after, _, _, _ = _walk_notes(index, docs_root, extra)
+        for item in extra:
+            known[item.note_id] = _walk_check(
+                item, more.get(item.note_id, ""), more_after.get(item.note_id, ()))
+
     sheet = walk.build_walk(
         checks, _walk_events(docs_root, platform), sittings,
         release=release, platform=platform,
         surfaces=surfaces, surface_notes=surface_notes,
-        changes=changes, procedures=procedures,
+        changes=changes, procedures=procedures, known=known,
         captures=walk.capture_finder(docs_root, repo_root,
                                      survey_tag if usable else ""),
         gallery=gallery, warnings=warnings, authored_order=authored,

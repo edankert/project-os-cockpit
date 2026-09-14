@@ -550,3 +550,70 @@ def test_a_row_the_module_drops_is_reported_not_dropped(
     assert payload["errors"], "a row the module dropped was not reported"
     assert "TST-0001" in payload["errors"][0]
     assert "is owed" in payload["errors"][0]
+
+# ------------------------------------------------- a sitting's written script
+
+def _procedure(docs: Path, name: str, sitting: str, body: str) -> None:
+    (docs / "tests" / "acceptance" / "walk").mkdir(parents=True, exist_ok=True)
+    (docs / "tests" / "acceptance" / "walk" / f"{name}.md").write_text(
+        f'---\ntype: "[[reference]]"\ntitle: "Procedure — {sitting}"\n'
+        f'status: active\nowner: user:fixture\nsitting: "{sitting}"\n'
+        f"---\n\n# Procedure — {sitting}\n\n{body}\n", encoding="utf-8")
+
+
+def _bench(docs: Path) -> None:
+    """One sitting, two checks, one of them already walked and passed."""
+    _check(docs, "TST-0001", area="Bench",
+           body="## Setup\nThe bench.\n\n## Steps\n1. Open it.\n\n"
+                "## Expect\n- It opens.")
+    _check(docs, "TST-0002", area="Bench",
+           body="## Setup\nThe bench.\n\n## Steps\n1. Close it.\n\n"
+                "## Expect\n- It closes.")
+    _ledger(docs, "android", [
+        {"check": "TST-0002", "date": "2026-09-01", "mark": "pass",
+         "by": "user:edwin", "method": "manual"},
+    ])
+    _walk_order(docs, '---\ntype: "[[reference]]"\ntitle: "Walk order"\n'
+                      "status: active\nowner: user:fixture\n---\n\n"
+                      "# Walk order\n\n### The bench\n\n"
+                      '```yaml\nsurfaces: ["Bench"]\nstate: "The bench."\n```\n')
+    _procedure(docs, "the-bench", "The bench",
+               "## Setup\n\nThe bench powered.\n\n## Steps\n\n"
+               "1. **Bench.** Open it.\n   - It opens. `TST-0001.1`\n"
+               "2. **Bench.** Close it.\n   - It closes. `TST-0002.1`\n")
+
+
+def test_a_procedure_may_cite_a_check_that_has_already_passed(
+        tmp_path: Path) -> None:
+    """The page and the generated sheet must not disagree about one procedure.
+
+    A procedure covers its whole sitting and the sheet prints the owed part of
+    it, so its tags name checks that have already passed. This payload was
+    built from the owed rows alone, so every such tag read as naming no check
+    at all and the procedure was refused here while `walk-sheet.py` accepted
+    it — the disagreement `TESTING.md` rule 7 says bundling the module
+    prevents. Found by independent review, 2026-09-14.
+    """
+    docs = tmp_path / "docs"
+    _bench(docs)
+    sitting = _payload(docs)["sittings"][0]
+    procedure = sitting["procedure"]
+    assert procedure is not None
+    assert procedure["problems"] == []
+    assert [s["number"] for s in procedure["steps"]] == [1]
+    assert procedure["owed_checks"] == ["TST-0001"]
+
+
+def test_the_page_and_the_generator_agree_on_the_same_procedure(
+        tmp_path: Path) -> None:
+    """One implementation, asserted rather than assumed (rule 7)."""
+    docs = tmp_path / "docs"
+    _bench(docs)
+    walk = acceptance._walk_module()
+    sheet = walk.generate(tmp_path, "REL-0001", "android")
+    mine = _payload(docs)["sittings"][0]["procedure"]
+    theirs = [p for p in sheet.sittings if p.sitting.name == "The bench"][0]
+    assert theirs.procedure.problems == mine["problems"]
+    assert [s.number for s in theirs.steps] == [s["number"] for s in mine["steps"]]
+    assert [c.id for c in theirs.owed_checks] == mine["owed_checks"]
+    assert theirs.omitted == mine["omitted"]
