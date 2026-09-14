@@ -9446,6 +9446,50 @@ async function holdFeatureBack(
 }
 
 
+/** Write one check's verdict to the ledger. The only place the shell does.
+ *
+ *  **Extracted so a step tick and a row tick cannot drift** ([[TASK-0624]]).
+ *  A procedure step settles several checks at once, and the phase's exit
+ *  criterion is that walking a sitting step by step writes the same events,
+ *  check for check and mark for mark, as ticking those checks one by one.
+ *  Two call sites building the same POST would be a promise kept by
+ *  inspection; one function is the promise kept by construction.
+ *
+ *  Returns whether the write landed. A refusal is reported and nothing is
+ *  repainted, because nothing changed. */
+async function postCheckVerdict(
+  item: GateItem, platform: string,
+  chosen: { verdict: string; reason: string; change?: string },
+): Promise<boolean> {
+  try {
+    // `postJson` THROWS on refusal — it does not return `{ok: false}`. An
+    // `if (!res?.ok)` here would be unreachable and a server refusal would
+    // become an unhandled rejection with no toast (ISS-0187).
+    await postJson('/api/notes/mark-check', {
+      // `id` when the check is a note, `number`+`name` when it is a row. Both
+      // are sent; the server prefers the id and the two can never disagree
+      // about which check is meant, because they come from the same payload.
+      id: item.id ?? '', number: item.number, name: item.name,
+      verdict: chosen.verdict, reason: chosen.reason,
+      change: chosen.change ?? '',
+      // **The platform the verdict was earned on** (ADR-0037). Sending it is
+      // what routes the write to the ledger; without it the server takes the
+      // pre-ledger path and writes a scalar into the note — which is refused
+      // outright in a repo that keeps ledgers, so the failure is loud rather
+      // than a second source for one fact.
+      platform,
+      by: 'user:edwin', method: 'manual',
+    });
+  } catch (err: unknown) {
+    showStatus(`Could not mark ${item.id || item.number}: ${
+      err instanceof Error ? err.message : String(err)}`, 'error');
+    scheduleHide(6000);
+    return false;
+  }
+  return true;
+}
+
+
 async function walkOneCheck(
   item: GateItem,
   //: **Whose ledger this verdict belongs to**, when the surface knows and the
@@ -9480,31 +9524,7 @@ async function walkOneCheck(
     history: checksHistory[item.id || ''] || [],
   });
   if (chosen === null) return;              // nothing written, nothing repainted
-  try {
-    // `postJson` THROWS on refusal — it does not return `{ok: false}`. An
-    // `if (!res?.ok)` here would be unreachable and a server refusal would
-    // become an unhandled rejection with no toast (ISS-0187).
-    await postJson('/api/notes/mark-check', {
-      // `id` when the check is a note, `number`+`name` when it is a row. Both
-      // are sent; the server prefers the id and the two can never disagree
-      // about which check is meant, because they come from the same payload.
-      id: item.id ?? '', number: item.number, name: item.name,
-      verdict: chosen.verdict, reason: chosen.reason,
-      change: chosen.change ?? '',
-      // **The platform the verdict was earned on** (ADR-0037). Sending it is
-      // what routes the write to the ledger; without it the server takes the
-      // pre-ledger path and writes a scalar into the note — which is refused
-      // outright in a repo that keeps ledgers, so the failure is loud rather
-      // than a second source for one fact.
-      platform,
-      by: 'user:edwin', method: 'manual',
-    });
-  } catch (err: unknown) {
-    showStatus(`Could not mark ${item.id || item.number}: ${
-      err instanceof Error ? err.message : String(err)}`, 'error');
-    scheduleHide(6000);
-    return;
-  }
+  if (!await postCheckVerdict(item, platform, chosen)) return;
   // The position is held twice — once synchronously and once inside the frame
   // — because layout lands a frame after the children are replaced, which is
   // exactly how ISS-0188's fix came to do nothing.
@@ -9531,6 +9551,15 @@ async function walkOneCheck(
 
 interface CheckArea {
   section: string; area: string; refs: string[]; items: GateItem[];
+  /** Where this area sits in the product ([[TASK-0625]]; upstream ADR-0044).
+   *  `screen` is the top-level screen it belongs to, `parent` is the screen
+   *  a dialog opens from and is empty on a screen's own area, and `kind` is
+   *  the surface note's — `subsystem` and `surface-less` are surfaces without
+   *  being places. `unresolved` is an `area:` that matches no surface note at
+   *  all, which is drawn plainly rather than filed under a screen it has no
+   *  claim on ([[ISS-0250]]). */
+  screen?: string; parent?: string; kind?: string;
+  surface?: string; unresolved?: boolean;
 }
 interface CheckTier {
   tier: number; label: string; gating: boolean;
@@ -9957,7 +9986,11 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
     // with a progress bar on each.
     for (const area of areas) {
       const block = document.createElement('div');
-      block.className = 'checks-area';
+      //: **A dialog's checks are drawn under the screen it opens from**
+      //: ([[TASK-0625]]). The payload puts them in that order and names the
+      //: parent; this indents them, so the reader can see that the group is
+      //: part of the screen above rather than a place of its own.
+      block.className = area.parent ? 'checks-area is-child' : 'checks-area';
       const ah = document.createElement('h4');
       ah.className = 'checks-area-head';
       // **No `section` prefix** — the field is gone (ISS-0224).
@@ -9965,6 +9998,26 @@ function paintCheckList(host: HTMLElement, v: ChecksView): void {
       ahName.className = 'checks-area-name';
       ahName.textContent = area.area;
       ah.appendChild(ahName);
+      //: What it opens from, named on the group rather than left to the
+      //: indent alone: a filter can hide the parent's own group, and an
+      //: indented heading under nothing says nothing.
+      if (area.parent) {
+        const under = document.createElement('span');
+        under.className = 'checks-area-parent';
+        under.textContent = `in ${area.parent}`;
+        ah.appendChild(under);
+      }
+      //: An `area:` no surface note carries is said out loud ([[ISS-0250]]).
+      //: A surface rename orphans its checks silently, and the group reading
+      //: exactly like every other one is how that stays unnoticed.
+      if (area.unresolved) {
+        const ghost = document.createElement('span');
+        ghost.className = 'checks-area-ghost';
+        ghost.textContent = 'no surface note';
+        ghost.title = `No SUR-* note is titled "${area.area}", so these `
+          + 'checks name a place the record does not describe.';
+        ah.appendChild(ghost);
+      }
       //: **No completion figure on an automated area** ([[ISS-0243]]).
       //: `checkPercent` is a person's progress through a list, and nobody is
       //: progressing through one a machine executes ([[ADR-0039]]). It ran
@@ -10350,9 +10403,32 @@ interface WalkRow extends GateItem {
   lead?: string | null;
   after?: string[];
 }
+/** One expectation tag on a procedure line — `TST-0648.4` in the markdown.
+ *
+ *  `step` is the check's own step number, or `null` where the check states no
+ *  numbered steps and is one owed part cited by its bare id. `owed` is what
+ *  this release still owes; a tag that is not owed has already been walked on
+ *  this platform. */
+interface WalkTag { check: string; step: string | null; owed: boolean; }
+interface WalkProcLine { text: string; tags: WalkTag[]; }
+interface WalkProcStep {
+  number: number; head: string;
+  surface: string | null; surface_note: string | null;
+  lines: WalkProcLine[];
+}
+/** A sitting's written script, as the bundled module parsed it.
+ *
+ *  Read through `readProcedure` and nowhere else, so upstream changing this
+ *  shape is one edit here rather than one per renderer ([[TASK-0623]]). */
+interface WalkProcedure {
+  path: string; sitting: string; setup: string;
+  problems: string[]; remarks: string[]; omitted: number;
+  owed_checks: string[]; steps: WalkProcStep[];
+}
 interface WalkSitting {
   name: string; state: string; bench: string[];
   surfaces: string[]; checks: string[]; rows: WalkRow[];
+  procedure?: WalkProcedure | null;
 }
 interface WalkCause { id: string; title: string | null; sentence: string | null; }
 interface WalkCapture {
@@ -10451,6 +10527,10 @@ async function renderWalkPage(platform: string): Promise<boolean> {
   //: for the reason `walkOneCheck` gives: it opens on a click, and a round
   //: trip there draws the history after the reader has read the buttons.
   checksHistory = payload.history || {};
+  //: Ticks whose checks already have their ledger event are spent, and a
+  //: spent tick left in storage would draw a step as walked on the next
+  //: release that prints it ([[TASK-0624]]).
+  pruneStepMarks(payload);
   if (currentNavMode !== 'publication') {
     //: The landing suppression `renderChecksPage` documents (ISS-0193).
     //: `setNavMode` fires `loadWsNav`, which lands publication on
@@ -10561,7 +10641,7 @@ function buildWalkPage(v: WalkPayload): HTMLElement {
   list.className = 'walk-sittings';
   list.id = 'walk-sittings';
   v.sittings.forEach((sitting, i) => {
-    list.appendChild(buildSittingSection(sitting, `Sitting ${i + 1}`));
+    list.appendChild(buildSittingSection(sitting, `Sitting ${i + 1}`, v));
   });
   if (v.unplaced.length) {
     const section = buildSittingSection(
@@ -10661,73 +10741,138 @@ function buildSurveySection(v: WalkPayload): HTMLElement {
     + 'single scripted step. Each line is what one change says it altered.';
   section.appendChild(lead);
 
+  //: **A child screen is drawn inside its parent's card** ([[TASK-0622]];
+  //: upstream ADR-0044). A dialog is a screen you reach from another screen,
+  //: so a walker opening the parent finds the dialog's pictures where they
+  //: will be standing. A child whose parent this release did not change has
+  //: no card to sit in and gets its own.
+  const cards = new Map<string, HTMLElement>();
   for (const entry of v.survey) {
-    const block = document.createElement('div');
-    block.className = entry.parent
-      ? 'walk-survey-surface is-child' : 'walk-survey-surface';
-    const name = document.createElement(entry.parent ? 'h5' : 'h4');
-    name.textContent = entry.surface_note && entry.surface_note !== entry.surface
-      ? `${entry.surface} (${entry.surface_note})` : entry.surface;
-    if (entry.surface_note) {
-      name.classList.add('is-link');
-      name.addEventListener('click', () => {
-        void openWalkNote(entry.surface_note as string);
-      });
-    }
-    block.appendChild(name);
-
-    //: **A screen no surface note carries is named, never dropped.** A change
-    //: says it altered this place and nobody can open it, which is worse news
-    //: than a missing heading and has to be on the page.
-    if (entry.unresolved) {
-      const ghost = document.createElement('p');
-      ghost.className = 'walk-survey-unresolved';
-      ghost.textContent = 'No surface note carries this id, so nothing here '
-        + 'says which screen to open.';
-      block.appendChild(ghost);
-    }
-
-    for (const cause of entry.changes) {
-      const row = document.createElement('div');
-      row.className = 'walk-survey-cause';
-      const said = document.createElement('p');
-      said.className = 'walk-survey-sentence';
-      said.textContent = cause.sentence
-        ?? 'that change names this screen and says nothing about it';
-      row.appendChild(said);
-      const who = document.createElement('button');
-      who.type = 'button';
-      who.className = 'file-row';
-      who.textContent = cause.title
-        ? `${cause.id} — ${cause.title}` : `${cause.id} — (not in this repo)`;
-      who.addEventListener('click', () => { void openWalkNote(cause.id); });
-      row.appendChild(who);
-      block.appendChild(row);
-    }
-
-    for (const shot of entry.captures) {
-      const pair = document.createElement('div');
-      pair.className = 'walk-survey-captures';
-      const label = document.createElement('div');
-      label.className = 'walk-survey-capture-key';
-      label.textContent = shot.state ? `${shot.key} (${shot.state})` : shot.key;
-      if (shot.new) label.textContent += ' — new';
-      pair.appendChild(label);
-      for (const [when, src] of [
-        ['at the last release', shot.before], ['now', shot.after],
-      ] as [string, string | null][]) {
-        if (!src) continue;
-        const img = document.createElement('img');
-        img.className = 'walk-survey-capture';
-        img.setAttribute('src', src);
-        img.setAttribute('alt', `${shot.key}, ${when}`);
-        pair.appendChild(img);
-      }
-      block.appendChild(pair);
-    }
-    section.appendChild(block);
+    if (entry.parent) continue;
+    cards.set(entry.surface_note || entry.surface, buildSurveyCard(entry, false));
+  }
+  for (const entry of v.survey) {
+    const card = cards.get(entry.surface_note || entry.surface);
+    if (card && !entry.parent) { section.appendChild(card); continue; }
+    const parent = entry.parent ? cards.get(entry.parent) : undefined;
+    const child = buildSurveyCard(entry, Boolean(parent));
+    if (parent) parent.appendChild(child);
+    else section.appendChild(child);
   }
   return section;
+}
+
+/** One screen's card: its name, what each change says about it, and the two
+ *  pictures ([[TASK-0622]]). */
+function buildSurveyCard(entry: WalkSurvey, nested: boolean): HTMLElement {
+  const block = document.createElement('div');
+  block.className = nested
+    ? 'walk-survey-surface is-child' : 'walk-survey-surface';
+  const name = document.createElement(nested ? 'h5' : 'h4');
+  name.textContent = entry.surface_note && entry.surface_note !== entry.surface
+    ? `${entry.surface} (${entry.surface_note})` : entry.surface;
+  if (entry.surface_note) {
+    name.classList.add('is-link');
+    name.addEventListener('click', () => {
+      void openWalkNote(entry.surface_note as string);
+    });
+  }
+  block.appendChild(name);
+
+  //: **A screen no surface note carries is named, never dropped.** A change
+  //: says it altered this place and nobody can open it, which is worse news
+  //: than a missing heading and has to be on the page.
+  if (entry.unresolved) {
+    const ghost = document.createElement('p');
+    ghost.className = 'walk-survey-unresolved';
+    ghost.textContent = 'No surface note carries this id, so nothing here '
+      + 'says which screen to open.';
+    block.appendChild(ghost);
+  }
+
+  for (const cause of entry.changes) {
+    const row = document.createElement('div');
+    row.className = 'walk-survey-cause';
+    const said = document.createElement('p');
+    said.className = 'walk-survey-sentence';
+    said.textContent = cause.sentence
+      ?? 'that change names this screen and says nothing about it';
+    row.appendChild(said);
+    const who = document.createElement('button');
+    who.type = 'button';
+    who.className = 'file-row';
+    //: The change note behind the sentence. A change id is not a test id: it
+    //: names what altered the screen, not something to run (rule 2).
+    who.textContent = cause.title
+      ? `${cause.id} — ${cause.title}` : `${cause.id} — (not in this repo)`;
+    who.addEventListener('click', () => { void openWalkNote(cause.id); });
+    row.appendChild(who);
+    block.appendChild(row);
+  }
+
+  for (const shot of entry.captures) {
+    //: **A key with no picture at either end draws nothing.** The gallery
+    //: declares the key and the repo has not captured it, which is a fact
+    //: about the gallery and not about this screen — and a bare key with an
+    //: empty frame under it reads as a picture that failed to load. The
+    //: card's sentences are the answer here.
+    if (!shot.before && !shot.after) continue;
+    block.appendChild(buildSurveyCaptures(shot));
+  }
+  return block;
+}
+
+/** One capture key, before and after, side by side at the same width.
+ *
+ *  A screen captured now and not at the last release is **new** and says so,
+ *  because a card showing one picture where every other shows two reads as a
+ *  missing picture. A key with neither picture draws nothing at all — the
+ *  card's sentences are the answer there. */
+function buildSurveyCaptures(shot: WalkCapture): HTMLElement {
+  const pair = document.createElement('div');
+  pair.className = 'walk-survey-captures';
+  const label = document.createElement('div');
+  label.className = 'walk-survey-capture-key';
+  label.textContent = shot.state ? `${shot.key} (${shot.state})` : shot.key;
+  if (shot.new) label.textContent += ' — new';
+  pair.appendChild(label);
+  const shelf = document.createElement('div');
+  shelf.className = 'walk-survey-shelf';
+  for (const [when, src] of [
+    ['at the last release', shot.before], ['now', shot.after],
+  ] as [string, string | null][]) {
+    if (!src) continue;
+    const cell = document.createElement('figure');
+    cell.className = 'walk-survey-shot';
+    const img = document.createElement('img');
+    img.className = 'walk-survey-capture';
+    img.setAttribute('src', walkCaptureSrc(src));
+    img.setAttribute('alt', `${shot.key}, ${when}`);
+    cell.appendChild(img);
+    const cap = document.createElement('figcaption');
+    cap.className = 'walk-survey-when';
+    cap.textContent = when;
+    cell.appendChild(cap);
+    shelf.appendChild(cell);
+  }
+  if (shelf.children.length) pair.appendChild(shelf);
+  return pair;
+}
+
+/** A capture's repo-relative path as a URL the shell can load.
+ *
+ *  **Through the framed viewer route, which is confined to the workspace's
+ *  `docs/`** ([[ADR-0042]], [[TASK-0622]]). The payload speaks the
+ *  generator's language — repo-relative, because that is what `walk-sheet.py`
+ *  prints — and a bare repo-relative path in an `src` resolves against the
+ *  shell's own origin and loads nothing. No new route is added and nothing
+ *  outside a workspace is readable: a path that is not under `docs/` gets no
+ *  URL at all. */
+function walkCaptureSrc(rel: string): string {
+  const inside = walkDocsRel(rel);
+  if (!inside || !sidecarBaseUrl) return '';
+  return `${sidecarBaseUrl}/framed/${inside.split('/')
+    .map(encodeURIComponent).join('/')}`;
 }
 
 /** Open a note the survey names, by id.
@@ -10742,7 +10887,582 @@ async function openWalkNote(noteId: string): Promise<void> {
   await locateAndOpen(noteId, activeId || 'this project');
 }
 
-function buildSittingSection(sitting: WalkSitting, ordinal: string): HTMLElement {
+// ---------------------------------------------------------------------------
+// A sitting as its written script ([[TASK-0623]], [[TASK-0624]]; upstream
+// ADR-0045 decisions 3 to 5).
+//
+// `your-trainer`'s v2.2.0 data-only sitting has five checks whose Setup
+// sections all say the same thing. Drawn as five rows, the walker reads that
+// setup five times. Drawn as the procedure the sitting authored, once.
+//
+// **The tick moves from the check to the step.** A step can satisfy parts of
+// several checks, so a step tick is held until every step citing a check has
+// one; then one verdict for that check goes to the ledger, through the same
+// POST the row's mark button uses. The ledger's format does not change —
+// still one event per check (ADR-0037).
+// ---------------------------------------------------------------------------
+
+/** The marks a step may carry.
+ *
+ *  `na`, `excused` and `blocked` are not on the list: they are decisions about
+ *  scope rather than observations of a step, and they stay on the check row
+ *  and the release page (Edwin, 2026-09-14; [[ADR-0041]]). */
+const STEP_MARK_CHOICES = ['pass', 'partial', 'fail', 'question'];
+
+/** A check's verdict, from the marks on the steps that cite it.
+ *
+ *  **The worst mark wins**, and Edwin fixed the order on 2026-09-14: `fail`
+ *  over `partial` over `pass`, and a `question` on any citing step makes the
+ *  whole check a question — somebody who did not understand one step did not
+ *  understand the check. Returns `''` for no marks at all, which is a check
+ *  whose steps are not all ticked and therefore has no verdict to write. */
+function combineStepMarks(marks: string[]): string {
+  const given = marks.filter(Boolean);
+  if (!given.length) return '';
+  if (given.includes('question')) return 'question';
+  if (given.includes('fail')) return 'fail';
+  if (given.includes('partial')) return 'partial';
+  return 'pass';
+}
+
+/** One step's mark, before it has become any check's verdict. */
+interface StepMark { verdict: string; reason: string; }
+type StepMarks = Record<string, StepMark>;
+
+/** Where a half-walked sitting lives, per workspace ([[TASK-0624]] decision 1).
+ *
+ *  **The browser's storage, never the repo and never the ledger.** A step tick
+ *  that has not yet produced a verdict is progress, not a verdict: writing it
+ *  into the repo would be a second store of what the ledger owns ([[ADR-0040]])
+ *  and writing it into the ledger would be a format change this phase is not
+ *  making. It is the mechanism [[ISS-0280]] built for the walker's place, one
+ *  page over. */
+function walkStepsKey(workspaceId: string): string {
+  return `cockpit:walk-steps:${workspaceId}`;
+}
+
+/** `release|platform|sitting|step` — the four things that make a step unique.
+ *
+ *  The release and the platform are in the key because the same procedure is
+ *  walked again on the next release and on the other platform, and a tick from
+ *  the last walk must not settle this one. */
+function stepMarkKey(release: string, platform: string,
+                     sitting: string, step: number): string {
+  return [release, platform, sitting, String(step)].join('|');
+}
+
+function loadStepMarks(): StepMarks {
+  if (!activeId) return {};
+  try {
+    const raw = localStorage.getItem(walkStepsKey(activeId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    //: A stored value of the wrong shape is dropped rather than trusted: it
+    //: could only have arrived by a hand-edit or an older build, and reading
+    //: it would put a mark nobody made under the walker's cursor.
+    return (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+      ? parsed as StepMarks : {};
+  } catch { return {}; }
+}
+
+function saveStepMarks(marks: StepMarks): void {
+  if (!activeId) return;
+  try {
+    localStorage.setItem(walkStepsKey(activeId), JSON.stringify(marks));
+  } catch { /* storage unavailable — the walk still works, tick by tick */ }
+}
+
+/** Forget every stored tick the payload no longer prints.
+ *
+ *  **This is what "cleared when the check's event is written" comes to.** A
+ *  step is printed only while something it cites is owed, so the moment the
+ *  last of its checks gets its ledger event the fresh payload stops carrying
+ *  the step — and its tick is spent. Clearing by what is still printed rather
+ *  than by check id is what keeps a step that also cites a still-owed check
+ *  from losing the mark that check is still waiting on. */
+function pruneStepMarks(v: WalkPayload): void {
+  const marks = loadStepMarks();
+  const live = new Set<string>();
+  for (const sitting of v.sittings) {
+    const proc = readProcedure(sitting);
+    if (!proc) continue;
+    for (const step of proc.steps) {
+      live.add(stepMarkKey(v.release, v.platform, sitting.name, step.number));
+    }
+  }
+  let dropped = false;
+  for (const key of Object.keys(marks)) {
+    //: Only this release and platform are pruned. The other platform's walk
+    //: is a different sitting of the same procedure and its ticks are still
+    //: waiting to be spent.
+    if (!key.startsWith(`${v.release}|${v.platform}|`)) continue;
+    if (!live.has(key)) { delete marks[key]; dropped = true; }
+  }
+  if (dropped) saveStepMarks(marks);
+}
+
+/** What the page draws for one sitting's procedure — the one place upstream's
+ *  payload shape is read ([[TASK-0623]]'s last box).
+ *
+ *  Returns `null` for a sitting with no procedure, and for one whose procedure
+ *  the bundled module refused: both fall back to [[FEAT-0149]]'s per-check
+ *  rows, and the refusal's own words are printed above them. */
+interface ProcedureView {
+  path: string;
+  setup: string;
+  remarks: string[];
+  omitted: number;
+  steps: Array<{
+    number: number;
+    head: string;
+    surface: string | null;
+    surfaceNote: string | null;
+    lines: Array<{ text: string; tags: WalkTag[] }>;
+  }>;
+  /** `check id -> the step numbers citing a part this release owes`. The
+   *  bundled module guarantees one owed part is cited by exactly one step, so
+   *  this is the full set of ticks a check is waiting on. */
+  citing: Record<string, number[]>;
+}
+
+function readProcedure(sitting: WalkSitting): ProcedureView | null {
+  const proc = sitting.procedure;
+  if (!proc || (proc.problems || []).length) return null;
+  const citing: Record<string, number[]> = {};
+  const steps = (proc.steps || []).map((step) => {
+    for (const line of step.lines || []) {
+      for (const tag of line.tags || []) {
+        if (!tag.owed) continue;
+        const at = (citing[tag.check] ||= []);
+        if (!at.includes(step.number)) at.push(step.number);
+      }
+    }
+    return {
+      number: step.number,
+      head: step.head,
+      surface: step.surface,
+      surfaceNote: step.surface_note,
+      //: The first body line IS the step's heading line, and the heading
+      //: above already prints it — so it is replaced by `head`, exactly as
+      //: `render_procedure` does for the sheet. Printing both would show the
+      //: walker the same sentence twice.
+      lines: (step.lines || []).map((line, i) => ({
+        text: i === 0 ? step.head : line.text,
+        tags: line.tags || [],
+      })),
+    };
+  });
+  return {
+    path: proc.path, setup: proc.setup, remarks: proc.remarks || [],
+    omitted: proc.omitted || 0, steps, citing,
+  };
+}
+
+/** One expectation line, without the tags that are drawn as chips beside it.
+ *
+ *  The literals come from the tag data the payload already carries, so this
+ *  does not re-parse the markdown — a second tag parser is exactly the drift
+ *  bundling the module exists to prevent. The list marker is dropped because
+ *  the line is drawn as a list item here. */
+function walkLineText(text: string, tags: WalkTag[]): string {
+  let out = text || '';
+  for (const tag of tags) {
+    out = out.split(walkTagLabel(tag, true)).join('');
+  }
+  //: **The emphasis markers go.** A procedure is Markdown, and the sheet is
+  //: Markdown too, so `**Ride cockpit.** Pedal for five seconds` renders bold
+  //: there. This page draws text, so the asterisks were on the screen — seen
+  //: on the first procedure ever rendered in a browser, 2026-09-14. Stripping
+  //: the pair rather than rendering it: a step line is one sentence, and
+  //: running it through a Markdown renderer to recover one bold phrase would
+  //: put an HTML pipeline inside the control the verdict is given from.
+  out = out.replace(/\*\*(.+?)\*\*/g, '$1').replace(/__(.+?)__/g, '$1');
+  return out.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '').trim();
+}
+
+/** `TST-0648.4`, the way the procedure writes it. ASCII, by Edwin's decision
+ *  of 2026-09-14: a tag is typed into a markdown file and read back by a
+ *  regular expression, and an en dash in one is a tag nobody can find. */
+function walkTagLabel(tag: WalkTag, quoted = false): string {
+  const bare = tag.step ? `${tag.check}.${tag.step}` : tag.check;
+  return quoted ? `\`${bare}\`` : bare;
+}
+
+/** The sitting's script, drawn. */
+function buildProcedureSection(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'walk-procedure';
+  wrap.id = walkProcedureId(sitting.name);
+
+  const from = document.createElement('button');
+  from.type = 'button';
+  from.className = 'file-row walk-proc-source';
+  from.textContent = `Walked from a procedure — ${proc.path}`;
+  from.title = 'Open the procedure this sitting is walked from.';
+  from.addEventListener('click', () => {
+    //: The path is repo-relative and the shell navigates by docs-relative
+    //: path, which is the same conversion the captures make.
+    const rel = walkDocsRel(proc.path);
+    if (rel) void navigateTo(`/docs/${rel}`);
+  });
+  wrap.appendChild(from);
+
+  //: **The setup, once.** That is the whole point of the procedure: five
+  //: checks in a sitting state one product state between them, and printing
+  //: it per check is what made the walker read it five times.
+  const setup = document.createElement('div');
+  setup.className = 'walk-proc-block';
+  const label = document.createElement('div');
+  label.className = 'walk-proc-label';
+  label.textContent = 'Setup';
+  setup.appendChild(label);
+  const body = document.createElement('div');
+  body.className = 'walk-proc-text';
+  if (proc.setup) {
+    body.textContent = proc.setup;
+  } else {
+    body.textContent = 'Not stated. The procedure has no Setup heading, so '
+      + 'every step below assumes a state nobody wrote down.';
+    setup.classList.add('is-missing');
+  }
+  setup.appendChild(body);
+  wrap.appendChild(setup);
+
+  const count = document.createElement('span');
+  count.className = 'walk-sitting-count';
+  count.textContent = proc.steps.length === 1
+    ? '1 step to walk' : `${proc.steps.length} steps to walk`;
+  wrap.appendChild(count);
+
+  //: What was left out, and why. A procedure prints the steps this release
+  //: owes something from; saying nothing about the rest would read as a
+  //: procedure that lost half of itself.
+  if (proc.omitted) {
+    const rest = document.createElement('p');
+    rest.className = 'walk-sitting-why';
+    rest.textContent = proc.omitted === 1
+      ? '1 further step in this procedure is left out: everything it cites '
+        + 'has already been walked on this platform.'
+      : `${proc.omitted} further steps in this procedure are left out: `
+        + 'everything they cite has already been walked on this platform.';
+    wrap.appendChild(rest);
+  }
+  for (const said of proc.remarks) wrap.appendChild(walkNotice(said, ''));
+
+  const steps = document.createElement('div');
+  steps.className = 'walk-steps';
+  for (const step of proc.steps) {
+    steps.appendChild(buildWalkStep(v, sitting, proc, step));
+  }
+  wrap.appendChild(steps);
+  wrap.appendChild(buildProcedureVerdicts(v, sitting, proc));
+  return wrap;
+}
+
+function walkProcedureId(sitting: string): string {
+  return `walk-proc-${(sitting || '').replace(/[^A-Za-z0-9_-]/g, '_')}`;
+}
+function walkStepId(sitting: string, step: number): string {
+  return `${walkProcedureId(sitting)}-step-${step}`;
+}
+function walkVerdictsId(sitting: string): string {
+  return `${walkProcedureId(sitting)}-verdicts`;
+}
+
+/** A repo-relative path as the shell addresses it, or `''` when it is not
+ *  inside `docs/`. Both the procedure link and the capture images need it:
+ *  the payload speaks the generator's language, which is repo-relative,
+ *  and every route the shell has is rooted at `docs/`. */
+function walkDocsRel(rel: string): string {
+  const path = (rel || '').replace(/^\.\//, '');
+  return path.startsWith('docs/') ? path.slice('docs/'.length) : '';
+}
+
+function buildWalkStep(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'walk-step';
+  el.id = walkStepId(sitting.name, step.number);
+
+  const h = document.createElement('h4');
+  h.className = 'walk-step-head';
+  h.textContent = step.surface
+    ? `Step ${step.number} — ${step.surface}` : `Step ${step.number}`;
+  //: The screen the step happens on, opened rather than described. A step
+  //: that resolved no surface note says only its number, which is the
+  //: module's own remark one block up.
+  if (step.surfaceNote) {
+    h.classList.add('is-link');
+    h.addEventListener('click', () => {
+      void openWalkNote(step.surfaceNote as string);
+    });
+  }
+  el.appendChild(h);
+
+  for (const line of step.lines) {
+    const text = walkLineText(line.text, line.tags);
+    if (!text && !line.tags.length) continue;
+    const row = document.createElement('div');
+    row.className = line.tags.length
+      ? 'walk-step-line is-expectation' : 'walk-step-line';
+    const said = document.createElement('span');
+    said.className = 'walk-step-said';
+    //: **The check's own Expect text, word for word.** The procedure quotes
+    //: it and the upstream validator checks the quote, which is what makes a
+    //: pass from a step attest the check's own expectation rather than the
+    //: procedure author's paraphrase ([[ADR-0041]]).
+    said.textContent = text;
+    row.appendChild(said);
+    for (const tag of line.tags) {
+      const chip = document.createElement('span');
+      chip.className = tag.owed ? 'walk-tag' : 'walk-tag is-passed';
+      chip.textContent = walkTagLabel(tag);
+      chip.title = tag.owed
+        ? `This line settles ${walkTagLabel(tag)}.`
+        : `${walkTagLabel(tag)} has already been walked on ${v.platform}; `
+          + 'ticking this step does not record it again.';
+      row.appendChild(chip);
+    }
+    el.appendChild(row);
+  }
+
+  el.appendChild(buildStepTick(v, sitting, proc, step));
+  return el;
+}
+
+/** The tick on one step, and what it has already recorded. */
+function buildStepTick(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): HTMLElement {
+  const foot = document.createElement('div');
+  foot.className = 'walk-step-tick';
+  const held = loadStepMarks()[
+    stepMarkKey(v.release, v.platform, sitting.name, step.number)];
+
+  const tick = document.createElement('button');
+  tick.type = 'button';
+  tick.className = held
+    ? `file-row walk-step-button is-${held.verdict}`
+    : 'file-row walk-step-button';
+  tick.textContent = held
+    ? `step ${step.number} — ${held.verdict}` : `tick step ${step.number}`;
+  const settles = Object.keys(proc.citing)
+    .filter((id) => proc.citing[id].includes(step.number));
+  tick.title = settles.length
+    ? `Records a mark for this step. It is part of ${settles.join(', ')}.`
+    : 'Records a mark for this step.';
+  tick.addEventListener('click', () => {
+    void markWalkStep(v, sitting, proc, step);
+  });
+  foot.appendChild(tick);
+
+  if (held) {
+    //: What is still missing, named. A walker who has ticked three of four
+    //: steps and seen no verdict appear is entitled to know which tick the
+    //: ledger is waiting on.
+    const waiting = settles.filter((id) => waitingSteps(v, sitting, proc, id).length);
+    if (waiting.length) {
+      const said = document.createElement('span');
+      said.className = 'walk-step-waiting';
+      said.textContent = waiting.map((id) => `${id} waits on step${
+        waitingSteps(v, sitting, proc, id).length === 1 ? '' : 's'} ${
+        waitingSteps(v, sitting, proc, id).join(', ')}`).join('; ');
+      foot.appendChild(said);
+    }
+    if (held.reason) {
+      const why = document.createElement('div');
+      why.className = 'walk-proc-why';
+      why.textContent = held.reason;
+      foot.appendChild(why);
+    }
+  }
+  return foot;
+}
+
+/** The steps a check is still waiting on, by number. */
+function waitingSteps(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView, check: string,
+): number[] {
+  const marks = loadStepMarks();
+  return (proc.citing[check] || []).filter((n) => !marks[
+    stepMarkKey(v.release, v.platform, sitting.name, n)]);
+}
+
+/** The verdicts this procedure will record, and what each is waiting on.
+ *
+ *  The walker never sees a check row inside a scripted sitting, so this is
+ *  where the checks are named — and where the one still holding the sitting
+ *  open can be opened and read. */
+function buildProcedureVerdicts(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'walk-proc-verdicts';
+  wrap.id = walkVerdictsId(sitting.name);
+  const label = document.createElement('div');
+  label.className = 'walk-proc-label';
+  label.textContent = 'Verdicts these steps record';
+  wrap.appendChild(label);
+
+  const byId = new Map(sitting.rows.map((r) => [r.id || r.number, r]));
+  const marks = loadStepMarks();
+  for (const id of Object.keys(proc.citing).sort()) {
+    const row = document.createElement('div');
+    row.className = 'walk-proc-verdict';
+    const open = document.createElement('button');
+    open.type = 'button';
+    open.className = 'file-row';
+    const found = byId.get(id);
+    open.textContent = found?.name ? `${id} — ${found.name}` : id;
+    open.addEventListener('click', () => {
+      if (found?.rel) void navigateTo(`/docs/${found.rel}`);
+      else void openWalkNote(id);
+    });
+    row.appendChild(open);
+    const waiting = waitingSteps(v, sitting, proc, id);
+    const state = document.createElement('span');
+    state.className = 'walk-proc-verdict-state';
+    if (waiting.length) {
+      state.textContent = `waiting on step${waiting.length === 1 ? '' : 's'} ${
+        waiting.join(', ')}`;
+    } else {
+      const combined = combineStepMarks((proc.citing[id] || []).map(
+        (n) => marks[stepMarkKey(v.release, v.platform, sitting.name, n)]
+          ?.verdict || ''));
+      state.textContent = combined
+        ? `every step ticked — ${combined}` : 'waiting on its steps';
+      state.classList.add('is-ready');
+    }
+    row.appendChild(state);
+    wrap.appendChild(row);
+  }
+  return wrap;
+}
+
+/** Tick one step, then write every check the tick completes ([[TASK-0624]]).
+ *
+ *  The order matters: the step's mark is stored first, so a failed POST
+ *  afterwards leaves the tick recorded and the walker can retry rather than
+ *  re-walking the step. */
+async function markWalkStep(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): Promise<void> {
+  const key = stepMarkKey(v.release, v.platform, sitting.name, step.number);
+  const held = loadStepMarks()[key];
+  const settles = Object.keys(proc.citing)
+    .filter((id) => proc.citing[id].includes(step.number));
+  const chosen = await askForMark({
+    number: `Step ${step.number}`,
+    //: The step's words, not its Markdown — the same cleaning the page's own
+    //: lines get. The dialog read `Step 1 **Ride cockpit.** Pedal for…` until
+    //: this was rendered in a browser.
+    name: step.surface
+      ? `${walkLineText(step.head, [])} — ${step.surface}`
+      : walkLineText(step.head, []),
+    current: held?.verdict || ' ',
+    //: **Four marks, not seven** ([[ADR-0041]]; Edwin, 2026-09-14). The three
+    //: settle marks answer "should this check run at all", which is a
+    //: decision about the release and not an observation of a step.
+    only: STEP_MARK_CHOICES,
+    detail: settles.length
+      ? `This step is part of ${settles.join(', ')}. Each of those records a `
+        + 'verdict once every step citing it has a mark, and the worst mark '
+        + 'wins.'
+      : 'This step records a mark of its own.',
+  });
+  if (chosen === null) return;
+
+  const marks = loadStepMarks();
+  marks[key] = { verdict: chosen.verdict, reason: chosen.reason || '' };
+  saveStepMarks(marks);
+
+  //: Everything the tick completed, written before anything is repainted, so
+  //: the repaint below reads a settled world.
+  const wrote: string[] = [];
+  for (const id of settles) {
+    const steps = proc.citing[id] || [];
+    const given = steps.map((n) => marks[
+      stepMarkKey(v.release, v.platform, sitting.name, n)]);
+    //: **A check with an unticked citing step gets no ledger event.** That is
+    //: the whole holding rule: a verdict written from half a walk would say
+    //: the check passed on evidence nobody gathered.
+    if (given.some((m) => !m)) continue;
+    const verdict = combineStepMarks(given.map((m) => m.verdict));
+    if (!verdict) continue;
+    const row = sitting.rows.find((r) => (r.id || r.number) === id);
+    if (!row) continue;
+    //: **Every reason, with the step that gave it.** `ledger.NEEDS_REASON`
+    //: wants one for every mark but `pass`, and a reason that did not say
+    //: which step failed would send the reader back through the procedure to
+    //: find out.
+    const reason = steps
+      .map((n, i) => [n, given[i].reason] as [number, string])
+      .filter(([, said]) => said)
+      .map(([n, said]) => `Step ${n}: ${said}`)
+      .join(' ');
+    const ok = await postCheckVerdict(row, v.platform, { verdict, reason });
+    if (ok) wrote.push(`${id} — ${verdict}`);
+  }
+
+  const held2 = docView.scrollTop;
+  await repaintWalkProcedure(v.platform);
+  docView.scrollTop = held2;
+  requestAnimationFrame(() => { docView.scrollTop = held2; });
+  if (wrote.length) {
+    showStatus(`Recorded ${wrote.join(', ')}`, 'info');
+    scheduleHide(4000);
+  }
+}
+
+/** Redraw the scripted sittings from a fresh payload, in place.
+ *
+ *  **Nothing moves** ([[TASK-0556]]). Each procedure block is replaced inside
+ *  the sitting that owns it, so the sittings keep their order, the rows above
+ *  keep their elements, and a step that is still owed stays exactly where the
+ *  walker left it. */
+async function repaintWalkProcedure(platform: string): Promise<boolean> {
+  if (!sidecarBaseUrl || !walkData) return false;
+  let fresh: WalkPayload;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/walk?platform=${
+      encodeURIComponent(platform)}`);
+    if (!resp.ok) return false;
+    fresh = await resp.json() as WalkPayload;
+  } catch { return false; }
+  checksHistory = { ...checksHistory, ...(fresh.history || {}) };
+  pruneStepMarks(fresh);
+  for (const sitting of fresh.sittings) {
+    const host = document.getElementById(walkProcedureId(sitting.name));
+    if (!host) continue;
+    const proc = readProcedure(sitting);
+    //: A sitting whose last owed check has just been settled has no procedure
+    //: left to print. Its block says so where it stood rather than vanishing
+    //: out from under the cursor, which is the rule the row repaint follows.
+    if (!proc) {
+      const done = document.createElement('div');
+      done.className = 'walk-procedure is-walked';
+      done.id = walkProcedureId(sitting.name);
+      const said = document.createElement('p');
+      said.className = 'walk-sitting-why';
+      said.textContent = 'Every check this sitting owed now has a verdict.';
+      done.appendChild(said);
+      host.replaceWith(done);
+      continue;
+    }
+    host.replaceWith(buildProcedureSection(fresh, sitting, proc));
+  }
+  walkData = fresh;
+  return true;
+}
+
+function buildSittingSection(sitting: WalkSitting, ordinal: string,
+                             v?: WalkPayload): HTMLElement {
   const section = document.createElement('section');
   section.className = 'walk-sitting';
   const h = document.createElement('h3');
@@ -10768,6 +11488,30 @@ function buildSittingSection(sitting: WalkSitting, ordinal: string): HTMLElement
     }
     section.appendChild(bench);
   }
+  //: **The script, where the sitting has one that holds up** ([[TASK-0623]]).
+  //: The setup above it is the check's; this one is the sitting's, stated
+  //: once. `readProcedure` returns null for a sitting with no procedure and
+  //: for one the module refused, and both fall back to the rows below.
+  const proc = v ? readProcedure(sitting) : null;
+  if (v && proc) {
+    section.appendChild(buildProcedureSection(v, sitting, proc));
+    return section;
+  }
+  //: **A refused procedure is reported where it would have been read.** The
+  //: module's own words, then the per-check rows. A stale script that simply
+  //: vanished would leave the walker reading rows and wondering where the
+  //: script went — which is the argument `attach_procedure` makes upstream
+  //: for keeping a problem procedure attached at all.
+  for (const said of sitting.procedure?.problems || []) {
+    section.appendChild(walkNotice(said, 'is-warn'));
+  }
+  if (sitting.procedure?.problems?.length) {
+    section.appendChild(walkNotice(
+      'This sitting has a written procedure and it does not match what the '
+      + 'release owes, so the checks are listed one by one below. Fixing the '
+      + 'procedure is what brings the script back.', ''));
+  }
+
   const count = document.createElement('span');
   count.className = 'walk-sitting-count';
   count.textContent = sitting.rows.length === 1

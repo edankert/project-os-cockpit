@@ -146,6 +146,13 @@ function all(root, cls) {
 const NAMES = [
   'buildWalkPage', 'buildSittingSection', 'buildWalkRow', 'buildSurveySection',
   'walkNotice', 'walkBlock', 'walkRowId', 'walkLink', 'buildWalkRefusal',
+  // The script (PHASE-044). `buildSurveySection` and `buildSittingSection`
+  // call into these, so the page cannot be built without them.
+  'buildSurveyCard', 'buildSurveyCaptures', 'walkCaptureSrc', 'walkDocsRel',
+  'readProcedure', 'buildProcedureSection', 'buildWalkStep', 'buildStepTick',
+  'buildProcedureVerdicts', 'walkLineText', 'walkTagLabel', 'combineStepMarks',
+  'stepMarkKey', 'walkStepsKey', 'loadStepMarks', 'saveStepMarks',
+  'waitingSteps', 'walkProcedureId', 'walkStepId', 'walkVerdictsId',
 ];
 
 async function load({ document, navigateTo = () => {}, marks = [] } = {}) {
@@ -164,6 +171,12 @@ function buildCheckRow(item, manual, controls, onMark) {
 }
 function openWalkNote(id) { navigateTo('note:' + id); }
 async function markWalkRow(item) { marks.push(item.id); }
+async function markWalkStep() {}
+const sidecarBaseUrl = 'http://127.0.0.1:7777';
+const activeId = 'ws-1';
+const localStorage = {
+  getItem: () => null, setItem: () => {}, removeItem: () => {},
+};
 `;
   const fn = new Function(
     'document', 'navigateTo', 'marks',
@@ -580,8 +593,8 @@ test('a row that has left the owed set keeps its place and is marked walked',
 
 async function loadMark({ posts, picker, ledgers, walkData }) {
   const src = await source();
-  const bodies = ['walkOneCheck', 'markWalkRow'].map((n) => extract(src, n))
-    .join('\n');
+  const bodies = ['postCheckVerdict', 'walkOneCheck', 'markWalkRow']
+    .map((n) => extract(src, n)).join('\n');
   const stub = `
 async function askForMark() { return { verdict: 'pass', reason: 'held' }; }
 async function postJson(path, body) { posts.push({ path, body }); return {}; }
@@ -651,3 +664,615 @@ test('unplaced rows say something a reader can act on in either order',
     assert.ok(!/add a sitting/.test(fallback.textContent));
     assert.match(fallback.textContent, /name no surface in `area:`/);
   });
+
+// ===========================================================================
+// The walk page reads as a script (PHASE-044 / FEAT-0150).
+//
+// Three properties, and they are the three the phase is *for*: a sitting with
+// a written procedure draws the setup once instead of once per check; a tick
+// goes on a step; and walking a sitting step by step writes the same ledger
+// events, check for check and mark for mark, as ticking each of its checks
+// one by one on FEAT-0149's page.
+//
+// The third is asserted by running BOTH paths against the same stubbed POST
+// and comparing the bodies — not by computing the expected bodies the same
+// way the code under test does, which would pass however wrong the combine
+// rule was.
+// ===========================================================================
+
+const PROC_NAMES = [
+  'buildProcedureSection', 'buildWalkStep', 'buildStepTick',
+  'buildProcedureVerdicts', 'buildSurveyCard', 'buildSurveyCaptures',
+  'buildSurveySection', 'buildSittingSection', 'buildWalkRow', 'buildWalkPage',
+  'walkNotice', 'walkBlock', 'walkRowId', 'readProcedure', 'combineStepMarks',
+  'stepMarkKey', 'walkStepsKey', 'loadStepMarks', 'saveStepMarks',
+  'pruneStepMarks', 'waitingSteps', 'walkLineText', 'walkTagLabel',
+  'walkDocsRel', 'walkCaptureSrc', 'walkProcedureId', 'walkStepId',
+  'walkVerdictsId', 'markWalkStep', 'postCheckVerdict', 'walkOneCheck',
+];
+
+/** A localStorage that behaves like one, including a JSON round trip. */
+function makeStorage(seed = {}) {
+  const box = new Map(Object.entries(seed));
+  return {
+    getItem: (k) => (box.has(k) ? box.get(k) : null),
+    setItem: (k, v) => { box.set(k, String(v)); },
+    removeItem: (k) => { box.delete(k); },
+    _box: box,
+  };
+}
+
+async function loadProc({
+  document, posts = [], verdicts = [], localStorage = makeStorage(),
+  navigateTo = () => {}, sidecarBaseUrl = 'http://127.0.0.1:7777',
+  activeId = 'ws-1', asks = [],
+} = {}) {
+  const src = await source();
+  const bodies = PROC_NAMES.map((n) => extract(src, n)).join('\n');
+  const stub = `
+function buildCheckRow(item, manual, controls, onMark) {
+  const row = document.createElement('div');
+  row.className = 'checks-row';
+  row.dataset.check = item.id || item.number;
+  return row;
+}
+function openWalkNote(id) { navigateTo('note:' + id); }
+async function markWalkRow() {}
+async function postJson(path, body) { posts.push({ path, body }); return {}; }
+function showStatus() {}
+function scheduleHide() {}
+async function askForMark(opts) {
+  asks.push(opts);
+  const said = verdicts.shift();
+  return said === undefined ? null : said;
+}
+async function repaintWalkProcedure() { return true; }
+const STEP_MARK_CHOICES = ['pass', 'partial', 'fail', 'question'];
+const docView = { scrollTop: 0 };
+const requestAnimationFrame = (fn) => fn();
+let checksHistory = {};
+let walkData = null;
+`;
+  const fn = new Function(
+    'document', 'navigateTo', 'posts', 'verdicts', 'localStorage',
+    'sidecarBaseUrl', 'activeId', 'asks',
+    `${stub}\n${bodies}\nreturn { ${PROC_NAMES.join(', ')} };`,
+  );
+  return fn(document, navigateTo, posts, verdicts, localStorage,
+            sidecarBaseUrl, activeId, asks);
+}
+
+/** A fixture sitting whose procedure has four steps citing three checks.
+ *
+ *  `TST-0001` states two steps and is cited by steps 1 and 3, so it is the
+ *  check that proves a verdict waits for every citing tick. `TST-0002` is
+ *  cited once. `TST-0003` states no numbered steps at all, so it is one owed
+ *  part cited by its bare id — the shape 53 of `your-trainer`'s 61 rows are
+ *  in. Step 4 also carries a tag that has already been walked. */
+function procedureSitting(over = {}) {
+  return {
+    name: 'A fresh install',
+    state: 'the app installed and never opened',
+    bench: ['a wiped phone'],
+    surfaces: ['Profile'], checks: [],
+    rows: [row('TST-0001'), row('TST-0002'), row('TST-0003')],
+    procedure: {
+      path: 'docs/tests/acceptance/walk/fresh-install.md',
+      sitting: 'A fresh install',
+      setup: 'A wiped phone with the candidate build sideloaded.',
+      problems: [], remarks: [], omitted: 2,
+      owed_checks: ['TST-0001', 'TST-0002', 'TST-0003'],
+      steps: [
+        { number: 1, head: 'Open the app on the Profile screen.',
+          surface: 'Profile', surface_note: 'SUR-0001',
+          lines: [
+            { text: '1. Open the app on the Profile screen.', tags: [] },
+            { text: '   - The avatar sits above the name. `TST-0001.1`',
+              tags: [{ check: 'TST-0001', step: '1', owed: true }] },
+          ] },
+        { number: 2, head: 'Tap Settings.', surface: 'Settings',
+          surface_note: 'SUR-0002',
+          lines: [
+            { text: '2. Tap Settings.', tags: [] },
+            { text: '   - The sheet opens from the bottom. `TST-0002.1`',
+              tags: [{ check: 'TST-0002', step: '1', owed: true }] },
+          ] },
+        { number: 3, head: 'Go back.', surface: null, surface_note: null,
+          lines: [
+            { text: '3. Go back. `TST-0001.2`',
+              tags: [{ check: 'TST-0001', step: '2', owed: true }] },
+          ] },
+        { number: 4, head: 'Close the app.', surface: 'Profile',
+          surface_note: 'SUR-0001',
+          lines: [
+            { text: '4. Close the app.', tags: [] },
+            { text: '   - Nothing is left running. `TST-0003` `TST-0004.1`',
+              tags: [{ check: 'TST-0003', step: null, owed: true },
+                     { check: 'TST-0004', step: '1', owed: false }] },
+          ] },
+      ],
+    },
+    ...over,
+  };
+}
+
+function procedurePayload(over = {}) {
+  return payload({
+    sittings: [procedureSitting()],
+    counts: { owed: 3, placed: 3, unplaced: 0 },
+    ...over,
+  });
+}
+
+// ------------------------------------------------ TASK-0623: the procedure
+
+test('a sitting with a procedure states its setup once, not once per check',
+  async () => {
+    const document = makeDom();
+    const { buildWalkPage } = await loadProc({ document });
+    const page = buildWalkPage(procedurePayload());
+    //: Three checks in this sitting. Drawn as rows that is three Setup
+    //: blocks; drawn as the script it is one.
+    const setups = all(page, 'walk-proc-text')
+      .filter((n) => n.textContent.includes('wiped phone'));
+    assert.equal(setups.length, 1);
+    assert.equal(all(page, 'checks-row').length, 0,
+      'a scripted sitting draws the script, not the per-check rows');
+  });
+
+test('every printed step is drawn, with the screen it happens on', async () => {
+  const document = makeDom();
+  const { buildWalkPage } = await loadProc({ document });
+  const page = buildWalkPage(procedurePayload());
+  const heads = all(page, 'walk-step-head').map((n) => n.textContent);
+  assert.deepEqual(heads, [
+    'Step 1 — Profile', 'Step 2 — Settings', 'Step 3', 'Step 4 — Profile',
+  ]);
+});
+
+test('an expectation line shows the check text it quotes and its tags',
+  async () => {
+    const document = makeDom();
+    const { buildWalkPage } = await loadProc({ document });
+    const page = buildWalkPage(procedurePayload());
+    const lines = all(page, 'walk-step-line')
+      .filter((n) => n.className.includes('is-expectation'));
+    assert.equal(lines.length, 4);
+    //: The quote is the check's own Expect text, and the tag is beside it —
+    //: not inside it, where it would read as part of the sentence.
+    assert.equal(all(lines[0], 'walk-step-said')[0].textContent,
+      'The avatar sits above the name.');
+    assert.deepEqual(all(lines[0], 'walk-tag').map((n) => n.textContent),
+      ['TST-0001.1']);
+  });
+
+test('a tag already walked on this platform is marked passed', async () => {
+  const document = makeDom();
+  const { buildWalkPage } = await loadProc({ document });
+  const page = buildWalkPage(procedurePayload());
+  const passed = all(page, 'walk-tag')
+    .filter((n) => n.className.includes('is-passed'));
+  assert.deepEqual(passed.map((n) => n.textContent), ['TST-0004.1']);
+  //: And it is not something the walker can tick: the tick is on the step,
+  //: and a passed tag is not in the step's owed set, so no verdict for
+  //: TST-0004 is ever waiting on it.
+  const waiting = all(page, 'walk-proc-verdict').map((n) => n.textContent);
+  assert.ok(!waiting.some((t) => t.includes('TST-0004')));
+});
+
+test('the steps left out of the printed procedure are accounted for',
+  async () => {
+    const document = makeDom();
+    const { buildWalkPage } = await loadProc({ document });
+    const page = buildWalkPage(procedurePayload());
+    assert.match(page.textContent,
+      /2 further steps in this procedure are left out/);
+    assert.match(page.textContent, /4 steps to walk/);
+  });
+
+test('a procedure the module refused shows why and falls back to rows',
+  async () => {
+    const document = makeDom();
+    const { buildWalkPage } = await loadProc({ document });
+    const broken = procedureSitting();
+    broken.procedure.problems = [
+      'A fresh install owes TST-0002 step 1 and no step cites it',
+    ];
+    const page = buildWalkPage(procedurePayload({ sittings: [broken] }));
+    assert.match(page.textContent, /no step cites it/);
+    assert.equal(all(page, 'walk-procedure').length, 0);
+    assert.deepEqual(all(page, 'checks-row').map((n) => n.dataset.check),
+      ['TST-0001', 'TST-0002', 'TST-0003']);
+  });
+
+test('a sitting with no procedure renders exactly as before', async () => {
+  const document = makeDom();
+  const { buildWalkPage } = await loadProc({ document });
+  const page = buildWalkPage(payload());
+  assert.equal(all(page, 'walk-procedure').length, 0);
+  assert.deepEqual(all(page, 'checks-row').map((n) => n.dataset.check),
+    ['TST-0001', 'TST-0002', 'TST-0003']);
+});
+
+test('the procedure is read through one adapter', async () => {
+  //: [[TASK-0623]]'s last box: upstream's payload shape is read in exactly
+  //: one place, so the shape changing is one edit here.
+  const document = makeDom();
+  const { readProcedure } = await loadProc({ document });
+  const view = readProcedure(procedureSitting());
+  assert.deepEqual(view.citing, {
+    'TST-0001': [1, 3], 'TST-0002': [2], 'TST-0003': [4],
+  });
+  assert.equal(readProcedure({ ...procedureSitting(), procedure: null }), null);
+});
+
+// -------------------------------------------------- TASK-0624: a step tick
+
+test('the worst mark among the citing steps decides the verdict', async () => {
+  const document = makeDom();
+  const { combineStepMarks } = await loadProc({ document });
+  assert.equal(combineStepMarks(['pass', 'pass']), 'pass');
+  assert.equal(combineStepMarks(['pass', 'partial']), 'partial');
+  assert.equal(combineStepMarks(['partial', 'fail']), 'fail');
+  //: A question on any citing step makes the check a question: somebody who
+  //: did not understand one step did not understand the check.
+  assert.equal(combineStepMarks(['fail', 'question']), 'question');
+  assert.equal(combineStepMarks([]), '');
+});
+
+test('a check with an unticked citing step gets no ledger event', async () => {
+  const document = makeDom();
+  const posts = [];
+  const proc = await loadProc({
+    document, posts,
+    verdicts: [{ verdict: 'pass', reason: '' }],
+  });
+  const v = procedurePayload();
+  const sitting = v.sittings[0];
+  const view = proc.readProcedure(sitting);
+  //: `TST-0001` is cited by steps 1 and 3. Tick only step 1.
+  await proc.markWalkStep(v, sitting, view, view.steps[0]);
+  assert.deepEqual(posts, [],
+    'a verdict was written from half a walk');
+});
+
+test('removing one tick before the last leaves the ledger untouched',
+  async () => {
+    const document = makeDom();
+    const posts = [];
+    const storage = makeStorage();
+    const proc = await loadProc({
+      document, posts, localStorage: storage,
+      verdicts: [{ verdict: 'pass', reason: '' },
+                 { verdict: 'pass', reason: '' },
+                 { verdict: 'pass', reason: '' }],
+    });
+    const v = procedurePayload();
+    const sitting = v.sittings[0];
+    const view = proc.readProcedure(sitting);
+    //: Three of the four steps, and the one left out is `TST-0001`'s second.
+    await proc.markWalkStep(v, sitting, view, view.steps[0]);
+    await proc.markWalkStep(v, sitting, view, view.steps[1]);
+    await proc.markWalkStep(v, sitting, view, view.steps[3]);
+    //: The two checks whose steps ARE all ticked are written; the one still
+    //: waiting is not.
+    assert.deepEqual(posts.map((p) => p.body.id), ['TST-0002', 'TST-0003']);
+    //: Now take the tick back off step 2 and re-tick nothing: still nothing
+    //: new, and `TST-0001` has never had an event.
+    const held = JSON.parse(storage.getItem(proc.walkStepsKey('ws-1')));
+    delete held[proc.stepMarkKey('REL-0017', 'android', 'A fresh install', 2)];
+    storage.setItem(proc.walkStepsKey('ws-1'), JSON.stringify(held));
+    assert.ok(!posts.some((p) => p.body.id === 'TST-0001'));
+  });
+
+test('walking a sitting step by step writes the same events as ticking its '
+  + 'checks one by one', async () => {
+  //: **The phase's first exit criterion.** Both paths run against the same
+  //: stubbed POST and the bodies are compared; nothing here recomputes what
+  //: the code under test computes.
+  const document = makeDom();
+
+  // --- path A: four step ticks. Step 3 fails, which is TST-0001's second
+  //     part, so TST-0001 must come out `fail` and carry the step's reason.
+  const stepPosts = [];
+  const byStep = await loadProc({
+    document, posts: stepPosts,
+    verdicts: [
+      { verdict: 'pass', reason: '' },
+      { verdict: 'pass', reason: '' },
+      { verdict: 'fail', reason: 'the back gesture closed the app' },
+      { verdict: 'pass', reason: '' },
+    ],
+  });
+  const v = procedurePayload();
+  const sitting = v.sittings[0];
+  const view = byStep.readProcedure(sitting);
+  for (const step of view.steps) {
+    await byStep.markWalkStep(v, sitting, view, step);
+  }
+
+  // --- path B: the same three checks, ticked one by one on FEAT-0149's page
+  //     with the verdicts those steps combine to.
+  const rowPosts = [];
+  const byRow = await loadProc({
+    document, posts: rowPosts,
+    verdicts: [
+      { verdict: 'pass', reason: '' },
+      { verdict: 'fail', reason: 'Step 3: the back gesture closed the app' },
+      { verdict: 'pass', reason: '' },
+    ],
+  });
+  //: In the order the step walk settles them: TST-0002 at step 2, then
+  //: TST-0001 at step 3 — its second citing step, which is the one that
+  //: completes it — and TST-0003 last, at step 4.
+  for (const id of ['TST-0002', 'TST-0001', 'TST-0003']) {
+    await byRow.walkOneCheck(sitting.rows.find((r) => r.id === id),
+                             'android', async () => true);
+  }
+
+  assert.deepEqual(stepPosts, rowPosts);
+  //: And the combine rule is what makes them equal: TST-0001 is `fail`
+  //: because one of its two steps failed, not `pass` because the other held.
+  const one = stepPosts.find((p) => p.body.id === 'TST-0001');
+  assert.equal(one.body.verdict, 'fail');
+  assert.equal(one.body.reason, 'Step 3: the back gesture closed the app');
+  assert.equal(one.body.method, 'manual');
+  assert.equal(one.body.platform, 'android');
+});
+
+test('a step tick names the walk\'s own platform, never the picker',
+  async () => {
+    const document = makeDom();
+    const posts = [];
+    const proc = await loadProc({
+      document, posts,
+      verdicts: [{ verdict: 'pass', reason: '' }],
+    });
+    const v = procedurePayload({ platform: 'ios' });
+    const sitting = v.sittings[0];
+    const view = proc.readProcedure(sitting);
+    await proc.markWalkStep(v, sitting, view, view.steps[1]);
+    assert.equal(posts[0].body.platform, 'ios');
+  });
+
+test('a step tick is held per release, platform, sitting and step',
+  async () => {
+    const document = makeDom();
+    const storage = makeStorage();
+    const proc = await loadProc({
+      document, localStorage: storage,
+      verdicts: [{ verdict: 'pass', reason: '' }],
+    });
+    const v = procedurePayload();
+    const sitting = v.sittings[0];
+    const view = proc.readProcedure(sitting);
+    await proc.markWalkStep(v, sitting, view, view.steps[0]);
+    const held = JSON.parse(storage.getItem('cockpit:walk-steps:ws-1'));
+    assert.deepEqual(Object.keys(held),
+      ['REL-0017|android|A fresh install|1']);
+    //: Never in the repo and never in the ledger: the only write that left
+    //: this tick was the check's own verdict, and there was none to write.
+    assert.equal(storage._box.size, 1);
+  });
+
+test('a tick spent on a verdict is forgotten when the step stops printing',
+  async () => {
+    const document = makeDom();
+    const storage = makeStorage({
+      'cockpit:walk-steps:ws-1': JSON.stringify({
+        'REL-0017|android|A fresh install|2': { verdict: 'pass', reason: '' },
+        'REL-0017|android|A fresh install|9': { verdict: 'pass', reason: '' },
+        'REL-0017|ios|A fresh install|9': { verdict: 'pass', reason: '' },
+      }),
+    });
+    const proc = await loadProc({ document, localStorage: storage });
+    proc.pruneStepMarks(procedurePayload());
+    const held = JSON.parse(storage.getItem('cockpit:walk-steps:ws-1'));
+    //: Step 2 still prints, so its tick stays. Step 9 does not, so the
+    //: Android tick is spent — and the iOS one is untouched, because that is
+    //: a different walk of the same procedure.
+    assert.deepEqual(Object.keys(held).sort(), [
+      'REL-0017|android|A fresh install|2', 'REL-0017|ios|A fresh install|9',
+    ]);
+  });
+
+test('the page says which step each verdict is still waiting on', async () => {
+  const document = makeDom();
+  const storage = makeStorage({
+    'cockpit:walk-steps:ws-1': JSON.stringify({
+      'REL-0017|android|A fresh install|1': { verdict: 'pass', reason: '' },
+    }),
+  });
+  const { buildWalkPage } = await loadProc({ document, localStorage: storage });
+  const page = buildWalkPage(procedurePayload());
+  const states = all(page, 'walk-proc-verdict').map((n) => n.textContent);
+  assert.ok(states.some((t) => t.includes('TST-0001')
+    && t.includes('waiting on step 3')), states.join(' | '));
+});
+
+test('nothing on the procedure moves when a step is ticked', async () => {
+  //: [[TASK-0556]]: a list that reorders itself as you tick things is one you
+  //: lose your place in. A ticked step keeps its number and its position.
+  const document = makeDom();
+  const storage = makeStorage({
+    'cockpit:walk-steps:ws-1': JSON.stringify({
+      'REL-0017|android|A fresh install|3': { verdict: 'fail', reason: 'no' },
+    }),
+  });
+  const { buildWalkPage } = await loadProc({ document, localStorage: storage });
+  const page = buildWalkPage(procedurePayload());
+  const order = all(page, 'walk-step-head').map((n) => n.textContent);
+  assert.deepEqual(order, [
+    'Step 1 — Profile', 'Step 2 — Settings', 'Step 3', 'Step 4 — Profile',
+  ]);
+  const ticked = all(page, 'walk-step-button')
+    .filter((n) => n.textContent.includes('step 3'));
+  assert.match(ticked[0].textContent, /fail/);
+});
+
+// -------------------------------------------- TASK-0622: the survey's cards
+
+test('a child screen is drawn inside its parent\'s card', async () => {
+  const document = makeDom();
+  const { buildSurveySection } = await loadProc({ document });
+  const section = buildSurveySection(payload({
+    survey: [
+      { surface: 'Workout editor', surface_note: 'SUR-0001', parent: null,
+        unresolved: false, captures: [],
+        changes: [{ id: 'CHG-1', title: 'A', sentence: 'the editor moved.' }] },
+      { surface: 'HR-zone interval sheet', surface_note: 'SUR-0002',
+        parent: 'SUR-0001', unresolved: false, captures: [],
+        changes: [{ id: 'CHG-2', title: 'B', sentence: 'the sheet moved.' }] },
+    ],
+  }));
+  const cards = section.children.filter(
+    (c) => c.className.split(' ').includes('walk-survey-surface'));
+  assert.equal(cards.length, 1, 'the dialog got a card of its own');
+  //: `all` reports the root it was handed, so the parent card is the first
+  //: of the two and the dialog is the one drawn inside it.
+  const inside = all(cards[0], 'walk-survey-surface');
+  assert.equal(inside.length, 2);
+  assert.equal(inside[0], cards[0]);
+  assert.ok(inside[1].className.includes('is-child'));
+  assert.match(inside[1].textContent, /HR-zone interval sheet/);
+});
+
+test('a child whose parent this release did not change stands on its own',
+  async () => {
+    const document = makeDom();
+    const { buildSurveySection } = await loadProc({ document });
+    const section = buildSurveySection(payload({
+      survey: [
+        { surface: 'HR-zone interval sheet', surface_note: 'SUR-0002',
+          parent: 'SUR-0001', unresolved: false, captures: [],
+          changes: [{ id: 'CHG-2', title: 'B', sentence: 'it moved.' }] },
+      ],
+    }));
+    assert.equal(all(section, 'walk-survey-surface').length, 1);
+  });
+
+test('before and after are served through the framed viewer route',
+  async () => {
+    const document = makeDom();
+    const { buildSurveySection } = await loadProc({ document });
+    const section = buildSurveySection(payload({
+      survey: [{
+        surface: 'Profile', surface_note: 'SUR-0001', parent: null,
+        unresolved: false, changes: [],
+        captures: [{ key: 'profile', state: null,
+          before: 'docs/tests/acceptance/gallery/v1.0/profile.png',
+          after: 'docs/tests/acceptance/gallery/candidate/profile.png',
+          new: false }],
+      }],
+    }));
+    const srcs = all(section, 'walk-survey-capture').map((n) => n.dataset.src);
+    assert.deepEqual(srcs, [
+      'http://127.0.0.1:7777/framed/tests/acceptance/gallery/v1.0/profile.png',
+      'http://127.0.0.1:7777/framed/tests/acceptance/gallery/candidate/profile.png',
+    ]);
+    //: Both captions, so the walker knows which picture is which.
+    assert.deepEqual(all(section, 'walk-survey-when').map((n) => n.textContent),
+      ['at the last release', 'now']);
+  });
+
+test('a capture outside the workspace docs directory gets no URL', async () => {
+  //: No new route reads outside a workspace ([[TASK-0622]]). A path the
+  //: framed viewer cannot serve resolves to nothing rather than to a guess.
+  const document = makeDom();
+  const { walkCaptureSrc } = await loadProc({ document });
+  assert.equal(walkCaptureSrc('../elsewhere/shot.png'), '');
+  assert.equal(walkCaptureSrc('build/shot.png'), '');
+  assert.equal(walkCaptureSrc('docs/a/b.png'),
+    'http://127.0.0.1:7777/framed/a/b.png');
+});
+
+test('a card with only an after picture says new', async () => {
+  const document = makeDom();
+  const { buildSurveySection } = await loadProc({ document });
+  const section = buildSurveySection(payload({
+    survey: [{
+      surface: 'Profile', surface_note: 'SUR-0001', parent: null,
+      unresolved: false, changes: [],
+      captures: [{ key: 'profile', state: 'pro', before: null,
+        after: 'docs/g/candidate/profile.png', new: true }],
+    }],
+  }));
+  assert.match(all(section, 'walk-survey-capture-key')[0].textContent,
+    /profile \(pro\) — new/);
+  assert.equal(all(section, 'walk-survey-capture').length, 1);
+});
+
+test('a procedure adds no test id to the survey', async () => {
+  //: Rule 2 again, now that a procedure's tags put check ids on the page:
+  //: they belong to the sittings, and the survey is still a list of places
+  //: to open.
+  const document = makeDom();
+  const { buildSurveySection } = await loadProc({ document });
+  const section = buildSurveySection(procedurePayload({
+    survey: [{
+      surface: 'Profile', surface_note: 'SUR-0001', parent: null,
+      unresolved: false, captures: [],
+      changes: [{ id: 'CHG-1', title: 'It moved', sentence: 'the avatar moved.' }],
+    }],
+  }));
+  assert.ok(!section.textContent.includes('TST-'));
+});
+
+test('a card whose key has no picture at either end shows its sentences only',
+  async () => {
+    const document = makeDom();
+    const { buildSurveySection } = await loadProc({ document });
+    const section = buildSurveySection(payload({
+      survey: [{
+        surface: 'Profile', surface_note: 'SUR-0001', parent: null,
+        unresolved: false,
+        changes: [{ id: 'CHG-1', title: 'A', sentence: 'the avatar moved.' }],
+        captures: [{ key: 'profile', state: null, before: null, after: null,
+          new: false }],
+      }],
+    }));
+    assert.equal(all(section, 'walk-survey-captures').length, 0);
+    assert.equal(all(section, 'walk-survey-capture-key').length, 0);
+    assert.match(section.textContent, /the avatar moved/);
+  });
+
+test('a step line shows its words, not its markdown', async () => {
+  //: Found by rendering the first procedure in a real browser, 2026-09-14:
+  //: the step's own line came out as `**Ride cockpit.** Pedal for five
+  //: seconds`, asterisks and all. The stub DOM could not show it because
+  //: nothing here reads the text the way a person does.
+  const document = makeDom();
+  const { walkLineText } = await loadProc({ document });
+  assert.equal(
+    walkLineText('1. **Ride cockpit.** Pedal for five seconds.', []),
+    'Ride cockpit. Pedal for five seconds.');
+  assert.equal(walkLineText('   - __The banner reads DONE.__', []),
+    'The banner reads DONE.');
+  //: The tag comes off too, and what is left is the check's own words.
+  assert.equal(
+    walkLineText('   - The cadence rises. `TST-0001.1`',
+                 [{ check: 'TST-0001', step: '1', owed: true }]),
+    'The cadence rises.');
+});
+
+test('the mark dialog names the step in words, not markdown', async () => {
+  //: The dialog read `Step 1 **Ride cockpit.** Pedal for five seconds…` the
+  //: first time a procedure was rendered in a browser, 2026-09-14. It builds
+  //: its name from the step head, so it needs the same cleaning the page's
+  //: own lines get.
+  const document = makeDom();
+  const asks = [];
+  const proc = await loadProc({
+    document, asks, verdicts: [{ verdict: 'pass', reason: '' }],
+  });
+  const sitting = procedureSitting();
+  sitting.procedure.steps[0].head = '**Ride cockpit.** Pedal for five seconds.';
+  const v = procedurePayload({ sittings: [sitting] });
+  const view = proc.readProcedure(sitting);
+  await proc.markWalkStep(v, sitting, view, view.steps[0]);
+  assert.equal(asks.length, 1);
+  assert.equal(asks[0].number, 'Step 1');
+  assert.equal(asks[0].name, 'Ride cockpit. Pedal for five seconds. — Profile');
+  //: And four marks, never the three settle ones ([[ADR-0041]]).
+  assert.deepEqual(asks[0].only, ['pass', 'partial', 'fail', 'question']);
+});

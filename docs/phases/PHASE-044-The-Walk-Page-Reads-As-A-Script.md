@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-044
 aliases: ["PHASE-044"]
 title: "The walk page reads as a script — changed screens as cards with before and after, each sitting as its procedure, and a tick per step"
-status: planned
+status: active
 order: 44
 owner: user:edwin
 created: 2026-09-14
@@ -57,11 +57,24 @@ Edwin approved the goal wording on 2026-09-14: *"A tick in the cockpit records t
 
 ## Exit Criteria
 
-- [ ] Ticking every step of a sitting writes the same ledger events, check for check and mark for mark, as ticking each of its checks one by one on today's page. A test proves it on a fixture.
-- [ ] For your-trainer on both platforms, the page's survey, sittings, steps and owed set equal what `walk-sheet.py` prints.
-- [ ] The survey shows no test id, and every card with a before capture shows the after capture beside it.
-- [ ] `~checks` puts a dialog under the screen it opens from, the same way the template's rules and the walk sheet do.
-- [ ] The capability register names every new or changed row (CLAUDE.md, "Every change note that adds, changes or retires capability").
+- [x] Ticking every step of a sitting writes the same ledger events, check for check and mark for mark, as ticking each of its checks one by one on today's page. A test proves it on a fixture. — `desktop/tests/walk-page.test.mjs`, *"walking a sitting step by step writes the same events as ticking its checks one by one"*: four steps citing three checks, both paths run against one stubbed POST, the request bodies compared.
+- [~] For your-trainer on both platforms, the page's survey, sittings, steps and owed set equal what `walk-sheet.py` prints. — asserted and passing on `android` and `ios` by `tests/test_walk_agreement.py`. **The procedure half of that comparison is vacuous today**: `your-trainer` has no `docs/tests/acceptance/walk/` directory, so both sides agree that no sitting has a procedure. It becomes a real comparison when that repo's TASK-0906 lands, with no edit here.
+- [x] The survey shows no test id, and every card with a before capture shows the after capture beside it. — two node tests, and observed in a browser on the fixture: both pictures of a pair rendered at 358 px.
+- [x] `~checks` puts a dialog under the screen it opens from, the same way the template's rules and the walk sheet do. — `tests/test_checks_by_screen.py`, including one test that the parent this page resolves is the one `walk.top_screen` resolves, for all three spellings of `parent:`.
+- [x] The capability register names every new or changed row (CLAUDE.md, "Every change note that adds, changes or retires capability"). — `shell.pages.walk.steps` is new; `shell.pages.walk`, `shell.pages.walk.survey` and `shell.pages.checks` each gained a dated line.
+
+## Where this stands, 2026-09-14
+
+Built and tested, except the last task. TASK-0622 to TASK-0625 are `done`; TASK-0626 is `doing` and blocked on another repo.
+
+**It was walked in a browser**, not only against a stub DOM: a fixture repo with a release tag, two change notes, three capture files, a walk order and a three-step procedure, served by a real sidecar behind a one-origin proxy and driven through `desktop/harness/live-harness.html`. That walk wrote real events into a real ledger file, and it found two defects the node suite structurally could not:
+
+1. **Step lines printed their Markdown.** `**Ride cockpit.** Pedal for five seconds` appeared with the asterisks, on the page and again in the mark dialog's title. The DOM stub has no reader, so nothing was looking at the words.
+2. **The walk route resolved the platform and not the release.** Every payload came back with `release: ""`, and a step tick is keyed by release, platform, sitting and step — so a tick left from one walk would have shown as already ticked on the next.
+
+Both are fixed with tests. The walk is recorded on [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]] as `partial`, because its step 8 was not walked by hand.
+
+**This phase should not close until TASK-0626 does**, and that waits on your-trainer TASK-0906.
 
 ## Edwin's decisions, 2026-09-14
 

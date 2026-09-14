@@ -137,7 +137,11 @@ def test_a_surface_with_no_checks_is_visible_as_such() -> None:
     index = Index.build(ROOT / "docs")
     assert cockpit.surface_coverage(index) == {"SUR-0001": 0}
     head = str(_design_groups(ROOT / "docs")["surfaces"]["label"])
-    assert head == "Surfaces · 1 with no checks", head
+    #: **The screen count leads the head** ([[TASK-0625]], 2026-09-14). The
+    #: 12 to 15 target FEAT-0130 set is about top-level screens, and the head
+    #: is where a reader checks a repo against it. The uncovered count keeps
+    #: its place after it — that is what TASK-0516 put here and it still holds.
+    assert head == "Surfaces · 1 screen · 1 with no checks", head
 
 
 def test_the_count_is_not_sent_on_a_field_no_renderer_draws() -> None:
@@ -178,6 +182,6 @@ def test_a_covered_surface_drops_off_the_head_count(tmp_path: Path) -> None:
     assert cockpit.surface_coverage(index) == {"SUR-0001": 1}
     groups = {str(g.get("key")): g
               for g in cockpit.nav_payload(index, "design")["groups"]}
-    assert str(groups["surfaces"]["label"]) == "Surfaces", (
+    assert str(groups["surfaces"]["label"]) == "Surfaces · 1 screen", (
         "a covered surface is still counted as bare"
     )

@@ -6444,3 +6444,196 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   font-size: 11px;
   color: var(--text-faint);
 }
+
+/* ----- the walk page reads as a script (FEAT-0150 / PHASE-044) -----------
+ *
+ * Three additions to the walk page above: the survey's screens as cards with
+ * the two pictures side by side (TASK-0622), a sitting drawn as its written
+ * procedure (TASK-0623), and a tick on a step rather than on a check
+ * (TASK-0624).
+ *
+ * Still no bar, no percentage and no time. Counts of steps and of rows are
+ * the only numbers.
+ */
+
+/* A screen's card. A child screen — a dialog — is drawn inside its parent's
+   card, indented and rule-marked, because that is where the walker will be
+   standing when they open it. */
+.walk-survey-surface {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.walk-survey-surface.is-child {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--border);
+}
+.walk-survey-surface > h5 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.walk-survey-surface > h5.is-link { cursor: pointer; }
+.walk-survey-surface > h5.is-link:hover { text-decoration: underline; }
+.walk-survey-unresolved {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--warn, #d29922);
+}
+.walk-survey-sentence { margin: 0 0 4px; font-size: 12px; }
+
+/* Before and after, at the same width. Equal `flex-basis` rather than
+   `auto`: two screenshots of the same screen differ by a few pixels of
+   height, and sizing them to content drew the "now" picture slightly larger
+   than the "at the last release" one — which is exactly the difference the
+   walker is looking for, invented by the layout. */
+.walk-survey-captures { margin: 8px 0 0; }
+.walk-survey-capture-key {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+}
+.walk-survey-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0 0;
+}
+.walk-survey-shot {
+  flex: 1 1 0;
+  min-width: 140px;
+  max-width: 360px;
+  margin: 0;
+}
+.walk-survey-capture {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-inset, transparent);
+}
+.walk-survey-when {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* The sitting's script. */
+.walk-procedure {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.walk-procedure.is-walked { opacity: 0.6; }
+.walk-proc-source { margin: 0 0 8px; }
+
+.walk-step {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.walk-step-head {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.walk-step-head.is-link { cursor: pointer; }
+.walk-step-head.is-link:hover { text-decoration: underline; }
+.walk-step-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 3px 0 0;
+  font-size: 12px;
+}
+/* An expectation line is what a verdict will be recorded against, so it is
+   drawn apart from the instructions around it. */
+.walk-step-line.is-expectation {
+  padding-left: 8px;
+  border-left: 2px solid var(--accent, #58a6ff);
+}
+.walk-step-said { overflow-wrap: anywhere; }
+
+/* The check part this line settles. `is-passed` is a part already walked on
+   this platform: shown, because the procedure covers the whole sitting, and
+   struck through, because ticking the step does not record it again. */
+.walk-tag {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.walk-tag.is-passed {
+  text-decoration: line-through;
+  color: var(--text-faint);
+  opacity: 0.75;
+}
+
+.walk-step-tick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 8px 0 0;
+}
+.walk-step-button.is-pass { border-color: var(--ok, #3fb950); }
+.walk-step-button.is-partial { border-color: var(--warn, #d29922); }
+.walk-step-button.is-fail { border-color: var(--danger, #f85149); }
+.walk-step-button.is-question { border-color: var(--accent, #58a6ff); }
+.walk-step-waiting { font-size: 11px; color: var(--text-faint); }
+
+/* What the ticks above will record, and what each verdict is still waiting
+   on. The walker never sees a check row inside a scripted sitting, so this
+   is where the checks are named and opened. */
+.walk-proc-verdicts {
+  margin: 12px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.walk-proc-verdict {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin: 4px 0 0;
+}
+.walk-proc-verdict-state { font-size: 11px; color: var(--text-faint); }
+.walk-proc-verdict-state.is-ready { color: var(--text-muted); }
+
+/* A dialog's checks, under the screen it opens from (TASK-0625 / ADR-0044).
+   The indent and the rule say "part of the screen above"; the `in <screen>`
+   label says which screen, because a filter can hide the parent's own group
+   and an indented heading under nothing says nothing. */
+.checks-area.is-child {
+  margin-left: 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+}
+.checks-area-parent {
+  margin-left: 8px;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+/* An `area:` that matches no surface note (ISS-0250). A surface rename
+   orphans its checks silently, and a group that reads like every other one
+   is how that goes unnoticed. */
+.checks-area-ghost {
+  margin-left: 8px;
+  padding: 0 5px;
+  border: 1px solid var(--warn, #d29922);
+  border-radius: 10px;
+  font-weight: 400;
+  font-size: 10px;
+  color: var(--warn, #d29922);
+}

@@ -32,17 +32,31 @@ def test_the_view_holds_every_check_in_suite_order(view: dict) -> None:
             for area in tier["areas"] for row in area["items"]]
     assert len(rows) == view["total"] == len(
         acceptance.load(REPO_DOCS).items)
-    # **Tier, then id** (ISS-0224). This read `tier, section, ordinal` — the
-    # order the *document* had, and the document exists in no migrated repo.
-    # `(tier, id)` was measured byte-identical to the old key in all three
-    # repos before the fields were removed, so the order a reader walks did
-    # not move; only the thing that expresses it did.
+    # **Tier, then screen, then id** ([[TASK-0625]], 2026-09-14). This asserted
+    # `(tier, id)` over the whole view, which held while areas came out in
+    # suite order. They now come out in SCREEN order — a dialog's checks sit
+    # under the screen it opens from — so the id order is a property of an
+    # area rather than of the page, and asserting the old key here would be
+    # asserting that the grouping did not happen.
     #
-    # A view that reorders itself between renders is still a view nobody can
+    # The property the old assertion was for survives, split in two: rows are
+    # ordered inside their area, and the page does not reorder itself between
+    # renders. A view that moves under the reader is still one nobody can
     # walk, which is what this guards.
-    seen = [(t["tier"], r["number"]) for t in view["tiers"]
-            for a in t["areas"] for r in a["items"]]
-    assert seen == sorted(seen)
+    for tier in view["tiers"]:
+        for area in tier["areas"]:
+            ids = [r["number"] for r in area["items"]]
+            #: Owed rows float to the top of their own area ([[TASK-0556]]),
+            #: so the order inside one is settled-ness and then id.
+            assert ids == [r["number"] for r in sorted(
+                area["items"],
+                key=lambda r: (bool(r.get("checked") or r.get("reconciled")
+                                    or r.get("excepted"))
+                               and not r.get("stale"),
+                               str(r.get("id") or r.get("number") or "")))]
+    again = acceptance.view_payload(REPO_DOCS, Index.build(REPO_DOCS))
+    assert [(t["tier"], a["area"]) for t in view["tiers"] for a in t["areas"]] \
+        == [(t["tier"], a["area"]) for t in again["tiers"] for a in t["areas"]]
 def test_the_counts_name_reconciliation_separately(view: dict) -> None:
     """`26/27 · 1 reconciled`, never `26/26` (ISS-0141).
     The denominator is what the suite holds. A check settled by decision is
@@ -147,11 +161,17 @@ def test_one_walk_layer_and_now_exactly_one_surface() -> None:
         "handling — which is how the first two came to disagree."
     )
 def test_cancelling_writes_nothing() -> None:
-    """A dialog dismissed must not repaint, let alone write."""
+    """A dialog dismissed must not repaint, let alone write.
+
+    The `try` this used to bound the search on moved into `postCheckVerdict`
+    when [[TASK-0624]] gave the step tick and the row tick one write path. The
+    property is the same and the boundary is now that call: the cancel must be
+    handled before it.
+    """
     src = _renderer()
     block = src[src.index("async function walkOneCheck"):]
     block = block[:block.index("\n}\n")]
-    body = block[:block.index("try {")]
+    body = block[:block.index("postCheckVerdict(")]
     assert "if (chosen === null) return;" in body
 # ------------------------------------------------------ what it says empty
 def test_an_absent_suite_does_not_read_as_a_clear_gate() -> None:

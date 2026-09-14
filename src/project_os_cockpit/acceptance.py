@@ -1693,6 +1693,84 @@ def section_label(section: str) -> str:
     return SECTION_LABELS.get(section, section)
 
 
+#: Kinds that are not a screen ("The four rules", `TAXONOMY.md`). They sort
+#: after every screen because a reader walking a release walks screens, and a
+#: behaviour with no screen is the tail of that walk rather than a place in it.
+_OFF_SCREEN_KINDS = ("subsystem", "surface-less")
+
+
+def _surface_map(index: "Any | None") -> tuple[dict[str, Any], dict[str, str],
+                                               dict[str, str]]:
+    """`(surfaces by id, id by title, kind by id)` — the bundled module's.
+
+    **The same lookup the walk sheet uses** ([[TASK-0625]]). `~checks` grouped
+    by the `area:` string until 2026-09-14, so a dialog's checks sat wherever
+    its name sorted — `your-trainer`'s HR-zone interval sheet nowhere near the
+    ride cockpit it opens from. Reading `parent:` here with a second
+    implementation would mean the page and the sheet could come to disagree
+    about which screen a dialog belongs to, which is the drift bundling the
+    module exists to prevent.
+    """
+    walk = _walk_module()
+    raw: dict[str, tuple[Path, dict]] = {}
+    kinds: dict[str, str] = {}
+    if index is not None:
+        for record in index.iter_records():
+            note_id = record.note_id or ""
+            if not note_id:
+                continue
+            raw[note_id] = (record.path, dict(record.frontmatter))
+            if (record.note_type or "").lower() == "surface":
+                kinds[note_id] = str(
+                    record.frontmatter.get("kind") or "screen").strip().lower()
+    surfaces = walk.load_surfaces(raw) if raw else {}
+    by_title = walk.surfaces_by_title(raw) if raw else {}
+    return surfaces, by_title, kinds
+
+
+def _area_place(area: str, surfaces: dict[str, Any], by_title: dict[str, str],
+                kinds: dict[str, str]) -> dict[str, Any]:
+    """Where one `area:` string sits: its surface, its screen, its parent.
+
+    An `area:` naming no surface note keeps its own name as its screen and is
+    marked unresolved, so it renders visibly rather than disappearing into a
+    group it does not belong to ([[ISS-0250]]).
+    """
+    walk = _walk_module()
+    sid = by_title.get(area, "")
+    if not sid:
+        return {"surface": "", "screen": area, "parent": "",
+                "kind": "", "unresolved": True}
+    kind = kinds.get(sid, "screen")
+    top = walk.top_screen(sid, surfaces)
+    parent_id = surfaces[sid].parent if sid in surfaces else ""
+    return {
+        "surface": sid,
+        #: An off-screen surface is its own group: it has no screen to sit
+        #: under, and filing it below one would say it is part of a place.
+        "screen": (surfaces[top].title or top) if (
+            kind not in _OFF_SCREEN_KINDS and top in surfaces) else area,
+        "parent": (surfaces[parent_id].title or parent_id)
+                  if (parent_id and kind not in _OFF_SCREEN_KINDS
+                      and parent_id in surfaces) else "",
+        "kind": kind,
+        "unresolved": False,
+    }
+
+
+def _area_sort_key(area: dict[str, Any]) -> tuple:
+    """Screens first, a child directly under its parent, then the rest.
+
+    Within a screen the parent's own checks come before any child's, which is
+    the order a walker meets them: you are on the screen before you open the
+    dialog.
+    """
+    off = 1 if area.get("kind") in _OFF_SCREEN_KINDS else 0
+    unknown = 1 if area.get("unresolved") else 0
+    return (unknown, off, str(area.get("screen") or ""),
+            1 if area.get("parent") else 0, str(area.get("area") or ""))
+
+
 def view_payload(docs_root: Path, index: "Any | None" = None, *,
                  platform: str = "") -> dict[str, Any]:
     """The suite as a **list somebody walks** (FEAT-0114 / TASK-0464).
@@ -1725,23 +1803,35 @@ def view_payload(docs_root: Path, index: "Any | None" = None, *,
     by_section: dict[str, list[Item]] = {}
     for item in suite.items:
         by_section.setdefault(section_of(item), []).append(item)
+    #: **Screen, then the dialogs that open from it** ([[TASK-0625]]; upstream
+    #: ADR-0044). Read from the bundled module so this page and the walk sheet
+    #: cannot disagree about which screen a dialog belongs to.
+    surfaces, by_title, kinds = _surface_map(index)
     for name in SECTION_ORDER:
         items = by_section.get(name) or []
         if not items:
             continue
         areas: list[dict[str, Any]] = []
+        seen: dict[str, dict[str, Any]] = {}
         for item in items:
             #: **`area` alone** ([[ISS-0224]]). Measured 2026-08-19: areas
             #: spanning more than one section — **0** in all three repos
             #: (21/21, 77/77, 20/20), so `section` added nothing to the key
             #: and only a second thing to keep in step.
             key = item.area
-            if not areas or areas[-1]["area"] != key:
-                areas.append({
+            #: Keyed rather than run-length grouped: sorting by screen brings
+            #: two runs of the same area together, and the old test — is the
+            #: LAST area this one — would then have made two groups with the
+            #: same name.
+            if key not in seen:
+                seen[key] = {
                     "section": item.section, "area": item.area,
                     "refs": list(item.refs), "items": [],
-                })
-            areas[-1]["items"].append(_row(item))
+                    **_area_place(item.area, surfaces, by_title, kinds),
+                }
+                areas.append(seen[key])
+            seen[key]["items"].append(_row(item))
+        areas.sort(key=_area_sort_key)
         #: **Incomplete rows to the top of their own section** ([[TASK-0556]]).
         #:
         #: Edwin scoped this deliberately: the area order and the tier order do

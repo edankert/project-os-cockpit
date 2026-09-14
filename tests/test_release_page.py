@@ -291,11 +291,21 @@ def test_the_walk_layer_still_writes_through_the_documents_own_path() -> None:
 
     What survives is the whole of the original property for the surface that
     *does* write: `~checks` and the check's own note.
+
+    **The POST moved one function along** ([[TASK-0624]], 2026-09-14). A walk
+    page procedure step settles several checks at once, and both the step tick
+    and the row tick now write through `postCheckVerdict` — one function, so
+    the two cannot build different events. So the chain is asserted over the
+    pair: the dialog and the delegation in `walkOneCheck`, the endpoint and
+    the refusal handling in what it calls.
     """
     src = RENDERER.read_text(encoding="utf-8")
     body = _body_of(src, "async function walkOneCheck(")
+    write = _body_of(src, "async function postCheckVerdict(")
     assert "await askForMark({" in body, body
-    assert "'/api/notes/mark-check'" in body, body
+    assert "postCheckVerdict(item, platform, chosen)" in body, body
+    assert "'/api/notes/mark-check'" in write, write
+    body = body + write
     # The reason and the verdict the dialog returned are what is sent. A
     # mutation posting a fixed verdict would pass a name-only check.
     assert "verdict: chosen.verdict" in body and "reason: chosen.reason" in body

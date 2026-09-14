@@ -3024,6 +3024,32 @@ def _design_groups(index: Index, platform: str | None) -> list[dict[str, Any]]:
                        if _surface_counts.get(r.note_id or "", 0) == 0)
             if bare:
                 head = f"{label} · {bare} with no checks"
+            #: **The 12 to 15 target counts top-level screens only** (Edwin,
+            #: 2026-09-14; upstream ADR-0044, `TAXONOMY.md`). A dialog is a
+            #: child surface, and counting children against a target set for
+            #: screens made a repo that named its dialogs properly look as
+            #: though it had three times too many places. The head says both
+            #: numbers so the reader can see which is being judged.
+            ordered, screens, children = _surface_tree(index, records)
+            if screens:
+                head = (
+                    f"{label} · {screens} "
+                    + ("screen" if screens == 1 else "screens")
+                    + (f" · {children} " + ("child" if children == 1
+                                            else "children") if children else "")
+                    + (f" · {bare} with no checks" if bare else ""))
+                #: **Tree order, not `_open_first`.** A surface is not work
+                #: with a terminal status, so lifting the `active` ones above
+                #: the `retired` ones would split every parent from its
+                #: children for a distinction this group is not about.
+                records = ordered
+                out.append({
+                    "key": key, "label": head, "url": None, "status": None,
+                    "item_layout": "stacked",
+                    "items": [{**_rare_item(index, r), **_owed_flag(r, index)}
+                              for r in records],
+                })
+                continue
         out.append({
             "key": key,
             "label": head,
@@ -6128,6 +6154,70 @@ def surface_coverage(index: Index) -> dict[str, int]:
         title = str(record.title or "").strip().lower()
         counts[record.note_id or ""] = areas.get(title, 0)
     return counts
+
+
+def _surface_tree(
+    index: Index, records: list[NoteRecord],
+) -> tuple[list[NoteRecord], int, int]:
+    """Surfaces as screens with their children under them ([[TASK-0625]]).
+
+    Returns `(the records in tree order, how many are top-level screens, how
+    many are children)`. **The screen count is the one FEAT-0130's 12 to 15
+    target is about** — Edwin, 2026-09-14: children sit under their parent and
+    do not count toward it. Counting every surface against that target told a
+    repo that had named its dialogs properly that it had three times too many
+    places, which is the opposite of what the target is for.
+
+    `parent:` is resolved by the bundled walk module, the same lookup the walk
+    sheet and `~checks` use, so the three cannot come to disagree about which
+    screen a dialog belongs to.
+
+    A repo whose surfaces resolve no parents at all gets `(records, 0, 0)` and
+    the caller keeps its existing order — there is no tree to draw.
+    """
+    from . import acceptance as _acc
+
+    surfaces, _by_title, kinds = _acc._surface_map(index)
+    here = {r.note_id or "": r for r in records if r.note_id}
+    if not here:
+        return list(records), 0, 0
+    kids: dict[str, list[str]] = {}
+    roots: list[str] = []
+    for note_id in sorted(here):
+        surface = surfaces.get(note_id)
+        parent = surface.parent if surface else ""
+        #: A parent outside this group — filtered by platform, or simply not a
+        #: surface note — leaves the child a root. It is visible either way,
+        #: which is the rule ISS-0250 exists for one surface over.
+        if parent and parent in here:
+            kids.setdefault(parent, []).append(note_id)
+        else:
+            roots.append(note_id)
+    ordered: list[NoteRecord] = []
+    children = 0
+
+    def place(note_id: str, depth: int) -> None:
+        nonlocal children
+        ordered.append(here[note_id])
+        if depth:
+            children += 1
+        #: A cycle cannot repeat a note, because `seen` is the output list.
+        for kid in sorted(kids.get(note_id, [])):
+            if here[kid] not in ordered:
+                place(kid, depth + 1)
+
+    for note_id in roots:
+        place(note_id, 0)
+    #: Anything a cycle among parents kept out of the walk above, appended so
+    #: no surface is dropped from the group by a mistake in its frontmatter.
+    for note_id in sorted(here):
+        if here[note_id] not in ordered:
+            ordered.append(here[note_id])
+    #: Off-screen kinds are surfaces without being places, so they do not
+    #: count toward a target about screens.
+    screens = sum(1 for note_id in roots
+                  if kinds.get(note_id, "screen") not in _acc._OFF_SCREEN_KINDS)
+    return ordered, screens, children
 
 
 def _rare_item(index: Index, record: NoteRecord) -> dict[str, Any]:

@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0150
 aliases: ["FEAT-0150"]
 title: "The walk page reads as a script — the survey as screen cards with before and after, each sitting as its procedure, a tick per step that settles every check it cites, and ~checks grouped by screen"
-status: backlog
+status: doing
 phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
 owner: user:edwin
 created: 2026-09-14

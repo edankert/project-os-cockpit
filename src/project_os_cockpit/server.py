@@ -1078,16 +1078,28 @@ def _make_handler(
                          "platforms": _known},
                         HTTPStatus.BAD_REQUEST)
                     return
-                if not _platform:
+                #: **Which release this walk is of** ([[TASK-0624]]). It was
+                #: resolved for the platform and not for the release, so a
+                #: caller sending neither got a walk that named no release —
+                #: and the page keys a half-walked sitting's step ticks by
+                #: release, platform, sitting and step. With an empty release
+                #: segment, a tick left over from the last walk would show as
+                #: already ticked on the next one, on a step somebody still
+                #: has to walk.
+                _release = (_params.get("release") or [""])[0].strip()
+                if not _platform or not _release:
                     from . import publication as _pub_walk
 
                     _open = _pub_walk.open_releases(index)
-                    _platform = (
-                        str((_open[0].get("platform") or "")).strip().lower()
-                        if _open else ""
-                    )
-                    if not _platform and len(_known) == 1:
-                        _platform = _known[0]
+                    if not _platform:
+                        _platform = (
+                            str((_open[0].get("platform") or "")).strip().lower()
+                            if _open else ""
+                        )
+                        if not _platform and len(_known) == 1:
+                            _platform = _known[0]
+                    if not _release and _open:
+                        _release = str(_open[0].get("id") or "").strip()
                 #: **An unknown name is refused, never answered.** A ledger
                 #: read for a platform that has none returns no verdicts, so
                 #: every check in the repo comes back owed — 545 rows on
@@ -1107,7 +1119,7 @@ def _make_handler(
                     "schema_version": cockpit.SCHEMA_VERSION,
                     **acceptance.walk_payload(
                         docs_root, index, platform=_platform,
-                        release=(_params.get("release") or [""])[0],
+                        release=_release,
                     ),
                     "platforms": _known,
                 })

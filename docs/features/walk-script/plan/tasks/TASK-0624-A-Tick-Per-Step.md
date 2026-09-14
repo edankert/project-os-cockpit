@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0624
 aliases: ["TASK-0624"]
 title: "A tick goes on a procedure step, a check's verdict is written to the ledger once every step citing it has a tick, and walking a whole sitting this way writes the same events as ticking its checks one by one"
-status: backlog
+status: done
 phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
 owner: user:edwin
 created: 2026-09-14
@@ -37,12 +37,12 @@ Points 1 and 2 are Edwin's decisions. Point 3 follows from the ledger's existing
 
 ## Definition of Done
 
-- [ ] A step tick opens `askForMark` with `pass`, `partial`, `fail` and `question`, and records the step mark in per-workspace browser storage.
-- [ ] When the last step citing a check gets a mark, the page posts one `/api/notes/mark-check` for that check with the combined mark, the walk's platform (not the nav picker's, per FEAT-0149's review finding 1) and `method: manual`.
-- [ ] A check with an unticked citing step gets no ledger event.
-- [ ] A test builds a fixture sitting with a procedure of four steps citing three checks, ticks every step, and asserts the resulting ledger events equal those from ticking the three checks one by one with the same combined marks. It fails when the combine rule is removed.
-- [ ] A test asserts that removing one step tick before the last leaves the ledger unchanged.
-- [ ] The ledger file format and `ledger.py`'s event shape are unchanged; a test pins the event keys.
+- [x] A step tick opens `askForMark` with `pass`, `partial`, `fail` and `question`, and records the step mark in per-workspace browser storage.
+- [x] When the last step citing a check gets a mark, the page posts one `/api/notes/mark-check` for that check with the combined mark, the walk's platform (not the nav picker's, per FEAT-0149's review finding 1) and `method: manual`.
+- [x] A check with an unticked citing step gets no ledger event.
+- [x] A test builds a fixture sitting with a procedure of four steps citing three checks, ticks every step, and asserts the resulting ledger events equal those from ticking the three checks one by one with the same combined marks. It fails when the combine rule is removed.
+- [x] A test asserts that removing one step tick before the last leaves the ledger unchanged.
+- [x] The ledger file format and `ledger.py`'s event shape are unchanged; a test pins the event keys.
 
 ## Notes
 

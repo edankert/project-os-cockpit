@@ -147,3 +147,48 @@ def test_a_repo_with_one_ledger_and_no_release_still_walks(tmp_path: Path) -> No
         assert payload["platform"] == "android"
     finally:
         httpd.shutdown()
+
+
+def test_the_walk_names_the_open_release_when_the_caller_sends_none(
+        tmp_path: Path) -> None:
+    """[[TASK-0624]]: the storage key for a half-walked sitting starts with it.
+
+    The route resolved the PLATFORM from the open release and left the release
+    itself empty, so every walk the page opened came back with `release: ""`.
+    The page keys a step tick by release, platform, sitting and step — with an
+    empty release segment a tick from the last walk reads as already ticked on
+    the next one, on a step somebody still has to walk. Found walking a
+    fixture in a browser, 2026-09-14.
+    """
+    port, httpd = _spin_up(_docs(tmp_path))
+    try:
+        status, payload = _get(port, "?platform=android")
+        assert status == 200
+        assert payload["release"] == "REL-0001"
+        #: And with nothing sent at all, where the platform is resolved from
+        #: the same note.
+        _, both = _get(port)
+        assert (both["platform"], both["release"]) == ("android", "REL-0001")
+        #: An explicit release still wins — the caller asked for that one.
+        _, named = _get(port, "?platform=android&release=REL-0099")
+        assert named["release"] == "REL-0099"
+    finally:
+        httpd.shutdown()
+
+
+def test_a_repo_with_no_open_release_still_serves_a_walk(
+        tmp_path: Path) -> None:
+    """Resolving the release must not become a requirement for having one.
+
+    A repo between releases owes checks and a person can still walk them; the
+    payload simply names no release, and the step ticks are keyed on the empty
+    string, which is the same walk every time and therefore consistent.
+    """
+    port, httpd = _spin_up(_docs(tmp_path, release_platform=None))
+    try:
+        status, payload = _get(port, "?platform=android")
+        assert status == 200
+        assert payload["release"] == ""
+        assert _ids(payload) == ["TST-0002"]
+    finally:
+        httpd.shutdown()

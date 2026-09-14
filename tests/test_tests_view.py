@@ -2701,7 +2701,11 @@ def test_an_automated_area_shows_no_completion_percentage() -> None:
     """
     src = _RENDERER.read_text(encoding="utf-8")
     i = src.index("for (const area of areas)")
-    body = src[i:i + 2500]
+    #: Bounded on the loop's own end rather than on a character count. The
+    #: window was 2500 characters and [[TASK-0625]]'s child-group rendering
+    #: pushed the call past it — so the test failed for a reason that had
+    #: nothing to do with the percentage it is about.
+    body = src[i:src.index("\nfunction buildCheckRow", i)]
     assert "checkPercent(area.items)" in body, "the percentage vanished entirely"
     j = body.index("checkPercent(area.items)")
     guard = body[max(0, j - 400):j]

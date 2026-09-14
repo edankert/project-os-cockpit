@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0622
 aliases: ["TASK-0622"]
 title: "The walk page's survey renders one card per changed screen: its name, each change's rider-facing sentence, and the before and after captures side by side, with no test id"
-status: backlog
+status: done
 phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
 owner: user:edwin
 created: 2026-09-14
@@ -28,12 +28,12 @@ Edwin's first step on a release is to look at the screens that changed. The surv
 ## Definition of Done
 
 - [x] `acceptance.walk_payload` passes through the bundled module's new survey structure unchanged: surface id, title, parent, sentences with their change ids, before capture path, after capture path, and a "new" flag. *(Landed 2026-09-14 with the template sync — see "What the sync already landed" below.)*
-- [ ] Each changed screen renders as a card. Children render inside their parent's card.
-- [ ] The before and after images sit side by side at the same width. A card with only an after image says "new". A card with neither shows its sentences only.
-- [ ] Images are served through the existing framed viewer route, confined to the workspace's `docs/` or the capture directory the consumer declares. No new route reads outside a workspace.
-- [ ] The survey DOM contains no `TST-` string. A test asserts it.
-- [ ] The line saying no release tag was found renders when the payload says so.
-- [ ] Built and tested against a fixture repo before real captures exist.
+- [x] Each changed screen renders as a card. Children render inside their parent's card.
+- [x] The before and after images sit side by side at the same width. A card with only an after image says "new". A card with neither shows its sentences only.
+- [x] Images are served through the existing framed viewer route, confined to the workspace's `docs/` or the capture directory the consumer declares. No new route reads outside a workspace.
+- [x] The survey DOM contains no `TST-` string. A test asserts it.
+- [x] The line saying no release tag was found renders when the payload says so.
+- [x] Built and tested against a fixture repo before real captures exist.
 
 ## What the sync already landed, 2026-09-14
 

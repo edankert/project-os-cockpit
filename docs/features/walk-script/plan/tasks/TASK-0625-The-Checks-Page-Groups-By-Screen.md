@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0625
 aliases: ["TASK-0625"]
 title: "~checks groups by screen, with a dialog's checks under the screen it opens from, following the template's surface rules and the same parent lookup the walk sheet uses"
-status: backlog
+status: done
 phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
 owner: user:edwin
 created: 2026-09-14
@@ -27,11 +27,11 @@ tags: [task, acceptance, checks, renderer]
 
 ## Definition of Done
 
-- [ ] `view_payload` groups by top-level screen, with each child surface as a subgroup, using `parent:` from the surface notes.
-- [ ] The parent lookup is the bundled module's, not a second implementation, so the page and the walk sheet cannot disagree about which screen a dialog belongs to.
-- [ ] `subsystem` and `surface-less` surfaces render as their own groups after the screens.
-- [ ] Owed rows still float to the top of their group, and nothing reorders on a tick (TASK-0556).
-- [ ] A surface with no checks still renders, and its count is still on the design view (FEAT-0130).
-- [ ] The design view's surface group counts top-level screens against FEAT-0130's 12 to 15 target and lists children below them (Edwin, 2026-09-14).
-- [ ] An `area:` naming no surface still renders visibly, not silently dropped (ISS-0250).
-- [ ] Tests on a fixture with a parent screen, a child dialog and a subsystem.
+- [x] `view_payload` groups by top-level screen, with each child surface as a subgroup, using `parent:` from the surface notes.
+- [x] The parent lookup is the bundled module's, not a second implementation, so the page and the walk sheet cannot disagree about which screen a dialog belongs to.
+- [x] `subsystem` and `surface-less` surfaces render as their own groups after the screens.
+- [x] Owed rows still float to the top of their group, and nothing reorders on a tick (TASK-0556).
+- [x] A surface with no checks still renders, and its count is still on the design view (FEAT-0130).
+- [x] The design view's surface group counts top-level screens against FEAT-0130's 12 to 15 target and lists children below them (Edwin, 2026-09-14).
+- [x] An `area:` naming no surface still renders visibly, not silently dropped (ISS-0250).
+- [x] Tests on a fixture with a parent screen, a child dialog and a subsystem.
