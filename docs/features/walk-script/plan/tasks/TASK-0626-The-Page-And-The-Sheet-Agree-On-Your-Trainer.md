@@ -40,3 +40,23 @@ The goal's last "done when" line. FEAT-0149 already has a live-corpus test that 
 **Two boxes are not ticked and neither is this repo's to tick.** `your-trainer` has no `docs/tests/acceptance/walk/` directory at all: its TASK-0906 has not been done, so its v2.2.0 procedures do not exist. The comparison therefore runs today with both sides agreeing that every sitting has no procedure — which is a real agreement and a weak one. The procedure half of the comparison is exercised by the two-platform fixture in the same file, and on real content it is exercised the day TASK-0906 lands. Walking [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]] on `~walk/android` waits on exactly the same thing.
 
 Writing those procedures is out of this phase's scope by its own Out of Scope list. This task stays `doing` rather than `done` so that the record says the walk was never run on real procedures, which is the fact a reader needs.
+
+## Next Actions
+
+The work that finishes this task is **not in this repo**, and that is the whole reason it is still open.
+
+1. **your-trainer TASK-0900 to TASK-0902** — its surfaces become screens with dialogs as children. Today its `SUR-*` notes are merged test categories (`SUR-0003` is "Hardware", which spans five screens), so the survey and the `~checks` grouping this phase built have nothing true to group by there.
+2. **your-trainer TASK-0904 to TASK-0906** — the v2.2.0 procedures under `docs/tests/acceptance/walk/`, one file per sitting, each expectation line quoting its check's `## Expect` text word for word, plus the capture map. `python3 tools/scripts/walk-sheet.py --check` is the gate they must pass.
+3. **Then this task**: `tests/test_walk_agreement.py` already runs on both platforms and needs no edit — it reads the ledger directory rather than naming platforms, and compares the procedure half as soon as there is one. Run it, then walk one sitting by hand on `~walk/android` and record the result on [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]].
+
+**Nothing here is waiting on a decision or on more code in this repo.** The page, the payload and the tests are done and committed (`CHG-20260914`).
+
+## Notes
+
+**Approaches set aside.**
+
+- **Writing your-trainer's procedures from this session.** Set aside because [[PHASE-044-The-Walk-Page-Reads-As-A-Script]]'s Out of Scope list says, in its own words, "Writing procedures or change notes for any repo" — and because a procedure's expectation lines must quote each check's `## Expect` text exactly, against screens nobody in this session has looked at. A procedure written from the note text alone would pass the validator and describe a product it had never seen.
+- **A DOM test for the `~checks` screen grouping.** Set aside for a source-level guard plus payload tests: the checks page has no node harness, and `paintCheckList` reaches a dozen helpers. The grouping decision lives in `view_payload` and is tested there against real payloads; what is left in the page is an indent and a label. Recorded because the next person will weigh the same trade.
+- **Rendering the procedure's Markdown.** The step lines carry `**bold**`, and running them through a Markdown renderer was considered and dropped: it would put an HTML pipeline inside the control a verdict is given from. The markers are stripped instead.
+
+**Edwin's decisions, in his words.** From 2026-09-14, on the questions that shaped the tick: *"v2.2.0 should wait. go with your recommendations for the others, will I start the project-os-dev and cockpit phase first?"* — and on the goal itself: *"A tick in the cockpit records the verdict for every check that step satisfies."* The first is why `your-trainer`'s v2.2.0 work has not happened and this task is blocked; it was his instruction, not an oversight.

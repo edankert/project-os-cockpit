@@ -74,7 +74,7 @@ counters:
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: "TASK-0624"
+  task: "TASK-0626"
   feature: "FEAT-0150"
   phase: "PHASE-044"
   issue: ""
