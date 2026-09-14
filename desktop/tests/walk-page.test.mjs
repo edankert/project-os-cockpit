@@ -228,31 +228,79 @@ test('the survey is the first section on the page', async () => {
   const { buildWalkPage } = await load({ document });
   const page = buildWalkPage(payload({
     survey: [{
-      surface: 'Profile', surface_note: 'SUR-0001', checks: ['TST-0001'],
-      changes: [{ id: 'TASK-0001', title: 'Rewrote it', reopened: 'It moved.' }],
+      surface: 'Profile', surface_note: 'SUR-0001', parent: null,
+      unresolved: false, captures: [],
+      changes: [{ id: 'CHG-1', title: 'The profile moves',
+        sentence: 'the sign-in button sits under the avatar now.' }],
     }],
   }));
   const sections = page.children.filter(
     (c) => c.className.includes('walk-survey')
       || c.className.includes('walk-sittings'));
   assert.equal(sections[0].className, 'walk-survey');
-  const quoted = all(page, 'walk-reopened');
-  assert.equal(quoted.length, 1);
-  assert.equal(quoted[0].textContent, 'It moved.');
+  const said = all(page, 'walk-survey-sentence');
+  assert.equal(said.length, 1);
+  assert.equal(said[0].textContent,
+    'the sign-in button sits under the avatar now.');
 });
 
-test('a cause the index could not resolve is named, never dropped', async () => {
+test('the survey names no check', async () => {
+  // Rule 2: a list of places to open, not a list of things to run.
   const document = makeDom();
   const { buildSurveySection } = await load({ document });
   const section = buildSurveySection(payload({
     survey: [{
-      surface: 'Profile', surface_note: null, checks: ['TST-0001'],
-      changes: [{ id: 'TASK-9999', title: null, reopened: null }],
+      surface: 'Profile', surface_note: 'SUR-0001', parent: null,
+      unresolved: false, captures: [],
+      changes: [{ id: 'CHG-1', title: 'It moved', sentence: 'the avatar moved.' }],
     }],
   }));
-  const causes = all(section, 'walk-survey-cause');
-  assert.equal(causes.length, 1);
-  assert.match(causes[0].textContent, /TASK-9999/);
+  assert.equal(all(section, 'checks-chip').length, 0);
+  assert.ok(!section.textContent.includes('TST-'));
+});
+
+test('a screen no surface note carries is named, never dropped', async () => {
+  const document = makeDom();
+  const { buildSurveySection } = await load({ document });
+  const section = buildSurveySection(payload({
+    survey: [{
+      surface: 'SUR-9999', surface_note: 'SUR-9999', parent: null,
+      unresolved: true, captures: [],
+      changes: [{ id: 'CHG-1', title: null, sentence: 'something moved.' }],
+    }],
+  }));
+  assert.equal(all(section, 'walk-survey-unresolved').length, 1);
+  assert.match(all(section, 'walk-survey-cause')[0].textContent, /CHG-1/);
+});
+
+test('a screen captured before and now shows both pictures', async () => {
+  const document = makeDom();
+  const { buildSurveySection } = await load({ document });
+  const section = buildSurveySection(payload({
+    survey: [{
+      surface: 'Profile', surface_note: 'SUR-0001', parent: null,
+      unresolved: false,
+      changes: [{ id: 'CHG-1', title: 'It moved', sentence: 'the avatar moved.' }],
+      captures: [
+        { key: 'profile', state: null, before: 'a/v1.0/profile.png',
+          after: 'a/candidate/profile.png', new: false },
+        { key: 'profile-pro', state: 'pro', before: null,
+          after: 'a/candidate/profile-pro.png', new: true },
+      ],
+    }],
+  }));
+  const shots = all(section, 'walk-survey-capture');
+  assert.equal(shots.length, 3);
+  assert.match(all(section, 'walk-survey-capture-key')[1].textContent, /new/);
+});
+
+test('the survey says why it has no release to compare against', async () => {
+  const document = makeDom();
+  const { buildSurveySection } = await load({ document });
+  const section = buildSurveySection(payload({
+    survey: [], survey_problem: 'the tag `v1.0` is not in this checkout',
+  }));
+  assert.match(all(section, 'walk-survey-problem')[0].textContent, /v1\.0/);
 });
 
 test('the gallery command is printed verbatim', async () => {

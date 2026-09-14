@@ -1,20 +1,28 @@
-"""The survey — the surfaces this release changed ([[TASK-0620]]).
+"""The survey — the screens this release changed ([[TASK-0620]], upstream ADR-0045).
 
 The checks say what must be true. None of them says *open the screens this
 release touched and look*, which is the first thing Edwin does by habit and the
-one thing the suite never asks for. The information was already recorded: an
-invalidation is an event `{check, invalidated_by, date}` in the ledger, and
-every check names its surface in `area:`. The survey is that join.
+one thing the suite never asks for.
 
-**The predicate is "the latest event is an invalidation."** A check invalidated
-and then walked to `pass` is not owed and its surface has been looked at; a
-check invalidated after its last `pass` is owed *because of that change*, and
-the change is what the walker should open first.
+**Where the answer comes from changed on 2026-09-14.** It used to be the
+ledger's invalidation events joined to each check's `area:`. An invalidation
+names a check and never a screen, so the survey listed test categories such as
+"Hardware", which spans five screens, and a change that altered a screen
+without reopening a check was invisible. The answer is now the `## Impact`
+list on every change note added since the last release tag: one `SUR-*` id per
+screen, each with one sentence somebody using the product would understand
+(project-os-dev ADR-0045 decision 1; `tools/instructions/TESTING.md`, "The
+walk", rule 2).
+
+The rule lives upstream and the bundled module implements it. These tests
+assert that the cockpit's payload carries that answer, and carries it in the
+shape the page reads.
 """
 
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -27,7 +35,7 @@ def _check(docs: Path, tid: str, *, area: str) -> None:
     (docs / "tests" / "acceptance").mkdir(parents=True, exist_ok=True)
     (docs / "tests" / "acceptance" / f"{tid}.md").write_text(
         f'---\ntype: "[[test]]"\nid: {tid}\ntitle: "{tid}"\n'
-        f'level: acceptance\nstatus: active\narea: "{area}"\nmark: todo\n'
+        f'level: acceptance\nstatus: active\narea: "{area}"\n'
         f"---\n\n# {tid}\n", encoding="utf-8")
 
 
@@ -38,220 +46,256 @@ def _ledger(docs: Path, entries: list[dict], platform: str = "android") -> None:
                     encoding="utf-8")
 
 
-def _task(docs: Path, tid: str, title: str, body: str = "") -> None:
-    (docs / "features" / "f" / "plan" / "tasks").mkdir(parents=True, exist_ok=True)
-    (docs / "features" / "f" / "plan" / "tasks" / f"{tid}.md").write_text(
-        f'---\ntype: "[[task]]"\nid: {tid}\ntitle: "{title}"\nstatus: done\n'
-        f'parent: "[[FEAT-0001]]"\n---\n\n# {title}\n\n{body}\n', encoding="utf-8")
+def _release(docs: Path, *, tag: str = "v1.0", platform: str = "android",
+             status: str = "released") -> None:
+    (docs / "releases").mkdir(parents=True, exist_ok=True)
+    (docs / "releases" / "REL-0001-v1.0.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0001\ntitle: "v1.0"\n'
+        f'status: {status}\nversion: "1.0"\ntag: "{tag}"\n'
+        f'date: "2026-08-01"\nplatform: "{platform}"\n---\n\n# v1.0\n',
+        encoding="utf-8")
 
 
-def _change(docs: Path, stem: str, cid: str, title: str, body: str = "") -> None:
+def _surface(docs: Path, sid: str, title: str, *, parent: str = "",
+             gallery: str = "[]") -> None:
+    (docs / "surfaces").mkdir(parents=True, exist_ok=True)
+    (docs / "surfaces" / f"{sid}.md").write_text(
+        f'---\ntype: "[[surface]]"\nid: {sid}\ntitle: "{title}"\n'
+        f'status: active\nkind: screen\nparent: "{parent}"\n'
+        f"gallery: {gallery}\n---\n\n# {title}\n", encoding="utf-8")
+
+
+def _change(docs: Path, stem: str, title: str, impact: str) -> None:
     (docs / "changes").mkdir(parents=True, exist_ok=True)
     (docs / "changes" / f"{stem}.md").write_text(
-        f'---\ntype: "[[change]]"\nid: {cid}\ntitle: "{title}"\n---\n\n'
-        f"# {title}\n\n{body}\n", encoding="utf-8")
+        f'---\ntype: "[[change]]"\nid: {stem}\ntitle: "{title}"\n'
+        f"status: merged\n---\n\n# {title}\n\n## Impact\n\n{impact}\n",
+        encoding="utf-8")
+
+
+def _git(root: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(root), "-c", "user.email=f@f",
+                    "-c", "user.name=fixture", *args],
+                   check=True, capture_output=True)
+
+
+def _repo(tmp_path: Path) -> Path:
+    """A git checkout with one tagged commit, and docs/ inside it.
+
+    The survey asks git which change notes are new, so a fixture without a
+    repository and a tag can only exercise the "no release to compare
+    against" answer.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["git", "-C", str(tmp_path), "init", "-q"],
+                   check=True, capture_output=True)
+    return docs
+
+
+def _tag(tmp_path: Path, name: str = "v1.0") -> None:
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-m", "at the tag")
+    _git(tmp_path, "tag", name)
+
+
+def _commit(tmp_path: Path) -> None:
+    _git(tmp_path, "add", "-A")
+    _git(tmp_path, "commit", "-m", "after the tag")
+
+
+def _payload(docs: Path, platform: str = "android") -> dict:
+    return acceptance.walk_payload(docs, Index.build(docs), platform=platform)
 
 
 def _survey(docs: Path, platform: str = "android") -> list[dict]:
-    return acceptance.walk_payload(docs, Index.build(docs),
-                                   platform=platform)["survey"]
+    return _payload(docs, platform)["survey"]
 
 
-def _invalidation(check: str, by: str, date: str = "2026-09-10") -> dict:
-    return {"check": check, "date": date, "invalidated_by": by,
-            "reason": "a change touched this", "by": "user:edwin",
-            "method": "manual"}
+# --------------------------------------------------- what reaches the survey
 
-
-# ------------------------------------------------------- the predicate
-
-def test_a_surface_appears_when_the_latest_event_is_an_invalidation(
+def test_a_change_note_added_since_the_tag_names_its_screen(
         tmp_path: Path) -> None:
-    docs = tmp_path / "docs"
+    docs = _repo(tmp_path)
     _check(docs, "TST-0001", area="Profile")
-    _task(docs, "TASK-0001", "Rewrote the profile screen")
-    _ledger(docs, [
-        {"check": "TST-0001", "date": "2026-09-01", "mark": "pass",
-         "by": "user:edwin", "method": "manual"},
-        _invalidation("TST-0001", "TASK-0001"),
-    ])
+    _surface(docs, "SUR-0001", "Profile")
+    _release(docs)
+    _ledger(docs, [])
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-The-Profile-Moves", "The profile moves",
+            "- [[SUR-0001]]: the sign-in button sits under the avatar now.")
+    _commit(tmp_path)
+
     survey = _survey(docs)
     assert [e["surface"] for e in survey] == ["Profile"]
-    assert survey[0]["checks"] == ["TST-0001"]
-    assert [c["id"] for c in survey[0]["changes"]] == ["TASK-0001"]
-    assert survey[0]["changes"][0]["title"] == "Rewrote the profile screen"
+    assert survey[0]["surface_note"] == "SUR-0001"
+    assert [c["sentence"] for c in survey[0]["changes"]] == [
+        "the sign-in button sits under the avatar now."]
+    assert survey[0]["changes"][0]["title"] == "The profile moves"
 
 
-def test_an_invalidation_a_later_pass_overtook_is_not_in_the_survey(
+def test_a_change_note_that_existed_at_the_tag_is_not_in_the_survey(
         tmp_path: Path) -> None:
-    """The check is not owed, so its surface has been looked at. Listing it
-    would send the walker to a screen somebody already walked."""
-    docs = tmp_path / "docs"
+    """The survey is what changed since the last release, not what ever did."""
+    docs = _repo(tmp_path)
     _check(docs, "TST-0001", area="Profile")
-    _task(docs, "TASK-0001", "Rewrote the profile screen")
-    _ledger(docs, [
-        _invalidation("TST-0001", "TASK-0001", date="2026-09-01"),
-        {"check": "TST-0001", "date": "2026-09-02", "mark": "pass",
-         "by": "user:edwin", "method": "manual"},
-    ])
+    _surface(docs, "SUR-0001", "Profile")
+    _release(docs)
+    _ledger(docs, [])
+    _change(docs, "CHG-20260701-Shipped-Already", "Shipped already",
+            "- [[SUR-0001]]: this sentence belongs to the last release.")
+    _tag(tmp_path)
+
     assert _survey(docs) == []
 
 
-def test_an_owed_check_with_no_invalidation_names_no_surface(
-        tmp_path: Path) -> None:
-    """Owed because nobody has ever walked it is not *a change reopened it*.
-    The survey answers the second question only."""
-    docs = tmp_path / "docs"
+def test_a_change_that_altered_no_screen_adds_nothing(tmp_path: Path) -> None:
+    docs = _repo(tmp_path)
     _check(docs, "TST-0001", area="Profile")
+    _surface(docs, "SUR-0001", "Profile")
+    _release(docs)
     _ledger(docs, [])
-    payload = acceptance.walk_payload(docs, Index.build(docs), platform="android")
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-A-Build-Script", "A build script moved",
+            "- No screen changed: it is a build script.")
+    _commit(tmp_path)
+
+    assert _survey(docs) == []
+
+
+def test_an_id_no_surface_note_carries_is_kept_and_flagged(
+        tmp_path: Path) -> None:
+    """Dropped, it would be a screen somebody altered and nobody can open."""
+    docs = _repo(tmp_path)
+    _check(docs, "TST-0001", area="Profile")
+    _release(docs)
+    _ledger(docs, [])
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-A-Ghost", "A ghost",
+            "- [[SUR-9999]]: something moved here.")
+    _commit(tmp_path)
+
+    entry = _survey(docs)[0]
+    assert entry["surface"] == "SUR-9999"
+    assert entry["unresolved"] is True
+
+
+def test_the_survey_names_no_check_at_all(tmp_path: Path) -> None:
+    """Rule 2: it is a list of places to open, not a list of things to run."""
+    docs = _repo(tmp_path)
+    _check(docs, "TST-0001", area="Profile")
+    _surface(docs, "SUR-0001", "Profile")
+    _release(docs)
+    _ledger(docs, [])
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-The-Profile-Moves", "The profile moves",
+            "- [[SUR-0001]]: the avatar moved.")
+    _commit(tmp_path)
+
+    payload = _payload(docs)
+    assert payload["counts"]["owed"] == 1
+    assert "TST-" not in json.dumps(payload["survey"])
+
+
+# ------------------------------------------------------------- the shape
+
+def test_a_child_screen_carries_its_parent(tmp_path: Path) -> None:
+    """A dialog is a child surface and the page nests it (ADR-0044 rule 2)."""
+    docs = _repo(tmp_path)
+    _check(docs, "TST-0001", area="Profile")
+    _surface(docs, "SUR-0001", "Profile")
+    _surface(docs, "SUR-0002", "Avatar dialog", parent="[[SUR-0001]]")
+    _release(docs)
+    _ledger(docs, [])
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-Both", "Both",
+            "- [[SUR-0001]]: the avatar moved.\n"
+            "- [[SUR-0002]]: the dialog asks for a crop.")
+    _commit(tmp_path)
+
+    survey = _survey(docs)
+    assert [(e["surface"], e["parent"]) for e in survey] == [
+        ("Profile", None), ("Avatar dialog", "SUR-0001")]
+
+
+def test_captures_are_the_screen_before_and_the_screen_now(
+        tmp_path: Path) -> None:
+    docs = _repo(tmp_path)
+    _check(docs, "TST-0001", area="Profile")
+    _surface(docs, "SUR-0001", "Profile", gallery='[profile, "profile-pro:pro"]')
+    _release(docs)
+    _ledger(docs, [])
+    gallery = docs / "tests" / "acceptance" / "gallery"
+    (gallery / "v1.0").mkdir(parents=True)
+    (gallery / "candidate").mkdir(parents=True)
+    (gallery / "v1.0" / "profile.png").write_bytes(b"before")
+    (gallery / "candidate" / "profile.png").write_bytes(b"now")
+    (gallery / "candidate" / "profile-pro.png").write_bytes(b"now")
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-The-Profile-Moves", "The profile moves",
+            "- [[SUR-0001]]: the avatar moved.")
+    _commit(tmp_path)
+
+    captures = _survey(docs)[0]["captures"]
+    assert [(c["key"], c["state"], c["new"]) for c in captures] == [
+        ("profile", None, False), ("profile-pro", "pro", True)]
+    assert captures[0]["before"].endswith("gallery/v1.0/profile.png")
+    assert captures[0]["after"].endswith("gallery/candidate/profile.png")
+    assert captures[1]["before"] is None
+
+
+# --------------------------------------------------- when there is no anchor
+
+def test_a_project_with_no_released_note_says_so_and_still_walks(
+        tmp_path: Path) -> None:
+    docs = _repo(tmp_path)
+    _check(docs, "TST-0001", area="Profile")
+    _surface(docs, "SUR-0001", "Profile")
+    _ledger(docs, [])
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-The-Profile-Moves", "The profile moves",
+            "- [[SUR-0001]]: the avatar moved.")
+    _commit(tmp_path)
+
+    payload = _payload(docs)
     assert payload["survey"] == []
+    assert "no released REL-* note" in payload["survey_problem"]
     assert payload["counts"]["owed"] == 1
 
 
-def test_a_failed_check_after_an_invalidation_leaves_the_survey(
+def test_a_tag_the_checkout_does_not_carry_says_which_tag(
         tmp_path: Path) -> None:
-    """Somebody has looked at the screen — they walked it and it failed. It is
-    still owed, and it is no longer news about a changed surface."""
-    docs = tmp_path / "docs"
+    """A shallow clone in CI. The survey goes; the rest of the walk stays."""
+    docs = _repo(tmp_path)
     _check(docs, "TST-0001", area="Profile")
-    _task(docs, "TASK-0001", "Rewrote the profile screen")
-    _ledger(docs, [
-        _invalidation("TST-0001", "TASK-0001", date="2026-09-01"),
-        {"check": "TST-0001", "date": "2026-09-02", "mark": "fail",
-         "reason": "still broken", "by": "user:edwin", "method": "manual"},
-    ])
-    payload = acceptance.walk_payload(docs, Index.build(docs), platform="android")
+    _surface(docs, "SUR-0001", "Profile")
+    _release(docs, tag="v9.9")
+    _ledger(docs, [])
+    _tag(tmp_path)
+
+    payload = _payload(docs)
     assert payload["survey"] == []
+    assert "v9.9" in payload["survey_problem"]
     assert payload["counts"]["owed"] == 1
-
-
-# ------------------------------------------------------------- the causes
-
-def test_every_distinct_cause_is_named(tmp_path: Path) -> None:
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="Profile")
-    _check(docs, "TST-0002", area="Profile")
-    _task(docs, "TASK-0001", "One")
-    _task(docs, "TASK-0002", "Two")
-    _ledger(docs, [
-        _invalidation("TST-0001", "TASK-0001, TASK-0002"),
-        _invalidation("TST-0002", "TASK-0002"),
-    ])
-    survey = _survey(docs)
-    assert len(survey) == 1
-    assert survey[0]["checks"] == ["TST-0001", "TST-0002"]
-    assert [c["id"] for c in survey[0]["changes"]] == ["TASK-0001", "TASK-0002"]
-
-
-def test_an_id_the_index_cannot_resolve_is_kept_with_no_title(
-        tmp_path: Path) -> None:
-    """Dropped, it would be an invalidation the walker cannot trace. Kept with
-    `title: None`, the page can say *this names something that is not here*."""
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="Profile")
-    _ledger(docs, [_invalidation("TST-0001", "TASK-9999")])
-    survey = _survey(docs)
-    assert [(c["id"], c["title"]) for c in survey[0]["changes"]] == [
-        ("TASK-9999", None)]
-
-
-def test_a_change_note_resolves_by_its_full_slug(tmp_path: Path) -> None:
-    """`CHG` is not in the validator's id prefixes, so the note index holds no
-    change note at all. The walk module keeps a second index for them; without
-    it a survey naming a change printed an id and quoted nothing."""
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="Profile")
-    _change(docs, "CHG-20260913-The-Profile-Moves", "CHG-20260913",
-            "The profile moves",
-            "## Acceptance checks reopened\n\nThe profile screen was rebuilt.\n")
-    _ledger(docs, [_invalidation("TST-0001", "CHG-20260913-The-Profile-Moves")])
-    change = _survey(docs)[0]["changes"][0]
-    assert change["id"] == "CHG-20260913-The-Profile-Moves"
-    assert change["title"] == "The profile moves"
-    assert change["reopened"] == "The profile screen was rebuilt."
-
-
-def test_the_reopened_section_is_quoted_and_nothing_else_is(
-        tmp_path: Path) -> None:
-    """Where the invalidating note carries the section, it is the sentence the
-    walker needs. Nothing else in the note is read — a survey that quoted a
-    whole task note would be unreadable at thirty rows."""
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="Profile")
-    _task(docs, "TASK-0001", "Rewrote it", body=(
-        "## Why\n\nA long justification nobody needs here.\n\n"
-        "## Acceptance checks reopened\n\nThe sign-in button moved.\n\n"
-        "## Notes\n\nMore prose.\n"))
-    _ledger(docs, [_invalidation("TST-0001", "TASK-0001")])
-    change = _survey(docs)[0]["changes"][0]
-    assert change["reopened"] == "The sign-in button moved."
-    assert "justification" not in (change["reopened"] or "")
-
-
-def test_a_note_without_the_section_reopens_nothing_and_still_appears(
-        tmp_path: Path) -> None:
-    """The section is a convention 33 `your-trainer` notes already follow and
-    the template does not require. The survey works without it."""
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="Profile")
-    _task(docs, "TASK-0001", "Rewrote it", body="## Why\n\nBecause.\n")
-    _ledger(docs, [_invalidation("TST-0001", "TASK-0001")])
-    change = _survey(docs)[0]["changes"][0]
-    assert change["title"] == "Rewrote it"
-    assert change["reopened"] is None
-
-
-# -------------------------------------------------------------- the surface
-
-def test_the_surface_note_is_named_when_the_repo_keeps_one(
-        tmp_path: Path) -> None:
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="Profile")
-    (docs / "surfaces").mkdir(parents=True)
-    (docs / "surfaces" / "SUR-0001-Profile.md").write_text(
-        '---\ntype: "[[surface]]"\nid: SUR-0001\ntitle: "Profile"\n'
-        "status: active\n---\n\n# Profile\n", encoding="utf-8")
-    _task(docs, "TASK-0001", "Rewrote it")
-    _ledger(docs, [_invalidation("TST-0001", "TASK-0001")])
-    assert _survey(docs)[0]["surface_note"] == "SUR-0001"
-
-
-def test_a_repo_with_no_surface_notes_groups_by_the_area_string(
-        tmp_path: Path) -> None:
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="Profile")
-    _task(docs, "TASK-0001", "Rewrote it")
-    _ledger(docs, [_invalidation("TST-0001", "TASK-0001")])
-    entry = _survey(docs)[0]
-    assert entry["surface"] == "Profile"
-    assert entry["surface_note"] is None
-
-
-def test_a_check_with_no_area_is_still_surveyed(tmp_path: Path) -> None:
-    """It says the area is missing rather than dropping the row. A check
-    reopened by a change and invisible on the survey is the one failure the
-    survey exists to prevent."""
-    docs = tmp_path / "docs"
-    _check(docs, "TST-0001", area="")
-    _task(docs, "TASK-0001", "Rewrote it")
-    _ledger(docs, [_invalidation("TST-0001", "TASK-0001")])
-    entry = _survey(docs)[0]
-    assert entry["checks"] == ["TST-0001"]
-    assert "no area" in entry["surface"]
 
 
 def test_the_survey_is_per_platform(tmp_path: Path) -> None:
-    """An Android change reopens the check on both platforms — the payoff
-    [[ADR-0037]] names — but each ledger records its own events, so the survey
-    reports the platform it was asked about."""
-    docs = tmp_path / "docs"
+    """Each platform names its own release note, and tags them differently."""
+    docs = _repo(tmp_path)
     _check(docs, "TST-0001", area="Profile")
-    _task(docs, "TASK-0001", "Rewrote it")
-    _ledger(docs, [_invalidation("TST-0001", "TASK-0001")], platform="android")
+    _surface(docs, "SUR-0001", "Profile")
+    _release(docs, platform="android")
+    _ledger(docs, [], platform="android")
     _ledger(docs, [], platform="ios")
+    _tag(tmp_path)
+    _change(docs, "CHG-20260902-The-Profile-Moves", "The profile moves",
+            "- [[SUR-0001]]: the avatar moved.")
+    _commit(tmp_path)
+
     assert [e["surface"] for e in _survey(docs, "android")] == ["Profile"]
-    assert _survey(docs, "ios") == []
+    ios = _payload(docs, "ios")
+    assert ios["survey"] == []
+    assert "no released REL-* note for ios" in ios["survey_problem"]
 
 
 # ------------------------------------------------------------- the live corpus
@@ -261,38 +305,30 @@ YOUR_TRAINER = Path(__file__).resolve().parents[2] / "your-trainer" / "docs"
 
 @pytest.mark.skipif(not YOUR_TRAINER.is_dir(),
                     reason="your-trainer is not checked out beside this repo")
-def test_the_live_survey_equals_the_ledgers_own_invalidations() -> None:
-    """The exit criterion, computed against `ledger.events_by_check` directly.
+def test_the_live_survey_is_what_its_change_notes_name() -> None:
+    """Both sides built here rather than pinned to a number.
 
-    Both sides are built here rather than compared to a recorded number: the
-    corpus moves, and a test pinned to *six surfaces* would fail on the next
-    invalidation for no reason anybody could act on.
+    The corpus moves, and a test asserting *three screens* would fail on the
+    next change note for no reason anybody could act on. What is asserted is
+    the join: every screen on the survey was named by a change note added
+    since the tag, and every such screen is on the survey.
     """
+    walk = acceptance._walk_module()
     index = Index.build(YOUR_TRAINER)
     platform = (ledger.platforms(YOUR_TRAINER) or ["android"])[0]
     payload = acceptance.walk_payload(YOUR_TRAINER, index, platform=platform)
 
-    events = ledger.events_by_check(YOUR_TRAINER, platform)
-    owed_rows = {r["id"]: r for s in payload["sittings"] for r in s["rows"]}
-    owed_rows.update({r["id"]: r for r in payload["unplaced"]})
+    repo_root = YOUR_TRAINER.parent
+    _, tag, problem = walk.last_release(YOUR_TRAINER, platform)
+    if not tag or problem:
+        pytest.skip("your-trainer has no reachable release tag for %s" % platform)
+    added, problem = walk.changes_since(repo_root, tag)
+    if problem:
+        pytest.skip(problem)
 
-    expected: dict[str, set[str]] = {}
-    for check, row in owed_rows.items():
-        log = events.get(check) or []
-        if not log or not log[0].get("invalidated_by"):
-            continue
-        surface = row["area"] or "(no area on the check)"
-        expected.setdefault(surface, set()).add(check)
-
-    got = {e["surface"]: set(e["checks"]) for e in payload["survey"]}
+    expected = {sid for change in walk.load_changes(YOUR_TRAINER, repo_root,
+                                                    only=added)
+                for sid, _ in change.screens}
+    got = {e["surface_note"] or e["surface"] for e in payload["survey"]}
     assert got == expected
-
-    #: …and every cause named by those events is on the survey.
-    for entry in payload["survey"]:
-        named = set()
-        for check in entry["checks"]:
-            raw = (events[check][0].get("invalidated_by") or "")
-            named.update(tok.strip().strip("[]") for tok in
-                         raw.replace(";", ",").replace(" ", ",").split(",")
-                         if tok.strip())
-        assert {c["id"] for c in entry["changes"]} == named
+    assert "TST-" not in json.dumps(payload["survey"])

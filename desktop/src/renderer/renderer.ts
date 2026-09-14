@@ -10354,14 +10354,20 @@ interface WalkSitting {
   name: string; state: string; bench: string[];
   surfaces: string[]; checks: string[]; rows: WalkRow[];
 }
-interface WalkCause { id: string; title: string | null; reopened: string | null; }
+interface WalkCause { id: string; title: string | null; sentence: string | null; }
+interface WalkCapture {
+  key: string; state: string | null;
+  before: string | null; after: string | null; new: boolean;
+}
 interface WalkSurvey {
-  surface: string; surface_note: string | null;
-  checks: string[]; changes: WalkCause[];
+  surface: string; surface_note: string | null; parent: string | null;
+  unresolved: boolean; changes: WalkCause[]; captures: WalkCapture[];
 }
 interface WalkPayload {
   platform: string; release: string; gallery: string | null;
   survey: WalkSurvey[]; sittings: WalkSitting[]; unplaced: WalkRow[];
+  survey_release?: string | null; survey_tag?: string | null;
+  survey_problem?: string | null;
   counts: { owed: number; placed: number; unplaced: number };
   order_source: string; walk_rel: string; template_rel: string;
   errors: string[]; warnings: string[]; notices: string[];
@@ -10590,18 +10596,23 @@ function walkNotice(text: string, cls: string): HTMLElement {
   return el;
 }
 
-/** The survey — the surfaces this release changed, before any scripted check
- *  ([[TASK-0620]]).
+/** The survey — the screens this release changed, before any scripted check
+ *  ([[TASK-0620]]; upstream ADR-0045 decision 1).
  *
  *  Edwin, 2026-09-13: *"one thing I notice the tests do not suggest me doing
  *  is to look at the changed screens at all, which is strange because that is
- *  normally the first step I would do."* Every fact it needs was already in
- *  the ledger; nothing asked for it. */
+ *  normally the first step I would do."*
+ *
+ *  It read the ledger's invalidation events until 2026-09-14. An invalidation
+ *  names a check and never a screen, so it listed test categories. What it
+ *  reads now is the `## Impact` list on every change note added since the last
+ *  release tag: one screen per line, one sentence each. No check id appears
+ *  here — this is a list of places to open, not a list of things to run. */
 function buildSurveySection(v: WalkPayload): HTMLElement {
   const section = document.createElement('section');
   section.className = 'walk-survey';
   const h = document.createElement('h3');
-  h.textContent = 'Survey — the surfaces this release changed';
+  h.textContent = 'Survey — the screens this release changed';
   section.appendChild(h);
 
   if (v.gallery) {
@@ -10619,27 +10630,43 @@ function buildSurveySection(v: WalkPayload): HTMLElement {
     section.appendChild(cmd);
   }
 
+  //: Which release the screens are compared against, or why nothing can be.
+  //: A survey that simply came back empty would read as "nothing changed",
+  //: which is a different answer from "nothing says what changed".
+  if (v.survey_problem) {
+    const why = document.createElement('p');
+    why.className = 'walk-survey-problem';
+    why.textContent = `No release to compare against: ${v.survey_problem}.`;
+    section.appendChild(why);
+  } else if (v.survey_tag) {
+    const against = document.createElement('p');
+    against.className = 'walk-survey-against';
+    against.textContent = `Compared against ${v.survey_release ?? 'the last '
+      + 'release'}, tagged ${v.survey_tag}.`;
+    section.appendChild(against);
+  }
+
   if (!v.survey.length) {
     const none = document.createElement('p');
     none.className = 'empty-note';
-    none.textContent = 'Nothing on the owed list was reopened by a change. '
-      + 'Every row below is owed because it has never been walked on this '
-      + 'platform, or because its last verdict did not clear.';
+    none.textContent = 'No change note names a screen. Either this release '
+      + 'altered no screen, or its change notes carry no Impact list.';
     section.appendChild(none);
     return section;
   }
 
   const lead = document.createElement('p');
   lead.className = 'walk-survey-lead';
-  lead.textContent = 'Before any check, open these screens and look. Each one '
-    + 'has an owed check that a change reopened.';
+  lead.textContent = 'Open these screens and look at them before walking a '
+    + 'single scripted step. Each line is what one change says it altered.';
   section.appendChild(lead);
 
   for (const entry of v.survey) {
     const block = document.createElement('div');
-    block.className = 'walk-survey-surface';
-    const name = document.createElement('h4');
-    name.textContent = entry.surface_note
+    block.className = entry.parent
+      ? 'walk-survey-surface is-child' : 'walk-survey-surface';
+    const name = document.createElement(entry.parent ? 'h5' : 'h4');
+    name.textContent = entry.surface_note && entry.surface_note !== entry.surface
       ? `${entry.surface} (${entry.surface_note})` : entry.surface;
     if (entry.surface_note) {
       name.classList.add('is-link');
@@ -10649,37 +10676,54 @@ function buildSurveySection(v: WalkPayload): HTMLElement {
     }
     block.appendChild(name);
 
-    const checks = document.createElement('div');
-    checks.className = 'walk-survey-checks';
-    for (const id of entry.checks) {
-      const link = document.createElement('button');
-      link.type = 'button';
-      link.className = 'checks-chip';
-      link.textContent = id;
-      link.addEventListener('click', () => { void openWalkNote(id); });
-      checks.appendChild(link);
+    //: **A screen no surface note carries is named, never dropped.** A change
+    //: says it altered this place and nobody can open it, which is worse news
+    //: than a missing heading and has to be on the page.
+    if (entry.unresolved) {
+      const ghost = document.createElement('p');
+      ghost.className = 'walk-survey-unresolved';
+      ghost.textContent = 'No surface note carries this id, so nothing here '
+        + 'says which screen to open.';
+      block.appendChild(ghost);
     }
-    block.appendChild(checks);
 
     for (const cause of entry.changes) {
       const row = document.createElement('div');
       row.className = 'walk-survey-cause';
+      const said = document.createElement('p');
+      said.className = 'walk-survey-sentence';
+      said.textContent = cause.sentence
+        ?? 'that change names this screen and says nothing about it';
+      row.appendChild(said);
       const who = document.createElement('button');
       who.type = 'button';
       who.className = 'file-row';
-      //: **An id the index cannot resolve is named, never dropped.** A cause
-      //: the walker cannot trace is still the reason their check reopened.
       who.textContent = cause.title
         ? `${cause.id} — ${cause.title}` : `${cause.id} — (not in this repo)`;
       who.addEventListener('click', () => { void openWalkNote(cause.id); });
       row.appendChild(who);
-      if (cause.reopened) {
-        const quote = document.createElement('blockquote');
-        quote.className = 'walk-reopened';
-        quote.textContent = cause.reopened;
-        row.appendChild(quote);
-      }
       block.appendChild(row);
+    }
+
+    for (const shot of entry.captures) {
+      const pair = document.createElement('div');
+      pair.className = 'walk-survey-captures';
+      const label = document.createElement('div');
+      label.className = 'walk-survey-capture-key';
+      label.textContent = shot.state ? `${shot.key} (${shot.state})` : shot.key;
+      if (shot.new) label.textContent += ' — new';
+      pair.appendChild(label);
+      for (const [when, src] of [
+        ['at the last release', shot.before], ['now', shot.after],
+      ] as [string, string | null][]) {
+        if (!src) continue;
+        const img = document.createElement('img');
+        img.className = 'walk-survey-capture';
+        img.setAttribute('src', src);
+        img.setAttribute('alt', `${shot.key}, ${when}`);
+        pair.appendChild(img);
+      }
+      block.appendChild(pair);
     }
     section.appendChild(block);
   }

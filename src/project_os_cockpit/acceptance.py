@@ -2505,7 +2505,7 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
                                 [i.note_id for i in manual]))
     owed = [i for i in manual if i.note_id in owed_ids]
 
-    bodies, afters, titles, surfaces = _walk_notes(index, docs_root, owed)
+    bodies, afters, titles, surfaces, raw = _walk_notes(index, docs_root, owed)
     checks = {i.note_id: _walk_check(i, bodies.get(i.note_id, ""),
                                      afters.get(i.note_id, ()))
               for i in owed}
@@ -2520,12 +2520,33 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
     else:
         sittings = walk.unordered_sittings(list(checks.values()))
 
+    #: The survey and the procedures, read by upstream's own readers so the
+    #: page and the generated sheet answer with the same rules
+    #: (project-os-dev ADR-0045; `TESTING.md`, "The walk", rules 2 and 9).
+    repo_root = docs_root.parent
+    surface_notes = walk.load_surfaces(raw)
+    procedures = walk.load_procedures(docs_root, repo_root)
+    for procedure in procedures:
+        walk.name_surfaces(procedure.steps, surface_notes)
+    survey_release, survey_tag, survey_problem = walk.last_release(
+        docs_root, platform)
+    added: set[str] = set()
+    if survey_tag:
+        added, survey_problem = walk.changes_since(repo_root, survey_tag)
+    usable = bool(survey_tag) and not survey_problem
+    changes = walk.load_changes(docs_root, repo_root,
+                                only=added if usable else set())
+
     sheet = walk.build_walk(
         checks, _walk_events(docs_root, platform), sittings,
         release=release, platform=platform,
-        titles=titles, surfaces=surfaces,
-        changes=walk.change_notes(docs_root),
+        surfaces=surfaces, surface_notes=surface_notes,
+        changes=changes, procedures=procedures,
+        captures=walk.capture_finder(docs_root, repo_root,
+                                     survey_tag if usable else ""),
         gallery=gallery, warnings=warnings, authored_order=authored,
+        survey_release=survey_release,
+        survey_tag=survey_tag if usable else "", survey_problem=survey_problem,
     )
 
     #: **A row the cockpit says is owed and the module dropped is reported.**
@@ -2554,6 +2575,12 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
             "surfaces": list(placed.sitting.surfaces),
             "checks": list(placed.sitting.checks),
             "rows": [_walk_row(by_id[c.id], c) for c in placed.rows],
+            #: The sitting's written script, where it has one that holds up
+            #: ("The walk", rule 9). `steps` is already filtered to the steps
+            #: citing something this release owes, so a page renders it as it
+            #: comes; `problems` non-empty means the rows above are what to
+            #: read instead.
+            "procedure": _walk_procedure(placed),
         })
     unplaced = [_walk_row(by_id[c.id], c) for c in sheet.unplaced]
     placed_n = sum(len(s["rows"]) for s in out_sittings)
@@ -2567,14 +2594,25 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
         #: entry: it is a property of the repo, and repeating it under every
         #: surface would be one fact printed many times.
         "gallery": gallery or None,
+        #: The screens the release changed, from the change notes that named
+        #: them ("The walk", rule 2). It carried the checks an invalidation
+        #: reopened until 2026-09-14; an invalidation names a check and never
+        #: a screen, which is what project-os-dev ADR-0045 decision 1 replaced.
         "survey": [{
-            "surface": entry.surface,
-            "surface_note": entry.surface_id or None,
-            "checks": list(entry.checks),
+            "surface": entry.title,
+            "surface_note": entry.id or None,
+            "parent": entry.parent or None,
+            "unresolved": entry.unresolved,
             "changes": [{"id": cid, "title": title or None,
-                         "reopened": quoted or None}
-                        for cid, title, quoted in entry.causes],
+                         "sentence": sentence or None}
+                        for cid, title, sentence in entry.sentences],
+            "captures": [{"key": c.key, "state": c.state or None,
+                          "before": c.before or None, "after": c.after or None,
+                          "new": c.new} for c in entry.captures],
         } for entry in sheet.survey],
+        "survey_release": sheet.survey_release or None,
+        "survey_tag": sheet.survey_tag or None,
+        "survey_problem": sheet.survey_problem or None,
         "sittings": out_sittings,
         "unplaced": unplaced,
         "counts": {
@@ -2605,20 +2643,61 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
     }
 
 
+def _walk_procedure(placed: "Any") -> "dict[str, Any] | None":
+    """One sitting's procedure as data, or None where it has none.
+
+    Rendered rather than re-parsed: a page that read the markdown itself would
+    be a second implementation of rule 9, which is the thing bundling the
+    module exists to prevent.
+    """
+    procedure = getattr(placed, "procedure", None)
+    if procedure is None:
+        return None
+    return {
+        "path": procedure.path,
+        "sitting": procedure.sitting,
+        "setup": procedure.setup,
+        "problems": list(procedure.problems),
+        "remarks": list(procedure.remarks),
+        "omitted": placed.omitted,
+        "owed_checks": [c.id for c in placed.owed_checks],
+        "steps": [{
+            "number": step.number,
+            "head": step.head,
+            "surface": step.surface_said or None,
+            "surface_note": step.surface_id or None,
+            "lines": [{
+                "text": line,
+                "tags": [{"check": check, "step": number or None,
+                          "owed": (check, number) in expectation.owed}
+                         for check, number in expectation.tags]
+                        if expectation is not None else [],
+            } for line, expectation in (
+                (raw, next((e for e in step.expectations if e.raw == raw), None))
+                for raw in step.body)],
+        } for step in placed.steps],
+    }
+
+
 def _walk_notes(
     index: "Any | None", docs_root: Path, items: list["Item"],
 ) -> tuple[dict[str, str], dict[str, tuple[str, ...]], dict[str, tuple[str, Path]],
-           dict[str, str]]:
-    """The four lookups the template's generator gets from the validator.
+           dict[str, str], dict[str, tuple[Path, dict]]]:
+    """The lookups the template's generator gets from the validator.
 
     Read from the cockpit's own index where there is one, so the walk sees
     exactly the notes every other surface sees, and off the filesystem when a
     caller passed none (the tests, and the CLI).
+
+    The last value is the index in the shape upstream's own readers take,
+    `{id: (path, frontmatter)}`, so `load_surfaces` runs here rather than
+    being written a second time (project-os-dev ADR-0045).
     """
     bodies: dict[str, str] = {}
     afters: dict[str, tuple[str, ...]] = {}
     titles: dict[str, tuple[str, Path]] = {}
     surfaces: dict[str, str] = {}
+    raw: dict[str, tuple[Path, dict]] = {}
     wanted = {i.note_id for i in items}
     if index is not None:
         for record in index.iter_records():
@@ -2626,6 +2705,7 @@ def _walk_notes(
             if note_id:
                 titles[note_id] = (str(record.frontmatter.get("title") or ""),
                                    record.path)
+                raw[note_id] = (record.path, dict(record.frontmatter))
             if (record.note_type or "").lower() == "surface":
                 title = str(record.frontmatter.get("title") or "").strip()
                 if title and note_id:
@@ -2637,7 +2717,7 @@ def _walk_notes(
                 #: cannot disagree about what an `after:` names.
                 afters[note_id] = tuple(
                     _walk_module()._ids(record.frontmatter.get("after")))
-        return bodies, afters, titles, surfaces
+        return bodies, afters, titles, surfaces, raw
     for item in items:
         path = docs_root / item.rel
         try:
@@ -2647,7 +2727,7 @@ def _walk_notes(
         bodies[item.note_id] = _split_frontmatter(text)
         afters[item.note_id] = tuple(
             _walk_module()._ids(_frontmatter_field(text, "after")))
-    return bodies, afters, titles, surfaces
+    return bodies, afters, titles, surfaces, raw
 
 
 _AFTER_RE = re.compile(r"^\s*after\s*:\s*(.*)$", re.MULTILINE)
