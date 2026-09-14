@@ -10410,7 +10410,15 @@ interface WalkRow extends GateItem {
  *  this release still owes; a tag that is not owed has already been walked on
  *  this platform. */
 interface WalkTag { check: string; step: string | null; owed: boolean; }
-interface WalkProcLine { text: string; tags: WalkTag[]; }
+interface WalkProcLine {
+  text: string;
+  /** What the line claims, with its tags removed — read by the bundled
+   *  module's own `quote_of`, which is what the upstream validator compares
+   *  against the check's `## Expect` text. The page prints this rather than
+   *  deriving it, so the walker judges the string the validator checked. */
+  quote?: string;
+  tags: WalkTag[];
+}
 interface WalkProcStep {
   number: number; head: string;
   surface: string | null; surface_note: string | null;
@@ -10946,9 +10954,35 @@ function walkStepsKey(workspaceId: string): string {
  *  The release and the platform are in the key because the same procedure is
  *  walked again on the next release and on the other platform, and a tick from
  *  the last walk must not settle this one. */
-function stepMarkKey(release: string, platform: string,
-                     sitting: string, step: number): string {
-  return [release, platform, sitting, String(step)].join('|');
+function stepMarkKey(release: string, platform: string, sitting: string,
+                     sig: string): string {
+  return [release, platform, sitting, sig].join('|');
+}
+
+/** What a step is, for the purpose of recognising it again.
+ *
+ *  **A step number is a position, not an identity.** The bundled module says
+ *  so in `parse_steps`: markdown renumbers an ordered list, so a step's number
+ *  is where it sits. Keying a tick on the number alone meant inserting a step
+ *  into a procedure mid-walk re-attached the mark of the step that used to be
+ *  first to a step nobody had walked — and if that new step shared a check
+ *  with another, the check's verdict was built partly from a tick that was
+ *  never given for it. Found by independent review, 2026-09-14, and it is the
+ *  same class of defect as the empty release segment the browser walk found.
+ *
+ *  The owed parts the step cites are its identity: they are what the tick
+ *  settles, and a step that cites different parts is a different step
+ *  whatever its number. So this replaces the number in the key rather than
+ *  joining it — keeping both was the first cut, and it was safe but lossy:
+ *  inserting a step above a walked one shifted its number, and the mark the
+ *  walker had genuinely given was orphaned. The bundled module guarantees
+ *  that one owed part is cited by exactly one step, so the printed steps'
+ *  signatures are distinct and none is empty.
+ *
+ *  An edited step therefore leaves its old key unmatched, and
+ *  `pruneStepMarks` clears it on the next draw. */
+function stepSignature(tags: WalkTag[]): string {
+  return tags.filter((t) => t.owed).map((t) => walkTagLabel(t)).sort().join(',');
 }
 
 function loadStepMarks(): StepMarks {
@@ -10965,11 +10999,21 @@ function loadStepMarks(): StepMarks {
   } catch { return {}; }
 }
 
-function saveStepMarks(marks: StepMarks): void {
-  if (!activeId) return;
+/** Hold the step marks. Returns whether they were actually held.
+ *
+ *  **A refusal here is not cosmetic, and the first cut treated it as if it
+ *  were** — the comment said "the walk still works, tick by tick", which is
+ *  true only of a check cited by ONE step. A check cited by several is
+ *  assembled out of this storage, so with writes refused every multi-step
+ *  check silently never reaches the ledger while the single-step ones around
+ *  it do. Measured by independent review, 2026-09-14: all four steps ticked,
+ *  two checks written, the third never. The caller says so out loud instead. */
+function saveStepMarks(marks: StepMarks): boolean {
+  if (!activeId) return false;
   try {
     localStorage.setItem(walkStepsKey(activeId), JSON.stringify(marks));
-  } catch { /* storage unavailable — the walk still works, tick by tick */ }
+    return true;
+  } catch { return false; }
 }
 
 /** Forget every stored tick the payload no longer prints.
@@ -10987,7 +11031,8 @@ function pruneStepMarks(v: WalkPayload): void {
     const proc = readProcedure(sitting);
     if (!proc) continue;
     for (const step of proc.steps) {
-      live.add(stepMarkKey(v.release, v.platform, sitting.name, step.number));
+      live.add(stepMarkKey(v.release, v.platform, sitting.name,
+                           proc.sigs[step.number] || ''));
     }
   }
   let dropped = false;
@@ -11017,26 +11062,33 @@ interface ProcedureView {
     head: string;
     surface: string | null;
     surfaceNote: string | null;
-    lines: Array<{ text: string; tags: WalkTag[] }>;
+    lines: Array<{ text: string; quote: string; tags: WalkTag[] }>;
   }>;
   /** `check id -> the step numbers citing a part this release owes`. The
    *  bundled module guarantees one owed part is cited by exactly one step, so
    *  this is the full set of ticks a check is waiting on. */
   citing: Record<string, number[]>;
+  /** `step number -> what that step cites`, so a mark can be looked up by
+   *  number without letting the number alone identify the step. */
+  sigs: Record<number, string>;
 }
 
 function readProcedure(sitting: WalkSitting): ProcedureView | null {
   const proc = sitting.procedure;
   if (!proc || (proc.problems || []).length) return null;
   const citing: Record<string, number[]> = {};
+  const sigs: Record<number, string> = {};
   const steps = (proc.steps || []).map((step) => {
+    const tags: WalkTag[] = [];
     for (const line of step.lines || []) {
       for (const tag of line.tags || []) {
+        tags.push(tag);
         if (!tag.owed) continue;
         const at = (citing[tag.check] ||= []);
         if (!at.includes(step.number)) at.push(step.number);
       }
     }
+    sigs[step.number] = stepSignature(tags);
     return {
       number: step.number,
       head: step.head,
@@ -11048,13 +11100,14 @@ function readProcedure(sitting: WalkSitting): ProcedureView | null {
       //: walker the same sentence twice.
       lines: (step.lines || []).map((line, i) => ({
         text: i === 0 ? step.head : line.text,
+        quote: line.quote || '',
         tags: line.tags || [],
       })),
     };
   });
   return {
     path: proc.path, setup: proc.setup, remarks: proc.remarks || [],
-    omitted: proc.omitted || 0, steps, citing,
+    omitted: proc.omitted || 0, steps, citing, sigs,
   };
 }
 
@@ -11204,7 +11257,14 @@ function buildWalkStep(
   el.appendChild(h);
 
   for (const line of step.lines) {
-    const text = walkLineText(line.text, line.tags);
+    //: **The module's own quote where there is one.** Deriving it here was a
+    //: second reading of a rule the module owns, and the two disagreed on
+    //: emphasis and whitespace — so the walker judged a sentence the upstream
+    //: validator had never compared with the check's Expect text. The derived
+    //: form is kept only for lines the module read no expectation from, which
+    //: are the step's instructions rather than its claims.
+    const text = line.tags.length && line.quote
+      ? line.quote : walkLineText(line.text, line.tags);
     if (!text && !line.tags.length) continue;
     const row = document.createElement('div');
     row.className = line.tags.length
@@ -11242,7 +11302,8 @@ function buildStepTick(
   const foot = document.createElement('div');
   foot.className = 'walk-step-tick';
   const held = loadStepMarks()[
-    stepMarkKey(v.release, v.platform, sitting.name, step.number)];
+    stepMarkKey(v.release, v.platform, sitting.name,
+                proc.sigs[step.number] || '')];
 
   const tick = document.createElement('button');
   tick.type = 'button';
@@ -11290,7 +11351,8 @@ function waitingSteps(
 ): number[] {
   const marks = loadStepMarks();
   return (proc.citing[check] || []).filter((n) => !marks[
-    stepMarkKey(v.release, v.platform, sitting.name, n)]);
+    stepMarkKey(v.release, v.platform, sitting.name,
+                proc.sigs[n] || '')]);
 }
 
 /** The verdicts this procedure will record, and what each is waiting on.
@@ -11332,8 +11394,8 @@ function buildProcedureVerdicts(
         waiting.join(', ')}`;
     } else {
       const combined = combineStepMarks((proc.citing[id] || []).map(
-        (n) => marks[stepMarkKey(v.release, v.platform, sitting.name, n)]
-          ?.verdict || ''));
+        (n) => marks[stepMarkKey(v.release, v.platform, sitting.name,
+                                 proc.sigs[n] || '')]?.verdict || ''));
       state.textContent = combined
         ? `every step ticked — ${combined}` : 'waiting on its steps';
       state.classList.add('is-ready');
@@ -11353,7 +11415,8 @@ async function markWalkStep(
   v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
   step: ProcedureView['steps'][number],
 ): Promise<void> {
-  const key = stepMarkKey(v.release, v.platform, sitting.name, step.number);
+  const key = stepMarkKey(v.release, v.platform, sitting.name,
+                          proc.sigs[step.number] || '');
   const held = loadStepMarks()[key];
   const settles = Object.keys(proc.citing)
     .filter((id) => proc.citing[id].includes(step.number));
@@ -11380,7 +11443,17 @@ async function markWalkStep(
 
   const marks = loadStepMarks();
   marks[key] = { verdict: chosen.verdict, reason: chosen.reason || '' };
-  saveStepMarks(marks);
+  const stored = saveStepMarks(marks);
+  //: **Told, not guessed at.** Without storage a check cited by one step
+  //: still reaches the ledger below, and a check cited by several never will
+  //: — so the walk would half-work in a way nothing on the page admitted.
+  if (!stored && settles.some((id) => (proc.citing[id] || []).length > 1)) {
+    showStatus(
+      'This browser is refusing to store anything, so a check that takes '
+      + 'more than one step cannot be assembled. Walk those checks from '
+      + 'their own rows, or allow site data for this workspace.', 'error');
+    scheduleHide(8000);
+  }
 
   //: Everything the tick completed, written before anything is repainted, so
   //: the repaint below reads a settled world.
@@ -11388,7 +11461,8 @@ async function markWalkStep(
   for (const id of settles) {
     const steps = proc.citing[id] || [];
     const given = steps.map((n) => marks[
-      stepMarkKey(v.release, v.platform, sitting.name, n)]);
+      stepMarkKey(v.release, v.platform, sitting.name,
+                  proc.sigs[n] || '')]);
     //: **A check with an unticked citing step gets no ledger event.** That is
     //: the whole holding rule: a verdict written from half a walk would say
     //: the check passed on evidence nobody gathered.

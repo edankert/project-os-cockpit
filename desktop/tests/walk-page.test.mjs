@@ -151,7 +151,8 @@ const NAMES = [
   'buildSurveyCard', 'buildSurveyCaptures', 'walkCaptureSrc', 'walkDocsRel',
   'readProcedure', 'buildProcedureSection', 'buildWalkStep', 'buildStepTick',
   'buildProcedureVerdicts', 'walkLineText', 'walkTagLabel', 'combineStepMarks',
-  'stepMarkKey', 'walkStepsKey', 'loadStepMarks', 'saveStepMarks',
+  'stepMarkKey', 'stepSignature', 'walkStepsKey', 'loadStepMarks',
+  'saveStepMarks',
   'waitingSteps', 'walkProcedureId', 'walkStepId', 'walkVerdictsId',
 ];
 
@@ -685,8 +686,9 @@ const PROC_NAMES = [
   'buildProcedureVerdicts', 'buildSurveyCard', 'buildSurveyCaptures',
   'buildSurveySection', 'buildSittingSection', 'buildWalkRow', 'buildWalkPage',
   'walkNotice', 'walkBlock', 'walkRowId', 'readProcedure', 'combineStepMarks',
-  'stepMarkKey', 'walkStepsKey', 'loadStepMarks', 'saveStepMarks',
-  'pruneStepMarks', 'waitingSteps', 'walkLineText', 'walkTagLabel',
+  'stepMarkKey', 'stepSignature', 'walkStepsKey', 'loadStepMarks',
+  'saveStepMarks', 'pruneStepMarks', 'waitingSteps', 'walkLineText',
+  'walkTagLabel',
   'walkDocsRel', 'walkCaptureSrc', 'walkProcedureId', 'walkStepId',
   'walkVerdictsId', 'markWalkStep', 'postCheckVerdict', 'walkOneCheck',
 ];
@@ -768,6 +770,7 @@ function procedureSitting(over = {}) {
           lines: [
             { text: '1. Open the app on the Profile screen.', tags: [] },
             { text: '   - The avatar sits above the name. `TST-0001.1`',
+              quote: 'The avatar sits above the name.',
               tags: [{ check: 'TST-0001', step: '1', owed: true }] },
           ] },
         { number: 2, head: 'Tap Settings.', surface: 'Settings',
@@ -775,11 +778,12 @@ function procedureSitting(over = {}) {
           lines: [
             { text: '2. Tap Settings.', tags: [] },
             { text: '   - The sheet opens from the bottom. `TST-0002.1`',
+              quote: 'The sheet opens from the bottom.',
               tags: [{ check: 'TST-0002', step: '1', owed: true }] },
           ] },
         { number: 3, head: 'Go back.', surface: null, surface_note: null,
           lines: [
-            { text: '3. Go back. `TST-0001.2`',
+            { text: '3. Go back. `TST-0001.2`', quote: 'Go back.',
               tags: [{ check: 'TST-0001', step: '2', owed: true }] },
           ] },
         { number: 4, head: 'Close the app.', surface: 'Profile',
@@ -787,6 +791,7 @@ function procedureSitting(over = {}) {
           lines: [
             { text: '4. Close the app.', tags: [] },
             { text: '   - Nothing is left running. `TST-0003` `TST-0004.1`',
+              quote: 'Nothing is left running.',
               tags: [{ check: 'TST-0003', step: null, owed: true },
                      { check: 'TST-0004', step: '1', owed: false }] },
           ] },
@@ -960,7 +965,8 @@ test('removing one tick before the last leaves the ledger untouched',
     //: Now take the tick back off step 2 and re-tick nothing: still nothing
     //: new, and `TST-0001` has never had an event.
     const held = JSON.parse(storage.getItem(proc.walkStepsKey('ws-1')));
-    delete held[proc.stepMarkKey('REL-0017', 'android', 'A fresh install', 2)];
+    delete held[proc.stepMarkKey('REL-0017', 'android', 'A fresh install',
+                                 view.sigs[2])];
     storage.setItem(proc.walkStepsKey('ws-1'), JSON.stringify(held));
     assert.ok(!posts.some((p) => p.body.id === 'TST-0001'));
   });
@@ -1048,8 +1054,10 @@ test('a step tick is held per release, platform, sitting and step',
     const view = proc.readProcedure(sitting);
     await proc.markWalkStep(v, sitting, view, view.steps[0]);
     const held = JSON.parse(storage.getItem('cockpit:walk-steps:ws-1'));
+    //: The last segment is what the step CITES, and the number is NOT in
+    //: the key: a step number is a position, and positions move.
     assert.deepEqual(Object.keys(held),
-      ['REL-0017|android|A fresh install|1']);
+      ['REL-0017|android|A fresh install|TST-0001.1']);
     //: Never in the repo and never in the ledger: the only write that left
     //: this tick was the check's own verdict, and there was none to write.
     assert.equal(storage._box.size, 1);
@@ -1060,9 +1068,9 @@ test('a tick spent on a verdict is forgotten when the step stops printing',
     const document = makeDom();
     const storage = makeStorage({
       'cockpit:walk-steps:ws-1': JSON.stringify({
-        'REL-0017|android|A fresh install|2': { verdict: 'pass', reason: '' },
-        'REL-0017|android|A fresh install|9': { verdict: 'pass', reason: '' },
-        'REL-0017|ios|A fresh install|9': { verdict: 'pass', reason: '' },
+        'REL-0017|android|A fresh install|TST-0002.1': { verdict: 'pass', reason: '' },
+        'REL-0017|android|A fresh install|TST-9999.1': { verdict: 'pass', reason: '' },
+        'REL-0017|ios|A fresh install|TST-9999.1': { verdict: 'pass', reason: '' },
       }),
     });
     const proc = await loadProc({ document, localStorage: storage });
@@ -1072,7 +1080,8 @@ test('a tick spent on a verdict is forgotten when the step stops printing',
     //: Android tick is spent — and the iOS one is untouched, because that is
     //: a different walk of the same procedure.
     assert.deepEqual(Object.keys(held).sort(), [
-      'REL-0017|android|A fresh install|2', 'REL-0017|ios|A fresh install|9',
+      'REL-0017|android|A fresh install|TST-0002.1',
+      'REL-0017|ios|A fresh install|TST-9999.1',
     ]);
   });
 
@@ -1080,7 +1089,8 @@ test('the page says which step each verdict is still waiting on', async () => {
   const document = makeDom();
   const storage = makeStorage({
     'cockpit:walk-steps:ws-1': JSON.stringify({
-      'REL-0017|android|A fresh install|1': { verdict: 'pass', reason: '' },
+      'REL-0017|android|A fresh install|TST-0001.1':
+        { verdict: 'pass', reason: '' },
     }),
   });
   const { buildWalkPage } = await loadProc({ document, localStorage: storage });
@@ -1096,7 +1106,8 @@ test('nothing on the procedure moves when a step is ticked', async () => {
   const document = makeDom();
   const storage = makeStorage({
     'cockpit:walk-steps:ws-1': JSON.stringify({
-      'REL-0017|android|A fresh install|3': { verdict: 'fail', reason: 'no' },
+      'REL-0017|android|A fresh install|TST-0001.2':
+        { verdict: 'fail', reason: 'no' },
     }),
   });
   const { buildWalkPage } = await loadProc({ document, localStorage: storage });
@@ -1275,4 +1286,79 @@ test('the mark dialog names the step in words, not markdown', async () => {
   assert.equal(asks[0].name, 'Ride cockpit. Pedal for five seconds. — Profile');
   //: And four marks, never the three settle ones ([[ADR-0041]]).
   assert.deepEqual(asks[0].only, ['pass', 'partial', 'fail', 'question']);
+});
+
+test('a step inserted mid-walk does not inherit the mark of the step that '
+  + 'used to sit there', async () => {
+  //: **A step number is a position, not an identity** — the bundled module
+  //: says so, and keying a tick on the number alone let an edited procedure
+  //: hand a mark to a step nobody walked. If that step shares a check with
+  //: another, the check's verdict is then built partly from a tick that was
+  //: never given for it. Found by independent review, 2026-09-14.
+  const document = makeDom();
+  const storage = makeStorage();
+  const before = await loadProc({
+    document, localStorage: storage, verdicts: [{ verdict: 'pass', reason: '' }],
+  });
+  const v = procedurePayload();
+  const sitting = v.sittings[0];
+  await before.markWalkStep(v, sitting, before.readProcedure(sitting),
+                            before.readProcedure(sitting).steps[0]);
+  assert.equal(Object.keys(
+    JSON.parse(storage.getItem('cockpit:walk-steps:ws-1'))).length, 1);
+
+  //: Now the procedure gains a new first step citing a different owed part.
+  //: Every later step shifts up one.
+  const edited = procedureSitting();
+  edited.procedure.steps.unshift({
+    number: 1, head: 'Wipe the phone.', surface: 'Profile',
+    surface_note: 'SUR-0001',
+    lines: [
+      { text: '1. Wipe the phone.', tags: [] },
+      { text: '   - The app is gone. `TST-0002.2`',
+        quote: 'The app is gone.',
+        tags: [{ check: 'TST-0002', step: '2', owed: true }] },
+    ],
+  });
+  edited.procedure.steps.forEach((s, i) => { s.number = i + 1; });
+  const after = await loadProc({ document, localStorage: storage });
+  const page = after.buildWalkPage(procedurePayload({ sittings: [edited] }));
+  const ticks = all(page, 'walk-step-button').map((n) => n.textContent);
+  assert.equal(ticks[0], 'tick step 1',
+    'the new first step inherited the old first step\'s mark');
+  //: And the step that genuinely holds the mark still shows it, at its new
+  //: number — the tick followed what it settles, not where it sat.
+  assert.ok(ticks.some((label) => /step 2 — pass/.test(label)), ticks.join(' | '));
+});
+
+test('an expectation line prints the module\'s quote, not one the page derives',
+  async () => {
+    //: The upstream validator compares the module's `quote_of` against the
+    //: check's `## Expect` text. The page derived its own — stripping tag
+    //: literals and emphasis with its own rules — so on a line carrying
+    //: emphasis the two disagreed and the walker judged a sentence nothing
+    //: had checked. Found by independent review, 2026-09-14.
+    const document = makeDom();
+    const { buildWalkPage } = await loadProc({ document });
+    const sitting = procedureSitting();
+    sitting.procedure.steps[0].lines[1] = {
+      text: '   - The banner reads **DONE** now. `TST-0001.1`',
+      quote: 'The banner reads **DONE** now.',
+      tags: [{ check: 'TST-0001', step: '1', owed: true }],
+    };
+    const page = buildWalkPage(procedurePayload({ sittings: [sitting] }));
+    const said = all(page, 'walk-step-said').map((n) => n.textContent);
+    assert.ok(said.includes('The banner reads **DONE** now.'), said.join(' | '));
+    //: And the page's own stripping is NOT applied to it.
+    assert.ok(!said.includes('The banner reads DONE now.'), said.join(' | '));
+  });
+
+test('a step instruction with no expectation still reads as words', async () => {
+  //: The module reads no expectation from an instruction line, so there is no
+  //: quote for it and the page's own cleaning is what makes it legible.
+  const document = makeDom();
+  const { buildWalkPage } = await loadProc({ document });
+  const page = buildWalkPage(procedurePayload());
+  const said = all(page, 'walk-step-said').map((n) => n.textContent);
+  assert.ok(said.includes('Open the app on the Profile screen.'), said.join(' | '));
 });

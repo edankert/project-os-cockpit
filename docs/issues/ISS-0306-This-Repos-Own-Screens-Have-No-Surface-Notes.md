@@ -4,7 +4,7 @@ id: ISS-0306
 aliases: ["ISS-0306"]
 title: "This repo keeps one surface note for fourteen screens, so a change note here cannot name the screen it altered and the walk's own survey has nothing to show"
 status: triage
-phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-09-14
 updated: 2026-09-14
@@ -27,6 +27,12 @@ A change note's `## Impact` section is supposed to name the screens it altered, 
 
 The walk's survey reads exactly those lines. So on this repo the survey it just gained will stay empty however many screens a release changes, because no change note here can write a line it can read. The feature is testable here only against fixtures.
 
+## A third thing it breaks, found 2026-09-14
+
+Since [[TASK-0625-The-Checks-Page-Groups-By-Screen]], a `~checks` group whose `area:` matches no surface note carries a "no surface note" badge, so that a surface rename cannot orphan its checks quietly ([[ISS-0250]]). On this repo **all 25 groups carry it**, because there is one surface note and 25 areas. The badge is accurate and useless here: a warning on every row is not a warning.
+
+That is not an argument for softening the badge. It is the same defect as the other two, showing up on a third surface.
+
 ## Evidence
 
 ```
@@ -36,7 +42,9 @@ SUR-0001-The-Tests-View.md
 
 The design view's Surfaces heading, since [[TASK-0625-The-Checks-Page-Groups-By-Screen]], reads `Surfaces · 1 screen · 1 with no checks` — against [[FEAT-0130-Surfaces-Are-A-First-Class-Type]]'s target of 12 to 15 top-level screens.
 
-## Why it is filed rather than fixed
+## Why it is filed rather than fixed, and parked
+
+*(Re-homed to [[PHASE-999-Future]] when PHASE-044 closed. It was found inside that phase and is not its work: writing this repo's surface notes is a job of its own, with no phase yet.)*
 
 Writing fourteen surface notes is not a step inside PHASE-044, whose scope is the walk page reading as a script. Doing it inside this change would be the widening `LIFECYCLE.md`'s "Scope of a change" names: the requested behaviour works without it, on fixtures and on `your-trainer`.
 

@@ -40,18 +40,27 @@ def _check(docs: Path, tid: str, area: str) -> None:
 
 
 def _corpus(tmp_path: Path) -> Path:
-    """A parent screen, a child dialog under it, a subsystem, and an orphan."""
+    """A parent screen, a child dialog under it, a subsystem, and an orphan.
+
+    **The ids run against the answer on purpose.** `acceptance.load` returns
+    the suite in id order, and the first cut of this fixture numbered the
+    checks in the order the assertions then expected — so insertion order plus
+    a stable sort satisfied every test, and replacing the whole of
+    `_area_sort_key` with a constant left 253 tests green. Found by
+    independent review, 2026-09-14. Here the id order is the orphan, the
+    subsystem, the dialog, the screen: the exact reverse of where they belong.
+    """
     docs = tmp_path / "docs"
     _surface(docs, "SUR-0001", "Workout editor")
     _surface(docs, "SUR-0002", "HR-zone interval sheet", parent="SUR-0001")
     _surface(docs, "SUR-0003", "Sync", kind="subsystem")
-    _check(docs, "TST-0001", "Workout editor")
-    _check(docs, "TST-0002", "HR-zone interval sheet")
-    _check(docs, "TST-0003", "Sync")
     #: An `area:` naming no surface note at all. It must stay visible
     #: ([[ISS-0250]]): a check filed under a name nobody kept is a check
-    #: somebody still has to walk.
-    _check(docs, "TST-0004", "Nowhere in particular")
+    #: somebody still has to walk. First by id, last on the page.
+    _check(docs, "TST-0001", "Nowhere in particular")
+    _check(docs, "TST-0002", "Sync")
+    _check(docs, "TST-0003", "HR-zone interval sheet")
+    _check(docs, "TST-0004", "Workout editor")
     return docs
 
 
@@ -110,8 +119,9 @@ def test_an_area_naming_no_surface_is_still_drawn(tmp_path: Path) -> None:
     orphan = next(a for a in areas if a["area"] == "Nowhere in particular")
     assert orphan["unresolved"] is True
     assert orphan["surface"] == ""
+    #: Last on the page although its check sorts FIRST by id.
     assert areas[-1] is orphan
-    assert [r["id"] for r in orphan["items"]] == ["TST-0004"]
+    assert [r["id"] for r in orphan["items"]] == ["TST-0001"]
 
 
 def test_every_check_is_still_on_the_page_exactly_once(tmp_path: Path) -> None:
@@ -215,3 +225,55 @@ def test_the_page_indents_a_child_group_and_names_its_screen() -> None:
     assert "`in ${area.parent}`" in block
     #: And the orphan says so rather than reading like every other group.
     assert "area.unresolved" in block and "no surface note" in block
+
+
+def test_the_order_is_the_sort_key_and_not_the_order_the_checks_arrived(
+        tmp_path: Path) -> None:
+    """The guard the first cut of this file did not have.
+
+    Replacing the whole of `acceptance._area_sort_key` with a constant left
+    253 tests green across nine files, because every fixture happened to list
+    its checks in the order it then asserted — a stable sort over insertion
+    order gives the same answer, so nothing was testing the rule. Found by
+    independent review, 2026-09-14.
+
+    This asserts the two orders are DIFFERENT and that the page shows the
+    sorted one, so a sort that stops sorting fails here.
+    """
+    docs = _corpus(tmp_path)
+    index = Index.build(docs)
+    arrived = []
+    for item in acceptance.load(docs, index).items:
+        if item.area not in arrived:
+            arrived.append(item.area)
+    shown = [a["area"] for a in _areas(docs)]
+
+    assert arrived == ["Nowhere in particular", "Sync",
+                       "HR-zone interval sheet", "Workout editor"]
+    assert shown == ["Workout editor", "HR-zone interval sheet", "Sync",
+                     "Nowhere in particular"]
+    assert shown != arrived, (
+        "the fixture no longer distinguishes the sort from insertion order, "
+        "so this test cannot fail"
+    )
+
+
+def test_a_dialog_follows_its_own_parent_when_two_screens_interleave(
+        tmp_path: Path) -> None:
+    """Two screens with a child each, named so that sorting the areas alone
+    would interleave them. Each dialog must sit under ITS parent."""
+    docs = tmp_path / "docs"
+    _surface(docs, "SUR-0001", "Alpha screen")
+    _surface(docs, "SUR-0002", "Zulu dialog", parent="SUR-0001")
+    _surface(docs, "SUR-0003", "Mike screen")
+    _surface(docs, "SUR-0004", "Bravo dialog", parent="SUR-0003")
+    for i, area in enumerate(
+            ["Bravo dialog", "Zulu dialog", "Mike screen", "Alpha screen"],
+            start=1):
+        _check(docs, f"TST-000{i}", area)
+
+    #: Sorted by area name alone this would read Alpha, Bravo, Mike, Zulu —
+    #: both dialogs separated from their screens.
+    assert [a["area"] for a in _areas(docs)] == [
+        "Alpha screen", "Zulu dialog", "Mike screen", "Bravo dialog",
+    ]

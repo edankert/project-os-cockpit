@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-044
 aliases: ["PHASE-044"]
 title: "The walk page reads as a script — changed screens as cards with before and after, each sitting as its procedure, and a tick per step"
-status: active
+status: done
 order: 44
 owner: user:edwin
 created: 2026-09-14
@@ -19,6 +19,8 @@ tasks:
   - "[[TASK-0625-The-Checks-Page-Groups-By-Screen]]"
   - "[[TASK-0626-The-Page-And-The-Sheet-Agree-On-Your-Trainer]]"
 issues: []
+#: ISS-0306 was found inside this phase and re-homed to PHASE-999 when it
+#: closed: writing this repo's surface notes is a job of its own.
 related:
   - "[[PHASE-043-The-Walk-Page]]"
   - "[[FEAT-0149-The-Walk-Page]]"
@@ -58,44 +60,22 @@ Edwin approved the goal wording on 2026-09-14: *"A tick in the cockpit records t
 ## Exit Criteria
 
 - [x] Ticking every step of a sitting writes the same ledger events, check for check and mark for mark, as ticking each of its checks one by one on today's page. A test proves it on a fixture. — `desktop/tests/walk-page.test.mjs`, *"walking a sitting step by step writes the same events as ticking its checks one by one"*: four steps citing three checks, both paths run against one stubbed POST, the request bodies compared.
-- [~] For your-trainer on both platforms, the page's survey, sittings, steps and owed set equal what `walk-sheet.py` prints. — asserted and passing on `android` and `ios` by `tests/test_walk_agreement.py`. **The procedure half of that comparison is vacuous today**: `your-trainer` has no `docs/tests/acceptance/walk/` directory, so both sides agree that no sitting has a procedure. It becomes a real comparison when that repo's TASK-0906 lands, with no edit here.
+- [x] For your-trainer on both platforms, the page's survey, sittings, steps and owed set equal what `walk-sheet.py` prints. — asserted and passing on `android` and `ios` by `tests/test_walk_agreement.py`. **The procedure half of that comparison has nothing to compare yet**: `your-trainer` carries no `docs/tests/acceptance/walk/` directory, so both sides agree that no sitting has a procedure; the procedure half is exercised on a two-platform fixture in the same file. Edwin settled the scope on 2026-09-14 — *"Finish the project-os-cockpit phase only, the your-trainer functionality will be handled in the your-trainer repo"* — and that repo's `TASK-0907` already names this comparison as its own step.
 - [x] The survey shows no test id, and every card with a before capture shows the after capture beside it. — two node tests, and observed in a browser on the fixture: both pictures of a pair rendered at 358 px.
 - [x] `~checks` puts a dialog under the screen it opens from, the same way the template's rules and the walk sheet do. — `tests/test_checks_by_screen.py`, including one test that the parent this page resolves is the one `walk.top_screen` resolves, for all three spellings of `parent:`.
 - [x] The capability register names every new or changed row (CLAUDE.md, "Every change note that adds, changes or retires capability"). — `shell.pages.walk.steps` is new; `shell.pages.walk`, `shell.pages.walk.survey` and `shell.pages.checks` each gained a dated line.
 
-## Where this stands, 2026-09-14
+## Closed, 2026-09-14
 
-Built and tested, except the last task. TASK-0622 to TASK-0625 are `done`; TASK-0626 is `doing` and blocked on another repo.
+All five tasks are `done` and [[FEAT-0150-The-Walk-Page-Reads-As-A-Script]] is `done`.
 
 **It was walked in a browser**, not only against a stub DOM: a fixture repo with a release tag, two change notes, three capture files, a walk order and a three-step procedure, served by a real sidecar behind a one-origin proxy and driven through `desktop/harness/live-harness.html`. That walk wrote real events into a real ledger file, and it found two defects the node suite structurally could not:
 
 1. **Step lines printed their Markdown.** `**Ride cockpit.** Pedal for five seconds` appeared with the asterisks, on the page and again in the mark dialog's title. The DOM stub has no reader, so nothing was looking at the words.
 2. **The walk route resolved the platform and not the release.** Every payload came back with `release: ""`, and a step tick is keyed by release, platform, sitting and step — so a tick left from one walk would have shown as already ticked on the next.
 
-Both are fixed with tests. The walk is recorded on [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]] as `partial`, because its step 8 was not walked by hand.
+Both are fixed with tests. The walk is recorded on [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]] as `partial`, because its step 8 — the same checks ticked one by one on the fallback rows, two ledgers compared by hand — was not walked; it is asserted instead by a node test that runs both paths against one stubbed POST.
 
-**This phase should not close until TASK-0626 does**, and that waits on your-trainer TASK-0906.
+**Where the consumer half went.** This phase's last task was open against `your-trainer`, whose PHASE-024 had not started and whose first step is a screen-mapping table awaiting Edwin's approval. He settled it: *"Finish the project-os-cockpit phase only, the your-trainer functionality will be handled in the your-trainer repo."* So the comparison this repo owns is written and passing, and your-trainer `TASK-0907` runs it against real procedures when it has them. Nothing here has to change for that.
 
-## Edwin's decisions, 2026-09-14
-
-> "v2.2.0 should wait. go with your recommendations for the others, will I start the project-os-dev and cockpit phase first?"
-
-What this phase takes from his answers:
-
-- **Step ticks live in the cockpit's per-workspace browser storage**, never in the repo or the ledger, and **the worst step mark decides the check's verdict** (TASK-0624).
-- **Each procedure expectation line quotes the check's own Expect text word for word**, and the upstream validator checks the quote. So a pass from a step attests the check's own expectation, which keeps step ticks within [[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]].
-- **Tags are ASCII**, `TST-0648.4`. Procedures live in one file per sitting under the consumer's `docs/tests/acceptance/walk/`.
-- **The 12 to 15 surface target from [[FEAT-0130-Surfaces-Are-A-First-Class-Type]] applies to top-level screens only**; children sit below them (TASK-0625).
-
-## Start order
-
-1. project-os-dev goes first: TASK-0116 to TASK-0120 (surface rules, procedure format, validator).
-2. your-trainer TASK-0900 (the mapping table) runs in parallel.
-3. **This phase starts once project-os-dev TASK-0119 has fixed the procedure format**, working against a fixture. TASK-0624 is first.
-4. Then the template sync into your-trainer, then your-trainer's procedures, then the end-to-end check (TASK-0626 here, your-trainer TASK-0907).
-
-## Notes
-
-- **Builds against a fixture first.** TASK-0622 to TASK-0625 need no real content: a fixture repo with a release tag, two change notes, a capture map, a procedure and a ledger is enough. TASK-0626 waits for your-trainer's TASK-0906.
-- **Hard upstream dependency.** The procedure shape and the survey payload come from the template's `walk-sheet.py` (project-os-dev TASK-0118, TASK-0121), bundled byte for byte. This page implements no survey or procedure rule of its own.
-- **Risk scan.** No new dependency or environment variable. Images are served from the consumer repo through the existing framed viewer route ([[PHASE-042-A-Note-Shows-What-It-Is-About]]). Step ticks that are not yet a verdict live in the per-workspace browser storage the walker's place already uses, which is not a second store: nothing in the repo or the ledger reads it. No `RISK-*`.
+**Filed, not fixed:** [[ISS-0306-This-Repos-Own-Screens-Have-No-Surface-Notes]] — one surface note for roughly fourteen screens, so this repo's own change notes cannot write an `## Impact` line and its own survey will always be empty.

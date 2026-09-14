@@ -192,3 +192,52 @@ def test_a_repo_with_no_open_release_still_serves_a_walk(
         assert _ids(payload) == ["TST-0002"]
     finally:
         httpd.shutdown()
+
+
+def test_a_walk_never_names_another_platforms_release(tmp_path: Path) -> None:
+    """A draft for Android must not head the iOS walk.
+
+    `open_releases` is every live draft in the repo, so its first row is
+    whichever version sorts highest regardless of platform. `~walk/ios` was
+    headed "Walk — REL-0017, ios" from `your-trainer`'s Android draft, and —
+    worse — keyed its iOS step ticks under that Android release id, so the
+    prefix would change under a walk in progress the day an iOS draft
+    appeared. Found by independent review, 2026-09-14.
+    """
+    docs = _docs(tmp_path)
+    (docs / "releases" / "REL-0002-Ios.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0002\ntitle: "iOS one"\n'
+        'status: draft\nversion: "2.0.0"\nplatform: "ios"\npreparing: true\n'
+        'features: []\nupdated: "2026-09-14"\n---\n\n# iOS one\n',
+        encoding="utf-8")
+    port, httpd = _spin_up(docs)
+    try:
+        _, ios = _get(port, "?platform=ios")
+        assert ios["release"] == "REL-0002"
+        #: REL-0002 sorts highest, so this is the assertion that would have
+        #: caught the defect: Android must still get its own.
+        _, android = _get(port, "?platform=android")
+        assert android["release"] == "REL-0001"
+    finally:
+        httpd.shutdown()
+
+
+def test_a_release_naming_no_platform_counts_for_every_platform(
+        tmp_path: Path) -> None:
+    """The opt-in rule release contents already use, kept here.
+
+    A repo that ships one artifact for everything writes no `platform:`, and
+    filtering that note out would leave every walk naming no release at all.
+    """
+    docs = _docs(tmp_path, release_platform=None)
+    (docs / "releases" / "REL-0003-Both.md").write_text(
+        '---\ntype: "[[release]]"\nid: REL-0003\ntitle: "Both"\n'
+        'status: draft\nversion: "1.2.0"\npreparing: true\nfeatures: []\n'
+        'updated: "2026-09-14"\n---\n\n# Both\n', encoding="utf-8")
+    port, httpd = _spin_up(docs)
+    try:
+        for platform in ("android", "ios"):
+            _, body = _get(port, f"?platform={platform}")
+            assert body["release"] == "REL-0003", platform
+    finally:
+        httpd.shutdown()

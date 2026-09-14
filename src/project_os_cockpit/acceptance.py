@@ -1698,6 +1698,14 @@ def section_label(section: str) -> str:
 #: behaviour with no screen is the tail of that walk rather than a place in it.
 _OFF_SCREEN_KINDS = ("subsystem", "surface-less")
 
+#: What FEAT-0130's 12-to-15 target counts. A `flow` is "a sequence across
+#: screens" (`TAXONOMY.md`) — named because it is walked as one thing, and not
+#: a place you navigate to, so counting it against a target about screens
+#: inflates the number. `your-trainer` would have read 10 screens where 6 are
+#: screens and 4 are flows. Found by independent review, 2026-09-14. A surface
+#: with no `kind:` is a screen, which is the taxonomy's own default.
+_SCREEN_KINDS = ("screen", "")
+
 
 def _surface_map(index: "Any | None") -> tuple[dict[str, Any], dict[str, str],
                                                dict[str, str]]:
@@ -2777,6 +2785,18 @@ def _walk_procedure(placed: "Any") -> "dict[str, Any] | None":
             "surface_note": step.surface_id or None,
             "lines": [{
                 "text": line,
+                #: **What the line CLAIMS, as the module read it.** The page
+                #: needs the sentence without its tags, and with no `quote`
+                #: here it derived one itself — stripping the tag literals and
+                #: the emphasis markers. That is a second reading of a rule
+                #: the module owns (`quote_of`/`normalise`), and the two
+                #: disagreed: the module reduces `The banner reads **DONE**
+                #: now.` to `The banner reads **DONE** now.` with its own
+                #: whitespace rules, while the page produced `The banner reads
+                #: DONE  now.` — so the walker judged a string the validator
+                #: never compared against the check's Expect text. Found by
+                #: independent review, 2026-09-14.
+                "quote": expectation.quote if expectation is not None else "",
                 "tags": [{"check": check, "step": number or None,
                           "owed": (check, number) in expectation.owed}
                          for check, number in expectation.tags]

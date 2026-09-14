@@ -124,11 +124,29 @@ def _fixture(tmp_path: Path) -> Path:
         "# Procedure — Riding\n\n## Setup\n\nOn a ride, pedalling.\n\n"
         "## Steps\n\n1. **Ride cockpit.** Look at it.\n"
         "   - It is there. `TST-0001.1`\n"
-        "2. **HR-zone sheet.** Open it.\n   - It is there. `TST-0002.1`\n",
+        "2. **HR-zone sheet.** Open it.\n   - It is there. `TST-0002.1`\n"
+        "3. **Ride cockpit.** Listen to it.\n   - It is quiet. `TST-0003.1`\n",
         encoding="utf-8")
+    #: **A check the procedure cites and the release does NOT owe.** A
+    #: procedure covers its whole sitting and the sheet prints the owed part
+    #: of it, so its tags legitimately name checks that have already passed.
+    #: `walk_payload` passed only the OWED checks to the module until
+    #: 2026-09-14, which made every such tag read as naming no check at all —
+    #: and the page refused a procedure the generator accepted. Without a
+    #: passed check here this file could not see that regression; reverting
+    #: the fix left all four of its tests green (independent review,
+    #: 2026-09-14).
+    (docs / "tests" / "acceptance" / "TST-0003.md").write_text(
+        '---\ntype: "[[test]]"\nid: TST-0003\ntitle: "TST-0003"\n'
+        'level: acceptance\nstatus: active\narea: "Ride cockpit"\nmark: todo\n'
+        "---\n\n# TST-0003\n\n## Setup\nRiding.\n\n## Steps\n1. Listen.\n\n"
+        "## Expect\n- It is quiet.\n", encoding="utf-8")
+    passed = [{"check": "TST-0003", "date": "2026-09-01", "mark": "pass",
+               "by": "user:edwin", "method": "manual"}]
     for platform in ("android", "ios"):
         (docs / "releases" / "ledgers" / f"WORKING-{platform}.json").write_text(
-            json.dumps({"platform": platform, "entries": []}), encoding="utf-8")
+            json.dumps({"platform": platform, "entries": passed}),
+            encoding="utf-8")
     return repo
 
 
@@ -149,9 +167,33 @@ def test_the_fixture_actually_exercises_a_procedure(tmp_path: Path) -> None:
     page = _page(repo, "android")
     procedure = page["sittings"][0]["procedure"]
     assert procedure is not None and not procedure["problems"], procedure
+    #: Step 3 cites a check that has already passed, so it is NOT printed —
+    #: which is the filtering rule, and the reason the procedure is accepted
+    #: rather than refused for citing a check outside the owed set.
     assert [s["number"] for s in procedure["steps"]] == [1, 2]
+    assert procedure["omitted"] == 1
     assert page["counts"]["owed"] == 2
     assert not page["errors"], page["errors"]
+
+
+def test_a_procedure_citing_an_already_passed_check_is_not_refused(
+        tmp_path: Path) -> None:
+    """The regression this file's docstring claims, now actually guarded.
+
+    `walk_payload` reads every check a procedure cites, not only the owed
+    ones. Passing the owed set alone made a tag naming a passed check read as
+    naming no check at all, so this page refused a procedure `walk-sheet.py`
+    accepted — the disagreement `TESTING.md` rule 7 says bundling the module
+    prevents. Reverting that fix left all four of this file's other tests
+    green until the fixture gained a passed check.
+    """
+    repo = _fixture(tmp_path)
+    for platform in ("android", "ios"):
+        procedure = _page(repo, platform)["sittings"][0]["procedure"]
+        assert procedure["problems"] == [], (platform, procedure["problems"])
+        #: And the module, run the way the script runs it, says the same.
+        theirs = _sheet(repo, platform).sittings[0]
+        assert theirs.procedure.problems == [], platform
 
 
 # ------------------------------------------------------------ on the corpus

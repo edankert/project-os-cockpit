@@ -1098,8 +1098,23 @@ def _make_handler(
                         )
                         if not _platform and len(_known) == 1:
                             _platform = _known[0]
-                    if not _release and _open:
-                        _release = str(_open[0].get("id") or "").strip()
+                    #: **And it must be a release for THIS platform.**
+                    #: `open_releases` is the whole fleet of drafts, so the
+                    #: first row is whichever version sorts highest — on
+                    #: `your-trainer` that is an Android draft, and
+                    #: `~walk/ios` was headed with it and keyed its iOS step
+                    #: ticks under an Android release id. A note carrying no
+                    #: `platform:` counts for every platform, which is the
+                    #: opt-in rule release contents already use. Found by
+                    #: independent review, 2026-09-14.
+                    if not _release:
+                        _mine = [
+                            r for r in _open
+                            if str(r.get("platform") or "").strip().lower()
+                            in ("", _platform)
+                        ]
+                        if _mine:
+                            _release = str(_mine[0].get("id") or "").strip()
                 #: **An unknown name is refused, never answered.** A ledger
                 #: read for a platform that has none returns no verdicts, so
                 #: every check in the repo comes back owed — 545 rows on

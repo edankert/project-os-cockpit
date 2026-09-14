@@ -6213,10 +6213,14 @@ def _surface_tree(
     for note_id in sorted(here):
         if here[note_id] not in ordered:
             ordered.append(here[note_id])
-    #: Off-screen kinds are surfaces without being places, so they do not
-    #: count toward a target about screens.
+    #: **Only a `screen` counts.** A `flow` and a `subsystem` are surfaces
+    #: without being places, so neither belongs in a target about screens —
+    #: this asked which kinds to exclude and missed `flow`, which is the
+    #: failure mode of a deny-list. Asking which kind IS a screen cannot miss
+    #: a kind added later: a new one simply does not count until somebody
+    #: says it should.
     screens = sum(1 for note_id in roots
-                  if kinds.get(note_id, "screen") not in _acc._OFF_SCREEN_KINDS)
+                  if kinds.get(note_id, "screen") in _acc._SCREEN_KINDS)
     return ordered, screens, children
 
 

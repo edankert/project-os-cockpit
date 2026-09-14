@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0150
 aliases: ["FEAT-0150"]
 title: "The walk page reads as a script — the survey as screen cards with before and after, each sitting as its procedure, a tick per step that settles every check it cites, and ~checks grouped by screen"
-status: doing
+status: done
 phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
 owner: user:edwin
 created: 2026-09-14
@@ -20,6 +20,11 @@ tasks:
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]]"
+reviewed_by: model:claude-opus-5
+review_date: 2026-09-14
+review_verdict: changes-requested
+review_response: "All three gate-holding findings fixed with tests, plus four of the nine others. 1: the walk route filtered its release by platform, so ~walk/ios no longer names an Android draft. 2: a step tick is keyed by the owed parts the step cites instead of its position, so an edited procedure cannot hand a mark to a step nobody walked. 3: the ~checks fixture ids now run against the answer, and the sort-key mutation that left 253 tests green fails 5. Also fixed: 5 (a refused write is reported), 6 (the agreement fixture gained a passed check, and the known= mutation now fails 3 tests), 7 (the payload carries the module's own quote, so the page no longer derives one), 9 (a flow no longer counts as a screen). Filed, not fixed: 4 as ISS-0308, 8 as ISS-0309 (upstream, the bundle must not be patched locally), 10 added to ISS-0306, 11 as ISS-0307 and TST-0089's ledger entry corrected to by: model:claude-opus-5. 12 needed nothing: both notes already disclose it."
+review_response_date: 2026-09-14
 design: ""
 depends:
   - "[[FEAT-0149-The-Walk-Page]]"
@@ -94,3 +99,39 @@ No new dependency or environment variable. Captures are read from the consumer r
 - Upstream: project-os-dev PHASE-0005, FEAT-0030, FEAT-0031, ADR-0044, ADR-0045, REQ-0029.
 - Consumer: your-trainer PHASE-024, FEAT-0120 (surfaces are screens), FEAT-0121 (v2.2.0 procedures and captures).
 - Repo paths: `src/project_os_cockpit/acceptance.py`, `src/project_os_cockpit/ledger.py`, `src/project_os_cockpit/server.py`, `src/project_os_cockpit/cockpit.py`, `desktop/src/renderer/renderer.ts`, `src/project_os_cockpit/walk_sheet_bundled.py`.
+
+## Done, 2026-09-14
+
+All five tasks are `done`. The page reads as a script: screen cards with before and after, a sitting drawn as its written procedure, a tick on a step that writes one ledger event per check when every citing step has a mark, and `~checks` grouped by screen.
+
+**Scope settled by Edwin the same day**, when this feature's last task was open against another repo: *"Finish the project-os-cockpit phase only, the your-trainer functionality will be handled in the your-trainer repo."* So [[TASK-0626-The-Page-And-The-Sheet-Agree-On-Your-Trainer]] closes on this repo's half — the comparison is written and passes on `your-trainer`'s live corpus for `android` and `ios` — and the run against that repo's real v2.2.0 procedures is your-trainer's `TASK-0907`, which already carries it by name.
+
+**It was walked in a browser, and that is where two defects were found.** A fixture repo with a release tag, two change notes, three captures, a walk order and a three-step procedure, served by a real sidecar behind a one-origin proxy. Step lines printed their Markdown markers, on the page and in the mark dialog's title; and the walk route resolved the platform but never the release, so every payload named no release while step ticks are keyed by one. Both fixed with tests. Recorded on [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]], which is `partial`: its step 8 is asserted by a node test instead of walked by hand.
+
+**One thing this repo cannot show itself**: it keeps one surface note for roughly fourteen screens, so its own change notes cannot write an `## Impact` line and its own survey will always be empty. [[ISS-0306-This-Repos-Own-Screens-Have-No-Surface-Notes]].
+
+## Independent review, 2026-09-14 — `changes-requested`
+
+Reviewed from the notes and the diff (commits `024041c`, `e36fdaf`, plus the uncommitted note edits) in a fresh session that did not author the work. Same model family as the author, recorded in `reviewed_by:` as provenance; clean context is what the gate asks for (`tools/instructions/QUALITY.md`, "Independent review (clean-context)"; project-os-dev ADR-0013). Twelve findings, each reproduced by a command unless marked otherwise. No code was changed by the review; mutations were run and reverted.
+
+### The three I would hold the gate on
+
+1. **A walk names another platform's release.** `src/project_os_cockpit/server.py`, the `/api/cockpit/walk` release resolution: `open_releases(index)` is not filtered by the platform being walked, so `_release = _open[0]["id"]` takes the highest-version open draft whatever platform it belongs to. On `tests/test_walk_route.py`'s own fixture, `?platform=ios` returns `release: "REL-0001"` — the Android draft. On `your-trainer` today `open_releases` returns exactly one row, `REL-0017` / android, so `~walk/ios` is headed *"Walk — REL-0017, ios"* and keys its iOS step ticks under an Android release id. The day an iOS draft with a higher version appears, the key prefix changes under a walk in progress: those ticks stop being read, and `pruneStepMarks` never removes them because it only prunes the current prefix.
+2. **A procedure edited mid-walk re-attaches old marks by position.** The key is `release|platform|sitting|step-number` and a step's number is its position, not anything about the step. Seed one mark on step 1, insert a new first step in the procedure, redraw: the new step 1 is drawn `step 1 — pass` and the mark the walker gave to a different step is now one tick away from entering a verdict. This is the same class of defect the release segment was added to fix, one level down.
+3. **The `~checks` ordering rule has no test that can fail.** Replacing `_area_sort_key`'s body with `return (0,)` leaves 253 tests green across the nine test files that touch `areas`. `tests/test_checks_by_screen.py`'s corpus writes `TST-0001`..`TST-0004` in exactly the order the assertions expect, so a stable sort with a constant key satisfies every one of them. TASK-0625's first and third Definition-of-Done boxes are unguarded.
+
+### The rest
+
+4. **Re-ticking a step writes a duplicate ledger event.** `fail` and `question` keep a check owed, so its tag stays `owed` and its steps keep printing. Ticking any citing step again re-posts the check with the same combined mark and the same stored reason, dated now. Reproduced against the node harness: two identical `["TST-0001","fail","Step 3: it broke"]` posts from one walk.
+5. **With `localStorage` refusing writes, a check cited by more than one step can never be settled, silently.** Ticking all four fixture steps posted `TST-0002` and `TST-0003` and never `TST-0001`. The comment beside `saveStepMarks` says *"storage unavailable — the walk still works, tick by tick"*; it works only for checks cited by exactly one step.
+6. **`tests/test_walk_agreement.py` does not guard the regression its docstring claims.** Reverting `walk_payload`'s `known=known` to `known=checks` — the defect the file's header describes — leaves all four of its tests green. The two tests that do catch it are in `tests/test_walk_payload.py`. The live half has no procedure to compare on `your-trainer`, and the fixture has no already-passed check for a procedure to cite.
+7. **The page does implement one procedure rule of its own.** The payload carries each line's raw text but not the module's `expectation.quote`, so `walkLineText` re-derives it. For `- The banner reads **DONE**  now. \`TST-0001.1\`` the module's quote is `The banner reads **DONE** now.` and the page draws `The banner reads DONE  now.` — emphasis stripped mid-line where `normalise` strips it only at the ends, and the double space kept where `normalise` collapses it. The walker judges a string the validator never compared. "This page implements no survey rule and no procedure rule of its own" is therefore not exactly true.
+8. **The ADR-0041 justification is wider than the code.** *"Each expectation line quotes the check's Expect text word for word and the upstream validator checks the quote"* holds only where the check states an `## Expect`: `_audit_tag` returns no problem when `expect_lines(check)` is empty. Measured on `your-trainer`: 14 of the 39 owed rows have Expect lines, so for 25 of them the quote is unchecked and the line is the procedure author's own wording. The page still shows the procedure, so ADR-0041's literal rule holds; the sentence justifying it does not.
+9. **A `flow` is counted as a screen.** `_surface_tree` counts every root whose kind is not `subsystem` or `surface-less`, and `TAXONOMY.md` lists `flow` as "a sequence across screens". On `your-trainer`'s 17 surfaces the design view's heading counts 10 screens where 6 are screens and 4 are flows, against [[FEAT-0130-Surfaces-Are-A-First-Class-Type]]'s 12-to-15 target. The test corpus has no `flow`.
+10. **Every `~checks` group in this repo now carries the orphan badge.** Measured through `view_payload` on this repo's own docs: 25 areas, 25 `unresolved`. [[ISS-0306-This-Repos-Own-Screens-Have-No-Surface-Notes]] records the empty survey and the "1 screen" heading but not this, and ISS-0250's signal reads as noise when it is on every group.
+11. **Who walked [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]] is not stated** (not reproduced — a gap in the record). Its ledger entry says `by: user:edwin`, but `postCheckVerdict` hard-codes `by: 'user:edwin'` for every tick the shell makes, so the field cannot distinguish a person from an agent. `QUALITY.md` makes "a person performing it" the whole reason an acceptance test owes no separate review, so the walker's identity is load-bearing and belongs in the note.
+12. **The bar moved in the commit that cleared it** (an observation, not a defect). PHASE-044's second exit criterion went from `[~]` to `[x]` with its text rewritten, and TASK-0626's title and two Definition-of-Done boxes changed, in the same edit that closed both. Both notes disclose the rewrite and quote the decision behind it, so it is legible — but a reader comparing the phase's opening criteria with its closing ones is comparing two different bars. The same edit deletes PHASE-044's "Edwin's decisions, 2026-09-14", "Start order" and "Notes" sections; the decisions survive on TASK-0624 and the risk scan on this note, so nothing is lost outright.
+
+### What held up
+
+The combine rule, the holding rule, the storage key's four segments, the prune's release-and-platform confinement, the `owed`-tag filter and the Markdown stripping each have a test that fails when the behaviour is removed — six mutations run, six caught. The ledger format is unchanged and both tick paths go through `postCheckVerdict`. The framed-viewer route resolves and confines to the workspace `docs/` root. The full Python suite is 2,141 passing and `validate-docs.sh` reports OK.
