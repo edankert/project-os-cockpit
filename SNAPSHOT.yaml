@@ -60,28 +60,36 @@ counters:
   CHG:
     last_date: 20260829
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 149
+  FEAT: 150
   ISS: 305
-  PHASE: 43
+  PHASE: 44
   REQ: 65
   RISK: 9
   # A place in the product a check's area: names (TASK-0514). No SUR-* note
   # exists yet: the type is defined, and the first one is TASK-0515.
   SUR: 1
   REL: 1
-  TASK: 621
-  TST: 88
+  TASK: 626
+  TST: 89
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
   task: ""
-  feature: ""
-  phase: ""
+  feature: "FEAT-0150"
+  phase: "PHASE-044"
   issue: ""
-  note: "2026-09-12: PHASE-042 is DONE and reviewed. A note shows what it is about: a design is Markdown with pictures in __attachments__ beside it, and one viewer (~view/<rel>, served by /framed/<rel>) frames any file inside a workspace docs/ for a note of any type. The bench is removed (nine routes gone, FEAT-0042 superseded) and with it FEAT-0146/REQ-0062 — a design ID opens its NOTE, which also answers the old wikilink question. INDEPENDENT REVIEW returned changes-requested; all ten findings acted on and the verdict left standing (see review_response on FEAT-0147/FEAT-0148). The serious one: stamp_decision had no settled guard and wrote plan-accepted onto designs, so the desk could have cancelled a shipped design — fixed and tested. The corpus figures cited for the retirement were wrong and are corrected here and upstream (bb2802d): 23 design notes in 8 repos, 21 with an artifact, 7 artifacts with regions. ISS-0302, found by Edwin: the viewer left a page class set, so every page after it stopped scrolling — fixed, one named set cleared by one helper, and its guard found history-page with the same defect. ISS-0301 is filed at triage: a framed page can POST to loopback write endpoints (the sandbox denies reads, not writes) — pre-existing, not fixed. RISK-0009 (a verdict no longer names what it judged) is open by Edwin decision on PHASE-999. Deferred: side-by-side comparison, which must serve .md too. Never walked: anything in Obsidian. Suite 2063 passed, 6 skipped, 1 failed (the known test_release_evidence case). The window is shared with other agent sessions; restart by pid only. 2026-09-13: PHASE-043 (the walk page) is DONE and committed (199c0fd); independent review was running at the end of the session and its verdict goes on FEAT-0149. ~walk/<platform> renders the owed checks as a procedure: the survey (surfaces whose owed checks carry an invalidation as their latest ledger event, with the invalidating change ids) first, then the sittings docs/tests/acceptance/WALK.md authors, each row carrying the check's Setup/Steps/Expect, and a tick through the existing mark dialog and /api/notes/mark-check. No second store and no second write path. The ordering and survey rules are upstream's: tools/scripts/walk-sheet.py is bundled verbatim as src/project_os_cockpit/walk_sheet_bundled.py, guarded by a byte-identity test; the one adaptation (its validator loader looks for validate-docs.py beside itself) is a seeded global at the call site. Reached from the publication ladder's release rung, the release page's gate section and the checks page header, each only while there is a walk to do. This repo authored its own WALK.md (five sittings). Running the generator beside the page found two UPSTREAM defects, parked under PHASE-999: ISS-0303 (the sheet lists retired checks) and ISS-0304 (a comma inside a quoted bench entry splits it). Walking TST-0088 found two defects in the page and both were fixed with tests: a check that states its Setup was told "Setup: not stated", and a row just ticked kept the [ ] glyph because a clearing verdict removes it from the payload. TST-0088 is `partial`, not `pass`: its step 13 walks the capability register's own detection commands and those rows landed in the same commit. Suite 2121 passed, 6 skipped (foreground, -p no:randomly); node suite 20 passed; validate-docs --as-committed passes. NOT PUSHED. One flake to watch: test_runtime_freshness.py::test_a_fresh_process_is_not_stale failed once in a randomized-order run and passes alone and ordered; nothing in this change reads what it reads." 
+  note: "2026-09-14: PHASE-044 (FEAT-0150, TASK-0622..0626, TST-0089) IS PLANNED, NOTHING BUILT. The walk page becomes a script: survey as screen cards with before/after captures and no test ids, each sitting as its LLM-written procedure, a tick per step that writes one ledger event per check once every citing step is ticked. Upstream decisions project-os-dev ADR-0044 and ADR-0045 are PROPOSED. Start with TASK-0624 on a fixture. ---- EARLIER ---- 2026-09-12: PHASE-042 is DONE and reviewed. A note shows what it is about: a design is Markdown with pictures in __attachments__ beside it, and one viewer (~view/<rel>, served by /framed/<rel>) frames any file inside a workspace docs/ for a note of any type. The bench is removed (nine routes gone, FEAT-0042 superseded) and with it FEAT-0146/REQ-0062 — a design ID opens its NOTE, which also answers the old wikilink question. INDEPENDENT REVIEW returned changes-requested; all ten findings acted on and the verdict left standing (see review_response on FEAT-0147/FEAT-0148). The serious one: stamp_decision had no settled guard and wrote plan-accepted onto designs, so the desk could have cancelled a shipped design — fixed and tested. The corpus figures cited for the retirement were wrong and are corrected here and upstream (bb2802d): 23 design notes in 8 repos, 21 with an artifact, 7 artifacts with regions. ISS-0302, found by Edwin: the viewer left a page class set, so every page after it stopped scrolling — fixed, one named set cleared by one helper, and its guard found history-page with the same defect. ISS-0301 is filed at triage: a framed page can POST to loopback write endpoints (the sandbox denies reads, not writes) — pre-existing, not fixed. RISK-0009 (a verdict no longer names what it judged) is open by Edwin decision on PHASE-999. Deferred: side-by-side comparison, which must serve .md too. Never walked: anything in Obsidian. Suite 2063 passed, 6 skipped, 1 failed (the known test_release_evidence case). The window is shared with other agent sessions; restart by pid only. 2026-09-13: PHASE-043 (the walk page) is DONE and committed (199c0fd); independent review was running at the end of the session and its verdict goes on FEAT-0149. ~walk/<platform> renders the owed checks as a procedure: the survey (surfaces whose owed checks carry an invalidation as their latest ledger event, with the invalidating change ids) first, then the sittings docs/tests/acceptance/WALK.md authors, each row carrying the check's Setup/Steps/Expect, and a tick through the existing mark dialog and /api/notes/mark-check. No second store and no second write path. The ordering and survey rules are upstream's: tools/scripts/walk-sheet.py is bundled verbatim as src/project_os_cockpit/walk_sheet_bundled.py, guarded by a byte-identity test; the one adaptation (its validator loader looks for validate-docs.py beside itself) is a seeded global at the call site. Reached from the publication ladder's release rung, the release page's gate section and the checks page header, each only while there is a walk to do. This repo authored its own WALK.md (five sittings). Running the generator beside the page found two UPSTREAM defects, parked under PHASE-999: ISS-0303 (the sheet lists retired checks) and ISS-0304 (a comma inside a quoted bench entry splits it). Walking TST-0088 found two defects in the page and both were fixed with tests: a check that states its Setup was told "Setup: not stated", and a row just ticked kept the [ ] glyph because a clearing verdict removes it from the payload. TST-0088 is `partial`, not `pass`: its step 13 walks the capability register's own detection commands and those rows landed in the same commit. Suite 2121 passed, 6 skipped (foreground, -p no:randomly); node suite 20 passed; validate-docs --as-committed passes. NOT PUSHED. One flake to watch: test_runtime_freshness.py::test_a_fresh_process_is_not_stale failed once in a randomized-order run and passes alone and ordered; nothing in this change reads what it reads." 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0150:
+      file: "docs/features/walk-script/FEAT-0150-The-Walk-Page-Reads-As-A-Script.md"
+      title: "The walk page reads as a script — the survey as screen cards with before and after, each sitting as its procedure, a tick per step that settles every check it cites, and ~checks grouped by screen"
+      status: backlog
+      owner: user:edwin
+      phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+      tasks: ["TASK-0622", "TASK-0623", "TASK-0624", "TASK-0625", "TASK-0626"]
+      note: "PLANNED 2026-09-14, not started. Survey from change notes as screen cards (no test ids, before/after captures), procedure rendering from the bundled walk-sheet module, a tick per step that writes one ledger event per check once all citing steps are ticked (ledger format unchanged, ADR-0037), ~checks grouped by screen with dialogs under parents. OPEN FOR EDWIN: where step ticks live before a verdict (not the ledger, not the repo: ADR-0040), how step marks combine, and whether a pass from a procedure step satisfies ADR-0041 when the wording is the procedure's rather than the check's (recorded on project-os-dev ADR-0045)."
     FEAT-0149:
       file: "docs/features/walk-page/FEAT-0149-The-Walk-Page.md"
       title: "The walk page — the owed checks as a procedure, survey first, sittings in the consumer's order, the steps on the page"
@@ -863,6 +871,42 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0622:
+      file: "docs/features/walk-script/plan/tasks/TASK-0622-The-Survey-As-Screen-Cards.md"
+      title: "The walk page's survey renders one card per changed screen: its name, each change's rider-facing sentence, and the before and after captures side by side, with no test id"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0150
+      phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+    TASK-0623:
+      file: "docs/features/walk-script/plan/tasks/TASK-0623-Each-Sitting-As-Its-Procedure.md"
+      title: "A sitting with a procedure renders as that procedure: the setup once, the owed steps with the screen each happens on, and expectation lines with their check tags; a sitting without one keeps FEAT-0149's rows"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0150
+      phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+    TASK-0624:
+      file: "docs/features/walk-script/plan/tasks/TASK-0624-A-Tick-Per-Step.md"
+      title: "A tick goes on a procedure step, a check's verdict is written to the ledger once every step citing it has a tick, and walking a whole sitting this way writes the same events as ticking its checks one by one"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0150
+      phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+    TASK-0625:
+      file: "docs/features/walk-script/plan/tasks/TASK-0625-The-Checks-Page-Groups-By-Screen.md"
+      title: "~checks groups by screen, with a dialog's checks under the screen it opens from, following the template's surface rules and the same parent lookup the walk sheet uses"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0150
+      phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+    TASK-0626:
+      file: "docs/features/walk-script/plan/tasks/TASK-0626-The-Page-And-The-Sheet-Agree-On-Your-Trainer.md"
+      title: "On your-trainer, for Android and iOS, the walk page and walk-sheet.py agree on the survey screens, the sitting order, the printed steps and the owed set"
+      status: backlog
+      owner: user:edwin
+      parent: FEAT-0150
+      phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+      depends: ["TASK-0622", "TASK-0623", "TASK-0624"]
     TASK-0618:
       file: "docs/features/walk-page/plan/tasks/TASK-0618-The-Walk-Payload.md"
       title: "The walk payload: the owed checks grouped into the consumer's sittings, from the template's bundled module"
@@ -987,41 +1031,6 @@ items:
       owner: user:edwin
       parent: FEAT-0007
       phase: "[[PHASE-005-Desktop-Shell]]"
-    TASK-0597:
-      file: "docs/features/release-workflow/plan/tasks/TASK-0597-The-Platform-Is-Offered-Not-Typed.md"
-      title: "The platform a release could ship is offered, not typed — the ledgers and the notes say which platforms this repo has evidence for"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0145
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0598:
-      file: "docs/features/release-workflow/plan/tasks/TASK-0598-A-Releases-Version-And-Platform-Can-Change.md"
-      title: "A release's version and platform can be changed after it is created, with create's refusals and one it cannot make — the filename keeps the old version"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0145
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0599:
-      file: "docs/features/release-workflow/plan/tasks/TASK-0599-A-Prepared-Release-Is-Abandoned-Not-Deleted.md"
-      title: "A prepared release that will not ship is abandoned, not deleted — `abandoned` joins the release status vocabulary upstream first"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0145
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0600:
-      file: "docs/features/release-workflow/plan/tasks/TASK-0600-The-Version-And-Platform-Are-Named-On-The-Page.md"
-      title: "The version and the platform are named on the release page — a picker beside the version field, a Platform row on an open release, and Abandon on a draft"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0145
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
-    TASK-0601:
-      file: "docs/features/release-workflow/plan/tasks/TASK-0601-The-Owed-Checks-Are-Settled-Where-They-Are-Owed.md"
-      title: "The owed checks are settled where they are owed — one endpoint writing `na`, `excused` or `blocked` with a reason, refusing `pass`, `partial` and `fail` by name"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0145
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0602:
       file: "docs/features/release-workflow/plan/tasks/TASK-0602-The-Walk-Is-One-Screen-On-The-Release-Page.md"
       title: "The walk is one screen on the release page — the owed list grouped by area, each row carrying its own procedure text beside the three settle buttons"
@@ -3323,6 +3332,15 @@ items:
       path: "docs/requirements/REQ-0017-Release-To-Project-Os.md"
 
   phases:
+    PHASE-044:
+      file: "docs/phases/PHASE-044-The-Walk-Page-Reads-As-A-Script.md"
+      title: "The walk page reads as a script — changed screens as cards with before and after, each sitting as its procedure, and a tick per step"
+      status: planned
+      owner: user:edwin
+      goal: "The person walking a release reads the walk page as a script: the screens the release changed as cards with before and after pictures, then each sitting as one procedure, and a tick on a step that records the verdict for every check that step satisfies, with the ledger unchanged."
+      features: ["FEAT-0150"]
+      tasks: ["TASK-0622", "TASK-0623", "TASK-0624", "TASK-0625", "TASK-0626"]
+      note: "Planned 2026-09-14 from Edwin's approved goal wording, not started. Cockpit half of a three-repo plan: upstream project-os-dev PHASE-0005 (FEAT-0030, FEAT-0031; ADR-0044 and ADR-0045 PROPOSED), consumer your-trainer PHASE-024 (FEAT-0120, FEAT-0121). Justified as a phase against CLAUDE.md's two questions in the note, reversibly: fold into PHASE-043 if it is one session. Builds against a fixture; TASK-0626 waits for your-trainer's v2.2.0 procedures."
     PHASE-043:
       file: "docs/phases/PHASE-043-The-Walk-Page.md"
       title: "The walk page — the publication view hands the owed checks over as a procedure"
@@ -3609,6 +3627,16 @@ items:
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
 
   tests:
+    TST-0089:
+      file: "docs/tests/acceptance/TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts.md"
+      title: "A sitting walked step by step on the walk page writes the same ledger verdicts as its checks ticked one by one, under screen cards that show before and after"
+      status: active
+      owner: user:edwin
+      phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
+      scope: feature
+      level: acceptance
+      features: [FEAT-0150]
+      note: "Planned, not walked. Walks a fixture sitting step by step and compares the ledger with ticking its checks one by one. Not your-trainer's TST-0089, which CHG-20260902 and ISS-0275 mention by bare id."
     TST-0086:
       file: "docs/tests/acceptance/TST-0086-A-Note-Shows-The-Pictures-Beside-It.md"
       title: "A note shows the pictures beside it, and an HTML page shows the pictures beside it"
@@ -4482,9 +4510,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 148
+    features_total: 149
     features_done: 134
-    tasks_total: 615
+    tasks_total: 620
     tasks_done: 579
     tests_total: 49
     tests_passing: 2
