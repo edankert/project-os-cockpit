@@ -77,3 +77,7 @@ The two things *"deliberately not claimed"* are exactly the two that are open, a
 This does not falsify anything measured here. It qualifies two sentences: *"`your-trainer`'s 76 hand-typed strings are 15 surfaces"* and *"the join is currently **perfect**"* are true of a working tree, and a fresh clone of that repo has 579 checks carrying consolidated `area:` values that name no surface at all — because it has no surfaces and no consolidation.
 
 The verdict stays **approved**: the criterion asks for the mapping to be *recorded*, and it now is, durably, in this repo, which was the point of the recovery. But the durable artefact of this feature is a table in `project-os-cockpit`, not a state of `your-trainer`, and the note reads as though it were both.
+
+## Amended 2026-09-14 — the 12 to 15 target counts top-level screens only
+
+On 2026-09-14 Edwin accepted project-os-dev ADR-0044: a surface is a screen by default, and a dialog, sheet, panel or section is a child surface under its screen. He also decided that this feature's target of *"roughly 12–15"* surfaces applies to **top-level screens only**. Children sit below them and do not count. His words: *"v2.2.0 should wait. go with your recommendations for the others, will I start the project-os-dev and cockpit phase first?"* The `~checks` and design-view grouping that follows is [[FEAT-0150-The-Walk-Page-Reads-As-A-Script]] (TASK-0625). The acceptance above is unchanged.

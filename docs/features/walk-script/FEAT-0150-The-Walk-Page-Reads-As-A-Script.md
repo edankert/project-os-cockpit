@@ -45,12 +45,12 @@ Edwin opens `~walk/android` for your-trainer and reads down. First, one card per
 
 [[FEAT-0149-The-Walk-Page]] built `~walk/<platform>`: a survey of surfaces whose owed checks were invalidated, sittings in WALK.md order, and one row per owed check with Setup, Steps and Expect and a mark button (`askForMark`). The payload comes from the bundled `walk_sheet_bundled.py`.
 
-Upstream now changes two of the rules that page renders (project-os-dev ADR-0045, proposed):
+Upstream now changes two of the rules that page renders (project-os-dev ADR-0045, accepted by Edwin on 2026-09-14):
 
 - The survey is built from change notes since the last release tag, grouped by the screens their Impact section names, with before and after captures. It prints no test id.
 - A sitting may carry a procedure, and the sheet prints only the steps that cite an owed part. A sitting without one prints per-check rows as today.
 
-Upstream also says a surface is a screen by default, with dialogs as children (project-os-dev ADR-0044, proposed). `~checks` groups by `area:` today, and should group by screen with children under parents.
+Upstream also says a surface is a screen by default, with dialogs as children (project-os-dev ADR-0044, accepted 2026-09-14). `~checks` groups by `area:` today, and should group by screen with children under parents.
 
 ## What this builds
 
@@ -66,9 +66,9 @@ Upstream also says a surface is a screen by default, with dialogs as children (p
 
 ## What this must not become
 
-**A second store.** Step ticks that have not yet produced a verdict are progress, not verdicts. If they are persisted, they are persisted the way the walker's place already is ([[ISS-0280-The-Checks-Page-Does-Not-Survive-Leaving-The-Project]]), per workspace and per viewer, never in the repo and never read by the gate ([[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]).
+**A second store.** Step ticks that have not yet produced a verdict are progress, not verdicts. Edwin decided on 2026-09-14 that they live in the cockpit's per-workspace browser storage, the way the walker's place already does ([[ISS-0280-The-Checks-Page-Does-Not-Survive-Leaving-The-Project]]), never in the repo or the ledger and never read by the gate ([[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]).
 
-**A bulk pass.** [[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]] forbids `pass` from a surface that does not show the procedure. The walk page shows it, so a step tick may pass several checks. But a pass from a step attests the procedure's wording, which the upstream validator checks for coverage and not for faithfulness. That is recorded as an open question on project-os-dev ADR-0045 and is Edwin's.
+**A bulk pass.** [[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]] forbids `pass` from a surface that does not show the procedure. The walk page shows it, so a step tick may pass several checks. A pass from a step attests the check's own expectation, because each expectation line quotes the check's Expect text word for word and the upstream validator checks the quote (Edwin, 2026-09-14, recorded on project-os-dev ADR-0045).
 
 **A reordering list.** Ticking a step never moves it ([[TASK-0556-Incomplete-First]]).
 
@@ -76,6 +76,7 @@ Upstream also says a surface is a screen by default, with dialogs as children (p
 
 ## Acceptance
 
+- A check's verdict is the worst mark among the steps citing it (Edwin, 2026-09-14).
 - On a fixture sitting, ticking every step writes ledger events equal, check for check and mark for mark, to ticking the same checks one by one on FEAT-0149's page. [[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]] walks it; a unit test asserts it.
 - A check cited by two ticked steps and one unticked step has no new ledger event.
 - A step marked `fail` makes every check it cites `fail` once that check's steps are all ticked, and the dialog asks for the reason `ledger.NEEDS_REASON` already requires.
@@ -86,7 +87,7 @@ Upstream also says a surface is a screen by default, with dialogs as children (p
 
 ## Risk scan
 
-No new dependency or environment variable. Captures are read from the consumer repo through the existing viewer route. The one new hazard is state between step ticks, which TASK-0624 decides; if it is persisted anywhere other than the viewer's own storage, that decision gets a `RISK-*`.
+No new dependency or environment variable. Captures are read from the consumer repo through the existing viewer route. State between step ticks lives in the viewer's per-workspace browser storage (decided 2026-09-14), so no `RISK-*` is owed.
 
 ## Links
 

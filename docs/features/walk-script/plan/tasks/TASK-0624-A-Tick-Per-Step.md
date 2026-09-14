@@ -25,17 +25,19 @@ tags: [task, acceptance, ledger, renderer]
 
 A step in a procedure can satisfy parts of several checks. The walker ticks the step. The ledger records verdicts per check. So something has to hold step ticks until a check's steps are all ticked, and then write one event for that check, the same event FEAT-0149's mark button writes.
 
-## Decide first
+## Decided by Edwin, 2026-09-14
 
-1. **Where step ticks live before a verdict.** Options: in the renderer only, lost on reload; in the viewer's per-workspace storage, the mechanism ISS-0280 built for the walker's place; or in the sidecar. The ledger and the repo are ruled out, because a half-walked check in either is a second store (ADR-0040) and a ledger format change (out of scope). Recommended: per-workspace viewer storage, keyed by release, platform, sitting and step, cleared when the check's event is written.
-2. **How marks combine.** Recommended: a check's verdict is the worst mark among the steps citing it, in the order `fail` over `partial` over `pass`. A `question` on any citing step makes the check `question`. `na`, `excused` and `blocked` are not step marks; they stay on the check row, and on the release page for the settle marks (ADR-0041).
+> "v2.2.0 should wait. go with your recommendations for the others, will I start the project-os-dev and cockpit phase first?"
+
+1. **Where step ticks live before a verdict.** In the cockpit's per-workspace browser storage, the mechanism ISS-0280 built for the walker's place, keyed by release, platform, sitting and step, and cleared when the check's event is written. Never in the repo or the ledger: a half-walked check in either would be a second store (ADR-0040) and a ledger format change (out of scope).
+2. **How marks combine.** A check's verdict is the worst mark among the steps citing it, in the order `fail` over `partial` over `pass`. A `question` on any citing step makes the check `question`. `na`, `excused` and `blocked` are not step marks; they stay on the check row, and on the release page for the settle marks (ADR-0041).
 3. **Reasons.** `ledger.NEEDS_REASON` requires one for every mark but `pass`. A step marked `fail` asks for its reason once, and every check it cites gets that reason with the step number prefixed.
 
-Record the three answers in this note before writing code. If Edwin disagrees with a recommendation, his answer wins.
+Points 1 and 2 are Edwin's decisions. Point 3 follows from the ledger's existing reason rule and was part of the recommendation he accepted.
 
 ## Definition of Done
 
-- [ ] A step tick opens `askForMark` with `pass`, `partial`, `fail` and `question`, and records the step mark in the chosen place.
+- [ ] A step tick opens `askForMark` with `pass`, `partial`, `fail` and `question`, and records the step mark in per-workspace browser storage.
 - [ ] When the last step citing a check gets a mark, the page posts one `/api/notes/mark-check` for that check with the combined mark, the walk's platform (not the nav picker's, per FEAT-0149's review finding 1) and `method: manual`.
 - [ ] A check with an unticked citing step gets no ledger event.
 - [ ] A test builds a fixture sitting with a procedure of four steps citing three checks, ticks every step, and asserts the resulting ledger events equal those from ticking the three checks one by one with the same combined marks. It fails when the combine rule is removed.

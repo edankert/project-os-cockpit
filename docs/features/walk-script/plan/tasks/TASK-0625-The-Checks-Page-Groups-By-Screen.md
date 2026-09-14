@@ -32,5 +32,6 @@ tags: [task, acceptance, checks, renderer]
 - [ ] `subsystem` and `surface-less` surfaces render as their own groups after the screens.
 - [ ] Owed rows still float to the top of their group, and nothing reorders on a tick (TASK-0556).
 - [ ] A surface with no checks still renders, and its count is still on the design view (FEAT-0130).
+- [ ] The design view's surface group counts top-level screens against FEAT-0130's 12 to 15 target and lists children below them (Edwin, 2026-09-14).
 - [ ] An `area:` naming no surface still renders visibly, not silently dropped (ISS-0250).
 - [ ] Tests on a fixture with a parent screen, a child dialog and a subsystem.

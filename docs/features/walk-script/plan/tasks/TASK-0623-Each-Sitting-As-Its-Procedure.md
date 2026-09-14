@@ -28,7 +28,7 @@ The v2.2.0 data-only sitting has five checks whose setups say the same thing. Pr
 ## Definition of Done
 
 - [ ] The payload carries each sitting's procedure as structured data from the bundled module (project-os-dev TASK-0121): setup text, steps with number and surface, lines with tags, and per-tag owed or passed.
-- [ ] The page renders the sitting's state and bench (unchanged), then the setup once, then each printed step with its screen name linked to the surface note, then its expectation lines with tags.
+- [ ] The page renders the sitting's state and bench (unchanged), then the setup once, then each printed step with its screen name linked to the surface note, then its expectation lines, each showing the check's Expect text it quotes and its ASCII tags (`TST-0648.4`).
 - [ ] A tag for a check already passed on this platform is visibly marked passed and cannot be ticked again.
 - [ ] A sitting whose procedure fails the validator shows the validator's message and renders FEAT-0149's per-check rows below it.
 - [ ] A sitting with no procedure renders exactly as today. Existing walk tests pass unchanged.
