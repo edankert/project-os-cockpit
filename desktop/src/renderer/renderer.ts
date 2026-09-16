@@ -102,6 +102,7 @@ interface CockpitApi {
   menu: {
     onRescan: (cb: () => void) => () => void;
     onRestartTerminal: (cb: () => void) => () => void;
+    onConsoleHistory: (cb: () => void) => () => void;
     onToggleTerminal: (cb: () => void) => () => void;
     onEdit: (cb: (ev: { action: string }) => void) => () => void;
     onBack: (cb: () => void) => () => void;
@@ -168,8 +169,10 @@ interface CockpitApi {
     onDelivered: (cb: (ev: { workspaceId: string; item: QueuedDispatch; mode: string; warning?: string }) => void) => () => void;
   };
   terminal: {
-    spawn: (opts: { workspaceId: string; cwd?: string; cols?: number; rows?: number }) => Promise<{ ok: boolean; error?: string }>;
-    attach: (workspaceId: string) => Promise<{ ok: boolean; error?: string; backlog: string }>;
+    spawn: (opts: { workspaceId: string; cwd?: string; cols?: number; rows?: number }) => Promise<{ ok: boolean; error?: string; viaTmux?: boolean }>;
+    attach: (workspaceId: string) => Promise<{ ok: boolean; error?: string; backlog: string; viaTmux?: boolean; mouseRequested?: boolean | null }>;
+    history: (workspaceId: string) => Promise<{ ok: boolean; error?: string }>;
+    scrollHistory: (workspaceId: string, lines: number) => Promise<{ ok: boolean; error?: string }>;
     write: (workspaceId: string, data: string) => void;
     resize: (workspaceId: string, cols: number, rows: number) => void;
     dispose: (workspaceId: string) => Promise<{ ok: boolean }>;
@@ -200,6 +203,7 @@ interface XtermTerminal {
   loadAddon(addon: unknown): void;
   onData(cb: (data: string) => void): void;
   onResize(cb: (size: { cols: number; rows: number }) => void): void;
+  scrollLines(amount: number): void;
   resize(cols: number, rows: number): void;
   readonly cols: number;
   readonly rows: number;
@@ -207,6 +211,8 @@ interface XtermTerminal {
    *  'vt200' | 'drag' | 'any'. Wiped by reset(); we snapshot + restore it
    *  per workspace so wheel forwarding survives a switch (ISS-0016). */
   readonly modes: { mouseTrackingMode?: string };
+  /** The active xterm buffer tells us whether a TUI owns the screen. */
+  readonly buffer: { active: { type: 'normal' | 'alternate' } };
   dispose(): void;
   focus(): void;
   reset(): void;
@@ -3263,8 +3269,17 @@ function wireTerminalListenersOnce(): void {
   });
   cockpitApi.terminal.onExit((info) => {
     liveTerminals.delete(info.workspaceId);
+    terminalViaTmux.delete(info.workspaceId);
+    workspaceMouseMode.delete(info.workspaceId);
+    workspaceBufferType.delete(info.workspaceId);
     if (info.workspaceId !== attachedTerminalId || !term) return;
+    // A child PTY exit is not an Electron quit. If the shell itself died,
+    // keep the cockpit terminal usable by starting a fresh shell in the same
+    // pane. Hidden or inactive workspaces are re-spawned on their next attach.
+    attachedTerminalId = null;
+    term.reset();
     term.write(`\r\n\x1b[90m[terminal exited code=${info.exitCode}${info.signal ? ` signal=${info.signal}` : ''}]\x1b[0m\r\n`);
+    void recoverExitedTerminal(info.workspaceId);
   });
 }
 
@@ -3294,6 +3309,87 @@ function ensureXterm(): void {
   term.loadAddon(fitAddon);
   term.open(terminalMount);
   fitAddon.fit();
+
+  // Direct PTYs use xterm's normal-buffer scrollback. A tmux-backed pane
+  // always sends wheel movement to tmux when xterm has no mouse tracking;
+  // reattachment can leave xterm in its normal buffer after bounded replay
+  // drops tmux's original alternate-screen sequence. tmux distinguishes
+  // history from an inner alternate-screen program. Mouse-aware TUIs keep
+  // their direct mouse reports.
+  let wheelFraction = 0;
+  let historyWheelFraction = 0;
+  let pendingHistoryLines = 0;
+  let pendingHistoryWorkspaceId: string | null = null;
+  let historyWheelScheduled = false;
+  let historyWheelInFlight = false;
+  const flushHistoryWheel = (): void => {
+    historyWheelScheduled = false;
+    if (historyWheelInFlight) return;
+    const workspaceId = pendingHistoryWorkspaceId;
+    if (!workspaceId || attachedTerminalId !== workspaceId) {
+      pendingHistoryLines = 0;
+      return;
+    }
+    const amount = Math.max(-60, Math.min(60, pendingHistoryLines));
+    pendingHistoryLines -= amount;
+    if (amount) {
+      historyWheelInFlight = true;
+      void cockpitApi.terminal.scrollHistory(workspaceId, amount)
+        .then((result) => {
+          if (!result.ok && attachedTerminalId === workspaceId) {
+            showStatus(result.error ?? 'Could not scroll console history', 'error');
+          }
+        })
+        .catch(() => {
+          if (attachedTerminalId === workspaceId) {
+            showStatus('Could not scroll console history', 'error');
+          }
+        })
+        .finally(() => {
+          historyWheelInFlight = false;
+          if (pendingHistoryLines && !historyWheelScheduled) {
+            historyWheelScheduled = true;
+            requestAnimationFrame(flushHistoryWheel);
+          }
+        });
+    }
+  };
+  terminalMount.addEventListener('wheel', (ev) => {
+    if (!term || ev.deltaY === 0 || ev.shiftKey) return;
+    const viaTmux = attachedTerminalId !== null
+      && terminalViaTmux.get(attachedTerminalId) === true;
+    const normalWithStaleMouse = !viaTmux
+      && term.buffer.active.type === 'normal'
+      && term.modes?.mouseTrackingMode !== 'none';
+    const tmuxHistory = viaTmux && term.modes?.mouseTrackingMode === 'none';
+    if (!normalWithStaleMouse && !tmuxHistory) return;
+    const rowHeight = terminalMount.clientHeight / Math.max(term.rows, 1);
+    let lines = ev.deltaY;
+    if (ev.deltaMode === 0) lines /= Math.max(rowHeight, 1);
+    else if (ev.deltaMode === 2) lines *= term.rows;
+    if (tmuxHistory && attachedTerminalId) {
+      if (pendingHistoryWorkspaceId !== attachedTerminalId) {
+        pendingHistoryWorkspaceId = attachedTerminalId;
+        historyWheelFraction = 0;
+        pendingHistoryLines = 0;
+      }
+      historyWheelFraction += lines;
+      const wholeLines = Math.trunc(historyWheelFraction);
+      historyWheelFraction -= wholeLines;
+      pendingHistoryLines += wholeLines;
+      if (pendingHistoryLines && !historyWheelScheduled) {
+        historyWheelScheduled = true;
+        requestAnimationFrame(flushHistoryWheel);
+      }
+    } else {
+      wheelFraction += lines;
+      const wholeLines = Math.trunc(wheelFraction);
+      wheelFraction -= wholeLines;
+      if (wholeLines) term.scrollLines(wholeLines);
+    }
+    ev.preventDefault();
+    ev.stopPropagation();
+  }, { capture: true, passive: false });
 
   // Keep xterm's geometry in sync with its container (ISS-0016). Toggling
   // the pane visible (hidden→shown on a view switch), a window/monitor
@@ -3398,17 +3494,59 @@ function copyTerminalSelection(): void {
 // Attach the xterm to a workspace's PTY: spawn it if not yet alive,
 // otherwise replay the backlog so the screen resumes in-place.
 
-// ----- Mouse tracking is the app's business (ISS-0160) ------------------
+// ----- Mouse tracking follows the active terminal buffer -----------------
 //
-// A per-workspace snapshot of xterm's mouse-tracking mode lived here, and was
-// re-asserted on return so wheel forwarding resumed immediately (ISS-0016)
-// rather than waiting — maybe forever — for the app to redraw.
-//
-// Both are gone. Re-asserting a mode the app may have left typed escape
-// sequences into the PTY on every mouse movement, and the snapshot existed
-// only to feed the re-assert: once that went, the map was written on every
-// switch and read by nothing. Dead state that still looks purposeful is the
-// expensive kind (ISS-0139), so it goes with the code that needed it.
+// The maps below preserve the state reset() removes. The restore is bounded
+// by the target buffer type, so a plain shell cannot inherit a TUI's mode.
+
+// One xterm is shared across workspaces. reset() clears its mouse mode, so a
+// workspace switch can make a still-running TUI stop receiving wheel events.
+// Restore that mode only when the target is still in an alternate buffer.
+// Plain shells remain on xterm's native scrollback; Claude and Codex keep
+// their intentional alternate-screen mouse behavior.
+const workspaceMouseMode = new Map<string, string>();
+const workspaceBufferType = new Map<string, 'normal' | 'alternate'>();
+const terminalViaTmux = new Map<string, boolean>();
+const terminalRecoveryInFlight = new Set<string>();
+const MOUSE_TRACK_DECSET: Record<string, string> = {
+  x10: '9', vt200: '1000', drag: '1002', any: '1003',
+};
+const ALTERNATE_BUFFER_MODES = new Set(['47', '1047', '1049']);
+
+/** Apply alternate-buffer transitions found in replayed PTY output.
+ *
+ * The sequence that entered the TUI can predate the bounded backlog, so the
+ * saved buffer type is the starting state. A later exit sequence in the
+ * backlog still wins, preventing a stale mouse mode from reaching a shell.
+ */
+function bufferTypeAfterReplay(
+  workspaceId: string, backlog: string,
+): 'normal' | 'alternate' {
+  let type = workspaceBufferType.get(workspaceId) ?? 'normal';
+  const modes = /(?:\x1b\[|\x9b)\?([0-9;]+)([hl])/g;
+  let match: RegExpExecArray | null;
+  while ((match = modes.exec(backlog)) !== null) {
+    if (!match[1].split(';').some((mode) => ALTERNATE_BUFFER_MODES.has(mode))) continue;
+    type = match[2] === 'h' ? 'alternate' : 'normal';
+  }
+  return type;
+}
+
+/** Restore a TUI's xterm mouse mode without writing anything to the PTY. */
+function restoreMouseTrackingForWorkspace(
+  workspaceId: string, bufferType: 'normal' | 'alternate',
+): void {
+  const decset = MOUSE_TRACK_DECSET[workspaceMouseMode.get(workspaceId) ?? ''];
+  if (bufferType !== 'alternate' || !decset || term?.modes?.mouseTrackingMode !== 'none') return;
+  term?.write('\x1b[?' + decset + 'h\x1b[?1006h');
+}
+
+/** A tmux pane that no longer requests the mouse must not inherit the mode
+ * saved before a workspace switch. These bytes change xterm only. */
+function clearXtermMouseTracking(): void {
+  if (term?.modes?.mouseTrackingMode === 'none') return;
+  term?.write('\x1b[?9l\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l');
+}
 
 /** Bumped on every attach, so a call that finishes late can tell it has been
  *  overtaken (ISS-0154). `attachedTerminalId` is set synchronously and the
@@ -3429,6 +3567,12 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
   if (!term) return;
   if (attachedTerminalId === workspaceId) return;
   const generation = ++terminalAttachGeneration;
+  if (attachedTerminalId) {
+    workspaceMouseMode.set(
+      attachedTerminalId, term.modes?.mouseTrackingMode || 'none',
+    );
+    workspaceBufferType.set(attachedTerminalId, term.buffer.active.type);
+  }
   attachedTerminalId = workspaceId;
   term.reset();
   const cwd = workspaces.find((w) => w.id === workspaceId)?.root;
@@ -3442,6 +3586,7 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
       return;
     }
     liveTerminals.add(workspaceId);
+    terminalViaTmux.set(workspaceId, res.viaTmux === true);
     return;
   }
   // PTY already running for this workspace — re-attach and replay
@@ -3450,6 +3595,7 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
   // Overtaken while the backlog was in flight: writing it now would paint one
   // workspace's scrollback into another's terminal.
   if (generation !== terminalAttachGeneration) return;
+  if (res.ok) terminalViaTmux.set(workspaceId, res.viaTmux === true);
   if (res.ok && res.backlog) {
     // Replay with xterm's mouth shut (ISS-0161). The keystrokes a user manages
     // to type inside this window are lost, which is milliseconds and is the
@@ -3464,29 +3610,20 @@ async function attachTerminalTo(workspaceId: string): Promise<void> {
     suppressTerminalWrites = false;
     if (generation !== terminalAttachGeneration) return;
   }
-  // **The mouse mode is NOT re-asserted** (ISS-0160). ISS-0016 restored it
-  // here so wheel scrolling survived a switch, and accepted a limitation in
-  // writing: *"if the app exited to a plain shell in this same PTY while we
-  // were detached, we'll briefly re-assert the stale tracking mode until the
-  // next redraw disables it — recoverable, and rare."*
-  //
-  // It was neither. At mode `any` (DEC 1003, report every motion) xterm writes
-  // `\e[<35;col;row M` into the PTY on every mouse movement across the pane —
-  // measured at 84 such sequences in one recorded session. An app no longer in
-  // mouse mode does not see a mouse report; it sees ESC and then letters, and
-  // an ESC into a vi-mode readline or a TUI switches it to command mode. That
-  // is why `g` and `l` stopped being letters while the arrow keys still worked.
-  //
-  // So the app re-enables its own mouse mode, which is the only party that
-  // knows whether it wants one. What makes that safe now and unsafe then is
-  // ISS-0154's repair: every attach goes through `attachAndFocusTerminal`,
-  // which forces a genuine SIGWINCH *after* the attach completes, where
-  // ISS-0016's resize raced ahead of the reset and the redraw could not be
-  // relied on.
-  //
-  // The trade, stated: an app that does not re-enable on redraw leaves wheel
-  // scrolling asleep until it does. That is better than a terminal which
-  // silently retypes your mouse movements into a running agent.
+  const bufferType = res.ok
+    ? bufferTypeAfterReplay(workspaceId, res.backlog)
+    : 'normal';
+  workspaceBufferType.set(workspaceId, bufferType);
+  // term.write() changes xterm's parser state only. It does not pass through
+  // onData, so the restore cannot become keyboard input in the PTY.
+  if (res.ok && res.viaTmux) {
+    if (res.mouseRequested === false) clearXtermMouseTracking();
+    else if (res.mouseRequested === true) {
+      restoreMouseTrackingForWorkspace(workspaceId, bufferType);
+    }
+  } else {
+    restoreMouseTrackingForWorkspace(workspaceId, bufferType);
+  }
   // Re-send our current geometry; main may have lost track if the
   // window resized while detached.
   cockpitApi.terminal.resize(workspaceId, term.cols, term.rows);
@@ -3515,13 +3652,26 @@ async function attachAndFocusTerminal(workspaceId: string): Promise<void> {
   });
 }
 
+async function recoverExitedTerminal(workspaceId: string): Promise<void> {
+  if (
+    terminalPane.hidden
+    || activeId !== workspaceId
+    || terminalRecoveryInFlight.has(workspaceId)
+  ) return;
+  terminalRecoveryInFlight.add(workspaceId);
+  try {
+    await attachAndFocusTerminal(workspaceId);
+  } finally {
+    terminalRecoveryInFlight.delete(workspaceId);
+  }
+}
+
 // Force a genuine terminal resize so the PTY gets a real SIGWINCH and the
 // running app (e.g. Claude Code) fully redraws. A workspace switch calls
 // `term.reset()` (see attachTerminalTo), which wipes xterm's mode state —
-// including mouse-tracking mode — and the replayed backlog does NOT restore
-// it (the app's enable sequence predates the backlog window). Until the app
-// redraws and re-enables mouse tracking, xterm won't forward wheel events,
-// so scrolling is dead — the exact repair a divider drag performs. A
+// including mouse-tracking mode — and the replayed backlog may not restore
+// it (the app's enable sequence predates the backlog window). attachTerminalTo
+// restores the saved mode only for an alternate-screen TUI. A
 // same-size fit() no-ops (xterm's resize early-returns on identical
 // cols/rows), so round-trip rows-1 → true rows to guarantee a real resize
 // (ISS-0016). Also rebuilds the scroll viewport / fixes clip on show.
@@ -3546,7 +3696,10 @@ async function restartTerminal(): Promise<void> {
   )) return;
   await cockpitApi.terminal.dispose(wsId);
   liveTerminals.delete(wsId);
+  terminalViaTmux.delete(wsId);
   attachedTerminalId = null;
+  workspaceMouseMode.delete(wsId);
+  workspaceBufferType.delete(wsId);
   term.reset();
   await attachAndFocusTerminal(wsId);
   // attachTerminalTo only adds to liveTerminals on a successful spawn, so
@@ -3557,6 +3710,27 @@ async function restartTerminal(): Promise<void> {
   } else {
     showStatus('Failed to restart console', 'error');
   }
+}
+
+async function openConsoleHistory(): Promise<void> {
+  const workspaceId = activeId;
+  if (!workspaceId) return;
+  if (terminalPane.hidden) await showTerminal();
+  if (activeId !== workspaceId || attachedTerminalId !== workspaceId) return;
+  let result: { ok: boolean; error?: string };
+  try {
+    result = await cockpitApi.terminal.history(workspaceId);
+  } catch {
+    showStatus('Could not open console history', 'error');
+    return;
+  }
+  if (!result.ok) {
+    showStatus(result.error ?? 'Could not open console history', 'error');
+    return;
+  }
+  term?.focus();
+  showStatus('Console history: scroll or use arrow keys; press q to return');
+  scheduleHide(3500);
 }
 
 // Console panel persistence. The panel is part of how the window is set
@@ -3668,6 +3842,7 @@ cockpitApi.menu.onEdit((ev) => {
 cockpitApi.menu.onRescan(() => { void rescanWorkspaces(); });
 cockpitApi.menu.onToggleTerminal(() => { toggleTerminal(); });
 cockpitApi.menu.onRestartTerminal(() => { void restartTerminal(); });
+cockpitApi.menu.onConsoleHistory(() => { void openConsoleHistory(); });
 
 cockpitApi.agent.onFocus((payload) => {
   if (!payload || typeof payload !== 'object') return;
@@ -21569,4 +21744,3 @@ function renderMeasurePanel(): void {
 //
 // esc costs nothing: the selection is read at click time, so dismissing the
 // prompt leaves the record untouched.
-

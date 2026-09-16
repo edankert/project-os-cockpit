@@ -6,13 +6,13 @@ title: "A re-asserted mouse mode types escape sequences into the CLI on every mo
 status: "fixed"
 owner: user:edwin
 created: 2026-08-13
-updated: 2026-08-13
+updated: 2026-09-15
 source: ["Edwin 2026-08-13: 'the cli still does not seem to take any keystroke input for the other terminals' → 'it seems like the up key worked and it nearly looked some keys had a different assignment, the g seems to do something different and the l for instance … it is strange behaviour'"]
 severity: high
 component: desktop-terminal
 parent: ""
-related: ["[[ISS-0016-Embedded-Terminal-Content-Runs-Off-Screen-And-Mouse-Scroll-Stops-Working-After-Switching-To-The-Console]]", "[[ISS-0154-Existing-Terminals-Lose-Keyboard-Input-After-Workspace-Switch]]", "[[FEAT-0003-Embedded-Terminal]]"]
-tests: []
+related: ["[[ISS-0016-Embedded-Terminal-Content-Runs-Off-Screen-And-Mouse-Scroll-Stops-Working-After-Switching-To-The-Console]]", "[[ISS-0154-Existing-Terminals-Lose-Keyboard-Input-After-Workspace-Switch]]", "[[ISS-0310-Codex-Terminal-Does-Not-Preserve-Previous-Output]]", "[[CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment]]", "[[FEAT-0003-Embedded-Terminal]]"]
+tests: ["tests/test_view_landings.py::test_the_terminal_restores_mouse_mode_only_for_an_alternate_buffer"]
 ---
 
 # A stale mouse mode types escape sequences into the CLI
@@ -58,7 +58,7 @@ This is the option [[ISS-0016]] rejected, and it is available now for a reason t
 
 ## Fixed — 2026-08-13
 
-The re-assert is gone, and the snapshot went with it: `workspaceMouseMode` and `MOUSE_TRACK_DECSET` existed only to feed it, so once nothing read them they were state written on every switch and consulted by nobody — [[ISS-0139]]'s class, removed alongside the code that needed it.
+The unbounded re-assert is gone. The snapshot now feeds only a bounded local restore for a workspace that is still in an alternate-screen TUI; it is not applied to a shell, and replayed exit sequences clear the saved buffer state.
 
 **Verified on the live app across A → B → A:**
 
@@ -71,7 +71,13 @@ sequences emitted          : \e[?1;2c  \e[>0;276;0c  OSC 10/11 colour replies
 
 The third line is the whole bet of option 1 and it holds: the mode returns because the app asks for it on redraw. The emitted sequences are xterm *answering* the app's Device-Attributes and colour queries — which is itself evidence the redraw fired — and there is not one `\e[<35;…M` motion report among them.
 
-`test_the_terminal_never_re_asserts_a_mouse_mode` keeps both halves out: the DECSET table and the snapshot map.
+`test_the_terminal_restores_mouse_mode_only_for_an_alternate_buffer` keeps the unbounded restore out while checking the alternate-buffer guard.
+
+## Bounded restoration — 2026-09-15
+
+The unbounded restore described above remains removed. The shared renderer now snapshots the mode before `term.reset()` and restores it locally only when the replayed workspace is still in xterm's alternate buffer. It also scans replayed alternate-buffer exit sequences, so a TUI that ended while detached cannot leave stale mouse tracking in a shell. The restore uses `term.write()`, not the PTY write path, so it does not type a DECSET or mouse report into the application.
+
+This closes the scroll regression exposed by [[ISS-0310]] while preserving the protection recorded here: plain shells do not inherit a TUI's mouse mode, Claude keeps its alternate-screen mouse behavior, and Codex uses inline scrollback.
 
 ## Correction — 2026-08-13: real mechanism, not the reported cause
 
@@ -79,4 +85,4 @@ Edwin, after the fix shipped and the app was restarted: *"it is not working."*
 
 So the mouse flood was **a** defect, measured and removed, but it was not what stops the CLI taking input. This note's title quotes the symptom and should not have: the two were joined by a plausible mechanism and by the specific keys named (`g`, `l`, arrows), which fitted a modal app well enough that I stopped looking.
 
-What is verified stays verified — no mode is re-asserted, the app re-enables its own on redraw, no motion reports reach the PTY. What is **not** established is that this was ever the reader's problem. The symptom is still open and its cause is unknown; when it is found it gets its own note rather than being appended here, because two defects sharing one title is how the second one goes missing.
+What is verified stays verified — the stale mode is not blindly re-asserted, no motion reports reach the PTY, and the current bounded restore is local to an alternate-screen TUI. What is **not** established is that this was ever the reader's problem. The symptom is still open and its cause is unknown; when it is found it gets its own note rather than being appended here, because two defects sharing one title is how the second one goes missing.

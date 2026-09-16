@@ -7,16 +7,16 @@ status: done
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-08-25
+updated: 2026-09-16
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
 source: []
 goal: "Run an AI coding assistant alongside the docs in a single browser window — terminal panel embedded next to the rendered note, locked to the local machine."
 release: ""
-related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[RISK-0001]]"]
+related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[RISK-0001]]", "[[ISS-0310]]", "[[ISS-0311]]", "[[SUR-0002]]", "[[CHG-20260915-Launch-Codex-in-inline-terminal-mode-for-scrollback]]", "[[CHG-20260915-Implement-Codex-Terminal-Scrollback-Fix]]", "[[CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment]]", "[[CHG-20260915-Fix-terminal-scrollback-and-Codex-exit-lifecycle]]", "[[CHG-20260916-Make-Codex-terminal-history-scrollable-through-tmux]]", "[[CHG-20260916-Keep-tmux-scrolling-after-workspace-reattachment]]"]
 requirements: ["[[REQ-0005]]"]
-tasks: ["[[TASK-0043]]", "[[TASK-0044]]", "[[TASK-0045]]", "[[TASK-0047]]", "[[TASK-0185]]", "[[TASK-0186]]", "[[TASK-0577]]"]
+tasks: ["[[TASK-0043]]", "[[TASK-0044]]", "[[TASK-0045]]", "[[TASK-0047]]", "[[TASK-0185]]", "[[TASK-0186]]", "[[TASK-0577]]", "[[TASK-0627]]"]
 ---
 
 # Embedded local-only terminal
@@ -46,3 +46,5 @@ A terminal panel sits alongside the rendered docs in the same browser window so 
 Pairing this with FEAT-0002 is the killer feature: the assistant edits a note, the renderer's file watcher fires, and the page (visible right next to the terminal) updates in place — a tight authoring loop without ever leaving the browser.
 
 The security model is set by [REQ-0005](../../requirements/REQ-0005-Terminal-Local-Only.md) and [RISK-0001](../../risks/RISK-0001-Terminal-Exposure.md). The default-off + loopback-bind combination makes accidental exposure hard.
+
+The Electron terminal launches Codex in inline mode, but tmux still puts the outer terminal in its alternate screen. The cockpit uses tmux history for earlier output and offers a History action. The wheel opens that history for a normal tmux pane, even when a workspace switch leaves xterm's reconstructed buffer in normal mode. An inner alternate-screen program keeps its arrow-key behavior, and a program that requests mouse input keeps its mouse reports. This gives Codex and a plain shell a path to retained output without changing Claude's scrolling or the console's text selection ([[SUR-0002]], [[ISS-0310]], [[TASK-0627]], [[CHG-20260916-Make-Codex-terminal-history-scrollable-through-tmux]], [[CHG-20260916-Keep-tmux-scrolling-after-workspace-reattachment]]). A child command exit remains separate from the Electron app lifecycle ([[ISS-0311]]).

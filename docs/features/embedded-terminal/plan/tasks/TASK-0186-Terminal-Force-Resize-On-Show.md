@@ -7,15 +7,15 @@ status: done
 phase: "[[PHASE-004-Embedded-Terminal]]"
 owner: user:edwin
 created: 2026-07-21
-updated: 2026-07-22
+updated: 2026-09-15
 source: ["[[ISS-0016]]"]
 parent: "FEAT-0003"
 effort: ""
 due: ""
 depends: ["[[TASK-0185]]"]
 blocks: []
-related: []
-tests: []
+related: ["[[ISS-0310]]", "[[CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment]]"]
+tests: ["tests/test_view_landings.py::test_the_terminal_restores_mouse_mode_only_for_an_alternate_buffer"]
 verification_waiver: "Renderer-only terminal-mode wiring; xterm mouse-forwarding has no automated renderer unit-test surface. Diagnosed with live CDP instrumentation (captured xterm's mouseTrackingMode flipping to 'none' on switch-in) and confirmed working live by the user after the deterministic mode-restore landed; independent review on the code."
 waiver_expires: 2026-10-23
 
@@ -28,3 +28,5 @@ Follow-up to [[TASK-0185]] / [[ISS-0016]]. The dead mouse-wheel scroll was NOT a
 Fix (deterministic, not timing-dependent): snapshot each workspace's `term.modes.mouseTrackingMode` when leaving it, and on return — after `reset()` + backlog replay — re-assert it by writing the matching DECSET enable sequence (plus `?1006h` SGR encoding) to xterm. A plain shell stays `none`, so xterm keeps forwarding wheel to its own native scrollback; a Claude/codex TUI restores to `any`, so wheel forwarding resumes immediately. Supporting changes: `showTerminal` now awaits the attach before the resize (so the SIGWINCH can't race ahead of the reset), and `forceRefitTerminal` sends a genuine resize on show (helps a first-visit redraw and keeps [[TASK-0185]]'s clip fix). Added `resize`/`modes` to the `XtermTerminal` type.
 
 Verification: confirmed live by the user — returning to a previously-visited Claude console scrolls immediately without a manual drag. Known edge: the very first visit to a workspace in a session has no snapshot yet, so it still relies on the app's redraw; a broader follow-up could restore the full mode set (bracketed paste, app cursor keys) that reset() also wipes.
+
+Current bounded repair — 2026-09-15: the original deterministic restore is retained only for an alternate-screen TUI. `attachTerminalTo` snapshots the active buffer type as well as mouse mode, scans replayed alternate-buffer transitions, and uses `term.write()` to restore xterm locally after `reset()`. A plain shell or a TUI that exited while detached does not receive the stale mode; Claude remains eligible for alternate-screen mouse behavior, while Codex uses inline scrollback. See [[ISS-0310]] and [[CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment]].

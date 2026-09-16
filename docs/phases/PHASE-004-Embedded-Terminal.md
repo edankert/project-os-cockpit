@@ -3,15 +3,17 @@ type: "[[phase]]"
 id: PHASE-004
 aliases: ["PHASE-004"]
 title: "Embedded terminal"
-status: done
+status: active
 order: 4
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-08-25
+updated: 2026-09-15
 features:
   - "[[FEAT-0003-Embedded-Terminal]]"
 issues:
   - "[[ISS-0255]]"
+  - "[[ISS-0310]]"
+  - "[[ISS-0311]]"
 depends: ["[[PHASE-001-MVP]]"]
 ---
 
@@ -44,7 +46,7 @@ Originally scoped under PHASE-001 (MVP). Pulled out to a dedicated phase so PHAS
 
 ## Close-out (2026-07-20)
 
-The embedded local-only terminal is complete and closed (FEAT-0003): xterm + per-workspace local PTY (loopback-only by construction), tmux survivability, and the ttyd reverse-proxy path. The preview-tab nice-to-have (TASK-0045) is deferred to PHASE-999. No open items remain.
+The embedded local-only terminal is complete and closed (FEAT-0003): xterm + per-workspace local PTY (loopback-only by construction), tmux survivability, and the ttyd reverse-proxy path. The preview-tab nice-to-have (TASK-0045) is deferred to PHASE-999. The terminal scrollback and Codex-exit repair is temporarily reopening this standing home through [[TASK-0627]].
 
 ## Reopened and re-closed (2026-08-25) — [[ISS-0255]]
 

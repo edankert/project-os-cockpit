@@ -7,9 +7,9 @@ status: fixed
 severity: medium
 owner: user:edwin
 created: 2026-07-21
-updated: 2026-07-21
+updated: 2026-09-15
 source: ["user-report"]
-related: ["[[FEAT-0003]]", "[[TASK-0185]]"]
+related: ["[[FEAT-0003]]", "[[TASK-0185]]", "[[TASK-0186]]", "[[ISS-0310]]", "[[CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment]]"]
 ---
 
 # ISS-0016 — embedded terminal keeps stale dimensions after a view switch
@@ -38,4 +38,4 @@ The first fix ([[TASK-0185]], `ResizeObserver` + `fit()`) resolved the content-c
 
 ## Resolved 2026-07-22
 
-The dead mouse-scroll was mouse-mode forwarding, not xterm scrollback. One xterm is shared across workspaces; a workspace switch calls `term.reset()`, which wipes xterm's `mouseTrackingMode`, and the raw backlog can't restore it. Fixed by snapshotting each workspace's mouse-tracking mode and re-asserting it on re-attach ([[TASK-0186]]). Confirmed working live by the user. The content-clipped-below-the-prompt half was fixed earlier by [[TASK-0185]].
+The dead mouse-scroll was mouse-mode forwarding, not xterm scrollback. One xterm is shared across workspaces; a workspace switch calls `term.reset()`, which wipes xterm's `mouseTrackingMode`, and the raw backlog may not contain the original enable sequence. The current repair snapshots each workspace's mode and buffer type, then restores the mode locally only when replay still identifies an alternate-screen TUI; a replayed exit sequence prevents stale tracking from reaching a shell ([[TASK-0186]], [[ISS-0310]], [[CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment]]). The content-clipped-below-the-prompt half was fixed earlier by [[TASK-0185]].

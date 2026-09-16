@@ -46,6 +46,7 @@ interface PtyRecord {
 }
 
 const ptys = new Map<string, PtyRecord>();
+const historyOperations = new Map<string, Promise<void>>();
 
 // ---- tmux backing (ISS-0008 / TASK-0144) ----
 
@@ -245,6 +246,7 @@ function spawnPty(window: BrowserWindow, opts: SpawnOpts): PtyRecord {
     // current record (TASK-0187).
     if (ptys.get(record.workspaceId) !== record) return;
     ptys.delete(record.workspaceId);
+    historyOperations.delete(record.workspaceId);
     const target = BrowserWindow.fromId(record.windowId);
     if (target) send(target, 'terminal:exit', { workspaceId: record.workspaceId, exitCode, signal });
   });
@@ -255,6 +257,7 @@ async function killPty(workspaceId: string): Promise<void> {
   const record = ptys.get(workspaceId);
   if (!record) return;
   ptys.delete(workspaceId);
+  historyOperations.delete(workspaceId);
   try { record.pty.kill(); } catch { /* already gone */ }
   // Explicit dispose means "close this terminal", so the backing tmux
   // session goes too — otherwise it would linger invisibly forever. AWAIT
@@ -301,6 +304,59 @@ export function shutdownAllTerminals(): void {
     try { record.pty.kill(); } catch { /* already gone */ }
   }
   ptys.clear();
+  historyOperations.clear();
+}
+
+/** Serialize wheel commands so quick gestures keep their order. */
+function runHistoryCommand(
+  record: PtyRecord, lines = 0, fromWheel = false,
+): Promise<{ ok: boolean; error?: string }> {
+  const workspaceId = record.workspaceId;
+  const previous = historyOperations.get(workspaceId) ?? Promise.resolve();
+  const result = previous.then(async () => {
+    if (ptys.get(workspaceId) !== record) {
+      return { ok: false, error: 'console is no longer attached' };
+    }
+    const tmux = tmuxBinary();
+    if (!tmux || !record.viaTmux) {
+      return { ok: false, error: 'console history requires tmux' };
+    }
+    const target = tmuxSessionName(workspaceId);
+    const runTmux = (args: string[]): Promise<{ ok: boolean; error?: string }> =>
+      new Promise((resolve) => {
+        execFile(tmux, args, { timeout: 3000 },
+          (err) => resolve(err
+            ? { ok: false, error: 'could not scroll console' }
+            : { ok: true }));
+      });
+    if (fromWheel) {
+      // An alternate-screen program that has not enabled mouse input still
+      // expects xterm's wheel-as-arrow behavior. tmux knows whether the pane
+      // itself is in that screen; xterm only sees tmux's outer screen.
+      const paneState = await new Promise<string | null>((resolve) => {
+        execFile(tmux,
+          ['-L', TMUX_SOCKET, 'display-message', '-p', '-t', target,
+            '#{alternate_on} #{mouse_any_flag} #{pane_mode}'],
+          { timeout: 3000 },
+          (err, stdout) => resolve(err ? null : stdout.trim()));
+      });
+      if (paneState === null) return { ok: false, error: 'could not read console state' };
+      const [alternateOn, mouseRequested, paneMode] = paneState.split(' ');
+      if (paneMode !== 'copy-mode'
+        && (alternateOn === '1' || mouseRequested === '1' || Boolean(paneMode))) {
+        return runTmux(['-L', TMUX_SOCKET, 'send-keys', '-t', target,
+          '-N', String(Math.abs(lines)), lines < 0 ? 'Up' : 'Down']);
+      }
+    }
+    const args = ['-L', TMUX_SOCKET, 'copy-mode', '-e', '-t', target];
+    if (lines !== 0) {
+      args.push(';', 'send-keys', '-X', '-t', target, '-N', String(Math.abs(lines)),
+        lines < 0 ? 'scroll-up' : 'scroll-down');
+    }
+    return runTmux(args);
+  });
+  historyOperations.set(workspaceId, result.then(() => undefined, () => undefined));
+  return result;
 }
 
 interface TerminalIpcDeps {
@@ -312,19 +368,61 @@ export function registerTerminalIpc(_deps: TerminalIpcDeps): void {
     const window = BrowserWindow.fromWebContents(evt.sender);
     if (!window) return { ok: false, error: 'no window' };
     if (!opts?.workspaceId) return { ok: false, error: 'workspaceId required' };
-    spawnPty(window, opts);
-    return { ok: true };
+    const record = spawnPty(window, opts);
+    return { ok: true, viaTmux: record.viaTmux };
   });
 
   // Attach: re-bind the named PTY to this window and return the
   // backlog so the renderer can rewrite the xterm in-place.
-  ipcMain.handle('terminal:attach', (evt, payload: { workspaceId: string }) => {
+  ipcMain.handle('terminal:attach', async (evt, payload: { workspaceId: string }) => {
     const window = BrowserWindow.fromWebContents(evt.sender);
     if (!window) return { ok: false, error: 'no window', backlog: '' };
     const record = ptys.get(payload.workspaceId);
     if (!record) return { ok: false, error: 'no pty', backlog: '' };
     record.windowId = window.id;
-    return { ok: true, backlog: record.backlog.join('') };
+    let mouseRequested: boolean | null = null;
+    if (record.viaTmux) {
+      const tmux = tmuxBinary();
+      if (tmux) {
+        mouseRequested = await new Promise<boolean | null>((resolve) => {
+          execFile(tmux,
+            ['-L', TMUX_SOCKET, 'display-message', '-p', '-t',
+              tmuxSessionName(record.workspaceId), '#{mouse_any_flag}'],
+            { timeout: 3000 },
+            (err, stdout) => {
+              const value = stdout.trim();
+              resolve(err || (value !== '0' && value !== '1') ? null : value === '1');
+            });
+        });
+      }
+    }
+    return { ok: true, backlog: record.backlog.join(''), viaTmux: record.viaTmux,
+      mouseRequested };
+  });
+
+  // The outer tmux client uses xterm's alternate buffer, so xterm's own
+  // scrollback cannot show the persistent pane history. The explicit action
+  // works even when the program inside has claimed mouse input.
+  ipcMain.handle('terminal:history', async (evt, payload: { workspaceId: string }) => {
+    const window = BrowserWindow.fromWebContents(evt.sender);
+    const record = ptys.get(payload?.workspaceId);
+    if (!window || !record || record.windowId !== window.id) {
+      return { ok: false, error: 'no attached console' };
+    }
+    return runHistoryCommand(record);
+  });
+
+  ipcMain.handle('terminal:scroll-history', async (evt, payload: { workspaceId: string; lines: number }) => {
+    const window = BrowserWindow.fromWebContents(evt.sender);
+    const record = ptys.get(payload?.workspaceId);
+    if (!window || !record || record.windowId !== window.id) {
+      return { ok: false, error: 'no attached console' };
+    }
+    const lines = payload?.lines;
+    if (!Number.isInteger(lines) || lines === 0 || Math.abs(lines) > 60) {
+      return { ok: false, error: 'invalid scroll amount' };
+    }
+    return runHistoryCommand(record, lines, true);
   });
 
   ipcMain.on('terminal:input', (_evt, payload: { workspaceId: string; data: string }) => {

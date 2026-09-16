@@ -1,5 +1,5 @@
 version: 1
-updated: "2026-07-26T00:00Z"
+updated: "2026-09-16T00:00Z"
 
 template:
   replace_me: false
@@ -58,26 +58,25 @@ counters:
   # missing counter. Upstream ships `DES: 0`.
   DES: 14
   CHG:
-    last_date: 20260829
+    last_date: 20260916
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 150
-  ISS: 309
+  ISS: 311
   PHASE: 44
   REQ: 65
   RISK: 9
-  # A place in the product a check's area: names (TASK-0514). No SUR-* note
-  # exists yet: the type is defined, and the first one is TASK-0515.
-  SUR: 1
+  # A place in the product a check's area: names (TASK-0514).
+  SUR: 2
   REL: 1
-  TASK: 626
+  TASK: 627
   TST: 89
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
-  task: ""
-  feature: ""
-  phase: ""
-  issue: ""
+  task: "TASK-0627"
+  feature: "FEAT-0003"
+  phase: "[[PHASE-004-Embedded-Terminal]]"
+  issue: "ISS-0310"
   note: "2026-09-14: PHASE-044 IS DONE and FEAT-0150 with it; all five tasks done. Edwin settled the scope when TASK-0626 stood open against another repo: \"Finish the project-os-cockpit phase only, the your-trainer functionality will be handled in the your-trainer repo.\" So TASK-0626 closes on this repo's half - the page/sheet comparison is written and passes on your-trainer's live corpus for android AND ios - and running it against that repo's real v2.2.0 procedures is your-trainer TASK-0907, which already names it. your-trainer PHASE-024 has not started; its first step TASK-0900 is a screen-mapping table that needs EDWIN'S APPROVAL before any area: is rewritten. The walk page now reads as a script: the survey is one card per changed screen with the last release's capture beside the candidate's at one width, a child screen drawn inside its parent, and no test id; a sitting with a procedure draws the setup once and its owed steps, each expectation line showing the check text it quotes beside its ASCII tags, a passed tag struck through; a tick goes on a STEP and one ledger event per check is written when every citing step has a mark, worst mark winning (fail > partial > pass, question over all). Step ticks live in localStorage `cockpit:walk-steps:<ws>` keyed release|platform|sitting|step and are pruned when a step stops printing. The ledger format is UNCHANGED and both tick paths now build the POST in one function, postCheckVerdict. ~checks groups by screen with dialogs indented under their parent and an unresolved area marked; the design view counts top-level screens. WALKED IN A BROWSER on a fixture repo (live-harness + one-origin proxy + real sidecar + real ledger) and that found TWO defects the node suite could not: step lines printed raw `**bold**` markers (fixed, stripped where drawn and in the dialog title), and the walk route resolved the platform but never the release, so every payload had release:"" and step-tick keys had an empty release segment (fixed in server.py, test in test_walk_route.py). TST-0089 recorded `partial` in WORKING-macos.json: steps 1-7 walked, step 8 not (the ledger equivalence is asserted by the node test instead). ISS-0306 filed: this repo has ONE surface note for ~14 screens, so its own change notes cannot write an Impact line and its own survey will always be empty. Suite 2143 passed 6 skipped; node 172 passed; tsc clean; validate-docs OK. NOT PUSHED. ---- EARLIER ---- 2026-09-12: PHASE-042 is DONE and reviewed. A note shows what it is about: a design is Markdown with pictures in __attachments__ beside it, and one viewer (~view/<rel>, served by /framed/<rel>) frames any file inside a workspace docs/ for a note of any type. The bench is removed (nine routes gone, FEAT-0042 superseded) and with it FEAT-0146/REQ-0062 — a design ID opens its NOTE, which also answers the old wikilink question. INDEPENDENT REVIEW returned changes-requested; all ten findings acted on and the verdict left standing (see review_response on FEAT-0147/FEAT-0148). The serious one: stamp_decision had no settled guard and wrote plan-accepted onto designs, so the desk could have cancelled a shipped design — fixed and tested. The corpus figures cited for the retirement were wrong and are corrected here and upstream (bb2802d): 23 design notes in 8 repos, 21 with an artifact, 7 artifacts with regions. ISS-0302, found by Edwin: the viewer left a page class set, so every page after it stopped scrolling — fixed, one named set cleared by one helper, and its guard found history-page with the same defect. ISS-0301 is filed at triage: a framed page can POST to loopback write endpoints (the sandbox denies reads, not writes) — pre-existing, not fixed. RISK-0009 (a verdict no longer names what it judged) is open by Edwin decision on PHASE-999. Deferred: side-by-side comparison, which must serve .md too. Never walked: anything in Obsidian. Suite 2063 passed, 6 skipped, 1 failed (the known test_release_evidence case). The window is shared with other agent sessions; restart by pid only. 2026-09-13: PHASE-043 (the walk page) is DONE and committed (199c0fd); independent review was running at the end of the session and its verdict goes on FEAT-0149. ~walk/<platform> renders the owed checks as a procedure: the survey (surfaces whose owed checks carry an invalidation as their latest ledger event, with the invalidating change ids) first, then the sittings docs/tests/acceptance/WALK.md authors, each row carrying the check's Setup/Steps/Expect, and a tick through the existing mark dialog and /api/notes/mark-check. No second store and no second write path. The ordering and survey rules are upstream's: tools/scripts/walk-sheet.py is bundled verbatim as src/project_os_cockpit/walk_sheet_bundled.py, guarded by a byte-identity test; the one adaptation (its validator loader looks for validate-docs.py beside itself) is a seeded global at the call site. Reached from the publication ladder's release rung, the release page's gate section and the checks page header, each only while there is a walk to do. This repo authored its own WALK.md (five sittings). Running the generator beside the page found two UPSTREAM defects, parked under PHASE-999: ISS-0303 (the sheet lists retired checks) and ISS-0304 (a comma inside a quoted bench entry splits it). Walking TST-0088 found two defects in the page and both were fixed with tests: a check that states its Setup was told "Setup: not stated", and a row just ticked kept the [ ] glyph because a clearing verdict removes it from the payload. TST-0088 is `partial`, not `pass`: its step 13 walks the capability register's own detection commands and those rows landed in the same commit. Suite 2121 passed, 6 skipped (foreground, -p no:randomly); node suite 20 passed; validate-docs --as-committed passes. NOT PUSHED. One flake to watch: test_runtime_freshness.py::test_a_fresh_process_is_not_stale failed once in a randomized-order run and passes alone and ordered; nothing in this change reads what it reads." 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
@@ -1031,13 +1030,6 @@ items:
       owner: user:edwin
       parent: FEAT-0007
       phase: "[[PHASE-005-Desktop-Shell]]"
-    TASK-0602:
-      file: "docs/features/release-workflow/plan/tasks/TASK-0602-The-Walk-Is-One-Screen-On-The-Release-Page.md"
-      title: "The walk is one screen on the release page — the owed list grouped by area, each row carrying its own procedure text beside the three settle buttons"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0145
-      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
     TASK-0603:
       file: "docs/features/release-workflow/plan/tasks/TASK-0603-The-Coverage-Gap-Is-Computed-Not-Guessed.md"
       title: "The coverage gap is computed, not guessed — the features a release ships that no check names, and the requirements whose criteria nobody ticked"
@@ -1077,6 +1069,13 @@ items:
       file: "docs/features/embedded-terminal/plan/tasks/TASK-0577-The-Fit-Parent-Carries-No-Padding.md"
       title: "The element xterm is opened into carries no padding — move the console's inset from `.terminal-mount` to `.terminal-pane` so the fit addon's measurement is exact"
       status: done
+      owner: user:edwin
+      parent: FEAT-0003
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+    TASK-0627:
+      file: "docs/features/embedded-terminal/plan/tasks/TASK-0627-Terminal-Scrollback-And-Codex-Exit-Lifecycle.md"
+      title: "Keep terminal scrolling usable and keep the cockpit open when Codex exits"
+      status: doing
       owner: user:edwin
       parent: FEAT-0003
       phase: "[[PHASE-004-Embedded-Terminal]]"
@@ -1795,6 +1794,24 @@ items:
       status: released
       note: "RE-SCOPED 2026-08-11 by Edwin: defined by PHASES RESOLVED, not by a feature list. PHASE-023/024/025/026/027 must all reach `done`; PHASE-028/029 deferred. Leg 1 (11 features, done 2026-08-10) is closed and stays closed. Leg 2 is 16 features / 50 tasks, but the REAL bar is PHASE-CHILDREN + PHASE-BOXES: 76 unresolved children and 25 unticked exit criteria. Step 0 is ISS-0126, a decision rather than work. Order: 026 (release surface first — this note is hand-maintained until FEAT-0072 exists and has already drifted) -> 023 -> 024 -> 025 (parallel-capable) -> 027. SHIPPED 2026-08-11: all five phases `done`, the acceptance gate green on its first firing (34 of 34 Tier 1/2 — 33 walked, 1 settled by decision), `released` at 1.0.0, tag v1.0.0 local and never pushed. This note's earlier ending — 'Still `draft`, and now for a second reason: 17 leg-1 checks unwalked AND four phases barely started' — was true when written and stayed here after the status changed; independent review found it, which is the kind of thing prose the sync script deliberately does not touch will do."
   issues:
+    ISS-0310:
+      file: "docs/issues/ISS-0310-Codex-Terminal-Does-Not-Preserve-Previous-Output.md"
+      title: "Codex output cannot be reached through the cockpit terminal's scrollback"
+      status: open
+      owner: user:edwin
+      phase: ""
+      severity: medium
+      component: desktop-terminal
+      note: "2026-09-16: Edwin's live walk found full Codex history on first opening a project, but limited or no wheel scrolling after leaving and returning. The Codex tmux pane still retained 996 lines. Reattachment resets xterm and replays at most 256 KB; when that replay omits tmux's initial alternate-screen sequence, the wheel handler wrongly stops routing to tmux. TASK-0627 repairs routing independently of xterm's reconstructed buffer. Claude's fixed prompt versus Codex's inline scrolling is a separate display-mode choice. Live recheck remains."
+    ISS-0311:
+      file: "docs/issues/ISS-0311-Exiting-Codex-Closes-The-Electron-Cockpit.md"
+      title: "Exiting Codex closes the Electron cockpit instead of returning to the shell"
+      status: open
+      owner: user:edwin
+      phase: "[[PHASE-004-Embedded-Terminal]]"
+      severity: high
+      component: desktop-terminal
+      note: "2026-09-15, Edwin: ending Codex appears to close Electron instead of returning to the shell prompt. TASK-0627 keeps the PTY child exit local to the terminal renderer and preserves the app window; live walk remains."
     ISS-0302:
       file: "docs/issues/ISS-0302-Every-Page-Stops-Scrolling-After-The-Viewer-Is-Opened.md"
       title: "Every page stops scrolling once the viewer has been opened, because the viewer's page class is added and never removed"
@@ -3370,7 +3387,7 @@ items:
     PHASE-004:
       file: "docs/phases/PHASE-004-Embedded-Terminal.md"
       title: "Embedded terminal"
-      status: done
+      status: active
       owner: user:edwin
       goal: "The optional embedded local-only terminal panel, loopback-bound, so the docs viewer can run claude / codex next to the rendered notes."
       features: ["FEAT-0003"]
@@ -3552,7 +3569,7 @@ items:
       path: "docs/phases/PHASE-003-Downstream-Pilot.md"
     PHASE-004:
       title: "Embedded terminal"
-      status: done
+      status: active
       path: "docs/phases/PHASE-004-Embedded-Terminal.md"
     PHASE-005:
       title: "Desktop shell (Electron + Python sidecar)"
@@ -3869,6 +3886,48 @@ items:
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260916-Keep-tmux-scrolling-after-workspace-reattachment:
+      title: "Keep tmux scrolling after workspace reattachment"
+      status: merged
+      file: "docs/changes/CHG-20260916-Keep-tmux-scrolling-after-workspace-reattachment.md"
+      issues: ["ISS-0310"]
+      features: ["FEAT-0003"]
+    CHG-20260916-Make-Codex-terminal-history-scrollable-through-tmux:
+      title: "Make Codex terminal history scrollable through tmux"
+      status: merged
+      file: "docs/changes/CHG-20260916-Make-Codex-terminal-history-scrollable-through-tmux.md"
+      issues: ["ISS-0310"]
+      features: ["FEAT-0003"]
+    CHG-20260915-Launch-Codex-in-inline-terminal-mode-for-scrollback:
+      title: "Launch Codex in inline terminal mode for scrollback"
+      status: merged
+      file: "docs/changes/CHG-20260915-Launch-Codex-in-inline-terminal-mode-for-scrollback.md"
+      issues: ["ISS-0310"]
+      features: ["FEAT-0003"]
+    CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment:
+      title: "Restore terminal scrolling after workspace reattachment"
+      status: merged
+      file: "docs/changes/CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment.md"
+      issues: ["ISS-0310"]
+      features: ["FEAT-0003"]
+    CHG-20260915-Implement-Codex-Terminal-Scrollback-Fix:
+      title: "Implement Codex terminal scrollback fix"
+      status: merged
+      file: "docs/changes/CHG-20260915-Implement-Codex-Terminal-Scrollback-Fix.md"
+      issues: ["ISS-0310"]
+      features: ["FEAT-0003"]
+    CHG-20260915-Document-Codex-Terminal-Scrollback-Fix:
+      title: "Document the Codex terminal scrollback fix — use Codex inline mode in the Electron cockpit"
+      status: merged
+      file: "docs/changes/CHG-20260915-Document-Codex-Terminal-Scrollback-Fix.md"
+      issues: ["ISS-0310"]
+      features: []
+    CHG-20260915-Fix-terminal-scrollback-and-Codex-exit-lifecycle:
+      title: "Fix terminal scrollback and Codex exit lifecycle"
+      status: merged
+      file: "docs/changes/CHG-20260915-Fix-terminal-scrollback-and-Codex-exit-lifecycle.md"
+      issues: ["ISS-0310", "ISS-0311"]
+      features: ["FEAT-0003"]
     CHG-20260911-A-Link-That-Names-A-Design-Opens-The-Design-Bench:
       title: "A link that names a design's ID now opens the design bench, not the design's note; and a link that switches project no longer leaves the left pane or a design note's banner behind"
       status: merged
@@ -4512,14 +4571,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 149
     features_done: 135
-    tasks_total: 620
+    tasks_total: 621
     tasks_done: 584
     tests_total: 49
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 16
+    issues_open: 18
     issues_triage: 18
     risks_open: 7
     releases_total: 1

@@ -181,7 +181,7 @@ if [ -z "$COCKPIT_NO_INSTRUMENT" ]; then
   unalias claude 2>/dev/null
   unalias codex 2>/dev/null
   'claude'() { command claude --settings ${JSON.stringify(path.join(dir, 'claude-settings.json'))} "$@"; }
-  'codex'() { command codex -c "notify=[${JSON.stringify(path.join(dir, 'codex-notify.sh')).replace(/"/g, '\\"')}]" "$@"; }
+  'codex'() { command codex --no-alt-screen -c "notify=[${JSON.stringify(path.join(dir, 'codex-notify.sh')).replace(/"/g, '\\"')}]" "$@"; }
 fi
 `;
 }

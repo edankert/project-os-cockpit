@@ -986,32 +986,110 @@ def test_the_digest_never_under_reports_what_the_badges_show(owed_corpus: Index)
     assert owed_ids <= digest_ids, sorted(owed_ids - digest_ids)
 
 
-def test_the_terminal_never_re_asserts_a_mouse_mode(tmp_path: Path = None) -> None:
-    """Mouse tracking is the app's business (ISS-0160).
+def test_the_terminal_restores_mouse_mode_only_for_an_alternate_buffer(
+    tmp_path: Path = None,
+) -> None:
+    """A reattached TUI gets wheel forwarding without poisoning a shell.
 
-    Re-asserting a saved mode wrote `\\e[<35;col;row M` into the PTY on every
-    mouse movement — 84 such sequences in one recorded session. An app no
-    longer in mouse mode sees ESC and then letters, and an ESC into a vi-mode
-    readline switches it to command mode, which is why `g` and `l` stopped
-    being letters while the arrow keys still worked.
-
-    ISS-0016 accepted that in writing — *"recoverable, and rare"* — and it was
-    neither. The snapshot went with it: once nothing re-asserted, the map was
-    written on every switch and read by nothing.
+    `term.reset()` clears xterm's local mouse mode. The renderer may restore
+    it through `term.write()`, which changes xterm state without sending a
+    mouse report or DECSET to the PTY. A tmux client keeps xterm's outer
+    buffer alternate-screen, so reattachment also checks the inner pane's
+    current mouse request before restoring the saved mode (ISS-0160).
     """
     src = RENDERER.read_text(encoding="utf-8")
-    assert "MOUSE_TRACK_DECSET" not in src, (
-        "the DECSET table is back; something is re-enabling mouse tracking on "
-        "the app's behalf, and the app is the only party that knows"
-    )
-    assert "workspaceMouseMode" not in src, (
-        "the per-workspace mouse-mode snapshot is back; it exists only to feed "
-        "a re-assert, so its return means the re-assert has returned too"
-    )
+    assert "MOUSE_TRACK_DECSET" in src
+    assert "workspaceMouseMode" in src
+    assert "workspaceBufferType" in src
+    assert "bufferTypeAfterReplay" in src
+    assert "restoreMouseTrackingForWorkspace" in src
     fn = re.search(r"async function attachTerminalTo\(.*?\n\}\n", src, re.S).group(0)
-    assert "\\x1b[?" not in fn, (
-        f"the attach writes a DEC private mode into the terminal: {fn}"
+    assert "term.modes?.mouseTrackingMode" in fn
+    assert "term.buffer.active.type" in fn
+    assert "restoreMouseTrackingForWorkspace(workspaceId, bufferType)" in fn
+    restore = re.search(
+        r"function restoreMouseTrackingForWorkspace\(.*?\n\}", src, re.S,
+    ).group(0)
+    assert "bufferType !== 'alternate' || !decset" in restore
+    assert "term?.modes?.mouseTrackingMode !== 'none'" in restore
+    assert "term?.write('\\x1b[?' + decset + 'h\\x1b[?1006h');" in restore
+    assert "cockpitApi.terminal.write" not in restore, (
+        "the renderer must not send the restore sequence to the PTY"
     )
+    assert "res.mouseRequested === false) clearXtermMouseTracking()" in fn
+
+
+def test_a_normal_terminal_buffer_can_scroll_past_stale_tui_mouse_mode() -> None:
+    """A direct-PTY shell must keep xterm history if a TUI left mouse mode on.
+
+    xterm sends wheel reports to an application while mouse tracking is active.
+    That is correct for an alternate-screen TUI and wrong for a normal shell.
+    The renderer intercepts the normal-buffer combination only for a direct
+    PTY. tmux-backed panes use tmux's history instead.
+    """
+    src = RENDERER.read_text(encoding="utf-8")
+    wheel = re.search(
+        r"terminalMount\.addEventListener\('wheel'.*?\n  \}, \{ capture: true, passive: false \}\);",
+        src,
+        re.S,
+    )
+    assert wheel is not None
+    handler = wheel.group(0)
+    assert "const normalWithStaleMouse = !viaTmux" in handler
+    assert "term.buffer.active.type === 'normal'" in handler
+    assert "term.modes?.mouseTrackingMode !== 'none'" in handler
+    assert "term.scrollLines(wholeLines)" in handler
+    assert "ev.preventDefault()" in handler
+    assert "ev.stopPropagation()" in handler
+
+
+def test_the_console_wheel_and_history_action_reach_tmux() -> None:
+    """The tmux client owns history even though xterm sees its outer alternate buffer."""
+    renderer = RENDERER.read_text(encoding="utf-8")
+    wheel = re.search(
+        r"terminalMount\.addEventListener\('wheel'.*?\n  \}, \{ capture: true, passive: false \}\);",
+        renderer,
+        re.S,
+    )
+    assert wheel is not None
+    assert "terminalViaTmux.get(attachedTerminalId) === true" in wheel.group(0)
+    assert "cockpitApi.terminal.scrollHistory(workspaceId, amount)" in renderer
+    assert "cockpitApi.terminal.history(workspaceId)" in renderer
+    assert "cockpitApi.menu.onConsoleHistory" in renderer
+    main = (REPO_ROOT / "desktop" / "src" / "main.ts").read_text(encoding="utf-8")
+    assert "label: 'Console History'" in main
+
+
+def test_tmux_history_survives_workspace_reattachment() -> None:
+    """A bounded replay may omit tmux's initial alternate-screen escape."""
+    renderer = RENDERER.read_text(encoding="utf-8")
+    wheel = re.search(
+        r"terminalMount\.addEventListener\('wheel'.*?\n  \}, \{ capture: true, passive: false \}\);",
+        renderer,
+        re.S,
+    )
+    assert wheel is not None
+    handler = wheel.group(0)
+    assert "const tmuxHistory = viaTmux && term.modes?.mouseTrackingMode === 'none';" in handler
+    assert "const normalWithStaleMouse = !viaTmux" in handler
+    assert "cockpitApi.terminal.scrollHistory(workspaceId, amount)" in renderer
+
+
+def test_a_terminal_child_exit_does_not_quit_the_electron_app() -> None:
+    """A dead PTY gets a fresh shell; it never becomes app.quit()."""
+    renderer = RENDERER.read_text(encoding="utf-8")
+    listener = re.search(
+        r"cockpitApi\.terminal\.onExit\(\(info\) => \{.*?\n  \}\);",
+        renderer,
+        re.S,
+    )
+    assert listener is not None
+    block = listener.group(0)
+    assert "attachedTerminalId = null" in block
+    assert "void recoverExitedTerminal(info.workspaceId)" in block
+
+    terminal = (REPO_ROOT / "desktop/src/ipc/terminal.ts").read_text(encoding="utf-8")
+    assert "app.quit" not in terminal
 
 
 # ---- Active mode counts work, not statuses (ISS-0122) --------------------

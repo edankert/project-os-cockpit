@@ -72,6 +72,11 @@ const api = {
       ipcRenderer.on('menu:restart-terminal', handler);
       return () => ipcRenderer.removeListener('menu:restart-terminal', handler);
     },
+    onConsoleHistory: (cb: () => void): (() => void) => {
+      const handler = (): void => cb();
+      ipcRenderer.on('menu:console-history', handler);
+      return () => ipcRenderer.removeListener('menu:console-history', handler);
+    },
     onToggleTerminal: (cb: () => void): (() => void) => {
       const handler = (): void => cb();
       ipcRenderer.on('menu:toggle-terminal', handler);
@@ -214,10 +219,14 @@ const api = {
     },
   },
   terminal: {
-    spawn: (opts: { workspaceId: string; cwd?: string; cols?: number; rows?: number }): Promise<{ ok: boolean; error?: string }> =>
+    spawn: (opts: { workspaceId: string; cwd?: string; cols?: number; rows?: number }): Promise<{ ok: boolean; error?: string; viaTmux?: boolean }> =>
       ipcRenderer.invoke('terminal:spawn', opts),
-    attach: (workspaceId: string): Promise<{ ok: boolean; error?: string; backlog: string }> =>
+    attach: (workspaceId: string): Promise<{ ok: boolean; error?: string; backlog: string; viaTmux?: boolean; mouseRequested?: boolean | null }> =>
       ipcRenderer.invoke('terminal:attach', { workspaceId }),
+    history: (workspaceId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('terminal:history', { workspaceId }),
+    scrollHistory: (workspaceId: string, lines: number): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('terminal:scroll-history', { workspaceId, lines }),
     write: (workspaceId: string, data: string): void => {
       ipcRenderer.send('terminal:input', { workspaceId, data });
     },
