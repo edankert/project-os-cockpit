@@ -80,6 +80,32 @@ def _compare(repo_root: Path, platform: str) -> None:
         assert procedure["problems"] == theirs.procedure.problems, mine["name"]
         assert [s["number"] for s in procedure["steps"]] \
             == [s.number for s in theirs.steps], mine["name"]
+        assert [s["head"] for s in procedure["steps"]] == [
+            step.head for step in theirs.steps
+        ], mine["name"]
+        assert procedure["setup"] == theirs.setup, mine["name"]
+        assert procedure["requires"] == {
+            str(number): list(sources)
+            for number, sources in theirs.procedure.requires.items()
+        }, mine["name"]
+        assert [s["preparation"] for s in procedure["steps"]] == [
+            not any(e.owed for e in step.expectations) for step in theirs.steps
+        ], mine["name"]
+        assert [s["required_state"] for s in procedure["steps"]] == [
+            step.required_state or None for step in theirs.steps
+        ], mine["name"]
+        assert [s["capture_prompt"] for s in procedure["steps"]] == [
+            step.capture_prompt if step.capture_needed else None for step in theirs.steps
+        ], mine["name"]
+        assert [s["use_capture"] for s in procedure["steps"]] == [
+            list(step.uses_capture) for step in theirs.steps
+        ], mine["name"]
+        assert [s["timer_seconds"] for s in procedure["steps"]] == [
+            step.timer_seconds or None for step in theirs.steps
+        ], mine["name"]
+        assert [s["readiness"] for s in procedure["steps"]] == [
+            dict(step.readiness) if step.readiness else None for step in theirs.steps
+        ], mine["name"]
         assert procedure["omitted"] == theirs.omitted, mine["name"]
         assert procedure["owed_checks"] == [c.id for c in theirs.owed_checks]
 
@@ -122,10 +148,10 @@ def _fixture(tmp_path: Path) -> Path:
         '---\ntype: "[[reference]]"\ntitle: "Procedure — Riding"\n'
         'status: active\nowner: user:fixture\nsitting: "Riding"\n---\n\n'
         "# Procedure — Riding\n\n## Setup\n\nOn a ride, pedalling.\n\n"
-        "## Steps\n\n1. **Ride cockpit.** Look at it.\n"
+        "## Steps\n\n1. **Ride cockpit (SUR-0001).** Look at it.\n"
         "   - It is there. `TST-0001.1`\n"
-        "2. **HR-zone sheet.** Open it.\n   - It is there. `TST-0002.1`\n"
-        "3. **Ride cockpit.** Listen to it.\n   - It is quiet. `TST-0003.1`\n",
+        "2. **HR-zone sheet (SUR-0002).** Open it.\n   - It is there. `TST-0002.1`\n"
+        "3. **Ride cockpit (SUR-0001).** Listen to it.\n   - It is quiet. `TST-0003.1`\n",
         encoding="utf-8")
     #: **A check the procedure cites and the release does NOT owe.** A
     #: procedure covers its whole sitting and the sheet prints the owed part
@@ -171,6 +197,8 @@ def test_the_fixture_actually_exercises_a_procedure(tmp_path: Path) -> None:
     #: which is the filtering rule, and the reason the procedure is accepted
     #: rather than refused for citing a check outside the owed set.
     assert [s["number"] for s in procedure["steps"]] == [1, 2]
+    assert [(s["surface"], s["surface_note"]) for s in procedure["steps"]] == [
+        ("Ride cockpit", "SUR-0001"), ("HR-zone sheet", "SUR-0002")]
     assert procedure["omitted"] == 1
     assert page["counts"]["owed"] == 2
     assert not page["errors"], page["errors"]
@@ -194,6 +222,44 @@ def test_a_procedure_citing_an_already_passed_check_is_not_refused(
         #: And the module, run the way the script runs it, says the same.
         theirs = _sheet(repo, platform).sittings[0]
         assert theirs.procedure.problems == [], platform
+
+
+def test_completed_check_can_be_rebuilt_for_correction_without_changing_owed_rows(
+        tmp_path: Path) -> None:
+    repo = _fixture(tmp_path)
+    docs = repo / "docs"
+    plain = acceptance.walk_payload(docs, Index.build(docs), platform="android",
+                                    release="REL-0001")
+    corrected = acceptance.walk_payload(
+        docs, Index.build(docs), platform="android", release="REL-0001",
+        review_ids={"TST-0003", "TST-9999"})
+    assert corrected["counts"] == plain["counts"]
+    assert corrected["sittings"] == plain["sittings"]
+    assert corrected["review_sittings"][0]["rows"][0]["id"] == "TST-0003"
+    assert [step["number"] for step in corrected["review_sittings"][0]["procedure"]["steps"]] == [3]
+    assert corrected["review_sittings"][0]["procedure"]["steps"][0]["head"].endswith("Listen to it.")
+    assert corrected["history"]["TST-0003"][0]["mark"] == "pass"
+    assert "TST-9999" not in corrected["history"]
+
+    procedure = docs / "tests" / "acceptance" / "walk" / "riding.md"
+    procedure.write_text(procedure.read_text(encoding="utf-8").replace(
+        "Listen to it.", "Listen again to the current build."), encoding="utf-8")
+    refreshed = acceptance.walk_payload(
+        docs, Index.build(docs), platform="android", release="REL-0001",
+        review_ids={"TST-0003"})
+    assert refreshed["review_sittings"][0]["procedure"]["steps"][0]["head"].endswith(
+        "Listen again to the current build.")
+
+    procedure.write_text(procedure.read_text(encoding="utf-8").replace(
+        "It is quiet. `TST-0003.1`", "It is loud. `TST-0003.1`"),
+        encoding="utf-8")
+    invalid = acceptance.walk_payload(
+        docs, Index.build(docs), platform="android", release="REL-0001",
+        review_ids={"TST-0003"})
+    assert invalid["review_sittings"] == []
+    assert invalid["review_unavailable"][0]["row"]["id"] == "TST-0003"
+    assert "It is loud" in invalid["review_unavailable"][0]["reason"]
+    assert invalid["counts"] == plain["counts"]
 
 
 # ------------------------------------------------------------ on the corpus

@@ -26,7 +26,7 @@ from project_os_cockpit.index import Index
 
 def _check(docs: Path, tid: str, *, area: str, body: str = "",
            after: str = "", covers: str = "", command: str = "",
-           title: str = "") -> None:
+           title: str = "", frontmatter: str = "") -> None:
     (docs / "tests" / "acceptance").mkdir(parents=True, exist_ok=True)
     extra = ""
     if after:
@@ -38,7 +38,7 @@ def _check(docs: Path, tid: str, *, area: str, body: str = "",
     (docs / "tests" / "acceptance" / f"{tid}.md").write_text(
         f'---\ntype: "[[test]]"\nid: {tid}\ntitle: "{title or tid}"\n'
         f'level: acceptance\nstatus: active\narea: "{area}"\nmark: todo\n'
-        f"{extra}---\n\n# {title or tid}\n\n{body}\n", encoding="utf-8")
+        f"{extra}{frontmatter}---\n\n# {title or tid}\n\n{body}\n", encoding="utf-8")
 
 
 def _ledger(docs: Path, platform: str, entries: list[dict],
@@ -118,6 +118,35 @@ def test_the_rows_are_exactly_what_the_ledger_says_is_owed(tmp_path: Path) -> No
     #: Asserting only the ids let that mutation through (independent review,
     #: 2026-09-13).
     assert payload["errors"] == []
+
+
+def test_unscripted_check_readiness_reaches_only_its_declared_platform(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    _check(docs, "TST-0001", area="Settings", frontmatter=(
+        "walk_readiness_for:\n"
+        "  ios: {kind: decision, reason: 'Choose the iOS scope.', issue: ISS-0001}\n"))
+    _ledger(docs, "android", [])
+    _ledger(docs, "ios", [])
+
+    android = _payload(docs, platform="android")
+    ios = _payload(docs, platform="ios")
+    assert _ids(android) == _ids(ios) == ["TST-0001"]
+    assert _rows(android)[0]["readiness"] is None
+    assert _rows(ios)[0]["readiness"] == {
+        "kind": "decision", "reason": "Choose the iOS scope.", "issue": "ISS-0001"}
+
+
+def test_malformed_check_readiness_is_visible_and_not_ready(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    _check(docs, "TST-0001", area="Settings", frontmatter=(
+        "walk_readiness_for:\n"
+        "  ios: {kind: decision, reason: ''}\n"))
+    _ledger(docs, "ios", [])
+
+    payload = _payload(docs, platform="ios")
+    assert _ids(payload) == ["TST-0001"]
+    assert payload["errors"] and "walk_readiness_for" in payload["errors"][0]
+    assert _rows(payload)[0]["readiness"]["kind"] == "decision"
 
 
 def test_a_blocking_verdict_is_still_owed(tmp_path: Path) -> None:
@@ -602,6 +631,22 @@ def test_a_procedure_may_cite_a_check_that_has_already_passed(
     assert procedure["problems"] == []
     assert [s["number"] for s in procedure["steps"]] == [1]
     assert procedure["owed_checks"] == ["TST-0001"]
+
+
+def test_malformed_tag_keeps_owed_check_in_per_check_fallback(tmp_path: Path) -> None:
+    docs = tmp_path / "docs"
+    _bench(docs)
+    path = docs / "tests" / "acceptance" / "walk" / "the-bench.md"
+    path.write_text(path.read_text(encoding="utf-8").replace(
+        "It opens. `TST-0001.1`",
+        "It opens. `TST-0001.1` `TST-0001.1a`"), encoding="utf-8")
+
+    payload = _payload(docs)
+    sitting = payload["sittings"][0]
+    assert [row["id"] for row in sitting["rows"]] == ["TST-0001"]
+    assert sitting["procedure"]["steps"] == []
+    assert any("malformed expectation tag `TST-0001.1a`" in problem
+               for problem in sitting["procedure"]["problems"])
 
 
 def test_the_page_and_the_generator_agree_on_the_same_procedure(

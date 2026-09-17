@@ -119,6 +119,37 @@ def test_an_oversized_capture_is_refused(docs: Path) -> None:
     assert exc.value.status == 413
 
 
+def test_attachment_route_accepts_a_valid_png_above_the_generic_json_limit(
+        docs: Path) -> None:
+    """A tablet screenshot can exceed 1.5 MB, whose base64 crosses 2 MB."""
+    import json
+    import threading
+    import urllib.request
+    from project_os_cockpit.server import DocsServer, _NoDNSThreadingHTTPServer, _make_handler
+
+    server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
+    httpd = _NoDNSThreadingHTTPServer(
+        ("127.0.0.1", 0),
+        _make_handler(server.docs_root, server.index, server.bus,
+                      cockpit_state=server.cockpit_state),
+    )
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        png = b"\x89PNG\r\n\x1a\n" + b"x" * 1_600_000
+        body = json.dumps({"id": "ISS-9001",
+                           "png_base64": base64.b64encode(png).decode()}).encode()
+        assert len(body) > 2 * 1024 * 1024
+        request = urllib.request.Request(
+            f"http://127.0.0.1:{httpd.server_address[1]}/api/notes/attach",
+            data=body, headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(request, timeout=8) as response:
+            result = json.load(response)
+        assert result["ok"] is True
+        assert (docs / result["result"]["rel"]).read_bytes() == png
+    finally:
+        httpd.shutdown()
+
+
 def test_the_id_cannot_escape_the_attachments_directory(docs: Path) -> None:
     """`../` in an id must not become a path."""
     with pytest.raises(note_writes.WriteError):

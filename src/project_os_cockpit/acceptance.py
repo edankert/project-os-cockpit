@@ -2532,7 +2532,8 @@ def _walk_events(docs_root: Path, platform: str) -> list["Any"]:
     return out
 
 
-def _walk_check(item: "Item", body: str, after: tuple[str, ...]) -> "Any":
+def _walk_check(item: "Item", body: str, after: tuple[str, ...],
+                frontmatter: dict | None = None) -> "Any":
     """One cockpit `Item` as the walk module's `Check`.
 
     The procedure text is read by upstream's `section` and `lead_paragraph`,
@@ -2540,6 +2541,8 @@ def _walk_check(item: "Item", body: str, after: tuple[str, ...]) -> "Any":
     once. Nothing here parses a note.
     """
     walk = _walk_module()
+    readiness, problems = walk.parse_check_readiness(
+        (frontmatter or {}).get("walk_readiness_for"), item.rel)
     return walk.Check(
         id=item.note_id, title=item.name, path=item.rel, area=item.area,
         after=list(after), covers=list(item.refs), command=item.command,
@@ -2547,10 +2550,11 @@ def _walk_check(item: "Item", body: str, after: tuple[str, ...]) -> "Any":
         steps=walk.section(body, "Steps", "Procedure"),
         expect=walk.section(body, "Expect", "Expected results"),
         lead=walk.lead_paragraph(body),
+        readiness_for=readiness, readiness_problems=problems,
     )
 
 
-def _walk_row(item: "Item", check: "Any") -> dict[str, Any]:
+def _walk_row(item: "Item", check: "Any", platform: str) -> dict[str, Any]:
     """A `~checks` row plus the procedure, so the page has one row renderer.
 
     `_row` is reused rather than forked for the reason it was written: every
@@ -2567,6 +2571,7 @@ def _walk_row(item: "Item", check: "Any") -> dict[str, Any]:
         #: walk sheet nobody can walk.
         lead=check.lead or None,
         after=list(check.after),
+        readiness=_walk_module().check_readiness(check, platform) or None,
     )
 
 
@@ -2579,7 +2584,8 @@ _CYCLE_PHRASE = "forms a cycle"
 
 
 def walk_payload(docs_root: Path, index: "Any | None" = None, *,
-                 platform: str, release: str = "") -> dict[str, Any]:
+                 platform: str, release: str = "",
+                 review_ids: set[str] | None = None) -> dict[str, Any]:
     """The owed checks for one platform, as a procedure somebody walks.
 
     The row set is `ledger.owed` over the manual sections and nothing else —
@@ -2597,6 +2603,7 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
     suite = load(docs_root, index, platform=platform)
     manual = [i for i in suite.items
               if i.note_id and section_of(i) in MANUAL_SECTIONS]
+    manual_by_id = {i.note_id: i for i in manual}
 
     from . import ledger as _ledger
     owed_ids = set(_ledger.owed(docs_root, platform,
@@ -2605,7 +2612,8 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
 
     bodies, afters, titles, surfaces, raw = _walk_notes(index, docs_root, owed)
     checks = {i.note_id: _walk_check(i, bodies.get(i.note_id, ""),
-                                     afters.get(i.note_id, ()))
+                                     afters.get(i.note_id, ()),
+                                     raw.get(i.note_id, (None, {}))[1])
               for i in owed}
     by_id = {i.note_id: i for i in owed}
 
@@ -2649,10 +2657,11 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
     extra = [i for i in manual if i.note_id in cited and i.note_id not in by_id]
     known = dict(checks)
     if extra:
-        more, more_after, _, _, _ = _walk_notes(index, docs_root, extra)
+        more, more_after, _, _, more_raw = _walk_notes(index, docs_root, extra)
         for item in extra:
             known[item.note_id] = _walk_check(
-                item, more.get(item.note_id, ""), more_after.get(item.note_id, ()))
+                item, more.get(item.note_id, ""), more_after.get(item.note_id, ()),
+                more_raw.get(item.note_id, (None, {}))[1])
 
     sheet = walk.build_walk(
         checks, _walk_events(docs_root, platform), sittings,
@@ -2673,6 +2682,8 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
     #: which check went missing rather than to walk a list that is quietly one
     #: row short.
     errors = [w for w in sheet.warnings if _CYCLE_PHRASE in w]
+    errors.extend(problem for check in checks.values()
+                  for problem in check.readiness_problems)
     kept = {c.id for p in sheet.sittings for c in p.rows}
     kept.update(c.id for c in sheet.unplaced)
     dropped = sorted(owed_ids - kept)
@@ -2691,7 +2702,7 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
             "bench": list(placed.sitting.bench),
             "surfaces": list(placed.sitting.surfaces),
             "checks": list(placed.sitting.checks),
-            "rows": [_walk_row(by_id[c.id], c) for c in placed.rows],
+            "rows": [_walk_row(by_id[c.id], c, platform) for c in placed.rows],
             #: The sitting's written script, where it has one that holds up
             #: ("The walk", rule 9). `steps` is already filtered to the steps
             #: citing something this release owes, so a page renders it as it
@@ -2699,8 +2710,55 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
             #: read instead.
             "procedure": _walk_procedure(placed),
         })
-    unplaced = [_walk_row(by_id[c.id], c) for c in sheet.unplaced]
+    unplaced = [_walk_row(by_id[c.id], c, platform) for c in sheet.unplaced]
     placed_n = sum(len(s["rows"]) for s in out_sittings)
+
+    #: A completed check stops being owed, but the person may still need to
+    #: correct the step that settled it. The browser supplies only the ids it
+    #: recorded in this workspace; the server admits only current, settled,
+    #: manual checks that a current procedure cites. Build that correction
+    #: view with the same upstream generator and fresh procedure objects. It
+    #: cannot enlarge the owed rows or use a saved copy of old instructions.
+    review_checks = {check_id: known[check_id]
+                     for check_id in (review_ids or set())
+                     if check_id in manual_by_id and check_id in cited
+                     and check_id not in owed_ids and check_id in known}
+    review_sittings: list[dict[str, Any]] = []
+    if review_checks:
+        review_procedures = walk.load_procedures(docs_root, repo_root)
+        for procedure in review_procedures:
+            walk.name_surfaces(procedure.steps, surface_notes)
+        review_sheet = walk.build_walk(
+            review_checks, [], sittings, release=release, platform=platform,
+            surfaces=surfaces, surface_notes=surface_notes,
+            procedures=review_procedures, known=known,
+            authored_order=authored,
+        )
+        for placed in review_sheet.sittings:
+            if not placed.procedure or placed.procedure.problems or not placed.steps:
+                continue
+            review_sittings.append({
+                "name": placed.sitting.name,
+                "state": placed.sitting.state,
+                "bench": list(placed.sitting.bench),
+                "surfaces": list(placed.sitting.surfaces),
+                "checks": list(placed.sitting.checks),
+                "rows": [_walk_row(manual_by_id[c.id], c, platform) for c in placed.rows],
+                "procedure": _walk_procedure(placed),
+            })
+    reviewed = {row["id"] for sitting in review_sittings
+                for row in sitting["rows"]}
+    review_unavailable: list[dict[str, Any]] = []
+    for check_id in sorted(set(review_checks) - reviewed):
+        placed = next((entry for entry in review_sheet.sittings
+                       if any(check.id == check_id for check in entry.rows)), None)
+        problems = placed.procedure.problems if placed and placed.procedure else []
+        reason = "; ".join(problems) if problems else (
+            "No current procedure places this check in a walk session.")
+        review_unavailable.append({
+            "row": _walk_row(manual_by_id[check_id], review_checks[check_id], platform),
+            "reason": reason,
+        })
 
     return {
         "platform": platform,
@@ -2731,6 +2789,8 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
         "survey_tag": sheet.survey_tag or None,
         "survey_problem": sheet.survey_problem or None,
         "sittings": out_sittings,
+        "review_sittings": review_sittings,
+        "review_unavailable": review_unavailable,
         "unplaced": unplaced,
         "counts": {
             "owed": placed_n + len(unplaced),
@@ -2748,7 +2808,7 @@ def walk_payload(docs_root: Path, index: "Any | None" = None, *,
         #: it is the whole suite. 39 owed rows on `your-trainer` against 624
         #: checks, so the walk carries a fraction of what the list does.
         "history": {c: h for c, h in _history(docs_root).items()
-                    if c in kept},
+                    if c in kept or c in review_checks},
         #: Where the template's WALK.md lives, so a repo with no walk order
         #: can be pointed at the file to copy rather than at a sentence about
         #: it.
@@ -2773,13 +2833,22 @@ def _walk_procedure(placed: "Any") -> "dict[str, Any] | None":
     return {
         "path": procedure.path,
         "sitting": procedure.sitting,
-        "setup": procedure.setup,
+        "setup": placed.setup,
         "problems": list(procedure.problems),
         "remarks": list(procedure.remarks),
         "omitted": placed.omitted,
+        "requires": {str(number): list(sources)
+                     for number, sources in procedure.requires.items()},
         "owed_checks": [c.id for c in placed.owed_checks],
         "steps": [{
             "number": step.number,
+            "display_number": position,
+            "preparation": not any(e.owed for e in step.expectations),
+            "required_state": step.required_state or None,
+            "capture_prompt": step.capture_prompt if step.capture_needed else None,
+            "use_capture": list(step.uses_capture),
+            "timer_seconds": step.timer_seconds or None,
+            "readiness": dict(step.readiness) if step.readiness else None,
             "head": step.head,
             "surface": step.surface_said or None,
             "surface_note": step.surface_id or None,
@@ -2804,7 +2873,7 @@ def _walk_procedure(placed: "Any") -> "dict[str, Any] | None":
             } for line, expectation in (
                 (raw, next((e for e in step.expectations if e.raw == raw), None))
                 for raw in step.body)],
-        } for step in placed.steps],
+        } for position, step in enumerate(placed.steps, start=1)],
     }
 
 

@@ -32,6 +32,8 @@ related: []
 tier: ""             # 1 feature check · 2 regression check · 3 verification check for one build
 area: ""             # the human grouping — one walk's worth of related checks
 after: []            # optional: checks that should have passed before this one is walked; orders the walk sheet and gates nothing (tools/instructions/TESTING.md, "The walk", rule 4)
+# walk_readiness_for: # optional on an acceptance check without a usable sitting procedure; name platforms with a preparation or decision reason (TESTING.md, "The walk", rule 5)
+#   ios: { kind: decision, reason: "Name the missing action or decision.", issue: "ISS-0000" }
 ---
 
 # <Test>

@@ -86,6 +86,41 @@ def test_a_named_platform_serves_its_owed_rows(tmp_path: Path) -> None:
         httpd.shutdown()
 
 
+def test_the_walk_route_loads_only_current_settled_checks_for_correction(
+        tmp_path: Path) -> None:
+    docs = _docs(tmp_path)
+    check = docs / "tests" / "acceptance" / "TST-0001-C.md"
+    check.write_text(check.read_text(encoding="utf-8")
+                     + "\n## Steps\n\n1. Open Profile.\n\n"
+                     + "## Expect\n\n- The profile opens.\n", encoding="utf-8")
+    (docs / "tests" / "acceptance" / "WALK.md").write_text(
+        '---\ntype: "[[reference]]"\nstatus: active\n---\n\n'
+        '# Walk\n\n### Profile\n\n```yaml\nsurfaces: ["Profile"]\n```\n',
+        encoding="utf-8")
+    procedure = docs / "tests" / "acceptance" / "walk" / "profile.md"
+    procedure.parent.mkdir(parents=True)
+    procedure.write_text(
+        '---\ntype: "[[reference]]"\nsitting: "Profile"\n---\n\n'
+        '# Profile\n\n## Setup\n\nOpen the app.\n\n## Steps\n\n'
+        '1. **Profile.** Open Profile.\n'
+        '   - The profile opens. `TST-0001.1`\n', encoding="utf-8")
+    port, httpd = _spin_up(docs)
+    try:
+        status, payload = _get(port, "?platform=android&review=TST-0001%2CTST-0002%2CTST-9999")
+        assert status == 200
+        assert _ids(payload) == ["TST-0002"]
+        assert payload["counts"]["owed"] == 1
+        assert [[row["id"] for row in sitting["rows"]]
+                for sitting in payload["review_sittings"]] == [["TST-0001"]]
+        assert payload["review_sittings"][0]["procedure"]["steps"][0]["head"].endswith(
+            "Open Profile.")
+        assert payload["history"]["TST-0001"][0]["mark"] == "pass"
+        _, ios = _get(port, "?platform=ios&review=TST-0001")
+        assert ios["review_sittings"] == []
+    finally:
+        httpd.shutdown()
+
+
 def test_an_absent_platform_asks_the_open_release(tmp_path: Path) -> None:
     """The same defaulting rule `/api/cockpit/acceptance` uses ([[ISS-0289]]),
     so a client that sends no parameter gets the walk for the release it is

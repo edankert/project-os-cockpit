@@ -173,6 +173,8 @@ Reason: looking at what changed is the first thing a person would do. This rule 
 - no `## Steps` falls back to `## Procedure`, and then to the note's own unheaded description — the prose between its title and its first sub-heading — printed under **"Steps: no heading"**. A corpus written before these headings existed keeps its whole procedure there, so printing nothing would make the sheet useless on the repos large enough to need it.
 - no `## Expect` falls back to `## Expected results`, and then says the note states no expected result. There is no prose fallback: a check that never said what should happen has nothing to fall back to, which is the finding, not the sheet's failure.
 
+An unscripted acceptance check may declare `walk_readiness_for:` in its frontmatter. The map names a platform and gives `kind: preparation` or `kind: decision`, a plain `reason`, and an optional `issue`. The generated fallback row prints that reason before the check's instructions. The declaration does not change which platforms owe the check or record a verdict. The cockpit asks for preparation to be confirmed before it offers the normal mark control; a decision row offers only the existing release-decision outcomes. The generator rejects malformed declarations.
+
 **6. A verdict goes to the ledger, from the sheet.** The sheet is never the store. A walker records each verdict as a ledger event through the cockpit's mark dialog or the ledger write path, with `method: manual`.
 
 **7. One implementation.** `tools/scripts/walk-sheet.py` is the only code that computes a walk. The cockpit bundles that module the way it bundles the validator, so a badge and a sheet cannot disagree about one corpus.

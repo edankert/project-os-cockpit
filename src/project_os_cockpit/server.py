@@ -1135,6 +1135,11 @@ def _make_handler(
                     **acceptance.walk_payload(
                         docs_root, index, platform=_platform,
                         release=_release,
+                        review_ids={value for part in _params.get("review", [])
+                                    for value in part.split(",")
+                                    if re.fullmatch(r"(?:TST|CHK)-[0-9]{4}", value)}
+                        if sum(len(part.split(",")) for part in _params.get("review", [])) <= 1024
+                        else set(),
                     ),
                     "platforms": _known,
                 })
@@ -2302,7 +2307,11 @@ def _make_handler(
             """
             if not self._require_loopback():
                 return
-            body = self._read_json_body()
+            # Base64 expands the permitted 8 MB PNG by about one third. The
+            # generic 2 MB JSON limit would reject a valid screenshot before
+            # `attach_capture` could apply its file-size and PNG checks.
+            body = self._read_json_body(
+                max_bytes=note_writes.MAX_ATTACHMENT_BYTES * 4 // 3 + 4096)
             if body is None:
                 return
             extra = set(body) - note_writes.ATTACH_REQUEST_KEYS

@@ -3334,6 +3334,13 @@ a.ov-phase-title:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.ws-attention-pending {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .ws-attention-meta {
   font-size: 10.5px;
   color: var(--text-faint);
@@ -3442,6 +3449,17 @@ a.ov-phase-title:hover {
   text-transform: uppercase;
   color: var(--text-faint);
 }
+.ws-budget-provider {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.ws-budget-reset + .ws-budget-provider,
+.ws-budget-row + .ws-budget-provider { margin-top: 4px; }
 .ws-budget-asof {
   font-weight: 400;
   letter-spacing: 0;
@@ -6328,6 +6346,50 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
  * numbers on this page (TASK-0449's guard rail, which outlived that task).
  */
 .walk-page { padding-bottom: 3rem; }
+.walk-focus-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-inset, transparent);
+}
+.walk-focus-nav > strong { margin-right: auto; font-size: 14px; }
+.walk-focus-progress { color: var(--text-muted); font-size: 12px; }
+.walk-focus-nav button { min-height: 32px; }
+.walk-session-select { max-width: 15rem; min-height: 32px; }
+.walk-options { flex-basis: auto; }
+.walk-options > summary {
+  cursor: pointer;
+  min-height: 32px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--text);
+  background: var(--bg-elevated);
+}
+.walk-options[open] { flex-basis: 100%; }
+.walk-options-menu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.walk-options-menu label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+:root[data-theme="light"] .walk-step-evidence { color-scheme: light; }
+:root[data-theme="dark"] .walk-step-evidence { color-scheme: dark; }
 
 .walk-banner,
 .walk-notice {
@@ -6531,6 +6593,8 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 }
 .walk-procedure.is-walked { opacity: 0.6; }
 .walk-proc-source { margin: 0 0 8px; }
+.walk-proc-details { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
+.walk-proc-details > summary, .walk-proc-block > summary { cursor: pointer; color: var(--text-muted); }
 
 .walk-step {
   margin: 10px 0 0;
@@ -6545,6 +6609,54 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 }
 .walk-step-head.is-link { cursor: pointer; }
 .walk-step-head.is-link:hover { text-decoration: underline; }
+.walk-step-state { margin: 4px 0 8px; color: var(--text-muted); font-size: 12px; }
+.walk-step-evidence, .walk-step-timer {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.walk-step-evidence label { display: block; }
+.walk-step-evidence-note {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 70px;
+  margin: 8px 0;
+  font: inherit;
+}
+.walk-step-evidence-build {
+  display: block;
+  width: min(100%, 440px);
+  margin: 6px 0 10px;
+}
+.walk-step-evidence-file { display: block; margin: 10px 0 6px; }
+.walk-step-evidence-image {
+  display: block;
+  max-width: min(100%, 520px);
+  max-height: 320px;
+  object-fit: contain;
+  margin: 10px 0;
+  border: 1px solid var(--border);
+}
+.walk-step-evidence-missing { color: var(--text-warning, var(--text-muted)); }
+.walk-step-timer span { display: block; margin-bottom: 8px; }
+.walk-step-readiness, .walk-proc-readiness, .walk-row-readiness {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.walk-step-readiness p, .walk-proc-readiness p, .walk-row-readiness p { margin: 6px 0; }
+.walk-step-coverage, .walk-step-reference { margin: 10px 0; }
+.walk-step-coverage .walk-tag { margin: 6px 6px 0 0; }
+.walk-review-summary { margin-top: 12px; }
+.walk-review-summary ul { margin: 10px 0; padding-left: 22px; }
+.walk-review-summary li { margin: 6px 0; }
+.walk-review-corrections { margin: 12px 0; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
+.walk-review-corrections > summary { cursor: pointer; font-weight: 600; }
+.walk-review-corrections .walk-step { margin-top: 10px; }
+.walk-step-action-label { min-width: 54px; color: var(--text-muted); font-size: 11px; }
 .walk-step-line {
   display: flex;
   flex-wrap: wrap;

@@ -9372,7 +9372,8 @@ function buildGateSection(
     const walk = document.createElement('button');
     walk.type = 'button';
     walk.className = 'file-row release-gate-walk';
-    walk.textContent = `${unchecked} owed · walk them`;
+    walk.textContent = hasSavedWalkFocus(releaseId, d.platform)
+      ? 'Continue release walk' : 'Start release walk';
     walk.title = `Open the walk for ${d.platform} — every owed check in `
       + 'order, with its setup, steps and expected result';
     walk.addEventListener('click', () => {
@@ -9635,6 +9636,7 @@ async function holdFeatureBack(
 async function postCheckVerdict(
   item: GateItem, platform: string,
   chosen: { verdict: string; reason: string; change?: string },
+  evidence: Array<{ ref: string; note: string }> = [],
 ): Promise<boolean> {
   try {
     // `postJson` THROWS on refusal — it does not return `{ok: false}`. An
@@ -9654,6 +9656,7 @@ async function postCheckVerdict(
       // than a second source for one fact.
       platform,
       by: 'user:edwin', method: 'manual',
+      ...(evidence.length ? { evidence } : {}),
     });
   } catch (err: unknown) {
     showStatus(`Could not mark ${item.id || item.number}: ${
@@ -10577,6 +10580,9 @@ interface WalkRow extends GateItem {
    *  53 of `your-trainer`'s 61 owed rows are in that shape. */
   lead?: string | null;
   after?: string[];
+  /** Declared on the check note for a platform whose fallback action needs
+   *  preparation or a scope decision before it can be judged. */
+  readiness?: { kind: 'preparation' | 'decision'; reason: string; issue?: string } | null;
 }
 /** One expectation tag on a procedure line — `TST-0648.4` in the markdown.
  *
@@ -10595,7 +10601,11 @@ interface WalkProcLine {
   tags: WalkTag[];
 }
 interface WalkProcStep {
-  number: number; head: string;
+  number: number; display_number?: number; head: string;
+  preparation?: boolean; required_state?: string | null;
+  capture_prompt?: string | null; use_capture?: number[];
+  timer_seconds?: number | null;
+  readiness?: { kind: 'preparation' | 'decision'; reason: string; issue?: string } | null;
   surface: string | null; surface_note: string | null;
   lines: WalkProcLine[];
 }
@@ -10606,6 +10616,7 @@ interface WalkProcStep {
 interface WalkProcedure {
   path: string; sitting: string; setup: string;
   problems: string[]; remarks: string[]; omitted: number;
+  requires?: Record<string, number[]>;
   owed_checks: string[]; steps: WalkProcStep[];
 }
 interface WalkSitting {
@@ -10632,11 +10643,138 @@ interface WalkPayload {
   errors: string[]; warnings: string[]; notices: string[];
   history?: Record<string, CheckEvent[]>;
   platforms?: string[];
+  review_sittings?: WalkSitting[];
+  review_unavailable?: Array<{ row: WalkRow; reason: string }>;
 }
 
 /** The payload the open walk is drawn from. Read by the repaint, which
  *  replaces one row and never rebuilds the sittings. */
 let walkData: WalkPayload | null = null;
+let walkStorageUnsafe = false;
+
+interface WalkFocus {
+  release: string;
+  platform: string;
+  stage: 'survey' | 'session' | 'summary';
+  surveyIndex: number;
+  sitting: string;
+  signature: string;
+}
+
+let activeWalkFocus: {
+  payload: WalkPayload;
+  focus: WalkFocus;
+  paint: () => void;
+} | null = null;
+
+function walkFocusKey(workspaceId: string): string {
+  return `cockpit:walk-focus:${workspaceId}`;
+}
+
+function walkCompletedKey(workspaceId: string): string {
+  return `cockpit:walk-completed:${workspaceId}`;
+}
+
+/** The browser remembers only which completed checks to offer for correction.
+ * The server rebuilds their current steps and decides whether each check is
+ * still settled; these ids are never an owed set or a verdict. */
+function loadWalkCompleted(release: string, platform: string): string[] {
+  if (!activeId) return [];
+  try {
+    const raw = localStorage.getItem(walkCompletedKey(activeId));
+    const parsed = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+    const ids = parsed?.[`${release}|${platform}`];
+    return Array.isArray(ids) ? [...new Set(ids.filter((id): id is string =>
+      typeof id === 'string' && /^(?:TST|CHK)-[0-9]{4}$/.test(id)))].slice(0, 1024) : [];
+  } catch { return []; }
+}
+
+function rememberWalkCompleted(v: WalkPayload, ids: string[]): boolean {
+  if (!ids.length) return true;
+  if (!activeId) return false;
+  try {
+    const key = walkCompletedKey(activeId);
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
+    const scope = `${v.release}|${v.platform}`;
+    parsed[scope] = [...new Set([...loadWalkCompleted(v.release, v.platform), ...ids])];
+    localStorage.setItem(key, JSON.stringify(parsed));
+    return true;
+  } catch { return false; }
+}
+
+function walkQuery(platform: string, release: string): string {
+  const params = new URLSearchParams({ platform });
+  const reviewed = loadWalkCompleted(release, platform);
+  if (reviewed.length) params.set('review', reviewed.join(','));
+  return `?${params.toString()}`;
+}
+
+function hasSavedWalkFocus(release: string, platform: string): boolean {
+  if (!activeId) return false;
+  try {
+    const saved = JSON.parse(localStorage.getItem(walkFocusKey(activeId)) || 'null') as
+      WalkFocus | null;
+    return saved?.release === release && saved.platform === platform;
+  } catch { return false; }
+}
+
+function loadWalkFocus(v: WalkPayload): WalkFocus {
+  if (activeId) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(walkFocusKey(activeId)) || 'null') as
+        WalkFocus | null;
+      if (saved?.release === v.release && saved.platform === v.platform
+          && (saved.stage === 'survey' || saved.stage === 'session'
+            || saved.stage === 'summary')) return saved;
+    } catch { /* A damaged or unavailable local record starts at the survey. */ }
+  }
+  return { release: v.release, platform: v.platform, stage: 'survey',
+    surveyIndex: 0, sitting: '', signature: '' };
+}
+
+function saveWalkFocus(focus: WalkFocus): boolean {
+  if (!activeId) return false;
+  try {
+    localStorage.setItem(walkFocusKey(activeId), JSON.stringify(focus));
+    return true;
+  } catch {
+    showStatus('This browser could not save your walk position. Allow site data and try again.', 'error');
+    return false;
+  }
+}
+
+function advanceWalkFocus(v: WalkPayload, sittingName: string, sourceNumber: number): void {
+  const controller = activeWalkFocus;
+  if (!controller || controller.payload.release !== v.release
+      || controller.payload.platform !== v.platform) return;
+  const index = v.sittings.findIndex((sitting) => sitting.name === sittingName);
+  const proc = index >= 0 ? readProcedure(v.sittings[index]) : null;
+  const at = proc?.steps.findIndex((step) => step.number === sourceNumber) ?? -1;
+  const next = proc && at >= 0 ? proc.steps[at + 1] : undefined;
+  if (next) {
+    controller.focus.stage = 'session';
+    controller.focus.sitting = sittingName;
+    controller.focus.signature = proc?.sigs[next.number] || '';
+  } else {
+    const following = v.sittings.slice(index + 1)
+      .find((sitting) => Boolean(readProcedure(sitting)?.steps.length));
+    if (following) {
+      const followingProc = readProcedure(following);
+      controller.focus.stage = 'session';
+      controller.focus.sitting = following.name;
+      controller.focus.signature = followingProc?.sigs[followingProc.steps[0].number] || '';
+    } else if (v.unplaced.length) {
+      controller.focus.stage = 'session';
+      controller.focus.sitting = 'Unplaced';
+      controller.focus.signature = '';
+    } else {
+      controller.focus.stage = 'summary';
+    }
+  }
+  if (saveWalkFocus(controller.focus)) controller.paint();
+}
 
 /** Where the walker was, per workspace — the mechanism ISS-0280 built for
  *  `~checks`, one page over.
@@ -10700,6 +10838,12 @@ async function renderWalkPage(platform: string): Promise<boolean> {
       return true;
     }
     payload = await resp.json() as WalkPayload;
+    if (loadWalkCompleted(payload.release, payload.platform).length) {
+      const reviewResp = await fetch(`${sidecarBaseUrl}/api/cockpit/walk${
+        walkQuery(payload.platform, payload.release)}`);
+      if (reviewResp.ok) payload = await reviewResp.json() as WalkPayload;
+      else payload.notices.push('Completed-check corrections could not be loaded. Refresh this walk to retry.');
+    }
   } catch { return false; }
   walkData = payload;
   //: Captured here as well as on `~checks`, so a repo that adopts a ledger
@@ -10713,7 +10857,13 @@ async function renderWalkPage(platform: string): Promise<boolean> {
   //: Ticks whose checks already have their ledger event are spent, and a
   //: spent tick left in storage would draw a step as walked on the next
   //: release that prints it ([[TASK-0624]]).
-  pruneStepMarks(payload);
+  walkStorageUnsafe = false;
+  const changedObservations = pruneStepMarks(payload);
+  if (walkStorageUnsafe) payload.errors.push(
+    'Saved observations could not be checked against the current candidate. Recording is paused until browser storage works; reopen this walk to retry.');
+  if (changedObservations.length) payload.notices.push(
+    `Saved observations for ${changedObservations.join(', ')} use older instructions. `
+    + 'Review the current steps and record them again. Earlier observations remain saved for review.');
   if (currentNavMode !== 'publication') {
     //: The landing suppression `renderChecksPage` documents (ISS-0193).
     //: `setNavMode` fires `loadWsNav`, which lands publication on
@@ -10787,6 +10937,9 @@ function buildWalkPage(v: WalkPayload): HTMLElement {
       + 'has a verdict that clears, so there is no walk to do — the gate on '
       + 'the release page says the same thing one level up.';
     wrap.appendChild(none);
+    activeWalkFocus = null;
+    if (v.review_sittings?.length || v.review_unavailable?.length)
+      wrap.appendChild(buildWalkReview(v));
     return wrap;
   }
 
@@ -10818,7 +10971,8 @@ function buildWalkPage(v: WalkPayload): HTMLElement {
   for (const line of v.warnings) wrap.appendChild(walkNotice(line, 'is-warn'));
   for (const line of v.notices) wrap.appendChild(walkNotice(line, ''));
 
-  wrap.appendChild(buildSurveySection(v));
+  const survey = buildSurveySection(v);
+  wrap.appendChild(survey);
 
   const list = document.createElement('div');
   list.className = 'walk-sittings';
@@ -10849,6 +11003,295 @@ function buildWalkPage(v: WalkPayload): HTMLElement {
     list.appendChild(section);
   }
   wrap.appendChild(list);
+  const review = document.createElement('section');
+  review.className = 'walk-review-summary';
+  review.hidden = true;
+  wrap.appendChild(review);
+
+  const focusSittings: WalkSitting[] = [...v.sittings];
+  if (v.unplaced.length) focusSittings.push({
+    name: 'Unplaced', state: '', bench: [], surfaces: [], checks: [],
+    rows: v.unplaced,
+  });
+
+  const focus = loadWalkFocus(v);
+  const focusNav = document.createElement('nav');
+  focusNav.className = 'walk-focus-nav';
+  wrap.insertBefore(focusNav, survey);
+  let viewMode: 'one' | 'nearby' | 'all' = 'one';
+  const button = (label: string, action: () => void, primary = false): HTMLButtonElement => {
+    const control = document.createElement('button');
+    control.type = 'button';
+    control.className = primary ? 'review-btn is-primary' : 'file-row';
+    control.textContent = label;
+    control.addEventListener('click', action);
+    return control;
+  };
+  const changeFocus = (change: Partial<WalkFocus>): void => {
+    Object.assign(focus, change);
+    if (saveWalkFocus(focus)) paint();
+  };
+  const paint = (): void => {
+    focusNav.replaceChildren();
+    const cards = Array.from(survey.children)
+      .filter((child) => child.classList.contains('walk-survey-surface')) as HTMLElement[];
+    const stageSurvey = focus.stage === 'survey';
+    survey.hidden = !stageSurvey;
+    list.hidden = focus.stage !== 'session';
+    review.hidden = focus.stage !== 'summary';
+    if (focus.stage === 'summary') {
+      review.replaceChildren(buildWalkReview(v));
+      const title = document.createElement('strong');
+      title.textContent = 'Review results';
+      focusNav.appendChild(title);
+      focusNav.appendChild(button('Back to sessions', () => {
+        changeFocus({ stage: 'session' });
+      }));
+      return;
+    }
+    if (stageSurvey) {
+      const index = Math.min(Math.max(focus.surveyIndex, 0), Math.max(cards.length - 1, 0));
+      cards.forEach((card, n) => { card.hidden = n !== index; });
+      const label = document.createElement('strong');
+      label.textContent = cards.length
+        ? `Review changed screen ${index + 1} of ${cards.length}`
+        : 'Review changed screens';
+      focusNav.appendChild(label);
+      if (index > 0) focusNav.appendChild(button('Previous screen', () => {
+        changeFocus({ surveyIndex: index - 1 });
+      }));
+      if (index + 1 < cards.length) focusNav.appendChild(button('Next screen', () => {
+        changeFocus({ surveyIndex: index + 1 });
+      }));
+      focusNav.appendChild(button('Continue to tests', () => {
+        const first = focusSittings[0];
+        if (!first) return;
+        const proc = readProcedure(first);
+        changeFocus({ stage: 'session', sitting: first.name,
+          signature: proc?.sigs[proc.steps[0]?.number] || '' });
+      }, true));
+      return;
+    }
+
+    let sittingIndex = focusSittings.findIndex((sitting) => sitting.name === focus.sitting);
+    if (sittingIndex < 0) sittingIndex = 0;
+    const sitting = focusSittings[sittingIndex];
+    if (!sitting) return;
+    const proc = readProcedure(sitting);
+    const sections = Array.from(list.children) as HTMLElement[];
+    sections.forEach((section, n) => { section.hidden = n !== sittingIndex; });
+    const lead = document.createElement('strong');
+    lead.textContent = sitting.name;
+    focusNav.appendChild(lead);
+    focusNav.appendChild(button('Review results', () => {
+      changeFocus({ stage: 'summary' });
+    }));
+    const options = document.createElement('details');
+    options.className = 'walk-options';
+    const optionsTitle = document.createElement('summary');
+    optionsTitle.textContent = 'Walk options';
+    options.appendChild(optionsTitle);
+    const optionsMenu = document.createElement('div');
+    optionsMenu.className = 'walk-options-menu';
+    const sessionLabel = document.createElement('label');
+    sessionLabel.textContent = 'Go to session';
+    const choose = document.createElement('select');
+    choose.className = 'walk-session-select';
+    choose.setAttribute('aria-label', 'Choose a walk session');
+    focusSittings.forEach((candidate, n) => {
+      const option = document.createElement('option');
+      option.value = String(n);
+      option.textContent = candidate.name;
+      choose.appendChild(option);
+    });
+    choose.value = String(sittingIndex);
+    choose.addEventListener('change', () => {
+      const selected = focusSittings[Number(choose.value)];
+      if (!selected) return;
+      const selectedProc = readProcedure(selected);
+      viewMode = 'one';
+      changeFocus({ sitting: selected.name,
+        signature: selectedProc?.sigs[selectedProc.steps[0]?.number] || '' });
+    });
+    sessionLabel.appendChild(choose);
+    optionsMenu.appendChild(sessionLabel);
+    optionsMenu.appendChild(button('Changed screens', () => {
+      changeFocus({ stage: 'survey' });
+    }));
+    options.appendChild(optionsMenu);
+    focusNav.appendChild(options);
+    if (!proc?.steps.length) return;
+    const marks = loadStepMarks();
+    let stepIndex = proc.steps.findIndex((step) => proc.sigs[step.number] === focus.signature);
+    if (stepIndex < 0) stepIndex = Math.max(0, proc.steps.findIndex((step) =>
+      !marks[stepMarkKey(v.release, v.platform, sitting.name,
+                         proc.sigs[step.number] || '')]));
+    const step = proc.steps[stepIndex];
+    const stepLabel = document.createElement('label');
+    stepLabel.textContent = 'Go to step';
+    const stepChoose = document.createElement('select');
+    stepChoose.className = 'walk-step-select';
+    stepChoose.setAttribute('aria-label', 'Choose a walk step');
+    proc.steps.forEach((candidate, n) => {
+      const option = document.createElement('option');
+      option.value = String(n);
+      const action = walkVisibleAction(walkLineText(candidate.head, []), candidate);
+      const preview = action.length > 64 ? `${action.slice(0, 61).trimEnd()}…` : action;
+      const mark = marks[stepMarkKey(v.release, v.platform, sitting.name,
+                                     proc.sigs[candidate.number] || '')]?.verdict;
+      option.textContent = `Step ${candidate.displayNumber} — ${preview}${
+        mark ? ` · ${mark === 'done' ? 'prepared' : mark}` : ''}`;
+      stepChoose.appendChild(option);
+    });
+    stepChoose.value = String(stepIndex);
+    stepChoose.addEventListener('change', () => {
+      const selected = proc.steps[Number(stepChoose.value)];
+      if (!selected) return;
+      viewMode = 'one';
+      changeFocus({ signature: proc.sigs[selected.number] || '' });
+    });
+    stepLabel.appendChild(stepChoose);
+    optionsMenu.insertBefore(stepLabel, optionsMenu.children[1] || null);
+    const setupPanel = sections[sittingIndex]?.querySelector<HTMLDetailsElement>(
+      '.walk-procedure > .walk-proc-block');
+    const readinessPanel = sections[sittingIndex]?.querySelector<HTMLDetailsElement>(
+      '.walk-procedure > .walk-proc-readiness');
+    if (stepIndex > 0 || Boolean(marks[stepMarkKey(
+      v.release, v.platform, sitting.name, proc.sigs[step.number] || '')])) {
+      if (setupPanel) setupPanel.open = false;
+      if (readinessPanel) readinessPanel.open = false;
+    }
+    const attention = proc.steps.filter((item) => {
+      const mark = marks[stepMarkKey(v.release, v.platform, sitting.name,
+                                     proc.sigs[item.number] || '')]?.verdict;
+      return mark === 'fail' || mark === 'partial' || mark === 'question';
+    }).length;
+    lead.textContent = `Step ${stepIndex + 1} of ${proc.steps.length}`;
+    if (attention) {
+      const progress = document.createElement('span');
+      progress.className = 'walk-focus-progress';
+      progress.textContent = `${attention} need attention`;
+      focusNav.insertBefore(progress, options);
+    }
+    if (stepIndex > 0) optionsMenu.appendChild(button('Previous step', () => {
+      changeFocus({ signature: proc.sigs[proc.steps[stepIndex - 1].number] || '' });
+    }));
+    if (stepIndex + 1 < proc.steps.length) optionsMenu.appendChild(button('Next step', () => {
+      changeFocus({ signature: proc.sigs[proc.steps[stepIndex + 1].number] || '' });
+    }));
+    optionsMenu.appendChild(button('Show nearby steps', () => {
+      viewMode = viewMode === 'nearby' ? 'one' : 'nearby'; paint();
+    }));
+    optionsMenu.appendChild(button('Show full session', () => {
+      viewMode = viewMode === 'all' ? 'one' : 'all'; paint();
+    }));
+    const visible = sections[sittingIndex]?.querySelectorAll<HTMLElement>('.walk-step') || [];
+    visible.forEach((element, n) => {
+      element.hidden = viewMode === 'one' ? n !== stepIndex
+        : viewMode === 'nearby' ? Math.abs(n - stepIndex) > 1 : false;
+    });
+  };
+  activeWalkFocus = { payload: v, focus, paint };
+  paint();
+  return wrap;
+}
+
+function buildWalkReview(v: WalkPayload): HTMLElement {
+  const wrap = document.createElement('div');
+  //: The walk payload already contains only checks owed on this release.
+  //: Re-reading the last history event here treated an `excused` mark from a
+  //: sealed prior ledger as current, even though that excuse expired at seal.
+  const rows = [...v.sittings.flatMap((sitting) => sitting.rows), ...v.unplaced];
+  const unresolved = rows;
+  const summary = document.createElement('p');
+  summary.textContent = unresolved.length
+    ? `${unresolved.length} check${unresolved.length === 1 ? '' : 's'} still ${
+      unresolved.length === 1 ? 'needs' : 'need'} attention. `
+      + 'A failed, questioned, incomplete or unavailable check remains on the release gate.'
+    : 'Every check in this walk has a current clearing ledger verdict. Refresh the release gate before publishing.';
+  wrap.appendChild(summary);
+  if (unresolved.length) {
+    const list = document.createElement('ul');
+    for (const row of unresolved) {
+      const id = row.id || row.number;
+      const latest = (v.history?.[id] || []).find((event) => event.platform === v.platform);
+      const item = document.createElement('li');
+      const expiredExcuse = latest?.mark === 'excused' && latest.release !== v.release;
+      const state = row.invalidated_by?.change
+        ? `needs rerun after ${row.invalidated_by.change}`
+        : expiredExcuse
+          ? `earlier excuse from ${latest.release} expired`
+          : row.mark && row.mark !== 'todo' ? row.mark : 'no current verdict';
+      const reason = row.mark && row.mark !== 'todo'
+        ? row.verdict_reason || latest?.reason : '';
+      item.textContent = `${id} — ${row.name}: ${state}${reason ? ` — ${reason}` : ''}`;
+      list.appendChild(item);
+    }
+    wrap.appendChild(list);
+  }
+  const refresh = document.createElement('button');
+  refresh.type = 'button';
+  refresh.className = 'file-row';
+  refresh.textContent = 'Refresh from ledger';
+  refresh.addEventListener('click', () => { void renderWalkPage(v.platform); });
+  wrap.appendChild(refresh);
+  if (v.review_sittings?.length || v.review_unavailable?.length) {
+    const heading = document.createElement('h3');
+    heading.textContent = 'Correct a completed observation';
+    wrap.appendChild(heading);
+    const help = document.createElement('p');
+    help.textContent = 'These checks have clearing ledger results. Their actions below come from the current procedure. Correct an earlier observation or perform a new run before recording a new result.';
+    wrap.appendChild(help);
+    for (const sitting of v.review_sittings || []) {
+      const proc = readProcedure(sitting);
+      if (!proc) continue;
+      const group = document.createElement('details');
+      group.className = 'walk-review-corrections';
+      const label = document.createElement('summary');
+      label.textContent = `${sitting.name} — ${sitting.rows.map((row) => {
+        const id = row.id || row.number;
+        const latest = (v.history?.[id] || []).find((event) => event.platform === v.platform);
+        return `${id} ${latest?.mark || 'recorded'}`;
+      }).join(', ')}`;
+      group.appendChild(label);
+      if (proc.setup) {
+        const setup = document.createElement('p');
+        setup.textContent = `Required setup: ${proc.setup}`;
+        group.appendChild(setup);
+      }
+      for (const step of proc.steps) {
+        const card = buildWalkStep(v, sitting, proc, step);
+        card.id = `${card.id}-review`;
+        group.appendChild(card);
+      }
+      wrap.appendChild(group);
+    }
+    for (const item of v.review_unavailable || []) {
+      const group = document.createElement('details');
+      group.className = 'walk-review-corrections is-unavailable';
+      const label = document.createElement('summary');
+      label.textContent = `${item.row.id || item.row.number} — procedure needs repair`;
+      group.appendChild(label);
+      const why = document.createElement('p');
+      why.textContent = item.reason;
+      group.appendChild(why);
+      group.appendChild(walkBlock('Setup', item.row.setup, item.row,
+        'Setup is not stated.'));
+      group.appendChild(walkBlock('Steps', item.row.steps || item.row.lead, item.row,
+        'Steps are not stated.'));
+      group.appendChild(walkBlock('Expect', item.row.expect, item.row,
+        'Expected result is not stated.'));
+      const open = document.createElement('button');
+      open.type = 'button';
+      open.className = 'file-row';
+      open.textContent = `Open ${item.row.id || item.row.number}`;
+      open.addEventListener('click', () => {
+        if (item.row.rel) void navigateTo(`/docs/${item.row.rel}`);
+      });
+      group.appendChild(open);
+      wrap.appendChild(group);
+    }
+  }
   return wrap;
 }
 
@@ -10879,10 +11322,10 @@ function buildSurveySection(v: WalkPayload): HTMLElement {
   section.appendChild(h);
 
   if (v.gallery) {
-    const cmd = document.createElement('div');
+    const cmd = document.createElement('details');
     cmd.className = 'walk-gallery';
-    const say = document.createElement('span');
-    say.textContent = 'Regenerate and compare before walking anything:';
+    const say = document.createElement('summary');
+    say.textContent = 'Capture preparation';
     cmd.appendChild(say);
     const code = document.createElement('code');
     code.className = 'mono';
@@ -10912,8 +11355,10 @@ function buildSurveySection(v: WalkPayload): HTMLElement {
   if (!v.survey.length) {
     const none = document.createElement('p');
     none.className = 'empty-note';
-    none.textContent = 'No change note names a screen. Either this release '
-      + 'altered no screen, or its change notes carry no Impact list.';
+    none.textContent = v.survey_problem
+      ? 'Changed-screen review is unavailable. You can continue to the owed checks below.'
+      : 'No change note names a screen. Either this release altered no screen, '
+        + 'or its change notes carry no Impact list.';
     section.appendChild(none);
     return section;
   }
@@ -10952,8 +11397,7 @@ function buildSurveyCard(entry: WalkSurvey, nested: boolean): HTMLElement {
   block.className = nested
     ? 'walk-survey-surface is-child' : 'walk-survey-surface';
   const name = document.createElement(nested ? 'h5' : 'h4');
-  name.textContent = entry.surface_note && entry.surface_note !== entry.surface
-    ? `${entry.surface} (${entry.surface_note})` : entry.surface;
+  name.textContent = entry.surface;
   if (entry.surface_note) {
     name.classList.add('is-link');
     name.addEventListener('click', () => {
@@ -10961,6 +11405,16 @@ function buildSurveyCard(entry: WalkSurvey, nested: boolean): HTMLElement {
     });
   }
   block.appendChild(name);
+  if (entry.surface_note && entry.surface_note !== entry.surface) {
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = 'Screen details';
+    details.appendChild(summary);
+    const id = document.createElement('span');
+    id.textContent = entry.surface_note;
+    details.appendChild(id);
+    block.appendChild(details);
+  }
 
   //: **A screen no surface note carries is named, never dropped.** A change
   //: says it altered this place and nobody can open it, which is worse news
@@ -10989,17 +11443,23 @@ function buildSurveyCard(entry: WalkSurvey, nested: boolean): HTMLElement {
     who.textContent = cause.title
       ? `${cause.id} — ${cause.title}` : `${cause.id} — (not in this repo)`;
     who.addEventListener('click', () => { void openWalkNote(cause.id); });
-    row.appendChild(who);
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = 'Change details';
+    details.appendChild(summary);
+    details.appendChild(who);
+    row.appendChild(details);
     block.appendChild(row);
   }
 
   for (const shot of entry.captures) {
-    //: **A key with no picture at either end draws nothing.** The gallery
-    //: declares the key and the repo has not captured it, which is a fact
-    //: about the gallery and not about this screen — and a bare key with an
-    //: empty frame under it reads as a picture that failed to load. The
-    //: card's sentences are the answer here.
-    if (!shot.before && !shot.after) continue;
+    if (!shot.before && !shot.after) {
+      const missing = document.createElement('p');
+      missing.className = 'walk-survey-problem';
+      missing.textContent = `No reference capture is available for ${shot.key}. Compare this screen directly in the app.`;
+      block.appendChild(missing);
+      continue;
+    }
     block.appendChild(buildSurveyCaptures(shot));
   }
   return block;
@@ -11019,6 +11479,17 @@ function buildSurveyCaptures(shot: WalkCapture): HTMLElement {
   label.textContent = shot.state ? `${shot.key} (${shot.state})` : shot.key;
   if (shot.new) label.textContent += ' — new';
   pair.appendChild(label);
+  if (!shot.after) {
+    const missing = document.createElement('p');
+    missing.className = 'walk-survey-problem';
+    missing.textContent = 'Current capture is missing; compare the screen directly in the app.';
+    pair.appendChild(missing);
+  } else if (!shot.before && !shot.new) {
+    const missing = document.createElement('p');
+    missing.className = 'walk-survey-problem';
+    missing.textContent = 'Previous capture is missing.';
+    pair.appendChild(missing);
+  }
   const shelf = document.createElement('div');
   shelf.className = 'walk-survey-shelf';
   for (const [when, src] of [
@@ -11109,8 +11580,13 @@ function combineStepMarks(marks: string[]): string {
 }
 
 /** One step's mark, before it has become any check's verdict. */
-interface StepMark { verdict: string; reason: string; }
+interface StepMark { verdict: string; reason: string; basis?: Record<string, string>; }
 type StepMarks = Record<string, StepMark>;
+interface WalkEvidence {
+  note: string; platform: string; release: string; state: string;
+  recordedAt: string; build?: string;
+  attachmentRel?: string; attachmentAt?: string;
+}
 
 /** Where a half-walked sitting lives, per workspace ([[TASK-0624]] decision 1).
  *
@@ -11124,6 +11600,171 @@ function walkStepsKey(workspaceId: string): string {
   return `cockpit:walk-steps:${workspaceId}`;
 }
 
+function walkEvidenceKey(workspaceId: string): string {
+  return `cockpit:walk-evidence:${workspaceId}`;
+}
+
+function walkReadyKey(workspaceId: string): string {
+  return `cockpit:walk-ready:${workspaceId}`;
+}
+
+function loadWalkReady(): Record<string, boolean> {
+  if (!activeId) return {};
+  try {
+    const raw = localStorage.getItem(walkReadyKey(activeId));
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, boolean> : {};
+  } catch { return {}; }
+}
+
+function saveWalkReady(ready: Record<string, boolean>): boolean {
+  if (!activeId) return false;
+  try {
+    localStorage.setItem(walkReadyKey(activeId), JSON.stringify(ready));
+    return true;
+  } catch { return false; }
+}
+
+function loadWalkEvidence(): Record<string, WalkEvidence> {
+  if (!activeId) return {};
+  try {
+    const raw = localStorage.getItem(walkEvidenceKey(activeId));
+    const parsed: unknown = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as Record<string, WalkEvidence> : {};
+  } catch { return {}; }
+}
+
+function saveWalkEvidence(evidence: Record<string, WalkEvidence>): boolean {
+  if (!activeId) return false;
+  try {
+    localStorage.setItem(walkEvidenceKey(activeId), JSON.stringify(evidence));
+    return true;
+  } catch { return false; }
+}
+
+function evidenceKey(v: WalkPayload, sitting: WalkSitting,
+                     proc: ProcedureView, source: number): string {
+  return stepMarkKey(v.release, v.platform, sitting.name, proc.sigs[source] || '');
+}
+
+function walkBuildHint(v: WalkPayload): string {
+  return Object.values(loadWalkEvidence())
+    .filter((evidence) => evidence.release === v.release
+      && evidence.platform === v.platform && Boolean(evidence.build))
+    .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt))[0]?.build || '';
+}
+
+function saveCurrentWalkEvidence(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number], note: string, build: string,
+): boolean {
+  if (!note.trim() || !build.trim()) return false;
+  const saved = loadWalkEvidence();
+  const key = evidenceKey(v, sitting, proc, step.number);
+  const previous = saved[key];
+  const sameBuild = previous?.build === build.trim();
+  saved[key] = {
+    note: note.trim(), build: build.trim(), platform: v.platform,
+    release: v.release, state: step.requiredState || sitting.state || '',
+    recordedAt: new Date().toISOString(),
+    attachmentRel: sameBuild ? previous.attachmentRel : undefined,
+    attachmentAt: sameBuild ? previous.attachmentAt : undefined,
+  };
+  return saveWalkEvidence(saved);
+}
+
+/** A preparation step may cite no check itself. File its picture under the
+ * first owed check whose later comparison uses this source step. */
+function walkEvidenceOwner(proc: ProcedureView, source: number): string {
+  const comparing = proc.steps.filter((step) => step.useCapture.includes(source))
+    .map((step) => step.number);
+  for (const number of [source, ...comparing]) {
+    const check = Object.keys(proc.citing).sort().find((id) =>
+      proc.citing[id].includes(number));
+    if (check) return check;
+  }
+  return '';
+}
+
+function walkLedgerEvidence(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView, check: string,
+): Array<{ ref: string; note: string }> {
+  const numbers = new Set(proc.citing[check] || []);
+  for (const step of proc.steps) {
+    if (numbers.has(step.number))
+      for (const source of step.useCapture) numbers.add(source);
+  }
+  const saved = loadWalkEvidence();
+  const found = new Set<string>();
+  const out: Array<{ ref: string; note: string }> = [];
+  for (const number of numbers) {
+    const evidence = saved[evidenceKey(v, sitting, proc, number)];
+    const rel = evidence?.attachmentRel || '';
+    if (!/^attachments\/[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.png$/.test(rel)
+        || found.has(rel)) continue;
+    found.add(rel);
+    out.push({
+      ref: `docs/${rel}`,
+      note: `Source step ${number}; ${evidence.platform}, ${evidence.release}; `
+        + `build ${evidence.build || 'not stated'}; ${evidence.state || 'state not stated'}; `
+        + `${evidence.recordedAt}; ${evidence.note}`,
+    });
+  }
+  return out;
+}
+
+async function attachWalkEvidenceImage(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number], file: File,
+): Promise<boolean> {
+  const key = evidenceKey(v, sitting, proc, step.number);
+  const evidence = loadWalkEvidence()[key];
+  if (!evidence?.note || !evidence.build) {
+    showStatus('Save the observation and build before attaching its PNG.', 'error');
+    return false;
+  }
+  const owner = walkEvidenceOwner(proc, step.number);
+  if (!owner) {
+    showStatus('This capture has no affected check to file its PNG under.', 'error');
+    return false;
+  }
+  if (file.size > 8 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.png')) {
+    showStatus('Choose a PNG smaller than 8 MB.', 'error');
+    return false;
+  }
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (let at = 0; at < bytes.length; at += 8192)
+      binary += String.fromCharCode(...bytes.subarray(at, at + 8192));
+    const caption = `${owner} walk source step ${step.number}, ${v.platform}, `
+      + `${v.release}, build ${evidence.build}, ${evidence.state || 'state not stated'}`;
+    const response = await postJson('/api/notes/attach', {
+      id: owner, png_base64: btoa(binary), caption, actor: 'user:edwin',
+    });
+    const result = response.result as { rel?: string } | undefined;
+    const rel = result?.rel || '';
+    if (!rel.startsWith(`attachments/${owner}/`)
+        || !/^attachments\/[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.png$/.test(rel))
+      throw new Error('attachment response had no safe file path');
+    const saved = loadWalkEvidence();
+    saved[key] = { ...evidence, attachmentRel: rel,
+      attachmentAt: new Date().toISOString() };
+    if (!saveWalkEvidence(saved)) {
+      showStatus(`The PNG was filed at docs/${rel}, but this browser could not save its link. Copy that path before leaving.`, 'error');
+      return false;
+    }
+    showStatus('PNG attached to this observation.', 'info');
+    scheduleHide(3000);
+    return true;
+  } catch (error) {
+    showStatus(`Could not attach PNG: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    return false;
+  }
+}
+
 /** `release|platform|sitting|step` — the four things that make a step unique.
  *
  *  The release and the platform are in the key because the same procedure is
@@ -11134,30 +11775,20 @@ function stepMarkKey(release: string, platform: string, sitting: string,
   return [release, platform, sitting, sig].join('|');
 }
 
-/** What a step is, for the purpose of recognising it again.
- *
- *  **A step number is a position, not an identity.** The bundled module says
- *  so in `parse_steps`: markdown renumbers an ordered list, so a step's number
- *  is where it sits. Keying a tick on the number alone meant inserting a step
- *  into a procedure mid-walk re-attached the mark of the step that used to be
- *  first to a step nobody had walked — and if that new step shared a check
- *  with another, the check's verdict was built partly from a tick that was
- *  never given for it. Found by independent review, 2026-09-14, and it is the
- *  same class of defect as the empty release segment the browser walk found.
- *
- *  The owed parts the step cites are its identity: they are what the tick
- *  settles, and a step that cites different parts is a different step
- *  whatever its number. So this replaces the number in the key rather than
- *  joining it — keeping both was the first cut, and it was safe but lossy:
- *  inserting a step above a walked one shifted its number, and the mark the
- *  walker had genuinely given was orphaned. The bundled module guarantees
- *  that one owed part is cited by exactly one step, so the printed steps'
- *  signatures are distinct and none is empty.
- *
- *  An edited step therefore leaves its old key unmatched, and
- *  `pruneStepMarks` clears it on the next draw. */
-function stepSignature(tags: WalkTag[]): string {
-  return tags.filter((t) => t.owed).map((t) => walkTagLabel(t)).sort().join(',');
+/** Content identifies an observation. The same tags on a changed action or
+ *  expectation must not inherit a saved mark. The full JSON string avoids a
+ *  hash collision and does not depend on a step's display position. */
+function stepSignature(step: WalkProcStep): string {
+  return JSON.stringify({
+    head: step.head,
+    state: step.required_state || '',
+    capture: step.capture_prompt || '',
+    sources: step.use_capture || [],
+    timer: step.timer_seconds || 0,
+    readiness: step.readiness || null,
+    lines: step.lines.map((line) => [line.text, line.quote || '',
+      line.tags.map((tag) => [tag.check, tag.step])]),
+  });
 }
 
 function loadStepMarks(): StepMarks {
@@ -11191,7 +11822,25 @@ function saveStepMarks(marks: StepMarks): boolean {
   } catch { return false; }
 }
 
-/** Forget every stored tick the payload no longer prints.
+function walkInvalidationEpoch(v: WalkPayload, check: string): string {
+  return (v.history?.[check] || []).find((event) => event.platform === v.platform
+    && Boolean(event.invalidated_by))?.invalidated_by || '';
+}
+
+function archiveWalkMark(key: string, mark: StepMark): boolean {
+  if (!activeId) return false;
+  const storageKey = `cockpit:walk-observation-history:${activeId}`;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    const archive = raw ? JSON.parse(raw) as Array<{ key: string; mark: StepMark }> : [];
+    if (!Array.isArray(archive)) return false;
+    archive.push({ key, mark });
+    localStorage.setItem(storageKey, JSON.stringify(archive));
+    return true;
+  } catch { return false; }
+}
+
+/** Retire spent ticks, but keep an observation whose instruction changed.
  *
  *  **This is what "cleared when the check's event is written" comes to.** A
  *  step is printed only while something it cites is owed, so the moment the
@@ -11199,15 +11848,25 @@ function saveStepMarks(marks: StepMarks): boolean {
  *  the step — and its tick is spent. Clearing by what is still printed rather
  *  than by check id is what keeps a step that also cites a still-owed check
  *  from losing the mark that check is still waiting on. */
-function pruneStepMarks(v: WalkPayload): void {
+function pruneStepMarks(v: WalkPayload): string[] {
   const marks = loadStepMarks();
   const live = new Set<string>();
-  for (const sitting of v.sittings) {
+  const currentComplete = new Set<string>();
+  const owed = new Set([...v.sittings.flatMap((sitting) => sitting.rows),
+    ...v.unplaced, ...(v.review_sittings || []).flatMap((sitting) => sitting.rows)]
+    .map((row) => row.id || row.number));
+  const stale = new Set<string>();
+  for (const sitting of [...v.sittings, ...(v.review_sittings || [])]) {
     const proc = readProcedure(sitting);
     if (!proc) continue;
     for (const step of proc.steps) {
       live.add(stepMarkKey(v.release, v.platform, sitting.name,
                            proc.sigs[step.number] || ''));
+    }
+    for (const [check, numbers] of Object.entries(proc.citing)) {
+      if (numbers.every((number) => Boolean(marks[stepMarkKey(
+        v.release, v.platform, sitting.name, proc.sigs[number] || '')])))
+        currentComplete.add(check);
     }
   }
   let dropped = false;
@@ -11216,9 +11875,49 @@ function pruneStepMarks(v: WalkPayload): void {
     //: is a different sitting of the same procedure and its ticks are still
     //: waiting to be spent.
     if (!key.startsWith(`${v.release}|${v.platform}|`)) continue;
-    if (!live.has(key)) { delete marks[key]; dropped = true; }
+    const prefix = `${v.release}|${v.platform}|`;
+    const afterScope = key.slice(prefix.length);
+    const sig = afterScope.slice(afterScope.indexOf('|') + 1);
+    let cited: string[] = [];
+    try {
+      const parsed = JSON.parse(sig) as { lines?: Array<[string, string, Array<[string]>]> };
+      cited = (parsed.lines || []).flatMap((line) =>
+        (line[2] || []).map((tag) => tag[0])).filter((id) => owed.has(id));
+    } catch { /* An old storage shape cannot identify an owed check. */ }
+    if (live.has(key)) {
+      const invalidated = cited.filter((id) =>
+        (marks[key].basis?.[id] || '') !== walkInvalidationEpoch(v, id));
+      if (invalidated.length) {
+        if (archiveWalkMark(key, marks[key])) {
+          delete marks[key];
+          dropped = true;
+          for (const id of invalidated) stale.add(id);
+        } else {
+          walkStorageUnsafe = true;
+          showStatus('Could not preserve an older observation for review. Recording is paused.', 'error');
+        }
+      }
+      continue;
+    }
+    if (cited.length) {
+      if (cited.every((id) => currentComplete.has(id))) {
+        if (archiveWalkMark(key, marks[key])) {
+          delete marks[key];
+          dropped = true;
+        } else {
+          walkStorageUnsafe = true;
+          showStatus('Could not preserve an older observation for review. Recording is paused.', 'error');
+        }
+      } else {
+        for (const id of cited) stale.add(id);
+      }
+    } else {
+      delete marks[key];
+      dropped = true;
+    }
   }
   if (dropped) saveStepMarks(marks);
+  return [...stale].sort();
 }
 
 /** What the page draws for one sitting's procedure — the one place upstream's
@@ -11232,8 +11931,16 @@ interface ProcedureView {
   setup: string;
   remarks: string[];
   omitted: number;
+  requires: Record<string, number[]>;
   steps: Array<{
     number: number;
+    displayNumber: number;
+    preparation: boolean;
+    requiredState: string;
+    capturePrompt: string;
+    useCapture: number[];
+    timerSeconds: number;
+    readiness: WalkProcStep['readiness'];
     head: string;
     surface: string | null;
     surfaceNote: string | null;
@@ -11253,7 +11960,7 @@ function readProcedure(sitting: WalkSitting): ProcedureView | null {
   if (!proc || (proc.problems || []).length) return null;
   const citing: Record<string, number[]> = {};
   const sigs: Record<number, string> = {};
-  const steps = (proc.steps || []).map((step) => {
+  const steps = (proc.steps || []).map((step, index) => {
     const tags: WalkTag[] = [];
     for (const line of step.lines || []) {
       for (const tag of line.tags || []) {
@@ -11263,9 +11970,16 @@ function readProcedure(sitting: WalkSitting): ProcedureView | null {
         if (!at.includes(step.number)) at.push(step.number);
       }
     }
-    sigs[step.number] = stepSignature(tags);
+    sigs[step.number] = stepSignature(step);
     return {
       number: step.number,
+      displayNumber: step.display_number || index + 1,
+      preparation: Boolean(step.preparation),
+      requiredState: step.required_state || '',
+      capturePrompt: step.capture_prompt || '',
+      useCapture: step.use_capture || [],
+      timerSeconds: step.timer_seconds || 0,
+      readiness: step.readiness || null,
       head: step.head,
       surface: step.surface,
       surfaceNote: step.surface_note,
@@ -11282,7 +11996,7 @@ function readProcedure(sitting: WalkSitting): ProcedureView | null {
   });
   return {
     path: proc.path, setup: proc.setup, remarks: proc.remarks || [],
-    omitted: proc.omitted || 0, steps, citing, sigs,
+    omitted: proc.omitted || 0, requires: proc.requires || {}, steps, citing, sigs,
   };
 }
 
@@ -11308,6 +12022,15 @@ function walkLineText(text: string, tags: WalkTag[]): string {
   return out.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '').trim();
 }
 
+/** The current card heading already names this screen. Keep the full source
+ * line in the procedure and its signature; trim only the repeated heading
+ * from the visible action when the resolved screen and id both agree. */
+function walkVisibleAction(text: string, step: { surface: string | null; surfaceNote: string | null }): string {
+  if (!step.surface || !step.surfaceNote) return text;
+  const repeated = `${step.surface} (${step.surfaceNote}).`;
+  return text.startsWith(repeated) ? text.slice(repeated.length).trimStart() : text;
+}
+
 /** `TST-0648.4`, the way the procedure writes it. ASCII, by Edwin's decision
  *  of 2026-09-14: a tag is typed into a markdown file and read back by a
  *  regular expression, and an en dash in one is a tag nobody can find. */
@@ -11324,6 +12047,12 @@ function buildProcedureSection(
   wrap.className = 'walk-procedure';
   wrap.id = walkProcedureId(sitting.name);
 
+  const details = document.createElement('details');
+  details.className = 'walk-proc-details';
+  const detailsLabel = document.createElement('summary');
+  detailsLabel.textContent = 'Procedure and check details';
+  details.appendChild(detailsLabel);
+
   const from = document.createElement('button');
   from.type = 'button';
   from.className = 'file-row walk-proc-source';
@@ -11335,17 +12064,33 @@ function buildProcedureSection(
     const rel = walkDocsRel(proc.path);
     if (rel) void navigateTo(`/docs/${rel}`);
   });
-  wrap.appendChild(from);
+  details.appendChild(from);
 
   //: **The setup, once.** That is the whole point of the procedure: five
   //: checks in a sitting state one product state between them, and printing
   //: it per check is what made the walker read it five times.
-  const setup = document.createElement('div');
+  const setup = document.createElement('details');
   setup.className = 'walk-proc-block';
-  const label = document.createElement('div');
+  const label = document.createElement('summary');
   label.className = 'walk-proc-label';
-  label.textContent = 'Setup';
+  label.textContent = 'Before you start — required setup';
   setup.appendChild(label);
+  if (sitting.state) {
+    const state = document.createElement('p');
+    state.className = 'walk-sitting-state';
+    state.textContent = `State this sitting needs: ${sitting.state}`;
+    setup.appendChild(state);
+  }
+  if (sitting.bench.length) {
+    const bench = document.createElement('ul');
+    bench.className = 'walk-bench';
+    for (const item of sitting.bench) {
+      const li = document.createElement('li');
+      li.textContent = item;
+      bench.appendChild(li);
+    }
+    setup.appendChild(bench);
+  }
   const body = document.createElement('div');
   body.className = 'walk-proc-text';
   if (proc.setup) {
@@ -11356,7 +12101,31 @@ function buildProcedureSection(
     setup.classList.add('is-missing');
   }
   setup.appendChild(body);
+  setup.open = true;
   wrap.appendChild(setup);
+
+  const readiness = new Map<number, { kind: string; reason: string; issue: string }>();
+  for (const step of proc.steps) {
+    for (const item of walkUnready(v, sitting, proc, step)) {
+      readiness.set(item.source, item);
+    }
+  }
+  if (readiness.size) {
+    const before = document.createElement('details');
+    before.className = 'walk-proc-readiness';
+    before.open = true;
+    const summary = document.createElement('summary');
+    const decisions = [...readiness.values()].filter((item) => item.kind === 'decision').length;
+    const preparation = readiness.size - decisions;
+    summary.textContent = `Before you start — ${preparation} need preparation, ${decisions} need a decision`;
+    before.appendChild(summary);
+    for (const [number, item] of readiness) {
+      const line = document.createElement('p');
+      line.textContent = `Source step ${number}: ${item.reason}${item.issue ? ` (${item.issue})` : ''}`;
+      before.appendChild(line);
+    }
+    wrap.appendChild(before);
+  }
 
   const count = document.createElement('span');
   count.className = 'walk-sitting-count';
@@ -11375,9 +12144,9 @@ function buildProcedureSection(
         + 'has already been walked on this platform.'
       : `${proc.omitted} further steps in this procedure are left out: `
         + 'everything they cite has already been walked on this platform.';
-    wrap.appendChild(rest);
+    details.appendChild(rest);
   }
-  for (const said of proc.remarks) wrap.appendChild(walkNotice(said, ''));
+  for (const said of proc.remarks) details.appendChild(walkNotice(said, ''));
 
   const steps = document.createElement('div');
   steps.className = 'walk-steps';
@@ -11385,7 +12154,8 @@ function buildProcedureSection(
     steps.appendChild(buildWalkStep(v, sitting, proc, step));
   }
   wrap.appendChild(steps);
-  wrap.appendChild(buildProcedureVerdicts(v, sitting, proc));
+  details.appendChild(buildProcedureVerdicts(v, sitting, proc));
+  wrap.appendChild(details);
   return wrap;
 }
 
@@ -11408,6 +12178,234 @@ function walkDocsRel(rel: string): string {
   return path.startsWith('docs/') ? path.slice('docs/'.length) : '';
 }
 
+function buildWalkEvidence(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): HTMLElement | null {
+  if (!step.capturePrompt && !step.useCapture.length) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'walk-step-evidence';
+  const saved = loadWalkEvidence();
+  for (const source of step.useCapture) {
+    const item = document.createElement('div');
+    const evidence = saved[evidenceKey(v, sitting, proc, source)];
+    if (evidence?.note && evidence.build) {
+      item.textContent = `From source step ${source} · ${evidence.platform}, ${evidence.release} · `
+        + `build ${evidence.build} · ${evidence.state || 'state not stated'} · `
+        + `${evidence.recordedAt}: ${evidence.note}`;
+      if (evidence.attachmentRel && /^attachments\/[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.png$/.test(evidence.attachmentRel)) {
+        const picture = document.createElement('img');
+        picture.className = 'walk-step-evidence-image';
+        picture.src = walkCaptureSrc(`docs/${evidence.attachmentRel}`);
+        picture.alt = `PNG captured at source step ${source}, build ${evidence.build}`;
+        item.appendChild(picture);
+      }
+    } else {
+      item.textContent = `Evidence from source step ${source} is missing its observation or build. Return to that step and save both before comparing.`;
+      item.className = 'walk-step-evidence-missing';
+    }
+    wrap.appendChild(item);
+  }
+  if (step.capturePrompt) {
+    const key = evidenceKey(v, sitting, proc, step.number);
+    const previous = saved[key];
+    const label = document.createElement('label');
+    label.textContent = `Record now for a later comparison: ${step.capturePrompt}`;
+    const input = document.createElement('textarea');
+    input.className = 'walk-step-evidence-note';
+    input.value = previous?.note || '';
+    label.appendChild(input);
+    wrap.appendChild(label);
+    const buildLabel = document.createElement('label');
+    buildLabel.textContent = 'Build being tested (candidate version or debug build label)';
+    const buildInput = document.createElement('input');
+    buildInput.type = 'text';
+    buildInput.className = 'walk-step-evidence-build';
+    buildInput.value = previous?.build || walkBuildHint(v);
+    buildLabel.appendChild(buildInput);
+    wrap.appendChild(buildLabel);
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.className = 'file-row';
+    save.textContent = 'Save evidence';
+    save.addEventListener('click', () => {
+      const note = input.value.trim();
+      if (!note) {
+        showStatus('Write the observation before saving its evidence.', 'error');
+        return;
+      }
+      if (!buildInput.value.trim()) {
+        showStatus('Name the app build you observed before saving evidence.', 'error');
+        return;
+      }
+      if (!saveCurrentWalkEvidence(v, sitting, proc, step, note, buildInput.value)) {
+        showStatus('This browser could not save the evidence. Retry after allowing site data.', 'error');
+        return;
+      }
+      refreshWalkEvidenceComparisons(v, sitting, proc, step.number);
+      showStatus('Evidence saved for the later comparison.', 'info');
+      scheduleHide(3000);
+    });
+    wrap.appendChild(save);
+    const upload = document.createElement('input');
+    upload.type = 'file';
+    upload.accept = 'image/png,.png';
+    upload.className = 'walk-step-evidence-file';
+    upload.setAttribute('aria-label', 'Choose a PNG from this observation');
+    wrap.appendChild(upload);
+    const attach = document.createElement('button');
+    attach.type = 'button';
+    attach.className = 'file-row';
+    attach.textContent = 'Attach PNG';
+    attach.addEventListener('click', async () => {
+      const file = upload.files?.[0];
+      if (!file) {
+        showStatus('Choose the PNG captured at this step first.', 'error');
+        return;
+      }
+      if (!input.value.trim() || !buildInput.value.trim()) {
+        showStatus('Write the observation and build before attaching its PNG.', 'error');
+        return;
+      }
+      if (!saveCurrentWalkEvidence(v, sitting, proc, step, input.value, buildInput.value)) {
+        showStatus('This browser could not save the evidence. Retry after allowing site data.', 'error');
+        return;
+      }
+      if (await attachWalkEvidenceImage(v, sitting, proc, step, file)) {
+        const fresh = buildWalkEvidence(v, sitting, proc, step);
+        if (fresh) wrap.replaceWith(fresh);
+        refreshWalkEvidenceComparisons(v, sitting, proc, step.number);
+      }
+    });
+    wrap.appendChild(attach);
+    if (previous?.attachmentRel && /^attachments\/[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.png$/.test(previous.attachmentRel)) {
+      const image = document.createElement('img');
+      image.className = 'walk-step-evidence-image';
+      image.src = walkCaptureSrc(`docs/${previous.attachmentRel}`);
+      image.alt = `PNG captured at this step, build ${previous.build || 'not stated'}`;
+      wrap.appendChild(image);
+    }
+  }
+  return wrap;
+}
+
+function refreshWalkEvidenceComparisons(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView, source: number,
+): void {
+  const suffix = v.review_sittings?.includes(sitting) ? '-review' : '';
+  for (const step of proc.steps) {
+    if (!step.useCapture.includes(source)) continue;
+    const host = document.getElementById(`${walkStepId(sitting.name, step.number)}${suffix}`);
+    const old = host?.querySelector('.walk-step-evidence');
+    const fresh = buildWalkEvidence(v, sitting, proc, step);
+    if (old && fresh) old.replaceWith(fresh);
+    const oldTick = host?.querySelector('.walk-step-tick');
+    if (oldTick) oldTick.replaceWith(buildStepTick(v, sitting, proc, step));
+  }
+}
+
+function walkUnready(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): Array<{ source: number; kind: string; reason: string; issue: string }> {
+  const ready = loadWalkReady();
+  const found: Array<{ source: number; kind: string; reason: string; issue: string }> = [];
+  const seen = new Set<number>();
+  const visit = (number: number): void => {
+    if (seen.has(number)) return;
+    seen.add(number);
+    for (const source of proc.requires[String(number)] || []) visit(source);
+    const item = proc.steps.find((candidate) => candidate.number === number);
+    if (!item?.readiness) return;
+    const confirmed = item.readiness.kind === 'preparation' && ready[
+      evidenceKey(v, sitting, proc, number)];
+    if (!confirmed) found.push({
+      source: number, kind: item.readiness.kind,
+      reason: item.readiness.reason, issue: item.readiness.issue || '',
+    });
+  };
+  visit(step.number);
+  return found;
+}
+
+function hasRequiredWalkEvidence(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): boolean {
+  const saved = loadWalkEvidence();
+  const needed = [...step.useCapture, ...(step.capturePrompt ? [step.number] : [])];
+  return needed.every((source) => {
+    const evidence = saved[evidenceKey(v, sitting, proc, source)];
+    return Boolean(evidence?.note && evidence.build);
+  });
+}
+
+function walkStepNeedsLedgerRetry(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): boolean {
+  const marks = loadStepMarks();
+  for (const id of Object.keys(proc.citing).filter((check) =>
+    proc.citing[check].includes(step.number))) {
+    const sources = proc.citing[id];
+    const given = sources.map((number) => marks[stepMarkKey(
+      v.release, v.platform, sitting.name, proc.sigs[number] || '')]);
+    if (given.some((mark) => !mark)) continue;
+    const verdict = combineStepMarks(given.map((mark) => mark.verdict));
+    const reason = sources.map((number, index) => [number, given[index].reason] as const)
+      .filter(([, said]) => said)
+      .map(([number, said]) => `Step ${number}: ${said}`).join(' ');
+    const latest = (v.history?.[id] || []).find((event) => event.platform === v.platform);
+    if (!latest || latest.invalidated_by || latest.mark !== verdict || latest.reason !== reason)
+      return true;
+  }
+  return false;
+}
+
+const walkTimers = new Map<string, number>();
+function buildWalkTimer(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
+  step: ProcedureView['steps'][number],
+): HTMLElement | null {
+  if (!step.timerSeconds) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'walk-step-timer';
+  const key = evidenceKey(v, sitting, proc, step.number);
+  const label = document.createElement('span');
+  let interrupted = false;
+  try { interrupted = Boolean(localStorage.getItem(`cockpit:walk-timer:${activeId}:${key}`)); }
+  catch { /* The timer remains usable without storage. */ }
+  label.textContent = interrupted
+    ? 'A previous timer was interrupted. Restart the continuous observation if needed.'
+    : `Optional ${step.timerSeconds}-second timer. Ending it records no verdict.`;
+  wrap.appendChild(label);
+  const start = document.createElement('button');
+  start.type = 'button';
+  start.className = 'file-row';
+  start.textContent = 'Start timer';
+  start.addEventListener('click', () => {
+    const started = Date.now();
+    walkTimers.set(key, started);
+    try { localStorage.setItem(`cockpit:walk-timer:${activeId}:${key}`, String(started)); }
+    catch { showStatus('Timer interruption state could not be saved.', 'error'); }
+    const interval = window.setInterval(() => {
+      if (walkTimers.get(key) !== started) { window.clearInterval(interval); return; }
+      const remaining = Math.max(0, step.timerSeconds - Math.floor((Date.now() - started) / 1000));
+      label.textContent = remaining
+        ? `${remaining} seconds left. Keep observing the stated condition.`
+        : 'Timer ended. Judge and record the observation yourself.';
+      if (!remaining) {
+        walkTimers.delete(key);
+        try { localStorage.removeItem(`cockpit:walk-timer:${activeId}:${key}`); }
+        catch { /* The next visit may conservatively say interrupted. */ }
+        window.clearInterval(interval);
+      }
+    }, 250);
+  });
+  wrap.appendChild(start);
+  return wrap;
+}
+
 function buildWalkStep(
   v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
   step: ProcedureView['steps'][number],
@@ -11419,7 +12417,7 @@ function buildWalkStep(
   const h = document.createElement('h4');
   h.className = 'walk-step-head';
   h.textContent = step.surface
-    ? `Step ${step.number} — ${step.surface}` : `Step ${step.number}`;
+    ? `Step ${step.displayNumber} — ${step.surface}` : `Step ${step.displayNumber}`;
   //: The screen the step happens on, opened rather than described. A step
   //: that resolved no surface note says only its number, which is the
   //: module's own remark one block up.
@@ -11431,21 +12429,118 @@ function buildWalkStep(
   }
   el.appendChild(h);
 
+  if (step.requiredState) {
+    const state = document.createElement('p');
+    state.className = 'walk-step-state';
+    state.textContent = `Required state: ${step.requiredState}`;
+    el.appendChild(state);
+  }
+  const unready = walkUnready(v, sitting, proc, step);
+  const own = unready.find((item) => item.source === step.number);
+  if (own) {
+    const readiness = document.createElement('div');
+    readiness.className = 'walk-step-readiness';
+    const label = document.createElement('strong');
+    label.textContent = own.kind === 'preparation' ? 'Needs preparation' : 'Needs a decision';
+    readiness.appendChild(label);
+    const reason = document.createElement('p');
+    reason.textContent = own.reason;
+    readiness.appendChild(reason);
+    if (own.kind === 'preparation') {
+      const confirm = document.createElement('button');
+      confirm.type = 'button';
+      confirm.className = 'file-row';
+      confirm.textContent = 'I have this ready';
+      confirm.addEventListener('click', () => {
+        const ready = loadWalkReady();
+        ready[evidenceKey(v, sitting, proc, step.number)] = true;
+        if (!saveWalkReady(ready)) {
+          showStatus('This browser could not save readiness. Retry after allowing site data.', 'error');
+          return;
+        }
+        if (v.review_sittings?.includes(sitting)) {
+          void renderWalkPage(v.platform);
+          return;
+        }
+        const current = document.getElementById(walkProcedureId(sitting.name));
+        if (current) current.replaceWith(buildProcedureSection(v, sitting, proc));
+        else el.replaceWith(buildWalkStep(v, sitting, proc, step));
+        activeWalkFocus?.paint();
+      });
+      readiness.appendChild(confirm);
+    }
+    if (own.issue) {
+      const issue = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = 'Related issue';
+      issue.appendChild(summary);
+      const id = document.createElement('span');
+      id.textContent = own.issue;
+      issue.appendChild(id);
+      readiness.appendChild(issue);
+    }
+    el.appendChild(readiness);
+  } else if (unready.length) {
+    const held = document.createElement('p');
+    held.className = 'walk-step-readiness';
+    held.textContent = `Waiting for preparation or a decision at source step${
+      unready.length === 1 ? '' : 's'} ${unready.map((item) => item.source).join(', ')}.`;
+    el.appendChild(held);
+  }
+  if (step.preparation) {
+    const hint = document.createElement('p');
+    hint.className = 'walk-step-state';
+    hint.textContent = 'Preparation for the next observation. This action records no test verdict.';
+    el.appendChild(hint);
+  }
+
+  let actionLabelShown = false;
+  let expectLabelShown = false;
+  const coverage = document.createElement('details');
+  coverage.className = 'walk-step-coverage';
+  const coverageLabel = document.createElement('summary');
+  coverageLabel.textContent = 'What this step covers';
+  coverage.appendChild(coverageLabel);
+  let coverageCount = 0;
   for (const line of step.lines) {
+    if (step.preparation && line.tags.length) {
+      for (const tag of line.tags) {
+        const detail = document.createElement('div');
+        detail.textContent = `${walkTagLabel(tag)} — ${line.quote || walkLineText(line.text, line.tags)}`;
+        coverage.appendChild(detail);
+        coverageCount += 1;
+      }
+      continue;
+    }
     //: **The module's own quote where there is one.** Deriving it here was a
     //: second reading of a rule the module owns, and the two disagreed on
     //: emphasis and whitespace — so the walker judged a sentence the upstream
     //: validator had never compared with the check's Expect text. The derived
     //: form is kept only for lines the module read no expectation from, which
     //: are the step's instructions rather than its claims.
-    const text = line.tags.length && line.quote
+    const sourceText = line.tags.length && line.quote
       ? line.quote : walkLineText(line.text, line.tags);
+    const text = !line.tags.length && !actionLabelShown
+      ? walkVisibleAction(sourceText, step) : sourceText;
     if (!text && !line.tags.length) continue;
     const row = document.createElement('div');
     row.className = line.tags.length
       ? 'walk-step-line is-expectation' : 'walk-step-line';
     const said = document.createElement('span');
     said.className = 'walk-step-said';
+    if (line.tags.some((tag) => tag.owed) && !expectLabelShown) {
+      const label = document.createElement('strong');
+      label.className = 'walk-step-action-label';
+      label.textContent = 'Look for';
+      row.appendChild(label);
+      expectLabelShown = true;
+    } else if (!line.tags.length && !actionLabelShown) {
+      const label = document.createElement('strong');
+      label.className = 'walk-step-action-label';
+      label.textContent = step.preparation ? 'Prepare' : 'Do';
+      row.appendChild(label);
+      actionLabelShown = true;
+    }
     //: **The check's own Expect text, word for word.** The procedure quotes
     //: it and the upstream validator checks the quote, which is what makes a
     //: pass from a step attest the check's own expectation rather than the
@@ -11460,12 +12555,38 @@ function buildWalkStep(
         ? `This line settles ${walkTagLabel(tag)}.`
         : `${walkTagLabel(tag)} has already been walked on ${v.platform}; `
           + 'ticking this step does not record it again.';
-      row.appendChild(chip);
+      coverage.appendChild(chip);
+      coverageCount += 1;
     }
     el.appendChild(row);
   }
+  if (coverageCount) el.appendChild(coverage);
 
-  el.appendChild(buildStepTick(v, sitting, proc, step));
+  const reference = v.survey.find((screen) => screen.surface_note === step.surfaceNote);
+  const captures = reference?.captures.filter((shot) => shot.before || shot.after) || [];
+  if (captures.length) {
+    const images = document.createElement('details');
+    images.className = 'walk-step-reference';
+    const summary = document.createElement('summary');
+    summary.textContent = `Reference images · ${v.platform}, ${v.release}`;
+    images.appendChild(summary);
+    for (const shot of captures) images.appendChild(buildSurveyCaptures(shot));
+    el.appendChild(images);
+  }
+  if (reference?.captures.some((shot) => !shot.before && !shot.after)) {
+    const missing = document.createElement('p');
+    missing.className = 'walk-step-evidence-missing';
+    missing.textContent = 'This screen has a missing reference capture. Judge its live result against the exact expectation above.';
+    el.appendChild(missing);
+  }
+
+  const evidence = buildWalkEvidence(v, sitting, proc, step);
+  if (evidence) el.appendChild(evidence);
+  const timer = buildWalkTimer(v, sitting, proc, step);
+  if (timer) el.appendChild(timer);
+
+  if (!(step.preparation && v.review_sittings?.includes(sitting)))
+    el.appendChild(buildStepTick(v, sitting, proc, step));
   return el;
 }
 
@@ -11479,23 +12600,105 @@ function buildStepTick(
   const held = loadStepMarks()[
     stepMarkKey(v.release, v.platform, sitting.name,
                 proc.sigs[step.number] || '')];
+  const inReview = Boolean(v.review_sittings?.includes(sitting));
+  const retry = Boolean(held && !step.preparation
+    && walkStepNeedsLedgerRetry(v, sitting, proc, step));
+  const unready = walkUnready(v, sitting, proc, step);
 
   const tick = document.createElement('button');
   tick.type = 'button';
   tick.className = held
     ? `file-row walk-step-button is-${held.verdict}`
-    : 'file-row walk-step-button';
+    : 'review-btn is-primary walk-step-button';
   tick.textContent = held
-    ? `step ${step.number} — ${held.verdict}` : `tick step ${step.number}`;
+    ? retry ? 'Retry ledger write'
+      : `${inReview ? 'Saved' : step.preparation ? 'Prepared' : 'Recorded'} — ${held.verdict}`
+    : step.preparation ? 'Continue'
+      : inReview ? 'Record a new run' : 'Pass and next';
+  const missingSource = step.useCapture.length > 0
+    && !hasRequiredWalkEvidence(v, sitting, proc, step);
+  tick.disabled = unready.length > 0 || walkStorageUnsafe || missingSource
+    || Boolean(held && inReview && !retry);
   const settles = Object.keys(proc.citing)
     .filter((id) => proc.citing[id].includes(step.number));
-  tick.title = settles.length
+  tick.title = unready.length
+    ? 'Resolve the preparation or decision shown above before recording this step.'
+    : missingSource
+    ? 'Save the earlier observation and build shown above before recording this comparison.'
+    : settles.length
     ? `Records a mark for this step. It is part of ${settles.join(', ')}.`
     : 'Records a mark for this step.';
   tick.addEventListener('click', () => {
-    void markWalkStep(v, sitting, proc, step);
+    if (unready.length) return;
+    if (step.preparation) {
+      if (!hasRequiredWalkEvidence(v, sitting, proc, step)) {
+        showStatus('Save the requested evidence before continuing.', 'error');
+        return;
+      }
+      const marks = loadStepMarks();
+      marks[stepMarkKey(v.release, v.platform, sitting.name,
+                        proc.sigs[step.number] || '')] = { verdict: 'done', reason: '' };
+      if (!saveStepMarks(marks)) {
+        showStatus('This browser could not save preparation progress. Retry after allowing site data.', 'error');
+        return;
+      }
+      advanceWalkFocus(v, sitting.name, step.number);
+    } else if (retry) {
+      void markWalkStep(v, sitting, proc, step, false, true);
+    } else if (held) {
+      advanceWalkFocus(v, sitting.name, step.number);
+    } else {
+      void markWalkStep(v, sitting, proc, step, true, false,
+        inReview);
+    }
   });
   foot.appendChild(tick);
+
+  if (!step.preparation) {
+    const alternate = document.createElement('button');
+    alternate.type = 'button';
+    alternate.className = 'file-row walk-step-alternate';
+    alternate.textContent = held ? 'Correct observation…' : 'Something wrong…';
+    alternate.addEventListener('click', () => {
+      void markWalkStep(v, sitting, proc, step);
+    });
+    foot.appendChild(alternate);
+
+    if (held && inReview) {
+      const rerun = document.createElement('button');
+      rerun.type = 'button';
+      rerun.className = 'file-row walk-step-rerun';
+      rerun.textContent = 'Record another run…';
+      rerun.addEventListener('click', () => {
+        void markWalkStep(v, sitting, proc, step, false, false, true);
+      });
+      foot.appendChild(rerun);
+    }
+
+    if (settles.length) {
+      const unavailable = document.createElement('details');
+      unavailable.className = 'walk-step-unavailable';
+      const label = document.createElement('summary');
+      label.textContent = "I can't perform this";
+      unavailable.appendChild(label);
+      const help = document.createElement('p');
+      help.textContent = 'Choose an affected check to record a release decision. Opening this control records nothing.';
+      unavailable.appendChild(help);
+      for (const id of settles) {
+        const row = sitting.rows.find((item) => (item.id || item.number) === id);
+        if (!row) continue;
+        const decide = document.createElement('button');
+        decide.type = 'button';
+        decide.className = 'file-row';
+        decide.textContent = row.name ? `${id} — ${row.name}` : id;
+        decide.addEventListener('click', () => {
+          void decideUnavailableWalkCheck(v, step, row, settles);
+        });
+        unavailable.appendChild(decide);
+      }
+      foot.appendChild(unavailable);
+    }
+  }
 
   if (held) {
     //: What is still missing, named. A walker who has ticked three of four
@@ -11518,6 +12721,27 @@ function buildStepTick(
     }
   }
   return foot;
+}
+
+async function decideUnavailableWalkCheck(
+  v: WalkPayload, step: ProcedureView['steps'][number],
+  row: WalkRow, affected: string[],
+): Promise<void> {
+  const chosen = await askForMark({
+    number: row.id || row.number,
+    name: row.name,
+    current: row.mark || ' ',
+    text: row.text || '',
+    rel: row.rel || '',
+    history: v.history?.[row.id || ''] || [],
+    only: ['blocked', 'excused', 'na'],
+    detail: `Step ${step.displayNumber}: ${walkLineText(step.head, [])}. `
+      + `This action affects ${affected.join(', ')}. Choose how this check is handled; opening this dialog has not recorded a verdict.`,
+  });
+  if (chosen === null) return;
+  if (await postCheckVerdict(row, v.platform, chosen)) {
+    showStatus(`Recorded a decision for ${row.id || row.number}. Return to this step to continue.`, 'info');
+  }
 }
 
 /** The steps a check is still waiting on, by number. */
@@ -11589,13 +12813,29 @@ function buildProcedureVerdicts(
 async function markWalkStep(
   v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
   step: ProcedureView['steps'][number],
+  directPass = false,
+  retryHeld = false,
+  newRun = false,
 ): Promise<void> {
+  if (walkStorageUnsafe) {
+    showStatus('Recording is paused until saved observations can be checked against this candidate.', 'error');
+    return;
+  }
+  if (walkUnready(v, sitting, proc, step).length) {
+    showStatus('Resolve the preparation or decision shown above before recording this step.', 'error');
+    return;
+  }
+  if (!hasRequiredWalkEvidence(v, sitting, proc, step)) {
+    showStatus('Save the requested evidence before recording this step.', 'error');
+    return;
+  }
   const key = stepMarkKey(v.release, v.platform, sitting.name,
                           proc.sigs[step.number] || '');
   const held = loadStepMarks()[key];
   const settles = Object.keys(proc.citing)
     .filter((id) => proc.citing[id].includes(step.number));
-  const chosen = await askForMark({
+  const chosen = retryHeld && held ? held
+    : directPass ? { verdict: 'pass', reason: '' } : await askForMark({
     number: `Step ${step.number}`,
     //: The step's words, not its Markdown — the same cleaning the page's own
     //: lines get. The dialog read `Step 1 **Ride cockpit.** Pedal for…` until
@@ -11607,7 +12847,7 @@ async function markWalkStep(
     //: **Four marks, not seven** ([[ADR-0041]]; Edwin, 2026-09-14). The three
     //: settle marks answer "should this check run at all", which is a
     //: decision about the release and not an observation of a step.
-    only: STEP_MARK_CHOICES,
+    only: held ? STEP_MARK_CHOICES : STEP_MARK_CHOICES.filter((mark) => mark !== 'pass'),
     detail: settles.length
       ? `This step is part of ${settles.join(', ')}. Each of those records a `
         + 'verdict once every step citing it has a mark, and the worst mark '
@@ -11617,22 +12857,34 @@ async function markWalkStep(
   if (chosen === null) return;
 
   const marks = loadStepMarks();
-  marks[key] = { verdict: chosen.verdict, reason: chosen.reason || '' };
+  marks[key] = {
+    verdict: chosen.verdict, reason: chosen.reason || '',
+    basis: Object.fromEntries(settles.map((id) => [id, walkInvalidationEpoch(v, id)])),
+  };
   const stored = saveStepMarks(marks);
   //: **Told, not guessed at.** Without storage a check cited by one step
   //: still reaches the ledger below, and a check cited by several never will
   //: — so the walk would half-work in a way nothing on the page admitted.
-  if (!stored && settles.some((id) => (proc.citing[id] || []).length > 1)) {
+  if (!stored) {
     showStatus(
-      'This browser is refusing to store anything, so a check that takes '
-      + 'more than one step cannot be assembled. Walk those checks from '
-      + 'their own rows, or allow site data for this workspace.', 'error');
+      'This browser could not save the observation. Allow site data and retry before moving on.', 'error');
     scheduleHide(8000);
+    return;
+  }
+
+  const completed = settles.filter((id) => (proc.citing[id] || []).every((n) =>
+    Boolean(marks[stepMarkKey(v.release, v.platform, sitting.name,
+                              proc.sigs[n] || '')])));
+  if (!rememberWalkCompleted(v, completed)) {
+    showStatus('The observation was saved, but its correction route could not be saved. Allow site data and retry the ledger write.', 'error');
+    return;
   }
 
   //: Everything the tick completed, written before anything is repainted, so
   //: the repaint below reads a settled world.
   const wrote: string[] = [];
+  let failed = false;
+  let reopened = false;
   for (const id of settles) {
     const steps = proc.citing[id] || [];
     const given = steps.map((n) => marks[
@@ -11655,14 +12907,49 @@ async function markWalkStep(
       .filter(([, said]) => said)
       .map(([n, said]) => `Step ${n}: ${said}`)
       .join(' ');
-    const ok = await postCheckVerdict(row, v.platform, { verdict, reason });
-    if (ok) wrote.push(`${id} — ${verdict}`);
+    const latest = (v.history?.[id] || [])
+      .find((event) => event.platform === v.platform);
+    if (!newRun && latest && !latest.invalidated_by && latest.mark === verdict
+        && latest.reason === reason) continue;
+    const ok = await postCheckVerdict(row, v.platform, { verdict, reason },
+      walkLedgerEvidence(v, sitting, proc, id));
+    if (ok) {
+      wrote.push(`${id} — ${verdict}`);
+      if (verdict === 'fail' || verdict === 'question') reopened = true;
+      (v.history ||= {})[id] = [{
+        platform: v.platform, release: v.release,
+        date: new Date().toISOString().slice(0, 10), mark: verdict, reason,
+        by: 'user:edwin', method: 'manual', invalidated_by: '',
+      }, ...(v.history?.[id] || [])];
+    } else failed = true;
   }
 
-  const held2 = docView.scrollTop;
-  await repaintWalkProcedure(v.platform);
-  docView.scrollTop = held2;
-  requestAnimationFrame(() => { docView.scrollTop = held2; });
+  if (failed) {
+    showStatus('The observation was saved here, but the ledger write failed. Retry from this step.', 'error');
+    return;
+  }
+  if (v.review_sittings?.includes(sitting)) {
+    if (reopened) {
+      const focus = loadWalkFocus(v);
+      Object.assign(focus, { stage: 'session', sitting: sitting.name,
+        signature: proc.sigs[step.number] || '' });
+      saveWalkFocus(focus);
+    }
+    await renderWalkPage(v.platform);
+    if (wrote.length) {
+      showStatus(`Recorded ${wrote.join(', ')}`, 'info');
+      scheduleHide(4000);
+    }
+    return;
+  }
+  const current = document.getElementById(walkStepId(sitting.name, step.number));
+  current?.replaceWith(buildWalkStep(v, sitting, proc, step));
+  if (activeWalkFocus?.payload.release === v.release
+      && activeWalkFocus.payload.platform === v.platform) {
+    advanceWalkFocus(v, sitting.name, step.number);
+  } else {
+    await repaintWalkProcedure(v.platform);
+  }
   if (wrote.length) {
     showStatus(`Recorded ${wrote.join(', ')}`, 'info');
     scheduleHide(4000);
@@ -11679,8 +12966,8 @@ async function repaintWalkProcedure(platform: string): Promise<boolean> {
   if (!sidecarBaseUrl || !walkData) return false;
   let fresh: WalkPayload;
   try {
-    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/walk?platform=${
-      encodeURIComponent(platform)}`);
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/walk${
+      walkQuery(platform, walkData.release)}`);
     if (!resp.ok) return false;
     fresh = await resp.json() as WalkPayload;
   } catch { return false; }
@@ -11718,16 +13005,19 @@ function buildSittingSection(sitting: WalkSitting, ordinal: string,
   h.textContent = ordinal ? `${ordinal} — ${sitting.name}` : sitting.name;
   section.appendChild(h);
 
+  const proc = v ? readProcedure(sitting) : null;
   //: **The two facts the hand-written run plan carried and no note could**:
   //: the state the sitting starts from, and what must be on the bench. They
-  //: are rendered verbatim and never parsed.
-  if (sitting.state) {
+  //: are rendered verbatim and never parsed. A valid procedure puts both in
+  //: its required-setup disclosure, so a resumed step is not preceded by the
+  //: same bench list on every visit. Fallback rows keep them here.
+  if (!proc && sitting.state) {
     const state = document.createElement('p');
     state.className = 'walk-sitting-state';
     state.textContent = `State this sitting needs: ${sitting.state}`;
     section.appendChild(state);
   }
-  if (sitting.bench.length) {
+  if (!proc && sitting.bench.length) {
     const bench = document.createElement('ul');
     bench.className = 'walk-bench';
     for (const item of sitting.bench) {
@@ -11741,7 +13031,6 @@ function buildSittingSection(sitting: WalkSitting, ordinal: string,
   //: The setup above it is the check's; this one is the sitting's, stated
   //: once. `readProcedure` returns null for a sitting with no procedure and
   //: for one the module refused, and both fall back to the rows below.
-  const proc = v ? readProcedure(sitting) : null;
   if (v && proc) {
     section.appendChild(buildProcedureSection(v, sitting, proc));
     return section;
@@ -11783,7 +13072,51 @@ function buildWalkRow(row: WalkRow): HTMLElement {
   //: Addressed, so a repaint after a mark can replace this one element and
   //: leave every other row and the scroll position untouched.
   wrap.id = walkRowId(row.id || row.number);
-  wrap.appendChild(buildCheckRow(row, true, true, markWalkRow));
+  const readiness = row.readiness;
+  const readyKey = JSON.stringify([
+    'fallback', walkData?.release || '', walkData?.platform || '',
+    row.id || row.number, readiness?.kind || '', readiness?.reason || '',
+  ]);
+  const prepared = readiness?.kind !== 'preparation' || Boolean(loadWalkReady()[readyKey]);
+  const decisionPending = readiness?.kind === 'decision'
+    && !['na', 'excused'].includes(row.mark || '');
+  wrap.appendChild(buildCheckRow(row, true, prepared && !decisionPending, markWalkRow));
+
+  if (readiness && (!prepared || decisionPending)) {
+    const panel = document.createElement('div');
+    panel.className = 'walk-row-readiness';
+    const label = document.createElement('strong');
+    label.textContent = readiness.kind === 'preparation' ? 'Needs preparation' : 'Needs a decision';
+    panel.appendChild(label);
+    const reason = document.createElement('p');
+    reason.textContent = readiness.reason;
+    panel.appendChild(reason);
+    if (readiness.issue) {
+      const issue = document.createElement('p');
+      issue.textContent = `Related issue: ${readiness.issue}`;
+      panel.appendChild(issue);
+    }
+    const action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'file-row';
+    action.textContent = readiness.kind === 'preparation'
+      ? 'I have this ready' : "I can't perform this";
+    action.addEventListener('click', () => {
+      if (readiness.kind === 'decision') {
+        void decideFallbackWalkCheck(row, readiness.reason);
+        return;
+      }
+      const ready = loadWalkReady();
+      ready[readyKey] = true;
+      if (!saveWalkReady(ready)) {
+        showStatus('This browser could not save readiness. Retry after allowing site data.', 'error');
+        return;
+      }
+      wrap.replaceWith(buildWalkRow(row));
+    });
+    panel.appendChild(action);
+    wrap.appendChild(panel);
+  }
 
   const proc = document.createElement('div');
   proc.className = 'walk-proc';
@@ -11812,6 +13145,24 @@ function buildWalkRow(row: WalkRow): HTMLElement {
     'The note states no expected result.'));
   wrap.appendChild(proc);
   return wrap;
+}
+
+async function decideFallbackWalkCheck(row: WalkRow, reason: string): Promise<void> {
+  const chosen = await askForMark({
+    number: row.id || row.number, name: row.name, current: row.mark || ' ',
+    text: row.text || '', rel: row.rel || '',
+    history: walkData?.history?.[row.id || ''] || [],
+    only: ['blocked', 'excused', 'na'],
+    detail: `${reason} Opening this dialog records nothing.`,
+  });
+  if (chosen === null || !walkData) return;
+  if (!['blocked', 'excused', 'na'].includes(chosen.verdict)) {
+    showStatus('This check needs a release decision before it can be passed.', 'error');
+    return;
+  }
+  if (await postCheckVerdict(row, walkData.platform, chosen)) {
+    await repaintWalkRow(row.id || row.number, chosen);
+  }
 }
 
 function walkRowId(id: string): string {
