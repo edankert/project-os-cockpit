@@ -127,10 +127,13 @@ def test_real_free_ride_procedure_matches_direct_check_verdicts(
         check_ids = ("TST-0034", "TST-0315")
         step_numbers = {1, 6, 13, 14}
     else:
-        check_ids = ("TST-0034", "TST-0124", "TST-0370")
-        step_numbers = {6, 7, 8}
-    selected["rows"] = [row for row in selected["rows"]
-                        if row["id"] in check_ids]
+        # Step order settles TST-0370 at step 8, before TST-0124's last part at step 20,
+        # so the rows are listed in that settling order for the direct-check comparison.
+        check_ids = ("TST-0034", "TST-0370", "TST-0124")
+        # Your Trainer's A7 split (2026-09-17) moved TST-0124's later parts to steps 18-20.
+        step_numbers = {6, 7, 8, 18, 19, 20}
+    by_id = {row["id"]: row for row in selected["rows"]}
+    selected["rows"] = [by_id[check] for check in check_ids if check in by_id]
     selected["procedure"]["steps"] = [
         step for step in selected["procedure"]["steps"]
         if step["number"] in step_numbers
