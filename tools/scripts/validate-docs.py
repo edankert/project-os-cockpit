@@ -1103,6 +1103,11 @@ PROMOTIONS = {
 #: Issues created before this date are not checked by ISSUE-REPORTER or
 #: ISSUE-QUESTION (ADR-0047 landed in the template on 2026-09-18).
 ISSUE_RULES_FROM = "2026-09-19"
+#: REVIEW-ROUND checks only reviews dated on or after this. Some repos recorded
+#: `review_round` before the field was defined, as a count of the long review
+#: loops ADR-0028 ended (your-health TST-0023 records round 8). That is history,
+#: not a violation of a two-round cap that did not exist yet.
+REVIEW_ROUND_FROM = "2026-09-18"
 REPORTED_BY_RE = re.compile(r"^(user:\S+|review|agent)$")
 
 
@@ -1742,7 +1747,8 @@ def validate_review_and_issue_fields(note_index, grandfathered, report):
             continue
         seen.add(path)
         rnd = fm.get("review_round")
-        if has_value(rnd) and str(rnd).strip().strip("\"'") not in ("1", "2"):
+        reviewed = str(fm.get("review_date", "") or "").strip().strip("\"'")
+        if has_value(rnd) and reviewed >= REVIEW_ROUND_FROM and str(rnd).strip().strip("\"'") not in ("1", "2"):
             report.error("REVIEW-ROUND", "%s records review_round %r; a gate runs at most two rounds, so it is 1 or 2 "
                          "(QUALITY.md, ADR-0028)" % (note_id, rnd))
         if note_type(fm) != "issue":
