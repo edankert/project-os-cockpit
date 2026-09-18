@@ -40,6 +40,11 @@ jobs:
           if [ -f tools/scripts/sync-snapshot.py ]; then
             python3 tools/scripts/sync-snapshot.py --repo-root "$GITHUB_WORKSPACE" --check
           fi
+      - name: Verify Codex adapter hook contracts
+        run: |
+          if [ -f tools/scripts/test-codex-adapter.sh ]; then
+            bash tools/scripts/test-codex-adapter.sh
+          fi
       - name: Verify generated adapter artifacts are current
         run: |
           if [ -f tools/scripts/generate-adapters.py ]; then
