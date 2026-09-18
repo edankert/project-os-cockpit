@@ -20,6 +20,14 @@ every repo carrying a test note: `TEST-AUTOMATED-STATUS` 12,
 are dated to 2026-11-18, because ADR-0011 clause 3 forbids promoting over unpaid
 debt and `DECISIONS.md`'s skip-the-warning rule needs a corpus that is clean
 *everywhere*, not where the author happened to look.
+
+**Since 2026-09-18 these codes are the template's** (project-os-dev ISS-0068).
+This repo's validator was replaced by the template's, where the same rule had
+been written as `COMMAND-VERDICT` (project-os-dev ADR-0025). The two agree on
+every case in `_SPLIT_MATRIX`; only the code name changed, so the tests below
+name `COMMAND-VERDICT` where they named `TEST-AUTOMATED-STATUS` or
+`TEST-AUTOMATED-EVIDENCE`. The dates are the fleet's: COMMAND-VERDICT
+2026-12-02, CHECK-SUBJECT 2026-12-17.
 """
 
 from __future__ import annotations
@@ -86,7 +94,7 @@ def test_an_automated_test_may_not_hold_a_verdict(tmp_path: Path, status: str) -
     clean; the command-bearing half is `TEST-AUTOMATED-STATUS` and warns.
     """
     repo = _repo(tmp_path, status=status, command='command: "pytest tests/x.py"\n')
-    assert "TEST-AUTOMATED-STATUS" in _all_codes_for(repo, "TST-0009")
+    assert "COMMAND-VERDICT" in _all_codes_for(repo, "TST-0009")
 
 
 def test_ready_with_a_command_was_already_forbidden_and_still_errors(
@@ -134,13 +142,13 @@ def test_evidence_of_a_run_is_refused(tmp_path: Path, field: str) -> None:
     repo = _repo(tmp_path, status="active",
                  command='command: "pytest tests/x.py"\n',
                  extra='%s: "1"\n' % field)
-    assert "TEST-AUTOMATED-EVIDENCE" in _all_codes_for(repo, "TST-0009")
+    assert "COMMAND-VERDICT" in _all_codes_for(repo, "TST-0009")
 
 
 def test_a_manual_test_keeps_its_dates(tmp_path: Path) -> None:
     """`last_run:` on a note with no command is not this rule's business."""
     repo = _repo(tmp_path, status="active", extra='last_run: "2026-01-01"\n')
-    assert "TEST-AUTOMATED-EVIDENCE" not in _codes(repo)
+    assert "COMMAND-VERDICT" not in _codes(repo)
 
 
 # ------------------------------------------------------------- the landing
@@ -157,8 +165,8 @@ def test_the_corpus_holds_no_violations(tmp_path: Path) -> None:
         [sys.executable, str(VALIDATOR), "--repo-root", str(REPO_ROOT)],
         capture_output=True, text=True, timeout=300).stdout
     offenders = [ln for ln in out.splitlines()
-                 if "ACCEPTANCE-STATUS" in ln or "TEST-AUTOMATED-EVIDENCE" in ln
-                 or "TEST-AUTOMATED-STATUS" in ln]
+                 if "ACCEPTANCE-STATUS" in ln or "COMMAND-VERDICT" in ln
+                 or "COMMAND-VERDICT" in ln]
     assert not offenders, offenders
 
 
@@ -279,11 +287,10 @@ def test_it_warns_rather_than_errors_until_the_cutover(tmp_path: Path) -> None:
     spec = importlib.util.spec_from_file_location("v_promo", VALIDATOR)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    assert module.PROMOTIONS["CHECK-SUBJECT"] == "2026-11-18"
+    assert module.PROMOTIONS["CHECK-SUBJECT"] == "2026-12-17"
     # The two ADR-0038 codes are dated for the same reason and on the same
     # day: the fleet corpus is not clean, so neither may error on day one.
-    assert module.PROMOTIONS["TEST-AUTOMATED-STATUS"] == "2026-11-18"
-    assert module.PROMOTIONS["TEST-AUTOMATED-EVIDENCE"] == "2026-11-18"
+    assert module.PROMOTIONS["COMMAND-VERDICT"] == "2026-12-02"
 
 
 # ------------------------------- the split, cut on what changed (3rd review)
@@ -315,13 +322,13 @@ _SPLIT_MATRIX = [
     ("acceptance", True,  "ready",   "ACCEPTANCE-STATUS",    "ERROR"),
     # `passing`/`failing` were EXEMPT with a command. That exemption is what
     # ADR-0038 removes, so these are the dated half.
-    ("acceptance", True,  "passing", "TEST-AUTOMATED-STATUS", "WARN"),
-    ("acceptance", True,  "failing", "TEST-AUTOMATED-STATUS", "WARN"),
+    ("acceptance", True,  "passing", "COMMAND-VERDICT", "WARN"),
+    ("acceptance", True,  "failing", "COMMAND-VERDICT", "WARN"),
     ("acceptance", True,  "active",  None,                    None),
     # --- automated, not an acceptance check: NO rule reached these before ---
-    ("",           True,  "ready",   "TEST-AUTOMATED-STATUS", "WARN"),
-    ("",           True,  "passing", "TEST-AUTOMATED-STATUS", "WARN"),
-    ("",           True,  "failing", "TEST-AUTOMATED-STATUS", "WARN"),
+    ("",           True,  "ready",   "COMMAND-VERDICT", "WARN"),
+    ("",           True,  "passing", "COMMAND-VERDICT", "WARN"),
+    ("",           True,  "failing", "COMMAND-VERDICT", "WARN"),
     ("",           True,  "active",  None,                    None),
     # --- a manual test outside the acceptance level: not this rule's business
     ("",           False, "ready",   None, None),
@@ -360,7 +367,7 @@ def test_the_split_follows_what_changed_not_the_level(
         capture_output=True, text=True, timeout=120).stdout
     lines = [ln for ln in out.splitlines()
              if "TST-0009" in ln
-             and ("ACCEPTANCE-STATUS" in ln or "TEST-AUTOMATED-STATUS" in ln)]
+             and ("ACCEPTANCE-STATUS" in ln or "COMMAND-VERDICT" in ln)]
     if code is None:
         assert not lines, ("expected silence", lines)
         return
