@@ -6,7 +6,7 @@ title: "Nothing detects a stale, divergent or incomplete tools/cockpit — one r
 status: open
 owner: user:edwin
 created: 2026-09-02
-updated: "2026-09-02"
+updated: "2026-09-18"
 severity: medium
 component: tooling
 phase:
@@ -38,3 +38,8 @@ Some check answers "does every repo have the cockpit its stamp claims, and how f
 - [ ] A per-repo content hash beside `CANONICAL_SHA`, so a stamp cannot outlive the tree it names
 - [ ] Extend `fleet-drift.py` to report cockpit staleness in commits, the way it reports rule-code drift
 - [ ] Fail loudly on a `tools/cockpit` with no `src/` — the case that is not drift but absence
+
+## Recurrence, 2026-09-18
+
+Found while settling project-os-dev's open issues (FEAT-0036). The template's `tools/cockpit/` was last released on 2026-09-02 (project-os c24bdff) and 19 files in it now differ from this repository's `src/project_os_cockpit/`. your-trainer's copy has two files of its own, `publication.py` and `server.py`, which the sync reports as local content on every run and leaves alone. Nothing reported either until a person read the sync's output.
+
