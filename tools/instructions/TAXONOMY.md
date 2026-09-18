@@ -4,7 +4,7 @@ id: INSTR-TAXONOMY
 status: active
 owner: group:maintainers
 created: 2026-01-27
-updated: 2026-07-17
+updated: 2026-09-03
 tags: [instructions, taxonomy]
 ---
 
@@ -76,14 +76,13 @@ Positive integer sort order for roadmap sequencing.
 Project-defined free text label, but keep it stable. Examples:
 - `docs`, `build`, `tests`, `tooling`, `runtime`, `ui`, `api`
 
-## `kind` (tests)
-- `manual`, `automated`
+## `kind` (tests) — removed (ADR-0034)
+- There is no `kind` field. `command:` answers who runs a test: present, the runner; absent, a person (`../../docs/__templates__/SCHEMAS.md`, `test.md`).
 
 ## `level` (tests)
 - `unit`, `integration`, `system`, `e2e`, `acceptance`
-- **`acceptance` is the discriminator of the merged type (ADR-0031)**: a test at this level is the thing a person walks — it rests at `status: active`, its verdict is `mark:`, and it carries the acceptance fields below. Everything else on the scale is executable. The field has always been here; since ADR-0031 it carries the distinction the retired `check` type used to.
-- A test moves along the scale rather than between types. **Adding a `command:` to an `acceptance` test is how a walk becomes automated.**
-- *(Corrected 2026-08-21, project-os-cockpit REQ-0057.* This line used to end *"and a `passing` test named in another's `covered_by:` settles it"*. **`covered_by:` no longer exists**: a standing claim on the check rotted silently — rename or delete the covering test and the note kept asserting coverage while the check left the run list with no signal — and it had never settled a check in any repo, holding `[]` on 671 of 671. The **test** declares the check in its own source and the **run** emits a `method: automated` verdict into the ledger, so deleting the test stops the emission. This file is template-owned; the correction is owed upstream and is made here because a reference that states a removed mechanism is worse than a sync divergence.)*
+- **`acceptance` is the discriminator of the merged type (ADR-0031)**: a test at this level is the thing a person walks — it rests at `status: active`, its verdict is in the release ledger ("Acceptance outcomes (the ledger's vocabulary)" below), and it carries the acceptance fields below. Everything else on the scale is executable. The field has always been here; since ADR-0031 it carries the distinction the retired `check` type used to.
+- A test moves along the scale rather than between types; how a walk becomes automated is stated once in `TESTING.md`, "When to create", rule 3. (`covered_by:` was removed with the ledger model; `SCHEMAS.md`, "Acceptance fields".)
 
 ## `scope` (tests)
 - `feature`, `system`
@@ -128,11 +127,8 @@ The mapping into the ledger is `done`→`pass`, `incomplete`→`partial`, **`can
 
 **`mark:` is not `status:`.** An acceptance test's lifecycle is `status:` — it rests at `active`, and `retired` is terminal. Its verdict is not on the note at all. That is what keeps it outside the runner-only rule, the independent-review gate and the `Run` obligation — see `STATUSES.md` `[[test]]`.
 
-## `burden` (tests at `level: acceptance`)
-Optional, project-defined free text naming what a walker must have to hand — `App`, `Trainer`, `Strava`, `hardware`. Its purpose is to avoid making somebody set the same thing up twice, so keep the labels stable and few.
-
 ## `check` — retired (ADR-0031)
 
 **There is no `check` type.** An acceptance check is a `[[test]]` at `level: acceptance`; a note that carried `type: "[[check]]"` was migrated, keeping its old id as an alias.
 
-*(This heading read "`check` versus `level: acceptance` on a test — Both exist and they are not the same thing…" until 2026-08-19. It survived ADR-0031 by nobody reading past the mark table, and was then copied into two more repos by the very sync that was fixing [[ISS-0217]] — the drift travelling under its own fix. The ISS-0218 drift check reads the mark TABLE and cannot see prose, which is why this one needed a person.)*
+*(This heading read "`check` versus `level: acceptance` on a test — Both exist and they are not the same thing…" until 2026-08-19. It survived ADR-0031 by nobody reading past the mark table, and was then copied into two more repos by the same sync that was fixing [[ISS-0217]]. The ISS-0218 drift check reads the mark TABLE and cannot see prose, which is why this one needed a person.)*

@@ -4,7 +4,7 @@ id: CTX-ROOT
 status: active
 owner: team:docs
 created: 2026-01-26
-updated: 2026-05-08
+updated: 2026-09-18
 tags: [llm, docs, golden-source]
 ---
 
@@ -17,7 +17,7 @@ Keep the content split explicit:
 - `tools/agents/`: agent-facing operating playbooks
 - `tools/`: project-os machinery plus project-specific automation, scripts, adapters, and instructions
 
-**Upstream is two repos, and a bare id never reaches either.** `project-os` is the template `tools/` syncs from; **`project-os-dev` holds every upstream ADR** — the decisions this project inherits rather than makes. Cite one as `[[project-os-dev#ADR-0011]]`: project id, `#`, note id ([[ADR-0024]]). A bare `[[ADR-0011]]` always means *this* repo, so an upstream decision written that way resolves to nothing — which is how a session once came within an afternoon of writing a replacement for a decision that already existed ([[ISS-0123]], [[ISS-0162]]).
+**Upstream is two repos, and a bare id never reaches either.** `project-os` is the template `tools/` syncs from; **`project-os-dev` holds every upstream ADR**: the decisions this project inherits rather than makes. Cite one as `[[project-os-dev#ADR-0011]]`: project id, `#`, note id. A bare `[[ADR-0011]]` always means *this* repo, so an upstream decision written that way resolves to nothing. That is how a session once came within an afternoon of writing a replacement for a decision that already existed (project-os-cockpit ISS-0123, ISS-0162).
 
 ## What to read first (LLM + humans)
 - `AGENTS.md` (agent startup contract + docs-first gate)
@@ -43,25 +43,26 @@ Keep the content split explicit:
 - `docs/changes/*.md`
 - `SNAPSHOT.yaml`
 
+**Lifecycle-owned (the LLM creates and updates these, under the rules that govern them)**
+- `docs/requirements/REQ-*.md` and `docs/risks/RISK-*.md` — required by `tools/instructions/LIFECYCLE.md` preflight step 4 and close-out step 4. Changing a requirement's acceptance criteria is a different matter and belongs to its owner (`tools/instructions/QUALITY.md`).
+- `docs/decisions/ADR-*.md` — created per `tools/instructions/DECISIONS.md`; an accepted decision is amended, never quietly rewritten.
+- `docs/tests/**`, `docs/phases/PHASE-*.md`, `docs/releases/REL-*.md`, `docs/designs/**`
+
 **Reference (LLM should not change casually)**
 - `docs/ARCHITECTURE.md`, `docs/DESIGN.md`, `docs/STYLEGUIDE.md`
-- `docs/requirements/*`, `docs/risks/*`, `docs/decisions/*`
 - `docs/reference/**/*`, `docs/research/**/*`
 - `tools/*` (operational scripts/instructions)
 
 ## Always keep these invariants
-1. `SNAPSHOT.yaml` is canonical for agents/LLMs: keep it current for active work state, focus, and relationships.
+1. `SNAPSHOT.yaml` is canonical for agents/LLMs; its statuses, counters and metrics are derived from the notes by the sync script (`tools/instructions/LIFECYCLE.md`, "Mandatory Automated Documentation"), and focus, membership and relationships are curated by hand.
 2. Notes are the durable record for humans: keep note frontmatter (`id`, `status`, links) consistent with the snapshot so Bases views reflect reality.
 3. Notes are typed via `type: [[...]]` (e.g. `[[task]]`, `[[feature]]`, `[[issue]]`, `[[workflow]]`, `[[change]]`).
-4. Every task note (`type: [[task]]`) has exactly one `parent` (link to a feature or issue note).
-5. Every feature note (`type: [[feature]]`) links to its `requirements` and `tasks`.
-6. Every meaningful repo change gets a change note (`type: [[change]]`) linked to the relevant issues/features.
+4. Every task note (`type: [[task]]`) has exactly one `parent`, with the deferred exception `tools/instructions/TRACEABILITY.md` states.
+5. Every feature note links its `requirements` and `tasks` (`tools/instructions/TRACEABILITY.md`).
+6. A change note (`type: [[change]]`) is added when behaviour, paths or contracts change (`tools/instructions/LIFECYCLE.md`, "Close-out"), linked to the relevant issues/features.
 7. Prefer **links to real repo files** over paraphrase.
 8. Keep structured project-os lifecycle notes in their established `docs/` lifecycle directories, keep non-lifecycle project documentation under purpose-specific `docs/` subdirectories such as `docs/reference/` or `docs/research/`, and keep agent/tool operating detail under `tools/`.
 9. Do not hard-wrap Markdown prose to a fixed column width; follow `tools/instructions/MARKDOWN.md`.
 
 ## LLM operating rule (critical)
-If a prompt implies work (bugfix/issue, new feature, refactor, behavior change), the LLM must:
-1. **Document first** (update `SNAPSHOT.yaml` + create/update the relevant notes).
-2. **Then implement** the code change(s).
-3. **Then close out** (update statuses + add `CHG-*` when behavior/paths change).
+If a prompt implies work (bugfix/issue, new feature, refactor, behavior change): document first, then implement, then close out. The full rule is `tools/instructions/LIFECYCLE.md`.

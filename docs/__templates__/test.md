@@ -8,16 +8,14 @@ created: 2026-01-27
 updated: 2026-01-27
 source: []
 scope: feature
-level: system       # unit | integration | system | e2e | acceptance — what it EXERCISES.
-                    # Who RUNS it is `command:` below, and nothing else (ADR-0034).
+level: system       # values: tools/instructions/TAXONOMY.md, `level` (tests)
 entrypoint: ""
-command: ""          # runnable check; when set, `status` is written by the runner, never by hand (ADR-0010)
+command: ""         # a runnable check; when set, the note records no verdict (tools/instructions/STATUSES.md, [[test]]; ADR-0025)
 last_verified: ""    # manual tests only (no `command:`) — date the procedure was last performed; goes stale
 covers: []           # THE verification link (ADR-0032): [[FEAT-...]] / [[ISS-...]] / [[REQ-...]]. One direction, one encoding.
 issues: []           # context only — what this test VERIFIES goes in covers:
 tasks: []
 artifacts: []
-last_run: ""
 adequacy: ""
 mutation_score: ""
 reviewed_by: ""
@@ -25,16 +23,9 @@ review_date: ""
 review_verdict: ""
 review_round: ""
 related: []
-# --- level: acceptance only (ADR-0031) ---------------------------------
-# Delete these on an executable test; they are meaningless there.
-# THE VERDICT IS NOT HERE (ADR-0037). It is a dated event in
-# docs/releases/ledgers/<release>-<platform>.json — a verdict is a fact
-# about (check x platform x release) and a field cannot hold three.
-tier: ""             # 1 feature check · 2 regression check · 3 verification check for one build
-area: ""             # the human grouping — one walk's worth of related checks
+# level: acceptance only; delete on an executable test. Fields explained in SCHEMAS.md, test.md ("Acceptance fields").
+area: ""             # the human grouping, one walk's worth of related checks; the verdict lives in the release ledger, not here (ADR-0037)
 after: []            # optional: checks that should have passed before this one is walked; orders the walk sheet and gates nothing (tools/instructions/TESTING.md, "The walk", rule 4)
-# walk_readiness_for: # optional on an acceptance check without a usable sitting procedure; name platforms with a preparation or decision reason (TESTING.md, "The walk", rule 5)
-#   ios: { kind: decision, reason: "Name the missing action or decision.", issue: "ISS-0000" }
 ---
 
 # <Test>
@@ -42,7 +33,7 @@ after: []            # optional: checks that should have passed before this one 
 ## Purpose
 <What does this test verify?>
 
-> **Status is evidence, not intent.** `ready` means defined but not yet executed — that is the state a new test note is created in. A test with a `command:` has its `status` written by `tools/scripts/run-tests.py` from the exit code; hand-editing it is a validator error. A test without one is manual: keep `last_verified:` current, because a stale manual test stops satisfying the verification gate.
+> **Status is evidence, not intent.** Who writes a test's status, and what a `command:` changes, is stated once in `tools/instructions/STATUSES.md` `[[test]]`; `python3 tools/scripts/run-tests.py --filter TST-####` reproduces an executable test's run locally without writing anything.
 
 <!-- level: acceptance ONLY — delete these four headings on any other test, and delete Procedure/Expected results below on an acceptance check. The shape and the reason are stated once in tools/instructions/TESTING.md, "A check is walkable by a stranger". -->
 

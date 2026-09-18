@@ -12,14 +12,7 @@ goal: ""
 requirements: []
 tasks: []
 release: ""
-# Why this feature needs no acceptance check — the once-only escape for the
-# scaffold rule (feature-scaffold step 9) and for `FEATURE-UNCOVERED`.
-#
-# Leave EMPTY and write the check. Fill it only where a check can never exist:
-# an engine with no user-facing surface, a phase of work, a repo that ships
-# prose. Said once, here, at scaffold time when the reason is known — not at
-# close-out by whoever is tired.
-acceptance_exception: ""
+acceptance_exception: ""   # leave empty and write the check; fill only where a check can never exist (SCHEMAS.md, feature.md)
 # Optional acceptance gate (FEAT-0064). Absent = no gate, which is the
 # default and stays the default: a mandatory gate on the one unautomatable
 # judgment becomes a rubber stamp. `requested` is stamped at CLOSE-OUT by the
@@ -34,13 +27,17 @@ reviewed_by: ""
 review_date: ""
 review_verdict: ""
 review_round: ""
+reviewed_by: ""
+review_date: ""
+review_verdict: ""
+review_round: ""
 related: []
 ---
 
 # <Feature>
 
 ## Goal
-<What capability is delivered?>
+<Two or three sentences, point first: what capability is delivered and for whom. The detail goes under Scope.>
 
 ## Scope
 <In/out of scope>

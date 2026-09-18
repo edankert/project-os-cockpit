@@ -829,11 +829,14 @@ def test_the_gate_states_the_contracts_own_rule() -> None:
     contract = (REPO_ROOT / "tools" / "instructions" / "TESTING.md").read_text(
         encoding="utf-8",
     )
-    template = (REPO_DOCS / "__templates__" / "acceptance-tests.md").read_text(
-        encoding="utf-8",
-    )
-    assert rule in template, "the band's wording is not the template's"
-    assert "**blocked** if any **manual** check is not settled" in contract
+    # The rule lives in TESTING.md, "Release gating". It used to be quoted from
+    # the single-document acceptance-tests template, which the template retired
+    # on 2026-09-18 in favour of one note per check (project-os-dev FEAT-0037).
+    # The contract bolds one word; the band shows plain text.
+    sentence, _, exception = rule.partition(" (")
+    assert sentence in contract.replace("**", ""), "the band's wording is not the contract's"
+    assert "release exception" in contract and "release note" in exception
+    assert "A release is **blocked** while any manual check is unsettled." in contract
 
 
 def test_a_reconciled_row_reads_settled_on_the_tests_view(repo_index: Index) -> None:
