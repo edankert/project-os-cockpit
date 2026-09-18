@@ -1,5 +1,5 @@
-baseline_sha: "d2f78bc042972d45e630c599216c8d64a38f9201"
-synced: "2026-09-18T12:42Z"
+baseline_sha: "0ba6102a408e77bf1f8a2dfb0d99fd8e2ae6d13e"
+synced: "2026-09-18T13:44Z"
 source: "/Users/edwin/Dev/repos/project-os"
 keep_local:
   - "tools/scripts/run-tests.py"   # ADR-0038 runner (accepts --write as a no-op, its own tests in tests/test_runner_writes_nothing.py); the template's is ADR-0025. Reconcile the two designs, then drop this line.
