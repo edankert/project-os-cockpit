@@ -4,7 +4,7 @@ id: INSTR-HOOKS
 status: active
 owner: group:maintainers
 created: 2026-03-08
-updated: 2026-09-04
+updated: 2026-09-18
 tags: [instructions, hooks]
 ---
 
@@ -12,7 +12,7 @@ tags: [instructions, hooks]
 
 These contracts define the checks every project-os workflow must perform at key lifecycle points, independent of which LLM tool drives the session. Each contract states the trigger, the project-os rule it enforces, the check logic, and the failure behavior; `../adapters/<tool>/ADAPTER.md` documents how a given tool implements it. The Claude Code adapter implements the first eight as session hooks (`../adapters/claude-code/hooks/`); the Codex/generic path implements a subset with `AGENTS.md` instructions plus `tools/agents/*.sh` scripts, with the rest enforced at pre-commit/CI.
 
-Contract IDs are `HC-001`..`HC-009`. (Earlier revisions of this file used `CHC-00x` codes; the mapping is at the end for downstream docs that still cite them.)
+Contract IDs are `HC-001`..`HC-010`. (Earlier revisions of this file used `CHC-00x` codes; the mapping is at the end for downstream docs that still cite them.)
 
 ## HC-001: Document-first gate
 
@@ -120,6 +120,20 @@ Contract IDs are `HC-001`..`HC-009`. (Earlier revisions of this file used `CHC-0
 - Why the split: a repo's test notes carry filtered commands, and a filtered command is a subset of the suite. your-health has 26 notes running the same Gradle task with different `--tests` filters; one by one on a cold runner that is about 45 minutes a push for an answer one suite run already gives. The suite is the covering command, so CI runs that and keeps the non-bypassable verdict; the filtered commands run where the toolchain is already warm.
 - Failure behaviour: pre-push exits non-zero and the push does not happen. `--no-verify` skips it, and `PROJECT_OS_SKIP_PREPUSH=1` skips it without skipping the rest — both leave CI's suite run in place, which is the point of keeping one there.
 - A repo that declares no `ci.suite_command` is unaffected: CI runs every command exactly as before.
+
+## HC-010: Review budget
+
+- Trigger: every tool call made by the `independent-reviewer` subagent, before and after it runs.
+- Rule: `QUALITY.md`, "One review per feature, sized to its diff"; the budget itself is stated in `../skills/independent-review/SKILL.md`.
+- Check logic:
+  1. Ignore every call whose hook input does not carry `agent_type: independent-reviewer` and an `agent_id`. The shell wrapper returns before starting Python for them, because it runs on every tool call of every session.
+  2. Count calls per `agent_id`. The budget is 40, or 15 once the reviewer has read a round-two packet (`review-packet-<FEAT>-r2`). `PROJECT_OS_REVIEW_BUDGET` and `PROJECT_OS_REVIEW_BUDGET_ROUND2` override them per repo.
+  3. After call 36 of 40 (12 of 15 in round two), add context saying how many calls are left. The warning was at call 30 until measured reviews all stopped near 34: a warning to finish up becomes the real limit.
+  4. Past the budget, deny the call with an instruction to write the report and mark unfinished claims *not checked*. Edits to notes under `docs/` are still allowed for 10 more calls, so the verdict can be recorded.
+- Implementations: Claude Code `hooks/review-budget.sh` with `hooks/review-budget.py`, registered for `PreToolUse` and `PostToolUse` with no matcher. Codex has no equivalent: its hook input does not name the subagent, so there the budget is the skill's instruction only.
+- On failure: fail open. A broken budget must not block anyone's work; the skill's stated budget still applies.
+- Why a hook and not `maxTurns`: a subagent that reaches `maxTurns` stops without writing a report. A denied tool call is a message the reviewer reads, and the report it then writes is the review. `maxTurns: 100` stays in the agent file as a backstop.
+- Test: `bash tools/scripts/test-review-budget.sh`.
 
 ## Legacy CHC-* code mapping
 

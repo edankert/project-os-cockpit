@@ -23,6 +23,7 @@ mutation_score: ""
 reviewed_by: ""
 review_date: ""
 review_verdict: ""
+review_round: ""
 related: []
 # --- level: acceptance only (ADR-0031) ---------------------------------
 # Delete these on an executable test; they are meaningless there.
