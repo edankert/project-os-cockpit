@@ -3,16 +3,17 @@ type: "[[issue]]"
 id: ISS-0267
 aliases: ["ISS-0267"]
 title: "`~tests/<TST>/run` and `~accept/<FEAT>` are still evicted — the owned-pages table lists one page per view, and the Tests view has two others that a reader walks step by step"
-status: triage
+status: fixed
 owner: user:edwin
 created: 2026-08-30
-updated: "2026-08-30"
+updated: "2026-09-19"
 severity: medium
 component: ui
 phase:
 source: ["Independent review of 46d6593..c861414, 2026-08-30, model:claude-opus-5, fresh context"]
 related: ["[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]", "[[TASK-0589-A-View-Knows-Which-Pages-It-Owns]]", "[[FEAT-0092-The-Views-Get-A-Page]]"]
 tests: []
+reported_by: review
 ---
 
 # The fix names one owned page and the view owns three
@@ -49,3 +50,11 @@ A view's owned-page table lists the pages the view actually claims. `tests: ['~c
 
 - [ ] Decide which view owns `~accept/<FEAT>` and record it, rather than leaving it mode-less.
 - [ ] Add the runner pages to `VIEW_OWNED_PAGES` and pin each with a guard that fails when the entry is removed (`B3` in [[ISS-0266]] shows that shape of guard does work).
+
+## Checked against the code, 2026-09-19: already done
+
+Evidence: the eviction this note describes came from a write firing `file-changed`, then `scheduleSoftReload` calling `loadWsNav`, which landed the reader on the view's front page. Since a6a33a6 (2026-09-10), `scheduleSoftReload` calls `loadWsNav({ land: false })` (`desktop/src/renderer/renderer.ts:18204`). That sets `skipLanding` (`:15621`), and both landing branches check it (`:15672`, `:15689`). So recording a run at `~tests/<TST>/run` or `~accept/<FEAT>` no longer moves the reader. `VIEW_OWNED_PAGES` (`:6057-6063`) still lists only `~checks` for Tests. As a result, clicking the Tests button again during a run still goes to the Tests landing page. That is a deliberate click, not the eviction reported here.
+
+**Belongs to:** FEAT-0092 (The views get a page). **Next:** nothing; file separately if reselecting a view mid-run should keep the reader on the run.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

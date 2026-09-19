@@ -2,18 +2,21 @@
 type: "[[issue]]"
 id: ISS-0207
 aliases: ["ISS-0207"]
-title: "`entrypoint:` holds runnable commands and prose in the same field, so 37 tests carry a way to run them that nothing can read"
+title: "Tests that name a runnable command in `entrypoint:` still show as waiting for a person to run them"
 status: open
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-09-19"
+reported_by: review
 severity: low
 component: docs
 phase: "[[PHASE-999-Future]]"
 related: ["[[ADR-0034-Three-Axes-Not-One-Word]]", "[[REQ-0041-One-Answer-To-Who-Runs-This]]"]
 ---
 
-# `entrypoint:` is two fields wearing one name
+# Tests with a runnable `entrypoint:` still show as manual
+
+A test whose `entrypoint:` holds a real command, such as a pytest path, but has no `command:` shows in the cockpit as a manual test waiting for a person. The template never says what `entrypoint:` means, so notes use it both for commands and for prose.
 
 Found by the second independent verification of [[PHASE-036-One-Human-Walk]], via a badge that rose in a repo nobody was looking at.
 
@@ -36,3 +39,13 @@ So the classifier is correct and the *notes* are wrong: a test whose entrypoint 
 
 - [ ] Each of the 37 is triaged: a runnable value moves to `command:`, a prose value stays and `entrypoint:` is documented as *where to start reading*, not *what to run*.
 - [ ] SCHEMAS.md stops defining one field as both.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** Tests that a machine could run appear in the owed-to-a-person counts, and nothing runs them.
+
+Evidence: the template's test note has `entrypoint: ""` with no comment (project-os/docs/__templates__/test.md:12), beside a documented `command:` (line 13); no file in project-os/tools/instructions/ defines it beyond a field list in SNAPSHOT.md:74. Notes with a non-empty `entrypoint:` and no non-empty `command:`, counted per repo on 2026-09-19: your-sudoku 11, obsidian-supernote-sync 5, project-os-cockpit 5, project-os-deck 1, your-trainer 1 (23, down from 37). Values still split: your-sudoku's `android/app/src/test/kotlin/com/yoursudoku/domain/model/` is a runnable path; project-os-cockpit TST-0026's `the discovered fleet under ~/Dev/repos` is prose. This is **bigger**: a template wording change plus triage of 23 notes in five repos.
+
+**Belongs to:** no feature; the template wording belongs in project-os. **Next:** define `entrypoint:` in the template as where to start reading, then move each runnable value to `command:` repo by repo.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

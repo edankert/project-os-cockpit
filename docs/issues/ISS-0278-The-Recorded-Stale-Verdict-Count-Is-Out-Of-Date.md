@@ -1,12 +1,13 @@
 ---
 type: "[[issue]]"
 id: ISS-0278
-title: "CLAUDE.md states the stale-verdict backlog as 49 notes; it is 70, and the file that describes the problem now understates it"
-status: triage
+title: "CLAUDE.md says 49 notes carry a stale changes-requested verdict; today there are 89"
+status: open
 phase: "[[PHASE-999-Future]]"
 owner: unassigned
+reported_by: agent
 created: 2026-09-05
-updated: 2026-09-05
+updated: "2026-09-19"
 source: ["Measured while drawing DES-0013; the design needed a real number for its review-queue mocks"]
 severity: low
 component: docs
@@ -15,7 +16,9 @@ related: ["[[project-os-deck#DES-0001]]", "[[ISS-0253-A-Verdict-Is-Answered-Not-
 tests: []
 ---
 
-# The recorded stale-verdict count is out of date
+# CLAUDE.md understates how many verdicts are stale
+
+`CLAUDE.md` tells every session that 49 notes carry `review_verdict: changes-requested`, 43 of them already finished; on 2026-09-19 the counts are 89 and 76.
 
 ## Problem
 
@@ -51,3 +54,13 @@ Option 3 is the only one that cannot go stale again, and it is also the one that
 ## Notes
 
 Filed under LIFECYCLE "Scope of a change": found while drawing [[project-os-deck#DES-0001]], not asked for, and not fixed in that diff. `triage` because which of the three options is right is Edwin's call, and option 1 is a one-line edit anybody can make today.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** An agent reading `CLAUDE.md` is told the stale-verdict backlog is about half its real size.
+
+Evidence: `CLAUDE.md:115` still reads "Measured 2026-08-20: **49 notes carried `changes-requested` and 43 of them were at a terminal status**". Counting `review_verdict: changes-requested` under `docs/` gives 89 notes, 76 of them at done/fixed/merged/implemented/passing/released/closed.
+
+**Belongs to:** no feature. **Next:** Small docs fix: replace the number with a pointer to the validator's `REVIEW-STALE` warning (option 3), or restate it as a dated floor (option 1).
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

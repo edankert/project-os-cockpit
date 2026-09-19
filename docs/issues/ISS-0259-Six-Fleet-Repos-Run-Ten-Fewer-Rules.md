@@ -3,14 +3,15 @@ type: "[[issue]]"
 id: ISS-0259
 aliases: ["ISS-0259"]
 title: "Six fleet repos are ten upstream rules behind — outside PHASE-041's scope because they hold no acceptance checks, and now measured rather than assumed"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-29
-updated: 2026-08-29
+updated: "2026-09-19"
 severity: low
 component: tooling
 phase: "[[PHASE-999-Future]]"
 related: ["[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[TASK-0585-Drift-Is-Measured-Not-Noticed]]"]
+reported_by: agent
 ---
 
 # Six more repos, ten rules each
@@ -36,3 +37,11 @@ The ten, read from `fleet-drift.py --json` rather than recalled: `ACCEPT-STALE`,
 
 - [ ] Each of the six is migrated with `tools/scripts/migrate-fleet-validator.py`, or recorded as deliberately outside the fleet gate.
 - [ ] `fleet-drift.py --gate-all` exits 0, at which point the default and the strict mode agree and the distinction can go.
+
+## Checked against the code, 2026-09-19: already done
+
+Evidence: `python3 tools/scripts/fleet-drift.py --gate-all` exits 0 and reports 75 upstream rule codes, 13 repos, and 0 missing for every one, including all six this note named (`articles`, `edankert.com`, `project-os-bench`, `project-os-dev`, `your-applications.com`, `yourtrainer-mcp`). `tools/scripts/validate-docs.py` is byte-identical to the template's (`cmp` reports no difference). project-os-dev ISS-0068 (every repo runs one validator, project-os 4b5fa83) closed this.
+
+**Belongs to:** FEAT-0143 (The fleet runs one validator). **Next:** nothing; the "--gate-all" distinction can go when someone next touches `fleet-drift.py`.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

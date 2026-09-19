@@ -3,12 +3,13 @@ type: "[[issue]]"
 id: ISS-0305
 aliases: ["ISS-0305"]
 title: "The desktop's node suite runs nowhere but a developer's machine: it needs a build CI never makes, so it skips instead of failing"
-status: triage
+status: declined
 severity: medium
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-09-13
-updated: 2026-09-13
+updated: "2026-09-19"
+reported_by: review
 source: ["Independent review of PHASE-043, 2026-09-13, finding 6"]
 area: "Verification health and the fleet"
 component: "tests/test_desktop_node_suite.py"
@@ -48,3 +49,11 @@ The cheaper half, worth doing either way: the wrapper should say how many test f
 ## Owner
 
 Edwin decides whether CI grows a node build. Until it does, a renderer change is verified by the session that makes it, and the node suite is a local gate.
+
+## Checked against the code, 2026-09-19: declined
+
+Evidence: the claim that no workflow builds the desktop was not true when this was filed. `.github/workflows/observed-coverage.yml:63-70` installs node 20, runs `npm ci && npm run build` in `desktop/`, and then runs the whole pytest suite on macOS. It was added on 2026-08-25 in f4d8e32 (`git log -S "npm ci && npm run build" -- .github/workflows/observed-coverage.yml`). The build is `tsc`, which writes `desktop/dist/ipc/fleet-health.js` from `desktop/src/ipc/fleet-health.ts`, so the skip at `tests/test_desktop_node_suite.py:47-48` does not fire on CI. The CI log of run 34764811956 (2026-09-13) shows the build step running (`> tsc && node scripts/copy-assets.mjs`) before `2100 passed, 29 skipped`. The skip remains for a local run without a build, which is intended.
+
+**Belongs to:** no feature. **Next:** nothing.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

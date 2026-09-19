@@ -2,20 +2,23 @@
 type: "[[issue]]"
 id: ISS-0266
 aliases: ["ISS-0266"]
-title: "Five mutants survive the guards written for them — the renderer fixes are pinned by source-text greps, so a one-token edit restores ISS-0262 and ISS-0263 with the full suite green"
-status: triage
+title: "Three earlier fixes can be undone by a one-line edit while every test still passes: the checks page losing its filters, the reader being thrown off it, and a retired check reading stale"
+status: open
 owner: user:edwin
 created: 2026-08-30
-updated: "2026-08-30"
+updated: "2026-09-19"
 severity: high
 component: tests
 phase:
 source: ["Independent review of 46d6593..c861414, 2026-08-30, model:claude-opus-5, fresh context"]
 related: ["[[ISS-0262-Marking-A-Check-Clears-The-Filter-You-Are-Walking]]", "[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]", "[[ISS-0264-A-Write-Is-Not-Readable-By-The-Next-Request]]", "[[ISS-0261-A-Release-Is-Offered-Features-Its-Platform-Cannot-Ship]]", "[[TASK-0588-A-Write-Is-Not-A-Navigation]]", "[[TASK-0589-A-View-Knows-Which-Pages-It-Owns]]", "[[TASK-0590-A-Write-Is-Readable-When-It-Answers]]", "[[TASK-0587-The-Derived-Set-Is-This-Releases-Platforms]]"]
 tests: []
+reported_by: review
 ---
 
-# Five mutants survive the guards written for them
+# Three fixes can be undone with the tests still green
+
+Three bugs marked fixed can come back without a single test failing: ticking a check clearing the tier and area filters (ISS-0262), a write throwing the reader off the checks page (ISS-0263), and a retired check being unreadable by the next request (the `retire-check` half of ISS-0264). The tests check how the code is spelled, not what it does.
 
 ## What was measured
 
@@ -66,3 +69,15 @@ TASK-0587 describes this as asserting *"they AGREE rather than asserting a fact 
 - [ ] Extend `test_mark_check_is_readable.py` to `retire-check`.
 - [ ] Make the navigator/page assertion an equality.
 - [ ] Longer term: `onOwnedPage` is a pure function and belongs where `desktop/tests/*.test.mjs` can run it.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** nothing today; the app behaves correctly. The risk is that a later edit brings back one of these bugs Edwin already reported, and the suite does not catch it.
+
+Evidence: B1 survives. `desktop/src/renderer/renderer.ts:10552-10554` has `repaintChecksPage` pass `{ keepFilters: true }`, but no test asserts that (`grep -n "keepFilters: true" tests/*.py` finds nothing; `tests/test_checks_view.py:528` checks only the call spelling). B2 survives: `tests/test_checks_view.py:594-597` asserts only the first two lines of `onOwnedPage`, never the `VIEW_OWNED_PAGES[navMode]` lookup (`renderer.ts:6066-6071`). C2 survives: `tests/test_mark_check_is_readable.py:130` reads only `_serve_mark_check`; nothing covers `_serve_retire_check`. The weak assertion is still there: `tests/test_release_contents.py:418` uses `on_the_page <= in_the_pane or in_the_pane <= on_the_page`. A4/A5 (`release_payload` rows and count) were not re-run; `tests/test_release_gate_platform.py` tests the gate's platform, not the derived rows.
+
+**Small fix:** yes. Test-only changes: four assertions, each a few lines, and no product code.
+
+**Belongs to:** no feature (the guards of TASK-0587 to TASK-0590). **Next:** add the four assertions from Next Actions above; run each mutant once to see it die.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

@@ -2,11 +2,12 @@
 type: "[[issue]]"
 id: ISS-0312
 aliases: ["ISS-0312"]
-title: "Codex lacks Claude's lifecycle feed and native project adapter"
+title: "A Codex session in the cockpit has never been walked end to end, and its cache badge says 'cache unknown' where a Claude session shows warm or cold"
 status: open
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-16
+updated: "2026-09-19"
+reported_by: user:edwin
 source: ["Review requested by Edwin, 2026-09-16", "https://learn.chatgpt.com/docs/hooks", "https://learn.chatgpt.com/docs/build-skills", "https://learn.chatgpt.com/docs/agent-configuration/subagents"]
 severity: high
 component: agent-instrumentation
@@ -16,7 +17,9 @@ related: ["[[FEAT-0019]]", "[[FEAT-0020]]", "[[FEAT-0081]]", "[[FEAT-0027]]", "[
 tests: ["[[TST-0011]]"]
 ---
 
-# Codex lacks Claude's lifecycle feed and native project adapter
+# A Codex session in the cockpit has not been walked end to end, and its cache badge says 'cache unknown'
+
+Codex now reports its prompts, approvals and finished turns to the cockpit, but nobody has yet watched one full Codex session go through every state on screen. The session strip also shows 'cache unknown' for Codex, because the cockpit has no source for Codex's cache data.
 
 ## Problem
 
@@ -104,3 +107,15 @@ This change instruments new Codex sessions launched in the cockpit and updates t
 ### OpenAI weekly usage
 
 [[TASK-0628]] and [[CHG-20260916-Show-OpenAI-weekly-account-usage]] add the general Codex account's weekly allowance to Usage with a separate OpenAI label. This is account quota, not session cost or cache telemetry. Wider adapter parity remains open. Verification: [[TST-0090]].
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** For a Codex session the session strip says "cache unknown" instead of warm or cold. The full Codex lifecycle, from prompt to approval to finished turn to exit, has not been confirmed on screen, so a wrong state in some step would not have been seen yet.
+
+Evidence: most of the original gap is closed. The template's native Codex adapter reached this repo in b546625 (2026-09-18): `.codex/hooks.json`, `.codex/agents/` and 27 skills under `.agents/skills/`, listed in `tools/sync/MANIFEST.yaml:65-66`. What remains: the Codex row of `docs/features/agent-hooks/plan/tests/TST-0011-Live-Session-Instrumentation.md:75` is still `skip`, and `desktop/src/renderer/renderer.ts:18357` sets the strip to `cache unknown` for Codex. The two unticked Next Actions above (the live walk and Codex cache data) are the open work; the "sync its generated Codex files" item is done.
+
+Bigger: the live walk is a manual sitting, and warm/cold for Codex needs a new usage source, probably the Codex App Server.
+
+**Belongs to:** PHASE-007 (Agent Instrumentation, marked done) and the deferred PHASE-040. **Next:** walk the TST-0011 Codex row live; split the cache estimate into its own issue if it is still wanted.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

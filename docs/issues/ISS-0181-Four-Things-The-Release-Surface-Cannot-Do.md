@@ -3,11 +3,12 @@ type: "[[issue]]"
 id: ISS-0181
 aliases: ["ISS-0181"]
 title: "Four things the release surface cannot do — mark a check intentionally left open, attach text to one, edit without the page reloading under you, or complete a release"
-status: "open"
+status: fixed
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-16
-updated: 2026-08-16
+updated: "2026-09-19"
+reported_by: user:edwin
 source: ["Edwin 2026-08-16, using the rebuilt Publication view: 'The acceptance tests do not support the new intentionally left open option and do not support adding text, also the save / reload functionality is really annoying. Also, it might make sense to make it possible to complete the release from the release note?'"]
 severity: high
 component: desktop-renderer
@@ -62,3 +63,11 @@ Said explicitly because this phase has already closed two features at zero ticke
 - **Item 4, completing a release.** [[FEAT-0110]] supplies the *after* — the post-release checklist read, verified and tickable — but the `preparing → released` transition itself was not built. It now has [[FEAT-0108]] and [[FEAT-0109]] underneath it, which is what it was waiting for.
 
 Re-homed rather than closed, because [[PHASE-034]] closed and `PHASE-CHILDREN` correctly refused to let a finished phase carry an unresolved child. Two of four is not four.
+
+## Checked against the code, 2026-09-19: already done
+
+Evidence: items 1 and 2 were already closed by FEAT-0111. Item 4 is built: `note_writes.mark_released` (src/project_os_cockpit/note_writes.py:2212) takes a release to `released`, writes `status`, `date` and `tag` and freezes `features:`; it is served at `/api/notes/release-mark-released` (server.py:822, `_serve_mark_released` at server.py:2726) and called from the release page (desktop/src/renderer/renderer.ts:8112); landed in 1535bea (FEAT-0116, TASK-0469). Item 3 is gone as described: the 1082-line acceptance document it was measured on no longer exists, because checks became notes (PHASE-035) and are marked from the `~checks` and `~walk` pages. On a file change, `scheduleSoftReload` (renderer.ts:18189-18216) does not re-navigate a `~` page at all, and re-opens a document with `keepScroll: docView.scrollTop`, so the reader keeps their place. `VIEW_OWNED_PAGES` (renderer.ts:6048-6065) stops a mark from throwing the reader off the checks or walk page.
+
+**Belongs to:** PHASE-035 (FEAT-0116) and FEAT-0111. **Next:** nothing; closed as fixed.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

@@ -6,11 +6,13 @@ title: "`platform:` on a feature is the same shape `mark:` was on a check — a 
 status: open
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-09-19"
+reported_by: user:edwin
 severity: medium
 component: docs
 phase: "[[PHASE-999-Future]]"
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[FEAT-0129-A-Release-Names-Its-Own-Contents]]", "[[DES-0012-Tests-In-Two-Flows]]", "[[FEAT-0130-Surfaces-Are-A-First-Class-Type]]"]
+question: "Should a feature's `platform:` stay authored (blank/`cross`/`all` already means every platform, and each release's frozen `features:` list records where it shipped) or become derived from the releases that contain it? Options: keep authored and decline this issue; derive it from releases. Recommendation: keep authored and decline, because with two platforms `cross` already covers a feature built once and shipped twice."
 ---
 
 # The same defect, one level up
@@ -62,3 +64,13 @@ What it *does* settle immediately is a rule [[FEAT-0129]] needs: **a feature in 
 
 - [ ] A decision records whether `platform:` on a feature is authored or derived.
 - [ ] Whichever it is, one encoding — not a field and a release list that can disagree.
+
+## Checked against the code, 2026-09-19: a question for Edwin
+
+**What a user notices:** Nothing today. A feature shipped on both Android and iOS can already say `platform: "cross"`, and release pages include it on both.
+
+Evidence: `publication._ships_on` (src/project_os_cockpit/publication.py:891-910) keeps a feature in a release unless the feature names a different platform, and treats blank, `shared`, `cross`, `all` and `both` as every platform (`_EVERY_PLATFORM`, publication.py:888). The rule this issue asked for is built: FEAT-0129:37 refuses a feature in two open releases on the same platform and allows it across platforms, with tests. your-trainer's features currently read `android` 3, `ios` 3, `cross` 2, `all` 3. What remains is the design choice in "Done when", which only Edwin can make.
+
+**Belongs to:** FEAT-0129's area (release contents); no open feature. **Next:** Edwin answers the `question:` field; on "keep authored", set `status: declined`.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

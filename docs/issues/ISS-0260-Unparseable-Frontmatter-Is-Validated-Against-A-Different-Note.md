@@ -2,18 +2,21 @@
 type: "[[issue]]"
 id: ISS-0260
 aliases: ["ISS-0260"]
-title: "A note whose frontmatter is not YAML is validated against a different, partial reading of itself — `load_yaml` swallows the parse error and the lenient fallback answers instead"
+title: "A note whose frontmatter is broken YAML passes validation, and the validator reports on a guessed version of it"
 status: open
 owner: user:edwin
 created: 2026-08-29
-updated: 2026-08-29
+updated: "2026-09-19"
 severity: high
 component: tooling
 phase: "[[PHASE-999-Future]]"
 related: ["[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[ISS-0183-The-Canonical-Machine-Readable-File-Did-Not-Parse]]"]
+reported_by: agent
 ---
 
-# Unparseable frontmatter is validated against a different note
+# A note with broken YAML frontmatter passes validation
+
+When a note's frontmatter is not valid YAML, `validate-docs.sh` does not say so: it quietly reads a partial version of the note and reports on that instead.
 
 `load_yaml` is the validator's single entry point for every piece of YAML it reads:
 
@@ -58,3 +61,21 @@ Option 1 is right; option 2 is what to do if some repo genuinely depends on the 
 - [ ] A note whose frontmatter does not parse is reported by ID and path, with the parser's message.
 - [ ] The fleet is measured for existing instances first — [[project-os-dev#ADR-0011]] clause 3 forbids promoting over debt, and `your-trainer` alone has eight.
 - [ ] Proposed upstream: `load_yaml` is in the template-owned validator, so every repo carries the defect.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** a note with a typo that breaks its YAML gets zero errors from the validator. Worse, the validator can report a real-looking problem (for example "4 acceptance criteria remain unticked") about lines it guessed at, not what the file says.
+
+Evidence: `tools/scripts/validate-docs.py:1487-1492` still catches every exception from `yaml.safe_load` and falls back to `parse_yaml_subset`. There is a `SNAP-PARSE` rule for the snapshot (`:2768`, `:2771`) and no equivalent for notes. This file is byte-identical to the template's validator, so the fix belongs upstream. **This is the same defect as project-os-dev ISS-0053** (a note with unparseable frontmatter passes silently), which is being fixed in the template today.
+
+**Small fix:** yes, in the template: catch `ImportError` only and report a parse error by note path and YAML message. The fleet scan for existing broken notes is the larger part.
+
+**Belongs to:** project-os-dev ISS-0053 (template). **Next:** close this as fixed when ISS-0053 lands and syncs to this repo; do not fix it here separately.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Correction to the check above, 2026-09-19
+
+The evidence above is wrong on one point. A note-level check does exist: `validate_frontmatter_parses` (`tools/scripts/validate-docs.py:2574`, NOTE-FRONTMATTER) reports a note whose frontmatter PyYAML rejects. It came from this repo's validator into the template on 2026-09-18 (project-os `d2f78bc`) and back here in the same sync. So a broken note no longer passes silently.
+
+**What is still true:** every other check still reads that note through `load_yaml`, which falls back to the lenient subset parser, so it works from a guessed reading of the fields. That half stays open. The fix belongs in the template's `parse_frontmatter`, and project-os-dev ISS-0053 tracks the related gap there.

@@ -2,11 +2,12 @@
 type: "[[issue]]"
 id: ISS-0276
 aliases: ["ISS-0276"]
-title: "21 tests still assert over a fixed character window, an idiom that has now failed in both directions in this suite"
+title: "About 21 tests read a guessed number of characters after an anchor, so they can stay green while the code they guard is broken"
 status: open
 owner: user:edwin
+reported_by: agent
 created: 2026-09-02
-updated: "2026-09-02"
+updated: "2026-09-19"
 severity: low
 component: tooling
 phase:
@@ -15,7 +16,9 @@ related: ["[[ISS-0275]]"]
 tests: []
 ---
 
-# 21 tests still measure a character distance
+# About 21 tests can pass while the code they guard is broken
+
+About 21 tests check source code by reading a fixed number of characters after an anchor, and that pattern has already let one real regression through with the test green.
 
 ## Problem
 
@@ -41,3 +44,13 @@ Converting a guard without studying what it pins is how a test gets quietly weak
 - [ ] Give `js_function_body` a sibling that bounds a statement by its enclosing block
 - [ ] Convert the 21 call sites one at a time, mutation-checking each
 - [ ] Consider a suite-level check that fails on a new fixed-window slice
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** A change can break a guarded behaviour in the renderer and the suite still passes, because the test looked at the wrong stretch of text. The opposite also happens: a correct change fails a test because the code moved a few characters.
+
+Evidence: `grep -rnE "\[[a-z_]+ *: *[a-z_]+ *\+ *[0-9]{3,}\]" tests/*.py` returns 24 lines, three of them comments or docstrings (`conftest.py:27`, `test_checks_view.py:551`, `test_release_held_back.py:405`), leaving 21 live slices, e.g. `test_checks_view.py:371` (`src[i:i + 2200]`), `test_tests_view.py:2680` (`src[i:i + 6000]`), `test_release_held_back.py:295` (`src[i:i + 2600]`). `conftest.py:24` still offers only `js_function_body`, with no statement-bounded sibling.
+
+**Belongs to:** no feature. **Next:** Bigger: add a statement-bounded helper next to `js_function_body`, then convert the sites one at a time with a mutation check each.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

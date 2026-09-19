@@ -2,11 +2,12 @@
 type: "[[issue]]"
 id: ISS-0271
 aliases: ["ISS-0271"]
-title: "Five UI and server tasks joined a `done`, already-reviewed feature about migrating validators — FEAT-0143's goal and its `acceptance_exception` now describe neither its task list nor the behaviour that shipped, and no CHG note was written"
-status: triage
+title: "FEAT-0143 says it has no user-facing surface, yet five checks-page and release-page fixes sit under it and no change note records them"
+status: open
 owner: user:edwin
+reported_by: review
 created: 2026-08-30
-updated: "2026-08-30"
+updated: "2026-09-19"
 severity: medium
 component: docs
 phase:
@@ -15,7 +16,9 @@ related: ["[[FEAT-0143-The-Fleet-Runs-One-Validator]]", "[[TASK-0587-The-Derived
 tests: []
 ---
 
-# The parent no longer describes the children
+# Five page fixes are filed under a validator feature
+
+Someone looking for why the checks page or a release page changed on 2026-08-30 will not find it: the five tasks sit under FEAT-0143, a feature about moving repos onto one validator, and no change note was written.
 
 ## What the diff does
 
@@ -45,3 +48,13 @@ That omission also silently skipped a trigger: the independent-review skill fire
 - [ ] Give these five tasks a parent that describes them, or restate FEAT-0143's goal and re-open it.
 - [ ] Re-check `acceptance_exception` against whatever the parent ends up being.
 - [ ] Write the CHG note for the five behaviour changes.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** A reader of `docs/changes/` finds no record that release pages, the checks page's filters and retired checks changed behaviour on 2026-08-30. FEAT-0143's `acceptance_exception` still says it ships no user-facing surface, which excuses it from acceptance checks it now needs.
+
+Evidence: `docs/features/fleet-validator-sync/FEAT-0143-The-Fleet-Runs-One-Validator.md` line 6 `status: done`, line 19 lists TASK-0587..TASK-0591, line 21 `acceptance_exception: "This feature ships no user-facing surface ..."`. All five tasks carry `parent: "FEAT-0143"`. `ls docs/changes | grep 2026083` returns only CHG-20260831-Writing-Rules-Reach-The-Fleet, and `grep -l TASK-0587..0591 docs/changes/` finds nothing.
+
+**Belongs to:** FEAT-0143. **Next:** Docs-only: write one CHG note naming the five behaviour changes, and narrow `acceptance_exception` to the migration tasks (or move the five tasks to a feature of their own).
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

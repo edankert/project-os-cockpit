@@ -3,16 +3,18 @@ type: "[[issue]]"
 id: ISS-0269
 aliases: ["ISS-0269"]
 title: "A retired check sheds the obligation and keeps the credit — `acceptance.load` drops it and the validator still counts it as covering its feature, so the two now disagree about what is verified"
-status: triage
+status: open
 owner: user:edwin
 created: 2026-08-30
-updated: "2026-08-30"
+updated: "2026-09-19"
 severity: medium
 component: tooling
 phase:
 source: ["Independent review of 46d6593..c861414, 2026-08-30, model:claude-opus-5, fresh context"]
 related: ["[[ISS-0265-A-Retired-Check-Still-Gates-The-Release]]", "[[TASK-0591-Retiring-Removes-The-Obligation]]", "[[FEAT-0143-The-Fleet-Runs-One-Validator]]"]
 tests: []
+reported_by: review
+question: "Does a retired acceptance check still count as covering its feature? Options: (a) no, so the validator skips retired checks in `_features_covered_by_acceptance` and the feature is reported uncovered, matching the cockpit; (b) yes, so the cockpit shows retired checks as coverage. Recommendation: (a), fixed in the template's validator."
 ---
 
 # One filter, and the second reader is in another file
@@ -49,3 +51,13 @@ This matters more than a normal two-readers case because that validator is the a
 
 - [ ] Decide whether a retired check covers its feature. Either answer is defensible; two answers is not.
 - [ ] Whichever way it goes, put it in one place and have the other read it — the same argument ISS-0265 used for `Suite.items`, applied across the package/validator boundary.
+
+## Checked against the code, 2026-09-19: a question for Edwin
+
+**What a user notices:** after a check is retired, the cockpit's feature panel shows the feature has no checks, while `validate-docs.sh` still counts the retired check as covering it. So the "feature has no acceptance check" warning stays silent.
+
+Evidence: `tools/scripts/validate-docs.py:602-621` (`_features_covered_by_acceptance`) filters on `level: acceptance` only and never reads `status`. `grep -n retired` in that file finds the word only in status vocabularies. The cockpit's side filters retired checks out (`src/project_os_cockpit/acceptance.py:1029-1045`, `_is_retired`). The validator is byte-identical to the template's, so the fix belongs upstream.
+
+**Belongs to:** no cockpit feature; the fix is in the template's validator (project-os). **Next:** Edwin answers the question, then one change in the template makes the validator and the cockpit agree.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

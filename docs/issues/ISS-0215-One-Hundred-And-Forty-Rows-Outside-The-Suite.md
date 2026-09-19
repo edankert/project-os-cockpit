@@ -2,18 +2,21 @@
 type: "[[issue]]"
 id: ISS-0215
 aliases: ["ISS-0215"]
-title: "156 acceptance rows sit in four unmigrated `TST-*` documents in your-trainer, invisible to the suite and to the release gate"
+title: "49 checklist rows in three of your-trainer's test notes never reach the checks page or the release gate"
 status: open
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-19"
+updated: "2026-09-19"
+reported_by: agent
 severity: high
 component: docs
 phase: "[[PHASE-999-Future]]"
 related: ["[[ISS-0213-Acceptance-Tests-Carrying-Level-System]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]", "[[ADR-0037-A-Verdict-Is-An-Event]]", "[[PHASE-038-A-Verdict-Is-An-Event]]"]
 ---
 
-# The migration reached the suite and not these
+# 49 checklist rows in three your-trainer notes are outside the checks page and the gate
+
+Three test notes in your-trainer still hold their acceptance checks as checklist rows inside one note, so the checks page and the release gate cannot see those 49 rows. The largest of the original four, the iOS parity list, has since been split into check notes.
 
 Found 2026-08-19 while levelling the five `level: system` manual tests ([[ISS-0213]]). Two were single procedures and were relevelled. The other three are **checklist documents in the pre-migration shape**:
 
@@ -52,3 +55,13 @@ It was missed because this issue's population came from [[ISS-0213]], and [[ISS-
 - [ ] Each of the 156 rows is a check note, with a surface and a `covers:`.
 - [ ] Or: a recorded decision that a named subset is retired instead, with the reason.
 - [ ] The gate delta is measured and stated before it lands.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** A person preparing an Android or iOS release is not asked to walk the BLE-hardening or edge-to-edge checks, and the release gate can pass with them undone.
+
+Evidence: in ../your-trainer on 2026-09-19, `docs/tests/TST-0011-AndroidBleHardeningAcceptance.md` (18 rows), `TST-0012-IosBleHardeningAcceptance.md` (15 rows) and `TST-0014-EdgeToEdgeInsetAcceptance.md` (16 rows) are `status: ready`, `level: system`, filed under `docs/tests/` and not under `docs/tests/acceptance/` (row count by `grep -cE '^\s*- \[.\]'`). `TST-0013-IosParityAcceptance.md` is now `status: retired` with 0 rows; its split landed in your-trainer 65344d40 (2026-08-25, "the iOS parity walk split"). This is **bigger**: each row needs a check note with an `area:` and `covers:`, authored in your-trainer, and the gate change measured first.
+
+**Belongs to:** no open feature; the authoring happens in your-trainer. **Next:** split the three notes into check notes (or record which rows are retired), measuring the gate before and after.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

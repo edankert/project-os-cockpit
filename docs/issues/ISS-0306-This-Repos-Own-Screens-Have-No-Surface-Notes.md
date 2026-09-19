@@ -2,12 +2,13 @@
 type: "[[issue]]"
 id: ISS-0306
 aliases: ["ISS-0306"]
-title: "This repo keeps one surface note for fourteen screens, so a change note here cannot name the screen it altered and the walk's own survey has nothing to show"
-status: triage
+title: "Most of the cockpit's own screens have no surface note, so every checks group shows a 'no surface note' badge and a change note here cannot link the screen it changed"
+status: open
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-09-14
-updated: 2026-09-14
+updated: "2026-09-19"
+reported_by: agent
 source: ["Found writing [[CHG-20260914-The-Walk-Page-Reads-As-A-Script]]: its Impact section could name no screen id."]
 severity: medium
 component: docs
@@ -17,7 +18,9 @@ tests: []
 tags: [issue, surfaces, walk]
 ---
 
-# This repo's own screens have no surface notes
+# Most of the cockpit's own screens have no surface note
+
+The cockpit has about fourteen screens but only four surface notes, so on this repo the checks page marks nearly every group 'no surface note', and the walk page's list of changed screens stays empty.
 
 ## Problem
 
@@ -55,3 +58,15 @@ It is worth doing on its own, and it is roughly a session: name the screens, giv
 - [ ] A `SUR-*` note per top-level screen, with dialogs as children under `parent:` (upstream ADR-0044's four rules, `tools/instructions/TAXONOMY.md`).
 - [ ] The design view's Surfaces heading reports a screen count inside FEAT-0130's 12 to 15.
 - [ ] A change note in this repo can write an `## Impact` line that resolves.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** On this repo's checks page nearly every group carries the "no surface note" badge, so the badge warns about nothing. A change note cannot link the screen it changed, and the release walk's survey of changed screens has nothing to list.
+
+Evidence: `ls docs/surfaces/` now shows four notes (SUR-0001 The Tests View, SUR-0002 The Desktop Console, SUR-0003 Account Usage, SUR-0004 The Release Walk), up from one, against about fourteen screens. All four have `gallery: []`. The test notes use 25 distinct `area:` values (`grep -h "^area:" -r docs/tests | sort -u | wc -l`), and only three surface notes carry an `area:`.
+
+Bigger: roughly a session of note writing. Name each top-level screen, give it a `gallery:` key, and point the existing checks' `area:` strings at them.
+
+**Belongs to:** no open feature (FEAT-0130, which made surfaces a note type, is done). **Next:** write the remaining surface notes as one docs task.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

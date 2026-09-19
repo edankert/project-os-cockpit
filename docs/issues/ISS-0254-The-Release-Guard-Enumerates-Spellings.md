@@ -3,16 +3,17 @@ type: "[[issue]]"
 id: ISS-0254
 aliases: ["ISS-0254"]
 title: "The ADR-0035 guard enumerates function names, so any new route to a check write reaches a release surface unreported — it was widened three times and evaded each time"
-status: open
+status: declined
 owner: user:edwin
 created: 2026-08-21
-updated: "2026-08-21"
+updated: "2026-09-19"
 source: ["independent review, fifth/sixth/seventh passes while closing PHASE-037, 2026-08-21"]
 severity: medium
 component: cockpit
 phase: "[[PHASE-999-Future]]"
 related: ["[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[TASK-0576-An-Exclusion-Says-Why-And-What-It-Cost]]", "[[FEAT-0142-A-Release-Says-What-Is-In-It]]", "[[ISS-0249-Two-Check-Write-Paths-Reach-No-Front-Door]]"]
 tests: []
+reported_by: review
 ---
 
 # A guard that names spellings is a guard you can spell around
@@ -56,3 +57,11 @@ In `desktop/src/renderer/renderer.ts`, inside `buildReleaseItemPage`, add a line
 ## Why this is filed rather than fixed
 
 Because it is a **new capability**, not a correction: option 1 is a call-graph analyser this repo does not have, and options 2 and 3 change how the renderer is written. [[PHASE-037]] closed on [[ADR-0035]] holding of the product, which it does — this is about the guard that keeps it holding, and it belongs to whoever opens the next phase rather than to a fourth round of the last one.
+
+## Checked against the code, 2026-09-19: declined
+
+Evidence: `tests/test_release_held_back.py:462-464` still guards the release pages with a hand-kept list of nine forbidden names, and `:538-557` checks the `buildCheckRow` argument inside the release functions. The note itself says the product is right: no release page reaches a check write today. Nobody using the app sees a difference between this guard and a call-graph rule; the gap only matters if someone later adds a write to a release page under a new name, and building a call-graph analyser for the renderer is a new tool, not a fix.
+
+**Belongs to:** no feature. **Next:** nothing; reopen if a release page is ever found offering a mark.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

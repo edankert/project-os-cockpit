@@ -2,12 +2,13 @@
 type: "[[issue]]"
 id: ISS-0292
 aliases: ["ISS-0292"]
-title: "The status bands, the severity order and the known types are not served as data, so every client outside this repository keeps a copy and the copies drift"
-status: triage
+title: "Another app that reads the same notes has to keep its own copy of the status groups, the severity list and the note types, and its copy has already gone wrong once"
+status: open
 phase: ""
 owner: user:edwin
 created: 2026-09-09
-updated: 2026-09-09
+updated: "2026-09-19"
+reported_by: agent
 source: ["Filed from project-os-deck on 2026-09-09, by TASK-0044 of FEAT-0012, which is the task that had to copy the vocabulary"]
 severity: medium
 component: api
@@ -16,7 +17,9 @@ related: []
 tests: []
 ---
 
-# The vocabulary a client cannot ask for is a vocabulary it has to copy
+# Other apps must copy the status groups, severities and note types, and the copies go wrong
+
+A second app over the same notes, such as project-os-deck, cannot ask the cockpit which statuses belong to which group, which severities exist, or which note types are known. It has to copy those lists into its own code. Deck's copy put `draft`, `proposed` and `ready` in the wrong group within two days, and Deck asks for an issue's severity in a free text box because it cannot ask for the four allowed values.
 
 ## Problem
 
@@ -50,3 +53,15 @@ Deck's choice was a text box and the sidecar's refusal quoted back, rather than 
 ## Next Actions
 - [ ] Decide whether the vocabulary is worth serving, or whether a pinned copy per client is the accepted answer
 - [ ] If it is served, name the endpoint and the shape, and tell Deck so its copy can go
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** In project-os-deck, choosing an issue's severity means typing it into a free text box and reading the refusal if it is wrong. When the cockpit's status groups change, Deck keeps showing the old groups until someone notices and re-records its copy.
+
+Evidence: the lists still live only in Python modules: `src/project_os_cockpit/statuses.py:56` (`BANDS`), `:114` (`COMPLETED_STATUSES`), `:136` (`LEGACY_STATUS_BAND`), `cockpit.py:401` (`SEVERITY_ORDER`), `note_writes.py:225` (`SEVERITIES`), `callouts.py:39` (`KNOWN_TYPES`). `grep -n '"band"\|SEVERITY_ORDER\|SEVERITIES\|KNOWN_TYPES' src/project_os_cockpit/server.py` finds nothing, and none of the `/api/...` routes listed in `server.py` serves them.
+
+Small fix: yes. One read-only route that returns these six constants as JSON, behind the existing guards, plus a test that fails if a constant is missing from the reply. Telling Deck to drop its copy is separate work in that repo.
+
+**Belongs to:** no feature. **Next:** add one read route (for example `GET /api/cockpit/vocabulary`) and record it in `docs/reference/cockpit-capability-register.md` so Deck can adopt it.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

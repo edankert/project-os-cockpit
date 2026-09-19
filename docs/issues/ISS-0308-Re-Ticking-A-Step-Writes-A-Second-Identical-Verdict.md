@@ -3,11 +3,12 @@ type: "[[issue]]"
 id: ISS-0308
 aliases: ["ISS-0308"]
 title: "Re-ticking a step whose check stays owed writes a second identical ledger event, so one walk can leave duplicate verdicts"
-status: triage
+status: fixed
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-09-14
-updated: 2026-09-14
+updated: "2026-09-19"
+reported_by: review
 source: ["Independent review of [[FEAT-0150-The-Walk-Page-Reads-As-A-Script]], 2026-09-14, finding 4"]
 severity: low
 component: renderer
@@ -35,3 +36,11 @@ What it costs is readability. The mark dialog shows every event ever recorded ag
 
 - [ ] Either the page declines to write when the combined mark and reason are identical to the check's standing verdict, or it asks — *"this records the same verdict again; walk it?"* Deciding which is the point of triage.
 - [ ] Whatever is chosen, an intentional re-walk must still be possible: the fix must not make a check unre-markable, which would be worse than a duplicate line.
+
+## Checked against the code, 2026-09-19: already done
+
+Evidence: FEAT-0151 (commit 476ee97, 2026-09-17) added a guard to the walk page's step tick. `desktop/src/renderer/renderer.ts:12915-12918` finds the latest event for the check on this platform and skips the write when it has the same mark and the same reason and is not invalidated. An intentional re-walk still writes, because the guard is bypassed when `newRun` is set (`markWalkStep`, line 12823). Tests: `desktop/tests/walk-page.test.mjs:1892` ("partial and question corrections append history without an accidental duplicate"), with the assertions at lines 2138 ("retrying the identical result appended a duplicate event") and 2195.
+
+**Belongs to:** FEAT-0151. **Next:** nothing.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

@@ -2,12 +2,13 @@
 type: "[[issue]]"
 id: ISS-0285
 aliases: ["ISS-0285"]
-title: "The mark dialog offers verdicts the write path refuses, and the refusal throws away the reason the person typed — Edwin lost a page of explanation marking a check `fail` in a repo with no ledger"
-status: triage
+title: "Marking a check Fail in a repo with no ledger is refused, and the reason the person typed is lost"
+status: open
 phase: ""
 owner: user:edwin
+reported_by: user:edwin
 created: 2026-09-06
-updated: 2026-09-06
+updated: "2026-09-19"
 source: ["Edwin, 2026-09-06, walking project-os-deck's first acceptance checks: 'I just marked TST-0008 as a fail with a lot of explanations, but you suggested that fail is not a valid state and does this mean the explanation has been removed?'"]
 severity: high
 component: ui
@@ -16,7 +17,9 @@ related: ["[[ISS-0281-A-Failing-Verdict-Is-Erased-From-The-Checks-View]]", "[[AD
 tests: []
 ---
 
-# The mark dialog offers verdicts the write path refuses
+# Marking a check Fail in a repo with no ledger loses the typed reason
+
+In a repo that has no ledger and no open release with a platform, choosing Fail, Not applicable or Blocked in the mark dialog is refused, and the reason the person typed is thrown away.
 
 ## Problem
 
@@ -51,3 +54,13 @@ A repository with no ledger always takes the old path, and a repository created 
 ## What it is not
 
 Not the same as [[ISS-0281-A-Failing-Verdict-Is-Erased-From-The-Checks-View]]. That one loses a verdict that was successfully written, on the way back to the page. This one never writes it.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** A person walks a check, picks Fail, writes an explanation, and gets an error toast; the dialog has closed and the explanation is gone.
+
+Evidence: The dialog still offers `fail`, `na` and `blocked` (`desktop/src/renderer/renderer.ts:2371-2396`). `acceptance.py:2387` `VERDICTS` has `failed`, not `fail`, and no `na` or `blocked`. `server.py:2625-2627`: with no platform from the request, an open release or a single ledger, the write goes to `note_writes.mark_check`, which raises a 400 for an unknown verdict (`note_writes.py`, `acceptance.VERDICTS.get(verdict)` then `raise WriteError`). `postCheckVerdict` in `renderer.ts` catches the refusal, shows a status toast and returns false; `walkOneCheck` then returns without reopening the dialog, so `chosen.reason` is dropped.
+
+**Belongs to:** no feature (ADR-0037 ledger work). **Next:** Bigger (two places): offer only the verdicts the target path accepts, and reopen the dialog with the reason still filled in when the write is refused.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

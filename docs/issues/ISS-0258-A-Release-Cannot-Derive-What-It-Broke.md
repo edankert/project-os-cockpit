@@ -6,11 +6,13 @@ title: "A release can derive what it built and not what it broke — `features:`
 status: open
 owner: user:edwin
 created: 2026-08-29
-updated: 2026-08-29
+updated: "2026-09-19"
 severity: medium
 component: tooling
 phase: "[[PHASE-999-Future]]"
 related: ["[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]", "[[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]", "[[FEAT-0142-A-Release-Says-What-Is-In-It]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[TASK-0586-Your-Trainer-Scopes-Its-Release]]"]
+reported_by: agent
+question: "Should a release derive the checks its changes may have broken (a design for linking checks to source paths, then a release computing overlap from its diff), or should ADR-0040 record that a release derives only what it built and the hand-written table stays? Recommendation: record it as a deliberate boundary of ADR-0040 now, and reopen as a feature only if a second release needs the table."
 ---
 
 # A release derives what it built, not what it broke
@@ -38,3 +40,13 @@ The obvious move — `invalidates:` on the release — is the hand-written table
 ## Done when
 
 - [ ] A release can state its check scope from the note without a hand-written table, or the limit is recorded as a deliberate boundary of [[ADR-0040]] rather than a gap.
+
+## Checked against the code, 2026-09-19: a question for Edwin
+
+**What a user notices:** a release page can list the checks for the features the release built, but not the checks its changes may have broken. Someone preparing a release still has to write that second list by hand in the release note.
+
+Evidence: `src/project_os_cockpit/publication.py:711-718` is the only reader of `invalidated_by:`, and it serves the feature panel, not the release scope. Its comment says the field is "Empty in every repo today". In `../your-trainer`, 658 check notes carry `invalidated_by: {}`, all empty. Nothing in `release_payload` (`publication.py:1286` onward) derives checks from a release's diff or from `area:`.
+
+**Belongs to:** FEAT-0142 (A release says what is in it) and ADR-0040. **Next:** Edwin decides between a design for "what did this release break" and a recorded boundary in ADR-0040.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

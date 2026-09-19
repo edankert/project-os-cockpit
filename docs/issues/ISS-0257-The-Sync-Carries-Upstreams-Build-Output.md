@@ -2,18 +2,21 @@
 type: "[[issue]]"
 id: ISS-0257
 aliases: ["ISS-0257"]
-title: "`sync-project-os.py` walks upstream's filesystem, so it copies gitignored build output into every downstream repo — invisible to review because git ignores it on both sides"
-status: open
+title: "A template sync copies the template's local build files, such as `__pycache__` folders, into every repo"
+status: fixed
 owner: user:edwin
 created: 2026-08-29
-updated: 2026-08-29
+updated: "2026-09-19"
 severity: low
 component: tooling
 phase: "[[PHASE-999-Future]]"
 related: ["[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[FEAT-0143-The-Fleet-Runs-One-Validator]]"]
+reported_by: agent
 ---
 
-# The sync carries upstream's build output
+# A template sync copies the template's local build files into every repo
+
+When the template repo has a `__pycache__` folder (or `.pytest_cache`, or an `.egg-info`) inside a folder the sync owns, `sync-project-os.py` copies it into the repo being synced, and the dry run lists it as a synced file.
 
 `tools/sync/MANIFEST.yaml` marks `tools/scripts/` as `template`, and `sync-project-os.py` copies it by walking upstream's **filesystem**. Upstream's `.gitignore` has `__pycache__/`, so `~/Dev/repos/project-os/tools/scripts/__pycache__/` exists on disk and is invisible to git — and the sync copies it.
 
@@ -39,3 +42,19 @@ Option 1 is the small correct fix; option 2 is the one that closes the class.
 
 - [ ] `sync-project-os.py` does not copy `__pycache__` or comparable build output for any manifest path.
 - [ ] Proposed upstream — `tools/scripts/` and `tools/sync/` are template-owned, so the fix belongs there.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** a sync dry run lists `.pyc` files as "synced", and the files land in the downstream repo without appearing in `git status`. Harmless today, but the same copy would carry any other untracked output the template author has on disk.
+
+Evidence: `tools/sync/MANIFEST.yaml:70-71` still has only one `excludes:` entry, for `tools/cockpit/`. `tools/scripts/sync-project-os.py:294-296` walks the template's folders with `rglob("*")` and skips only `.git` and those per-path excludes. The script and manifest are template-owned and identical upstream (`~/Dev/repos/project-os/tools/sync/MANIFEST.yaml:70-71`). Upstream has no `tools/scripts/__pycache__` on disk right now, so the copy does not happen today, but nothing stops it.
+
+**Small fix:** yes. Apply `__pycache__`, `.pytest_cache` and `*.egg-info` as excludes for every manifest path, in the template's `sync-project-os.py`, with a test that a planted `__pycache__` is not copied.
+
+**Belongs to:** no feature; the fix goes in the template (project-os). **Next:** file or fix it in project-os, then sync.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Fixed in the template, 2026-09-19
+
+The sync no longer copies `__pycache__`, `*.pyc`, `.pytest_cache` or `.DS_Store` from the template's working copy, anywhere (project-os `01031af`, `ALWAYS_EXCLUDED` in `sync-project-os.py`). `test-sync-stale.sh` asserts it and fails without the fix. Synced here as `36c9bf9`. Recorded upstream as project-os-dev TASK-0142.

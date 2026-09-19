@@ -2,11 +2,12 @@
 type: "[[issue]]"
 id: ISS-0270
 aliases: ["ISS-0270"]
-title: "The gate figures do not reproduce and two declared filings do not exist — `104`, `103` and `623` measure nothing findable, and the follow-ups ISS-0261 and ISS-0264 say were filed separately were never written"
-status: triage
+title: "A release page still offers cancelled and superseded features, and two issues a commit said it filed were never written"
+status: open
 owner: user:edwin
+reported_by: review
 created: 2026-08-30
-updated: "2026-08-30"
+updated: "2026-09-19"
 severity: medium
 component: docs
 phase:
@@ -15,7 +16,9 @@ related: ["[[ISS-0265-A-Retired-Check-Still-Gates-The-Release]]", "[[TASK-0591-R
 tests: []
 ---
 
-# Four figures, and none of them is the measurement
+# Two promised issues were never filed, and one of them is a live defect
+
+A release page still offers features whose status is `cancelled` or `superseded`, as if they were done and waiting to ship. ISS-0261 said this was filed separately, and it was not. ISS-0264 made the same promise about the other write endpoints: a tick, a status change or a new note can still read back as unchanged for about 50 ms after the save answers. Four published figures (the blocking count 104/103 and the 623-row suite) are also wrong, in two notes, a source comment and a test docstring.
 
 ## How this was recomputed
 
@@ -68,3 +71,13 @@ TASK-0587's *"Effect on `../your-trainer`"* is exact at that corpus state: the d
 - [ ] Correct `623` in ISS-0262 and in `renderChecksPage`.
 - [ ] Restate the census sentence against the population `_ships_on` actually reads, and fix the two ±1 columns.
 - [ ] File the two follow-ups, or delete the sentences that say they were filed.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** A release prepared in the cockpit lists cancelled or superseded features among "What shipped" candidates. After ticking a box or changing a status, a page that re-reads at once can still show the old value.
+
+Evidence: `statuses.py:67-75` puts `cancelled` and `superseded` in the `archived` band, and `statuses.py:114` makes `COMPLETED_STATUSES` = done band plus archived band. `cockpit.py:2319` (`unreleased_payload`) keeps any feature where `statuses.is_completed()` is true, and `publication.py:1118-1130` offers those rows to a release. `server.py:2563` `_reindex` is called by mark-check, retire-check, release-update, release-abandon and release-settle only; `_serve_note_tick`, `_serve_note_transition`, `_serve_note_create`, `_serve_mark_released`, `_serve_release_contents` and `_serve_check_toggle` have no `_reindex` call (grep over each handler). No issue after ISS-0264 names `is_completed` or a missing reindex (`grep -l is_completed docs/issues/*.md`). The wrong figures are still at `acceptance.py:1041` ("blocking 104"), `tests/test_checks_view.py:627` ("blocking 104"), `desktop/src/renderer/renderer.ts:9940` ("623-row suite"), ISS-0265 line 27 and ISS-0262 line 37.
+
+**Belongs to:** no feature (the release-page half belongs with the release pages, the reindex half with ISS-0264's fix). **Next:** Split into two issues: the cancelled/superseded release candidates (small: `unreleased_payload` should use the done band only, with a test) and the six write endpoints that skip `_reindex` (bigger); correct the four figures in the same commit as either.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

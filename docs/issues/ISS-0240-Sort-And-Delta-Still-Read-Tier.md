@@ -2,11 +2,12 @@
 type: "[[issue]]"
 id: ISS-0240
 aliases: ["ISS-0240"]
-title: "`sort_items` and `_delta_key` still read `tier:`, so removing the field changes 232 of 581 delta identities"
+title: "Removing `tier:` from check notes would make the release \"what changed\" list show 232 unchanged checks as removed and re-added"
 status: open
 owner: user:edwin
 created: 2026-08-20
-updated: "2026-08-20"
+updated: "2026-09-19"
+reported_by: review
 severity: medium
 component: cockpit
 phase: "[[PHASE-999-Future]]"
@@ -16,7 +17,9 @@ review_verdict: approved
 related: ["[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[PHASE-039-A-Test-Says-Who-Executes-It]]", "[[CHG-20260820-The-Suite-Is-The-Verdict]]"]
 ---
 
-# The field is unread where it decides, and read where it orders
+# Removing `tier:` from check notes would show unchanged checks as removed and re-added
+
+If anyone deletes the `tier:` line from your-trainer's check notes, the release comparison would list every former Tier 2 and Tier 3 check as removed and then added again. The cockpit still uses `tier:` to order checks and to match a check across two releases, although nothing else reads it.
 
 [[PHASE-039]] closed on a criterion reading *"`tier:` is read by no code path"*. That is false, and independent review caught it.
 
@@ -111,3 +114,13 @@ The denominator section, the `_notes_at` asymmetry (`docs/tests/acceptance/` onl
 
 1. **The `Suite position` paragraph was deleted in the same edit that restored `232`**, and the fifth pass had listed *"the `0` rows at `HEAD`"* among the things that hold. Measured here, it was true and still is: stripping `tier:` moves **0** rows on both load paths (579 and 581), because ids were allocated in document order. The consequence is that the body now measures only `_delta_key`, while the *What still reads it* table names `sort_items` as the primary sort key with no measurement beside it — so the body reads as though the strip reorders the suite, which at `HEAD` it does not. The fact survives at line 67, but that line says *"the body's `232` and its `0`-at-`HEAD` both reproduce"* and the body no longer carries the second, so the self-reference dangles.
 2. Nothing else in this note is inaccurate. Restoring one sentence — *"stripping the field moves **0** rows of suite position at `HEAD`, against 74 in the working tree"* — closes both halves of item 1 and needs no further review round.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** Nothing today, because every check note still carries `tier:`. A new check written from the template has no `tier:`, is read as Tier 1, and sorts among the Tier 1 checks.
+
+Evidence: `sort_items` sorts on `(i.tier, …, i.note_id)` (src/project_os_cockpit/acceptance.py:1048-1070) and `_delta_key` returns `(item.tier, item.name.strip().casefold())` (acceptance.py:1290-1291). In ../your-trainer, 649 of 651 files in `docs/tests/acceptance/` still carry `tier:`. The template's test note has no `tier:` field (project-os/docs/__templates__/test.md), so new notes default to Tier 1. This is **bigger**: the new sort order is a decision (ISS-0224 settled `(tier, id)`), and dropping `tier` from `_delta_key` needs a proof that a delta across the change reports no spurious rows, because two current names collide without it.
+
+**Belongs to:** PHASE-039 follow-up; no open feature. **Next:** decide the sort key, change `_delta_key`, prove a zero-row delta, then strip `tier:`.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

@@ -2,20 +2,23 @@
 type: "[[issue]]"
 id: ISS-0268
 aliases: ["ISS-0268"]
-title: "The platform scoping stops at the derived view — the navigator can say `Nothing unshipped` while the Unreleased card counts ten, and drafting the release writes the unfiltered set back into the note"
-status: triage
+title: "On a platform release, the navigator can say \"Nothing unshipped\" while the Unreleased card lists features, and drafting a release puts other platforms' features into the note"
+status: open
 owner: user:edwin
 created: 2026-08-30
-updated: "2026-08-30"
+updated: "2026-09-19"
 severity: medium
 component: cockpit
 phase:
 source: ["Independent review of 46d6593..c861414, 2026-08-30, model:claude-opus-5, fresh context"]
 related: ["[[ISS-0261-A-Release-Is-Offered-Features-Its-Platform-Cannot-Ship]]", "[[TASK-0587-The-Derived-Set-Is-This-Releases-Platforms]]", "[[FEAT-0142-A-Release-Says-What-Is-In-It]]"]
 tests: []
+reported_by: review
 ---
 
-# Three readers downstream of the scoped set were not revisited
+# The navigator and the release draft ignore the release's platform
+
+With an Android release open, the left pane can say "Nothing unshipped" while the Unreleased card lists iOS features that are waiting, and **Draft release note** writes those iOS features into the new Android release.
 
 [[ISS-0261]] scopes `shipping_in` and routes the release page and the navigator through it. Three consequences of that scoping were not followed through, and one of them is a sentence the app now says that is false.
 
@@ -48,3 +51,15 @@ Two surfaces of the same app, one saying nothing is waiting and the other listin
 - [ ] Give the placeholder text the scope it now describes, or key it on the unscoped set.
 - [ ] Decide what `create_release` writes: either take a platform on the way in, or filter after the note exists and its `platform:` is known.
 - [ ] Say in TASK-0587 that `mark_released` is the fourth reader and that its frozen list moved.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** two parts of the app disagree about whether anything is waiting to ship. A release drafted from the card claims features its platform cannot ship, and marking it released records them as delivered.
+
+Evidence: `src/project_os_cockpit/cockpit.py:4920-4921` builds `_next_ids` from the platform-scoped `shipping_in`, and `:4963-4966` still shows "Nothing unshipped / no features are waiting on a release" when that list is empty. `src/project_os_cockpit/server.py:2300-2302` still fills a drafted release's `features:` from the unfiltered `cockpit.unreleased_payload(index)`, even though it now passes a `platform` (`:2314`) to `note_writes.create_release`. Part 3 (TASK-0587 not naming `mark_released` as a reader, `note_writes.py:2300`) is a documentation gap only.
+
+**Small fix:** no. There are two separate fixes (the placeholder text in `cockpit.py`, and filtering the drafted features by platform in `server.py`), each needing its own test.
+
+**Belongs to:** FEAT-0142 (A release says what is in it). **Next:** filter the drafted features through `shipping_in` once the platform is known, and reword the placeholder to name the platform.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

@@ -61,7 +61,7 @@ counters:
     last_date: 20260916
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 154
-  ISS: 312
+  ISS: 313
   PHASE: 45
   REQ: 66
   RISK: 10
@@ -1837,7 +1837,7 @@ items:
   issues:
     ISS-0312:
       file: "docs/issues/ISS-0312-Codex-Lifecycle-And-Adapter-Parity.md"
-      title: "Codex lacks Claude's lifecycle feed and native project adapter"
+      title: "A Codex session in the cockpit has never been walked end to end, and its cache badge says 'cache unknown' where a Claude session shows warm or cold"
       status: open
       owner: user:edwin
       phase: "[[PHASE-007-Agent-Instrumentation]]"
@@ -1874,8 +1874,8 @@ items:
       note: "2026-09-12, reported by Edwin within the hour of the viewer landing: renderViewerPage adds `viewer-page` (overflow: hidden, right for a framed file) and nothing removes it, so every later page stops scrolling. Ten other page classes are cleared by the next render; this one was added to none of those lists. No test walks AWAY from a page, which is why nothing caught it."
     ISS-0301:
       file: "docs/issues/ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints.md"
-      title: "A framed page can POST to the sidecar's loopback-guarded write endpoints, because the guard asks where the request came from and the body parser never asks what content type it claims"
-      status: triage
+      title: "A web page shown in the cockpit's viewer can change your notes through the sidecar, because the sidecar accepts any request that comes from this machine"
+      status: open
       owner: user:edwin
       phase: ""
       severity: medium
@@ -2001,15 +2001,15 @@ items:
     ISS-0286:
       file: "docs/issues/ISS-0286-A-Check-Is-Owed-On-Every-Platform-That-Has-A-Ledger.md"
       title: "A check is owed on every platform that has a ledger, with no way to say where it applies — one application built from one codebase has to answer for its whole suite once per operating system, or mark each check `na` by hand"
-      status: triage
+      status: open
       owner: user:edwin
       severity: medium
       component: server
       note: "Edwin, 2026-09-06: if we do not have different applications per OS, the acceptance suite should not be replicated per OS -- one place for the suite, and small kick-the-tires checks per operating system. ledger.resolve makes absence mean owed on every platform that has a ledger, with no field declaring applicability (REQ-0054), decided on your-trainer where Android and iOS are separately built. project-os-deck is one Electron build, so a second ledger would make its whole suite read as owed there, dischargeable only by marking each check `na` by hand. Naming its one ledger WORKING-app.json holds only while it has exactly one. This is evidence for revisiting REQ-0054, not a bug against it."
     ISS-0285:
       file: "docs/issues/ISS-0285-The-Mark-Dialog-Offers-Verdicts-The-Write-Path-Refuses.md"
-      title: "The mark dialog offers verdicts the write path refuses, and the refusal throws away the reason the person typed — Edwin lost a page of explanation marking a check `fail` in a repo with no ledger"
-      status: triage
+      title: "Marking a check Fail in a repo with no ledger is refused, and the reason the person typed is lost"
+      status: open
       owner: user:edwin
       severity: high
       component: ui
@@ -2061,23 +2061,23 @@ items:
       note: "walkOneCheck calls askForMark with {number, name, current} only. item.text (shown clamped to two lines on the row) and the verdict history are not passed. Depends on ISS-0281's history half for the comments: the payload carries only the current verdict's reason today, so the dialog can show the description now and the earlier comments once the payload carries them."
     ISS-0279:
       file: "docs/issues/ISS-0279-A-List-Valued-Type-Field-Loses-Its-Type.md"
-      title: "A note whose `type:` is a YAML list is indexed as untyped — 99 of the 407 notes in Edwin's vault, including nearly every character, page and panel in the Comics project"
-      status: triage
+      title: "A note whose type: is written as a list gets no type, so the Library shows no Character, Page or Location groups for Edwin's vault"
+      status: open
       owner: unassigned
       severity: medium
       component: index
       note: "Found 2026-09-06 by running the sidecar against ~/Notes for the surface-architecture options note. One function (_normalise_type) accepts only a string; Obsidian writes list-valued properties as YAML lists. The fix is small; the decision is what a multi-element list means."
     ISS-0278:
       file: "docs/issues/ISS-0278-The-Recorded-Stale-Verdict-Count-Is-Out-Of-Date.md"
-      title: "CLAUDE.md states the stale-verdict backlog as 49 notes; it is 70, and the file that describes the problem now understates it"
-      status: triage
+      title: "CLAUDE.md says 49 notes carry a stale changes-requested verdict; today there are 89"
+      status: open
       owner: unassigned
       severity: low
       component: docs
       note: "Measured while drawing DES-0013, which needed a real number for its review-queue mocks. The RULE in CLAUDE.md is unchanged and correct; its supporting measurement is a hand-typed number nothing re-measures, and it has drifted 49/43 -> 70/61 in sixteen days. Three options in the note; only 'derive it from REVIEW-STALE, which already computes this set' cannot go stale again, and that one edits a template-adjacent file so it is a decision. Matters more over the next ten weeks, not less: the REVIEW-STALE window closes 2026-11-18 and the same set becomes an error."
     ISS-0277:
       file: "docs/issues/ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit.md"
-      title: "Nothing detects a stale, divergent or incomplete tools/cockpit — one repo carried no package at all for five weeks and the stamp said it was fine"
+      title: "No check notices when a repo's copy of the cockpit is missing, out of date or different from what its stamp says"
       status: open
       owner: user:edwin
       severity: medium
@@ -2085,7 +2085,7 @@ items:
       note: "Found by the 2026-09-02 fleet sweep, not by any check. Twelve repos five weeks / 193 commits stale; `articles` carried four files and NO src/ (the 45-module package run.sh exists to launch was never committed, and its stamp named a different release so nothing compared it to a sibling); and validate_docs_bundled.py differed BETWEEN repos at the SAME CANONICAL_SHA. The third is the sharpest -- a stamp that varies in content is the failure the stamp exists to prevent. fleet-drift.py measures validator rule codes, not this."
     ISS-0276:
       file: "docs/issues/ISS-0276-Twenty-One-Tests-Still-Measure-A-Character-Distance.md"
-      title: "21 tests still assert over a fixed character window, an idiom that has now failed in both directions in this suite"
+      title: "About 21 tests read a guessed number of characters after an anchor, so they can stay green while the code they guard is broken"
       status: open
       owner: user:edwin
       severity: low
@@ -2109,7 +2109,7 @@ items:
       note: "The suffix allow-list is not the guard -- `_SAFE` and the `relative_to` containment refuse a hostile name without it, nothing executes an inbox file, and the list admits `.svg` (which can carry script and is served back at the cockpit's origin) while refusing `.zip` (inert). The client's INBOX_READABLE already names 7 types the server will not store. Fix moves the safety property to the read: octet-stream + attachment for non-inline types, CSP on every response. Cap raised 25 -> 250 MB on Edwin's call; its old comment cited a LAN threat that `_require_loopback` had already closed."
     ISS-0260:
       file: "docs/issues/ISS-0260-Unparseable-Frontmatter-Is-Validated-Against-A-Different-Note.md"
-      title: "A note whose frontmatter is not YAML is validated against a different, partial reading of itself — `load_yaml` swallows the parse error and the lenient fallback answers instead"
+      title: "A note whose frontmatter is broken YAML passes validation, and the validator reports on a guessed version of it"
       status: open
       owner: user:edwin
       severity: high
@@ -2118,7 +2118,7 @@ items:
     ISS-0259:
       file: "docs/issues/ISS-0259-Six-Fleet-Repos-Run-Ten-Fewer-Rules.md"
       title: "Six fleet repos are ten upstream rules behind — outside PHASE-041's scope because they hold no acceptance checks, and now measured rather than assumed"
-      status: open
+      status: fixed
       owner: user:edwin
       severity: low
       component: tooling
@@ -2133,8 +2133,8 @@ items:
       note: "Measured against a real release for the first time: REL-0013 needs 32 of your-trainer's 625 checks and ADR-0040's model derives 13. The other 19 are checks the release BREAKS, a relation running through area: and changed files that no field carries. `invalidates:` on the release would be the hand-written table with YAML syntax; FEAT-0138's shape (the test declares, a run emits) is the analogue worth designing."
     ISS-0257:
       file: "docs/issues/ISS-0257-The-Sync-Carries-Upstreams-Build-Output.md"
-      title: "`sync-project-os.py` walks upstream's filesystem, so it copies gitignored build output into every downstream repo — invisible to review because git ignores it on both sides"
-      status: open
+      title: "A template sync copies the template's local build files, such as `__pycache__` folders, into every repo"
+      status: fixed
       owner: user:edwin
       severity: low
       component: tooling
@@ -2232,7 +2232,7 @@ items:
     ISS-0208:
       file: "docs/issues/ISS-0208-Retire-The-Tier-Rule.md"
       title: "`tier:` still decides whether an attributed check gates — ADR-0034 decision 6 says retire the rule, and nine sites still read it"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: "[[PHASE-999-Future]]"
       severity: medium
@@ -2241,7 +2241,7 @@ items:
       note: "DECISION OWED BY EDWIN. your-trainer TST-0592..0597 are Tier 3, mark: todo, cover nothing, never walked, and the tier filter drops them before the fail-closed clause can see them. Two honest readings: they are stale one-build notes to retire (gate stays 60, matches TESTING.md's `Tier 3 tests do not gate releases`), or a never-walked check gates whatever its tier (gate goes 60->66). Reversing the ordering was tried, measured and REVERTED — those six never gated under the tier rule either, so blocking them is a new tighter gate contradicting a written rule, not the fail-closed principle doing its job."
     ISS-0207:
       file: "docs/issues/ISS-0207-Entrypoint-Is-Two-Fields-Wearing-One-Name.md"
-      title: "`entrypoint:` holds runnable commands and prose in the same field, so 37 tests carry a way to run them that nothing can read"
+      title: "Tests that name a runnable command in `entrypoint:` still show as waiting for a person to run them"
       status: open
       owner: user:edwin
       phase: "[[PHASE-999-Future]]"
@@ -4710,8 +4710,8 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 17
-    issues_triage: 18
+    issues_open: 25
+    issues_triage: 0
     risks_open: 8
     releases_total: 1
     decisions_total: 34

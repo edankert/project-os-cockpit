@@ -2,12 +2,13 @@
 type: "[[issue]]"
 id: ISS-0307
 aliases: ["ISS-0307"]
-title: "Every verdict written from the shell records `by: user:edwin`, so a ledger cannot say whether a person or an agent walked the check"
-status: triage
+title: "Every check marked from the cockpit is recorded as walked by Edwin, even when an agent drove the page, so the record cannot say who checked it"
+status: open
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-09-14
-updated: 2026-09-14
+updated: "2026-09-19"
+reported_by: review
 source: ["Independent review of [[FEAT-0150-The-Walk-Page-Reads-As-A-Script]], 2026-09-14, finding 11"]
 severity: medium
 component: ledger
@@ -17,7 +18,9 @@ tests: []
 tags: [issue, ledger, acceptance]
 ---
 
-# Every tick from the shell says Edwin walked it
+# Every check marked from the cockpit is recorded as walked by Edwin
+
+Whoever marks a check in the cockpit, the record says `by: user:edwin`, so a reader of the ledger cannot tell a check Edwin walked from one an agent clicked through.
 
 ## Problem
 
@@ -42,3 +45,15 @@ The one entry corrected by hand so far is TST-0089 in `docs/releases/ledgers/WOR
 - [ ] The shell sends the author it actually knows — the signed-in user for a human click, and the agent's own identity when a session is driving the page.
 - [ ] A decision on what an agent-driven walk is worth against the acceptance gate. That is Edwin's, not the tool's.
 - [ ] Existing entries are left alone. A backfill would be inventing history.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** The history shown against a check lists Edwin as the walker for every entry written from the cockpit, including walks an agent drove. Anyone asking "did a person look at this?" gets a confident wrong answer.
+
+Evidence: `postCheckVerdict` at `desktop/src/renderer/renderer.ts:9641` sends `by: 'user:edwin', method: 'manual'` (line 9663) on every write; the walk page's local copy of the event does the same at line 12927, and the ledger-seal call at line 8688. The server copies whatever it is sent (`server.py:2641`, `:3012`). Other writes from the shell also hard-code `actor: 'user:edwin'` or `reviewer: 'user:edwin'` (lines 2075, 2252, 7171-7441, 7960, 8113, 8487).
+
+Bigger: the shell has no way today to know whether a person or an agent session is driving it, so a fix needs a source for that identity before the constant can go. Whether an agent-driven walk counts toward the acceptance gate is a separate decision for Edwin.
+
+**Belongs to:** no open feature (the walk page, FEAT-0149 and FEAT-0150, is done). **Next:** decide where the shell learns who is acting, then replace the constant in `postCheckVerdict` first.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

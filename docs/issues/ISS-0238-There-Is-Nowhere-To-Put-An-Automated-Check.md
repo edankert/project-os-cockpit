@@ -3,10 +3,11 @@ type: "[[issue]]"
 id: ISS-0238
 aliases: ["ISS-0238"]
 title: "A check leaves the manual walk for three different reasons and the display has one category for them — `retired` reads as *no longer verified* about checks that are verified on every CI run"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-08-20"
+updated: "2026-09-19"
+reported_by: agent
 severity: high
 component: cockpit-desktop
 phase: "[[PHASE-999-Future]]"
@@ -68,3 +69,11 @@ It states *"6 checks are genuinely `retired`"*. Measured 2026-08-19: **zero** ac
 **`area:` is not fixed, and that is why this stays open.** All 67 still read `area: "Moved from Tier 1 / Tier 2 — Fully Automated"` — a heading from a deleted document. [[ADR-0039]] states the rule (`area:` names a place in the application) and scopes the repair out: the original values are recoverable only by walking `your-trainer`'s history from `d69cf23c` (2026-04-18, *"move 10 fully-automated rows to Tier 3"*) across several such commits. That is excavation, not migration, and emptying the field is the honest alternative to inventing 67 areas.
 
 **The upstream ambiguity is closed.** `STATUSES.md` quoted `TESTING.md` as *"never removed, only deprecated"* and generalised it to any test while `TESTING.md` scoped it to Tier 1/2 and removed Tier 3. Nothing removes a check now, so the quote is true as written.
+
+## Checked against the code, 2026-09-19: already done
+
+Evidence: the last open item, `area:` on the automated checks, is repaired. In ../your-trainer on 2026-09-19, `grep -l '^area: *"Moved from Tier' docs/tests/acceptance/*.md` returns 0 files; the most common `area:` values are real places in the app (`Workouts` 73, `Route cockpit` 51, `Power workout cockpit` 42). The other items were closed by ADR-0039, as the 2026-08-20 section records: an "Automated tests" section derived from `command:` (`SECTION_AUTOMATED`, src/project_os_cockpit/acceptance.py:1623-1636; `section_of` returns it when `item.command` is set, acceptance.py:1685-1686), no new status value, and the STATUSES.md/TESTING.md wording reconciled.
+
+**Belongs to:** PHASE-039 (ADR-0039). **Next:** nothing; closed as fixed.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

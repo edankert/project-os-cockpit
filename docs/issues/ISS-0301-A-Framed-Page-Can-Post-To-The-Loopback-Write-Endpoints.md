@@ -2,12 +2,13 @@
 type: "[[issue]]"
 id: ISS-0301
 aliases: ["ISS-0301"]
-title: "A framed page can POST to the sidecar's loopback-guarded write endpoints, because the guard asks where the request came from and the body parser never asks what content type it claims"
-status: triage
+title: "A web page shown in the cockpit's viewer can change your notes through the sidecar, because the sidecar accepts any request that comes from this machine"
+status: open
 phase: ""
 owner: user:edwin
 created: 2026-09-12
-updated: 2026-09-12
+updated: "2026-09-19"
+reported_by: review
 source: ["Independent review of FEAT-0147/FEAT-0148, 2026-09-12, finding 9: 'the sandbox denies reads, not writes ... a framed page has allow-scripts, knows its sidecar URL from location, and originates on the machine, so _require_loopback passes; it cannot read the reply and does not need to'"]
 severity: medium
 component: sidecar
@@ -16,7 +17,9 @@ related: ["[[ADR-0042-What-May-Be-Framed]]", "[[RISK-0008-The-Sandbox-Is-The-Onl
 tests: []
 ---
 
-# A framed page can post to the write endpoints
+# A page shown in the viewer can change your notes through the sidecar
+
+A script inside an HTML file that the cockpit's viewer shows can send requests that change notes, the review queue or the inbox, and the sidecar carries them out. The script cannot read the reply, but it does not need to: the change happens anyway.
 
 ## Problem
 
@@ -47,3 +50,15 @@ Two candidates, neither started:
 - **A token the shell knows and a framed page does not.** The real fix, and a bigger one: every write endpoint requires it, the shell sends it, and `_require_loopback` stops being the only gate.
 
 The threat is bounded — a framed page is a file already inside `docs/`, so an attacker who can write one can usually write the others — but "the attacker already won" is not why a guard should hold.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** Nothing, until an HTML file under `docs/` carries a hostile script. Opening that file in the viewer would then let it make changes to the project, such as moving a note's status or queueing a review, without the person clicking anything.
+
+Evidence (the class of flaw is a cross-site request that needs no preflight; no exploit was written): the only gate on the sidecar's write routes is `_require_loopback` at `src/project_os_cockpit/server.py:1917`, which checks the client address alone (30 call sites, `grep -c "_require_loopback(" server.py`). `_read_json_body` at `server.py:1889` reads `Content-Length` and parses the body as JSON without looking at `Content-Type`, so a `text/plain` body, which a browser sends cross-origin without asking permission first, is accepted. `grep -n "Origin\|Sec-Fetch-Site\|Referer" server.py` finds no check of where the request came from, only two `Access-Control-Allow-Origin: *` headers on read responses (lines 3943, 4233). The viewer frames pages with `sandbox="allow-scripts"` (`desktop/src/renderer/renderer.ts:6389`), which stops reading replies but not sending requests, and the framed file is served with no Content-Security-Policy (`server.py:3176-3181`). No commit since 2026-09-12 changed either function.
+
+Small fix: yes for the first half. Refusing a body whose `Content-Type` is not `application/json` is one place in `_read_json_body` and a test can fail without it. The cockpit's own hook forwarders already send that header (`desktop/src/ipc/agent-instrument.ts:90,110,138`); other clients, such as Deck and `cockpit signal`, must be checked before the refusal lands. Checking the `Origin` or `Sec-Fetch-Site` header on writes is a second cheap layer. A secret token that only the shell knows is the full fix and is bigger.
+
+**Belongs to:** no feature (related to FEAT-0148 and RISK-0008). **Next:** refuse non-JSON bodies on write routes with a test, then decide on the token separately.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

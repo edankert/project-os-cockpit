@@ -1,12 +1,13 @@
 ---
 type: "[[issue]]"
 id: ISS-0279
-title: "A note whose `type:` is a YAML list is indexed as untyped — 99 of the 407 notes in Edwin's vault, including nearly every character, page and panel in the Comics project"
-status: triage
+title: "A note whose type: is written as a list gets no type, so the Library shows no Character, Page or Location groups for Edwin's vault"
+status: open
 phase:
 owner: unassigned
+reported_by: agent
 created: 2026-09-06
-updated: 2026-09-06
+updated: "2026-09-19"
 source: ["Measured 2026-09-06 while writing [[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]: the sidecar run against ~/Notes returned a Library with a Panel group of zero"]
 severity: medium
 component: index
@@ -15,7 +16,9 @@ related: ["[[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]", "[[ISS-0
 tests: []
 ---
 
-# A list-valued `type:` loses its type
+# A note whose type is a list shows up untyped
+
+When a note's `type:` is written as a YAML list, as Obsidian does, the cockpit treats the note as having no type at all.
 
 ## Problem
 
@@ -63,3 +66,13 @@ The same function handles `status:`, and one Comics note carries a status list c
 - [ ] Accept a list in `_normalise_type`, taking the first element, and say so in the docstring.
 - [ ] Decide what a multi-element list means, and add a test with both forms.
 - [ ] Re-run the Library payload against the vault and record the groups it returns.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** Opening Edwin's `~/Notes` vault, the Library has no Character, Page, Location, Chapter or Story groups, and the Panel group is empty, although 99 notes carry those types.
+
+Evidence: `src/project_os_cockpit/index.py:657-658` in `_normalise_type`: `if not isinstance(raw, str): return None`. The function is unchanged since 5b38bd3 (FEAT-0001).
+
+**Belongs to:** no feature. **Next:** Small fix: accept a list in `_normalise_type`, take the first element, and add a test with both forms.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

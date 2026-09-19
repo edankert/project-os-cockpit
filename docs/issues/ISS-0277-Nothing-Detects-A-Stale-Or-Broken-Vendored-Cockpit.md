@@ -2,11 +2,12 @@
 type: "[[issue]]"
 id: ISS-0277
 aliases: ["ISS-0277"]
-title: "Nothing detects a stale, divergent or incomplete tools/cockpit — one repo carried no package at all for five weeks and the stamp said it was fine"
+title: "No check notices when a repo's copy of the cockpit is missing, out of date or different from what its stamp says"
 status: open
 owner: user:edwin
+reported_by: agent
 created: 2026-09-02
-updated: "2026-09-18"
+updated: "2026-09-19"
 severity: medium
 component: tooling
 phase:
@@ -15,7 +16,9 @@ related: ["[[CHG-20260902-The-Inbox-Takes-Any-File-Type]]"]
 tests: []
 ---
 
-# Nothing detects a stale or broken vendored cockpit
+# No check notices a missing or out-of-date cockpit copy
+
+Nothing warns when a fleet repo's `tools/cockpit/` copy is missing files, lags the cockpit repo, or differs from the release its `CANONICAL_SHA` stamp names.
 
 ## Problem
 
@@ -43,3 +46,12 @@ Some check answers "does every repo have the cockpit its stamp claims, and how f
 
 Found while settling project-os-dev's open issues (FEAT-0036). The template's `tools/cockpit/` was last released on 2026-09-02 (project-os c24bdff) and 19 files in it now differ from this repository's `src/project_os_cockpit/`. your-trainer's copy has two files of its own, `publication.py` and `server.py`, which the sync reports as local content on every run and leaves alone. Nothing reported either until a person read the sync's output.
 
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** A repo can launch an old or incomplete cockpit while its stamp says it is current, and nobody finds out until a person compares the files by hand. Today every copy happens to match, but only because the last sync was done by hand.
+
+Evidence: All 13 repos under ~/Dev/repos carry `tools/cockpit/CANONICAL_SHA` = c665cf8f with a `src/` directory, and a hash of every `src/**/*.py` is identical across them (0ed2d15704), so the 2026-09-02 and 2026-09-18 symptoms are gone. The check is still missing: `grep -in cockpit tools/scripts/fleet-drift.py` only mentions the cockpit as a validator repo (lines 12, 17), and no script in project-os or project-os-cockpit other than `release-to-project-os.sh` (which writes the stamp) reads `CANONICAL_SHA`. `git log c665cf8..HEAD -- src` shows the cockpit has already moved one commit past the stamp.
+
+**Belongs to:** no feature. **Next:** Bigger: extend `fleet-drift.py` (or the template sync) to compare each copy's content hash with the stamp and report missing `src/` and commits behind.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

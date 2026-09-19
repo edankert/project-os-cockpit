@@ -2,12 +2,13 @@
 type: "[[issue]]"
 id: ISS-0184
 aliases: ["ISS-0184"]
-title: "The checkbox write path addresses by position and nothing guards it — the reproduction was against a transient file state and is WITHDRAWN, the latent fragility is real"
+title: "Clicking a checkbox in a Markdown document can tick a different line if the page shows fewer checkboxes than the file holds"
 status: "open"
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-17
-updated: "2026-08-17"
+updated: "2026-09-19"
+reported_by: user:edwin
 source: ["Edwin 2026-08-17: 'I thought we would have the checkboxes in the acceptance-tests.md to have 3 states and we would allow to add text there'", "Reproduced against a throwaway copy of ../your-trainer's suite on 2026-08-17"]
 severity: medium
 component: cockpit-server
@@ -16,7 +17,9 @@ related: ["[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]", "[[FEAT-0104
 tests: []
 ---
 
-# Clicking a checkbox in the acceptance suite writes to a different row
+# Clicking a checkbox can tick a different line than the one clicked
+
+When a document shows fewer checkboxes than its source file contains, clicking one can write the tick to a later line, and the cockpit still reports success. This does not happen today on any known file; nothing stops it from happening.
 
 ## Reproduced, not reasoned
 
@@ -104,3 +107,13 @@ So the fix is unchanged and is now justified by fragility rather than by a live 
 ## The lesson, recorded because it is the second time this session
 
 A number measured once and then reused across several steps is a single point of failure, and mine was read from a file somebody else was editing. Measurements that a decision rests on get re-taken at the moment of the decision — and a reproduction has to derive its expectation independently of the claim it is testing.
+
+## Checked against the code, 2026-09-19: still true, kept
+
+**What a user notices:** In a document where one task list is swallowed by the paragraph above it (no blank line between them), every checkbox after that point ticks the line below the one clicked. The page says the write worked.
+
+Evidence: the client sends only the checkbox's position among the rendered boxes (desktop/src/renderer/renderer.ts:2851-2867, `Array.from(all).indexOf(tgt)`). The server's `_toggle_task_at` (src/project_os_cockpit/server.py:4266-4310) walks the source file's task lines and ticks the Nth one, with no check that the rendered and source counts agree. The labelling path does refuse in that case (`renderer._annotate_checkbox_source` omits `data-raw`, read at renderer.ts:2153), so the guard exists and the write path does not use it. This is a **small fix**: refuse the toggle in the client when the clicked box has no `data-raw` (or send `data-raw` and have the server compare it with the line it is about to change), with one test using a file whose task list follows a paragraph line.
+
+**Belongs to:** no open feature (the acceptance checks moved to notes and no longer use this endpoint). **Next:** small fix in `_serve_check_toggle`/the renderer change handler, with a failing test first.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

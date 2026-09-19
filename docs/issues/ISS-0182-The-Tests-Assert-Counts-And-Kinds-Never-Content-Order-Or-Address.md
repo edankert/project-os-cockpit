@@ -3,11 +3,12 @@ type: "[[issue]]"
 id: ISS-0182
 aliases: ["ISS-0182"]
 title: "The tests assert counts and kinds and never the content, the order or the address — every bug Edwin reported personally shipped without a regression test, and three of them can be reintroduced with the full suite green"
-status: "open"
+status: fixed
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-16
-updated: 2026-08-16
+updated: "2026-09-19"
+reported_by: review
 source: ["Independent mutation audit of PHASE-034, 2026-08-16; load-bearing claims re-verified by execution"]
 severity: high
 component: cockpit-server
@@ -47,3 +48,11 @@ An independent mutation audit ran the full suite against deliberate breakages. S
 ## Expected
 
 Regression tests for the three defects Edwin reported personally, since all three shipped without one; a fixture with more than one release, because ordering is unobservable with one; a `preparing` release reaching the payload; and any test at all for the release page.
+
+## Checked against the code, 2026-09-19: already done
+
+Evidence: every gap the audit named now has a test or is gone. The release page has tests: `renderReleasePage`/`buildReleasePage` appear in 3 test files and `~release` in 7, including tests/test_release_page.py. A `preparing` release reaches `release_payload` in 8 test files (`grep -rln preparing tests | xargs grep -ln release_payload`). The ISS-0179 ordering inversion has regression tests at tests/test_release_record.py:242-290 and tests/test_publication_ladder.py:430-458; ISS-0180's grouping at tests/test_release_record.py:366. The `shipped = held is not None` mutation is now guarded by the status: src/project_os_cockpit/publication.py:1312 reads `held is not None and held["status"] == "released"`. The dead `acceptance.locate`/`rewrite_check` pair was deleted, because checks are addressed by id (acceptance.py:2328). One stale line remains in the docs, not the code: docs/features/publication-view/FEAT-0103-The-Gate-Is-Walkable.md:61 is ticked and still cites `test_editing_a_row_above_does_not_move_the_target`, which exists nowhere in `tests/`.
+
+**Belongs to:** PHASE-034 follow-up; no open feature. **Next:** a one-line docs edit to FEAT-0103:61 saying the test was retired with the walker; no code change.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).

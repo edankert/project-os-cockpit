@@ -3,10 +3,11 @@ type: "[[issue]]"
 id: ISS-0208
 aliases: ["ISS-0208"]
 title: "`tier:` still decides whether an attributed check gates — ADR-0034 decision 6 says retire the rule, and nine sites still read it"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-09-19"
+reported_by: agent
 severity: medium
 component: acceptance
 phase: "[[PHASE-999-Future]]"
@@ -48,3 +49,11 @@ Retirement is conditional on the backfill ([[TASK-0499-Backfill-The-Eighty-Three
 - [ ] `blocking_for` reads no `tier:`.
 - [ ] `GATING_TIERS` is gone, including the `gating` payload key, or is demonstrably presentational only.
 - [ ] The gate delta from retirement is measured per repo and stated before it lands.
+
+## Checked against the code, 2026-09-19: already done
+
+Evidence: `GATING_TIERS` and `PERMANENT_TIERS` are gone (src/project_os_cockpit/acceptance.py:46 records their removal; no other hits). `blocking_for` now filters on `section_of(item) not in MANUAL_SECTIONS` (acceptance.py:620-631), not on `tier:`. The `gating` payload key survives only as `gating: manual`, derived from the section (acceptance.py:1862-1871 and 2023), so it is presentational. The six unwalked Tier 3 checks were decided by ADR-0039: the docstring at acceptance.py:610-614 says "All 83 gate now … That is the decision, not a side effect", which is reading 2 of this note. The remaining readers of `tier:` (sort order and the release delta) are tracked separately in ISS-0240.
+
+**Belongs to:** PHASE-039 (ADR-0039). **Next:** nothing; ISS-0240 carries the remaining `tier:` reads.
+
+Checked as part of project-os-dev FEAT-0036 (TASK-0141).
