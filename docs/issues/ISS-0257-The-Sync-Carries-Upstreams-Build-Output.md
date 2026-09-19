@@ -9,7 +9,7 @@ created: 2026-08-29
 updated: "2026-09-19"
 severity: low
 component: tooling
-phase: "[[PHASE-999-Future]]"
+phase: ""
 related: ["[[PHASE-041-The-Gate-Runs-Where-The-Checks-Are]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[FEAT-0143-The-Fleet-Runs-One-Validator]]"]
 reported_by: agent
 ---

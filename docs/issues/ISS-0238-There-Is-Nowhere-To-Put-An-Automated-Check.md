@@ -10,7 +10,7 @@ updated: "2026-09-19"
 reported_by: agent
 severity: high
 component: cockpit-desktop
-phase: "[[PHASE-999-Future]]"
+phase: ""
 related: ["[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[FEAT-0138-Coverage-Is-Observed-Not-Declared]]", "[[ADR-0008]]", "[[ISS-0235-A-Surface-Wore-Its-Features-Title]]"]
 ---
 

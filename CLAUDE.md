@@ -130,14 +130,14 @@ The validator reports a terminal note carrying an owed verdict with **no** `revi
 
 This lives here rather than in `tools/instructions/QUALITY.md` because that file is template-owned and a sync would report the edit as divergence. The field and the rule are proposed upstream; until then they are this project's.
 
-## Close-out: file what the validator reports and you cannot fix (FEAT-0051)
+## Close-out: fix what the validator reports, and file only what the filing bar admits (FEAT-0051, ADR-0047)
 
 LIFECYCLE step 7 and the close-out skill both say to run `bash tools/scripts/validate-docs.sh` and **fix** what it reports. Neither says what to do when you cannot — and "cannot fix" is precisely the case that needs a human, so it is the one that must leave a record.
 
-**At close-out, every validator error is either fixed or filed.**
+**At close-out, an error this work caused is fixed, never filed.** An error you cannot fix is filed only under the filing bar in `tools/instructions/QUALITY.md` ("The filing bar", ADR-0047): its fix needs Edwin's decision, it lies in code this work did not change, or it is too large for the session. The close-out skill says the same; this section adds only how to file.
 
 1. Run the validator. Fix what you can; most of what appears mid-session is your own half-finished work (`METRICS` is corrected automatically by `sync-snapshot.py` at pre-commit).
-2. For anything still failing that you cannot or should not fix, **create an `ISS-*`** carrying the error's `[CODE]` and message verbatim, linking the note it names.
+2. For an error the filing bar admits, **create an `ISS-*`** carrying the error's `[CODE]` and message verbatim, linking the note it names.
 3. **Dedup on `(code, subject)`** — where subject is the error's note ID, or its repo-relative path, or the literal `SNAPSHOT.yaml` for snapshot-level errors. If an open issue already has that key, update it and note the recurrence; do not file a second.
 4. Closing that issue is what fixing it looks like. There is no separate bookkeeping.
 

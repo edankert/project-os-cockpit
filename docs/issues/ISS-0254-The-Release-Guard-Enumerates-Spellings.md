@@ -10,7 +10,7 @@ updated: "2026-09-19"
 source: ["independent review, fifth/sixth/seventh passes while closing PHASE-037, 2026-08-21"]
 severity: medium
 component: cockpit
-phase: "[[PHASE-999-Future]]"
+phase: ""
 related: ["[[ADR-0035-A-Release-Page-Reports-It-Does-Not-Record]]", "[[ISS-0210-The-Release-Page-Offers-Sixty-Live-Marks]]", "[[TASK-0576-An-Exclusion-Says-Why-And-What-It-Cost]]", "[[FEAT-0142-A-Release-Says-What-Is-In-It]]", "[[ISS-0249-Two-Check-Write-Paths-Reach-No-Front-Door]]"]
 tests: []
 reported_by: review

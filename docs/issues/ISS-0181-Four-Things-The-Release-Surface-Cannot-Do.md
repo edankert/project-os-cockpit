@@ -4,7 +4,7 @@ id: ISS-0181
 aliases: ["ISS-0181"]
 title: "Four things the release surface cannot do — mark a check intentionally left open, attach text to one, edit without the page reloading under you, or complete a release"
 status: fixed
-phase: "[[PHASE-999-Future]]"
+phase: ""
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-09-19"

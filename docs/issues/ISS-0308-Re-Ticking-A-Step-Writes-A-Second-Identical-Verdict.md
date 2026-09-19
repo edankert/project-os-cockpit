@@ -4,7 +4,7 @@ id: ISS-0308
 aliases: ["ISS-0308"]
 title: "Re-ticking a step whose check stays owed writes a second identical ledger event, so one walk can leave duplicate verdicts"
 status: fixed
-phase: "[[PHASE-999-Future]]"
+phase: ""
 owner: user:edwin
 created: 2026-09-14
 updated: "2026-09-19"

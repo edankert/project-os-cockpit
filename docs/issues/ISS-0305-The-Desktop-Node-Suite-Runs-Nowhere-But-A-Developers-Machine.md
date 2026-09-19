@@ -5,7 +5,7 @@ aliases: ["ISS-0305"]
 title: "The desktop's node suite runs nowhere but a developer's machine: it needs a build CI never makes, so it skips instead of failing"
 status: declined
 severity: medium
-phase: "[[PHASE-999-Future]]"
+phase: ""
 owner: user:edwin
 created: 2026-09-13
 updated: "2026-09-19"

@@ -363,10 +363,13 @@ def test_close_out_says_to_file_unfixable_validator_errors() -> None:
     # The two halves of the rule, and the thing that stops it duplicating.
     for needed in ("ISS-*", "(code, subject)"):
         assert needed in text, f"the close-out rule lost {needed!r}"
-    assert "fixed or filed" in text, (
-        "the rule's claim is that every validator error is fixed OR filed; "
-        "without that sentence the instruction is just 'fix it' again"
+    # ADR-0047 replaced "fixed or filed": an error this work caused is fixed,
+    # and filing is only for what the template's filing bar admits.
+    assert "caused is fixed, never filed" in text, (
+        "the rule must say an error this work caused is fixed, not filed (ADR-0047)"
     )
+    assert "The filing bar" in text, "the rule must point at QUALITY.md's filing bar"
+    assert "fixed or filed" not in text, "the pre-ADR-0047 wording is back"
 
 
 def test_the_upstream_instruction_still_only_says_fix() -> None:

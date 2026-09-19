@@ -4,7 +4,7 @@ id: ISS-0182
 aliases: ["ISS-0182"]
 title: "The tests assert counts and kinds and never the content, the order or the address — every bug Edwin reported personally shipped without a regression test, and three of them can be reintroduced with the full suite green"
 status: fixed
-phase: "[[PHASE-999-Future]]"
+phase: ""
 owner: user:edwin
 created: 2026-08-16
 updated: "2026-09-19"

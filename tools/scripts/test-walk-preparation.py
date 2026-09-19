@@ -241,6 +241,37 @@ class WalkPreparationTest(unittest.TestCase):
         self.assertEqual([], survey[0].sentences)
         self.assertEqual("SUR-0001", survey[1].parent)
 
+    def test_unscripted_check_readiness_is_platform_specific(self):
+        declared, problems = walk.parse_check_readiness({
+            "ios": {"kind": "decision", "reason": "Choose the iOS scope.",
+                    "issue": "ISS-1001"},
+        }, "check.md")
+        self.assertEqual([], problems)
+        check = walk.Check("TST-1004", "Android backup", "check.md", "Bench",
+                           readiness_for=declared)
+        ios = []
+        android = []
+        walk.render_check(check, ios, "ios")
+        walk.render_check(check, android, "android")
+        self.assertIn("**Needs a decision:** Choose the iOS scope.", "\n".join(ios))
+        self.assertIn("Related issue: ISS-1001.", "\n".join(ios))
+        self.assertNotIn("Needs a decision", "\n".join(android))
+
+    def test_malformed_unscripted_check_readiness_is_reported(self):
+        declared, problems = walk.parse_check_readiness({
+            "ios": {"kind": "decision", "reason": "  "},
+            "iOS": {"kind": "preparation", "reason": "Find the device."},
+        }, "check.md")
+        self.assertEqual({}, declared)
+        self.assertEqual(2, len(problems))
+        self.assertTrue(all("walk_readiness_for" in problem for problem in problems))
+        check = walk.Check("TST-1004", "Bad readiness", "check.md", "Bench",
+                           readiness_for=declared, readiness_problems=problems)
+        self.assertEqual("decision", walk.check_readiness(check, "ios")["kind"])
+        rendered = []
+        walk.render_check(check, rendered, "ios")
+        self.assertIn("Needs a decision", "\n".join(rendered))
+
 
 if __name__ == "__main__":
     unittest.main()

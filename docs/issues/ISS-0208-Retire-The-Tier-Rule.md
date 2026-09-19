@@ -10,7 +10,7 @@ updated: "2026-09-19"
 reported_by: agent
 severity: medium
 component: acceptance
-phase: "[[PHASE-999-Future]]"
+phase: ""
 related: ["[[ADR-0034-Three-Axes-Not-One-Word]]", "[[REQ-0043-Gating-Is-A-Property-Of-The-Link]]", "[[TASK-0499-Backfill-The-Eighty-Three]]"]
 ---
 
