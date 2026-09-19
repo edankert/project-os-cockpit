@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>DES-0015 — The cockpit in layers</title>
+<!--
+  Mockup plates for DES-0015. No network, no scripts beyond the theme toggle,
+  no images. Tokens are declared verbatim from src/project_os_cockpit/static/
+  base.css (both schemes, the implementation's order) so the parity check
+  compares light against light. Every number drawn here is a value measured
+  on this repository's own sidecar on 2026-09-17 — see the note's Problem.
+-->
+<style>
+:root {
+  --bg: hsl(0 0% 99%); --surface: hsl(0 0% 96%); --surface-2: hsl(0 0% 92%);
+  --border: hsl(0 0% 86%); --border-strong: hsl(0 0% 76%);
+  --text: hsl(0 0% 13%); --text-muted: hsl(0 0% 38%); --text-faint: hsl(0 0% 55%);
+  --accent-link: hsl(212 48% 42%); --accent-link-hover: hsl(212 55% 35%); --accent-focus: hsl(212 60% 50%);
+  --status-active: hsl(140 32% 38%); --status-pending: hsl(220 14% 48%); --status-done: hsl(160 28% 38%);
+  --status-archived: hsl(0 0% 48%); --status-blocked: hsl(5 48% 46%); --status-reference: hsl(180 24% 40%); --status-default: hsl(0 0% 45%);
+  --severity-critical: hsl(5 60% 46%); --severity-high: hsl(20 60% 46%); --severity-medium: hsl(45 55% 42%); --severity-low: hsl(0 0% 50%);
+  --error-fg: hsl(5 48% 38%); --error-bg: hsl(5 38% 96%); --warn-fg: hsl(36 50% 32%); --warn-bg: hsl(36 50% 95%);
+  --code-bg: hsl(0 0% 95%); --code-text: hsl(0 0% 18%);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --radius: 4px; --radius-lg: 6px; --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.04);
+}
+[data-theme="dark"] {
+  --bg: hsl(0 0% 11%); --surface: hsl(0 0% 14%); --surface-2: hsl(0 0% 17%);
+  --border: hsl(0 0% 22%); --border-strong: hsl(0 0% 32%);
+  --text: hsl(0 0% 87%); --text-muted: hsl(0 0% 65%); --text-faint: hsl(0 0% 50%);
+  --accent-link: hsl(212 50% 65%); --accent-link-hover: hsl(212 55% 72%); --accent-focus: hsl(212 55% 60%);
+  --status-active: hsl(140 32% 60%); --status-pending: hsl(220 14% 65%); --status-done: hsl(160 28% 60%);
+  --status-archived: hsl(0 0% 58%); --status-blocked: hsl(5 50% 65%); --status-reference: hsl(180 24% 60%); --status-default: hsl(0 0% 60%);
+  --severity-critical: hsl(5 60% 65%); --severity-high: hsl(20 60% 65%); --severity-medium: hsl(45 55% 60%); --severity-low: hsl(0 0% 62%);
+  --error-fg: hsl(5 50% 70%); --error-bg: hsl(5 30% 18%); --warn-fg: hsl(36 48% 65%); --warn-bg: hsl(36 30% 18%);
+  --code-bg: hsl(0 0% 16%); --code-text: hsl(0 0% 88%); --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.4);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font-sans); }
+body { padding: 24px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+.lead { color: var(--text-muted); margin: 0 0 18px; max-width: 900px; }
+.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; color: var(--text-muted); font-size: 12px; }
+button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: var(--radius); cursor: pointer; }
+.plate { width: 1160px; margin: 0 0 40px; }
+.plate > .cap { font-size: 12px; color: var(--text-muted); margin: 6px 0 0; }
+.plate > .ttl { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: var(--text); }
+.mono { font-family: var(--font-mono); }
+.id { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent-link); }
+.muted { color: var(--text-muted); } .faint { color: var(--text-faint); }
+.s11 { font-size: 11px; } .s12 { font-size: 12px; }
+/* window frame */
+.win { display: grid; grid-template-columns: 44px 240px 1fr; grid-template-rows: 36px 1fr 24px; height: 700px; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); box-shadow: var(--shadow-soft); }
+.win.no-nav { grid-template-columns: 44px 1fr; }
+.win.with-right { grid-template-columns: 44px 240px 1fr 280px; }
+.top { grid-column: 1 / -1; display: flex; align-items: center; gap: 4px; padding: 0 10px 0 84px; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 12px; }
+.top .mode { padding: 4px 9px; border-radius: var(--radius); color: var(--text-muted); position: relative; }
+.top .mode.on { background: var(--surface-2); color: var(--text); }
+.top .mode b { position: absolute; top: -3px; right: -2px; background: var(--status-blocked); color: #fff; font-size: 9px; padding: 0 4px; border-radius: 8px; line-height: 13px; font-weight: 600; }
+.top .search { margin-left: auto; margin-right: auto; width: 360px; border: 1px solid var(--border); border-radius: var(--radius); padding: 3px 10px; color: var(--text-faint); background: var(--bg); }
+.rail { border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; align-items: center; padding-top: 8px; gap: 8px; }
+.sq { width: 28px; height: 28px; border-radius: 6px; background: var(--surface-2); position: relative; }
+.sq.on { outline: 2px solid var(--accent-focus); }
+.sq i { position: absolute; right: -4px; top: -4px; min-width: 14px; height: 14px; border-radius: 7px; font-style: normal; font-size: 9px; line-height: 14px; text-align: center; color: #fff; background: var(--status-blocked); padding: 0 3px; font-weight: 600; }
+.sq u { position: absolute; left: -3px; bottom: -3px; width: 8px; height: 8px; border-radius: 4px; background: var(--status-active); border: 1px solid var(--surface); }
+.nav { border-right: 1px solid var(--border); background: var(--surface); padding: 10px 10px; overflow: hidden; font-size: 12px; }
+.nav h4 { margin: 8px 0 4px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; }
+.nav .it { display: flex; gap: 6px; padding: 3px 4px; border-radius: var(--radius); white-space: nowrap; overflow: hidden; }
+.nav .it.on { background: var(--surface-2); }
+.nav .it .t { overflow: hidden; text-overflow: ellipsis; }
+.nav .fold { color: var(--text-faint); padding: 3px 4px; }
+.stage { padding: 20px 26px; overflow: hidden; }
+.right { border-left: 1px solid var(--border); background: var(--surface); padding: 12px; font-size: 12px; overflow: hidden; }
+.right h4 { margin: 6px 0 6px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.foot { grid-column: 1 / -1; border-top: 1px solid var(--border); background: var(--surface); font-size: 11px; color: var(--text-muted); padding: 0 10px; display: flex; align-items: center; gap: 10px; }
+/* pieces */
+.badge { display: inline-block; font-size: 10.5px; padding: 0 7px; border-radius: 9px; border: 1px solid currentColor; line-height: 16px; vertical-align: middle; }
+.b-active { color: var(--status-active); } .b-pending { color: var(--status-pending); } .b-done { color: var(--status-done); }
+.b-blocked { color: var(--status-blocked); } .b-archived { color: var(--status-archived); } .b-ref { color: var(--status-reference); }
+.sev { display: inline-block; font-size: 10.5px; padding: 0 7px; border-radius: 3px; color: #fff; line-height: 16px; }
+.sev.critical { background: var(--severity-critical); } .sev.high { background: var(--severity-high); } .sev.medium { background: var(--severity-medium); color: #111; } .sev.low { background: var(--severity-low); }
+.bar { display: inline-block; height: 5px; width: 120px; background: var(--surface-2); border-radius: 3px; vertical-align: middle; position: relative; overflow: hidden; }
+.bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--status-done); }
+.bar.active > i { background: var(--status-active); } .bar.blocked > i { background: var(--status-blocked); } .bar.warn > i { background: var(--severity-medium); }
+.btn { display: inline-block; font-size: 12px; padding: 3px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); white-space: nowrap; }
+.btn.primary { background: var(--accent-link); border-color: var(--accent-link); color: #fff; }
+.btn.quiet { border-color: transparent; color: var(--text-muted); }
+.card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 12px 14px; margin-bottom: 12px; box-shadow: var(--shadow-soft); }
+.card h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.card h3 .n { color: var(--text); font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--border); }
+.row:first-of-type { border-top: 0; }
+.row .l { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.row .l .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .r { display: flex; gap: 10px; align-items: center; white-space: nowrap; font-size: 12px; color: var(--text-muted); }
+.hdr { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 12px; }
+.hdr h2 { margin: 0; font-size: 18px; }
+.hdr .sub { color: var(--text-muted); font-size: 12px; }
+.sec { margin: 14px 0 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; }
+.pin { display: inline-block; width: 18px; height: 18px; border-radius: 9px; background: var(--severity-high); color: #fff; font-size: 11px; line-height: 18px; text-align: center; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+.legend { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.legend b { color: var(--text); }
+/* layer diagram */
+.layers { display: grid; grid-template-columns: 90px 1.1fr 1.6fr 1.4fr 90px; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; font-size: 12.5px; }
+.layers > div { padding: 10px 12px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: var(--surface); }
+.layers > div:nth-child(5n) { border-right: 0; }
+.layers > .h { background: var(--surface-2); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.layers .L { font-weight: 700; font-size: 14px; }
+.layers .L small { display: block; font-weight: 400; color: var(--text-muted); font-size: 11px; }
+.layers .num { font-family: var(--font-mono); font-size: 12px; text-align: right; }
+.layers .num small { display: block; color: var(--text-faint); font-family: var(--font-sans); font-size: 10.5px; }
+/* thread */
+.tl { border-left: 2px solid var(--border-strong); margin: 6px 0 0 8px; padding-left: 16px; }
+.tl .ev { position: relative; padding: 4px 0; font-size: 12.5px; }
+.tl .ev::before { content: ""; position: absolute; left: -22px; top: 11px; width: 8px; height: 8px; border-radius: 4px; background: var(--status-pending); }
+.tl .ev.done::before { background: var(--status-done); } .tl .ev.agent::before { background: var(--status-active); } .tl .ev.ask::before { background: var(--severity-high); }
+.fold { border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: 6px 10px; color: var(--text-muted); font-size: 12px; }
+/* strip */
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.strip .pane { border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 12px; min-height: 250px; }
+.strip .pane h5 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.kbd { font-family: var(--font-mono); font-size: 10.5px; border: 1px solid var(--border-strong); border-radius: 3px; padding: 0 4px; color: var(--text-muted); }
+.thumb { width: 150px; height: 96px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: repeating-linear-gradient(45deg, var(--surface-2) 0 6px, var(--surface) 6px 12px); display: inline-block; vertical-align: top; }
+</style>
+</head>
+<body>
+<h1>DES-0015 — The cockpit in layers</h1>
+<p class="lead">Plates for the design note beside this page. Every count is this repository's own, read from its sidecar on 2026-09-17: 33 things need a person (18 to triage, 12 commits to push, 2 requirements to approve, 1 ADR to decide), one feature in flight, a release gate blocked by 3 unwalked checks, 148 transitions since the last <em>Caught up</em>.</p>
+<div class="toolbar"><button class="tg" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">Toggle theme</button><span>Drawn dark by default; the shell's light scheme is the same tokens.</span></div>
+
+<!-- ===================================================================== -->
+<section class="plate" id="plate-layers">
+  <p class="ttl">Plate 1 — Five layers of data, and what each one costs</p>
+  <div class="layers">
+    <div class="h">Layer</div><div class="h">Where a person meets it</div><div class="h">What it shows</div><div class="h">Data it needs (all of it already served)</div><div class="h">Budget</div>
+
+    <div class="L">L0<small>Glance</small></div>
+    <div>Rail square · fleet page · <b>Dock badge</b> (new)</div>
+    <div>Four facts per project, no titles: <b>needs you</b> by verb, <b>agent</b> state, <b>unpushed</b> count and age, <b>release</b> gate clear or blocked</div>
+    <div><span class="mono s11">/api/cockpit/obligations</span> (1.1 KB) · agent state · <span class="mono s11">history.unpublished_count</span> · <span class="mono s11">release.gate.counts</span></div>
+    <div class="num">≤ 2 KB<small>per project</small></div>
+
+    <div class="L">L1<small>Home</small></div>
+    <div>The first screen of a project, replacing the overview</div>
+    <div>Three cards: <b>Needs you</b> (one row per verb group), <b>In flight</b> (the focus feature with its bars and its agent), <b>Shipping</b> (commits, gate, walk). One line for <em>since you looked</em>. The active phase as one row.</div>
+    <div>landing rows trimmed to 3 per group · <span class="mono s11">stats.focus</span> · one feature progress slice · gate counts · digest counts only</div>
+    <div class="num">≈ 30 KB<small>today: 772 KB</small></div>
+
+    <div class="L">L2<small>Flow</small></div>
+    <div>Four views: <b>Design</b> · <b>Build</b> · <b>Verify</b> · <b>Issues</b></div>
+    <div>Subjects, ordered by state: needs you → in flight → queued → done (folded to a count). Each row: badge, one labelled bar, next action, age.</div>
+    <div>nav payload per view with terminal groups sent as counts and fetched on expand</div>
+    <div class="num">≈ 20 KB<small>today: 150–350 KB</small></div>
+
+    <div class="L">L3<small>Subject</small></div>
+    <div>A feature, design, issue, release or check</div>
+    <div>Header card (frontmatter distilled: badges, bars, the next action), <b>what happened</b> as a timeline, the note body, related notes. Agent sessions folded.</div>
+    <div><span class="mono s11">/api/render</span> · <span class="mono s11">/api/cockpit/context</span> · history filtered to the subject · check history</div>
+    <div class="num">as today<small>one note</small></div>
+
+    <div class="L">L4<small>Record</small></div>
+    <div>Opened on purpose from L3</div>
+    <div>Raw frontmatter, ledger events, validator report (384 warnings here), session cost and cache, commits, the library, all phases, all counts</div>
+    <div>everything else the sidecar serves</div>
+    <div class="num">on demand<small>never on screen 1</small></div>
+  </div>
+  <p class="cap">Each click adds one level. A count at L0 opens a row at L1, a row opens a page at L3, and the record sits behind a fold. Nothing at L0–L2 is a raw note.</p>
+</section>
+
+<!-- ===================================================================== -->
+<section class="plate" id="plate-home">
+  <p class="ttl">Plate 2 — Home (L1): the three cards, drawn with today's numbers for this repository</p>
+  <div class="win no-nav">
+    <div class="top"><span class="mode on">Home</span><span class="mode">Design<b>1</b></span><span class="mode">Build<b>2</b></span><span class="mode">Verify</span><span class="mode">Issues<b>18</b></span><span class="search">Search files, IDs, or commands…  ⌘P</span><span class="muted">Record ▸</span></div>
+    <div class="rail"><div class="sq on"><i>33</i><u></u></div><div class="sq"><i>89</i></div><div class="sq"></div><div class="sq"><i>4</i></div><div class="sq"></div><div class="sq"></div></div>
+    <div class="stage">
+      <div class="hdr"><h2>project-os-cockpit</h2><span class="sub">Since you looked, 8 days ago: 148 changes · 3 of them need you <a class="btn quiet">Caught up</a></span></div>
+
+      <div class="card">
+        <h3>Needs you <span class="n">33</span><span class="pin">1</span></h3>
+        <div class="row"><div class="l"><span class="badge b-blocked">triage</span><span class="t"><b>18 issues</b> · newest ISS-0309 A procedure's expectation quote is checked against nothing…</span></div><div class="r"><span class="sev high">6 high</span><span>oldest 71 d</span><span class="btn primary">Triage next</span></div></div>
+        <div class="row"><div class="l"><span class="badge b-pending">publish</span><span class="t"><b>12 commits</b> unpushed · oldest 3 d · origin github</span></div><div class="r"><span class="btn primary">Push</span></div></div>
+        <div class="row"><div class="l"><span class="badge b-pending">draft</span><span class="t"><b>2 requirements</b> · REQ-0032 The two front doors agree, or differ on the record · REQ-0034</span></div><div class="r"><span class="btn">Approve…</span></div></div>
+        <div class="row"><div class="l"><span class="badge b-pending">proposed</span><span class="t"><b>1 ADR</b> · ADR-0026 Remote workspace transport · 12 d</span></div><div class="r"><span class="btn">Decide…</span></div></div>
+      </div>
+
+      <div class="card">
+        <h3>In flight <span class="n">1</span><span class="pin">2</span></h3>
+        <div class="row"><div class="l"><span class="id">FEAT-0151</span><span class="t"><b>The release walk has one clear next action</b></span><span class="badge b-active">doing</span></div><div class="r"><span class="btn">Open</span></div></div>
+        <div class="row" style="border-top:0;padding-top:0"><div class="l s12 muted">tasks <span class="bar active"><i style="width:67%"></i></span> 2 / 3 &nbsp;·&nbsp; checks <span class="bar warn"><i style="width:0"></i></span> 0 / 1 owed &nbsp;·&nbsp; criteria <span class="bar"><i style="width:60%"></i></span> 3 / 5</div><div class="r"><span style="color:var(--status-active)">●</span> Claude · working on TASK-0631 · Read · 2 min ago</div></div>
+      </div>
+
+      <div class="card">
+        <h3>Shipping<span class="pin">3</span></h3>
+        <div class="row"><div class="l"><span class="t"><b>Next release</b> · accumulating · 115 features done since 1.0.0</span><span class="badge b-blocked">gate blocked</span></div><div class="r"><span>3 unwalked · macos</span><span class="btn primary">Walk them</span></div></div>
+        <div class="row"><div class="l"><span class="t"><b>Automated</b> · 43 tests</span><span class="badge b-archived">no run recorded</span></div><div class="r"><span class="btn">Run</span></div></div>
+      </div>
+
+      <div class="sec"><span>Phases · 1 active</span><span class="muted">all 44 ▸</span></div>
+      <div class="row" style="border-top:0"><div class="l"><span class="id">PHASE-028</span><span class="t">Borrowed capability — the cockpit takes what adjacent agent harnesses have already proven</span><span class="badge b-active">active</span></div><div class="r">items <span class="bar"><i style="width:0"></i></span> 0 / 9 · 3 attention</div></div>
+    </div>
+    <div class="foot"><span>● sidecar: ready</span><span>~home</span><span style="margin-left:auto">counts · validator 384 warnings · record ▸</span></div>
+  </div>
+  <p class="cap"><b>1</b> One row per verb group, the newest subject named, the verb as the only button. Twelve commits are one row. <b>2</b> The bars say what they count. The agent line is the strip's first three facts; cost and cache move to the record. <b>3</b> The ladder rung and the gate, never the 115-row list. The overview's six tiles, 44 phases and 148 transitions are one click away under <em>Record</em>.</p>
+</section>
+
+<!-- ===================================================================== -->
+<section class="plate" id="plate-build">
+  <p class="ttl">Plate 3 — Build (L2): the implementation flow as subjects ordered by state, not 43 phase groups</p>
+  <div class="win">
+    <div class="top"><span class="mode">Home</span><span class="mode">Design<b>1</b></span><span class="mode on">Build<b>2</b></span><span class="mode">Verify</span><span class="mode">Issues<b>18</b></span><span class="search">Search files, IDs, or commands…  ⌘P</span></div>
+    <div class="rail"><div class="sq on"><i>33</i><u></u></div><div class="sq"><i>89</i></div><div class="sq"></div><div class="sq"><i>4</i></div><div class="sq"></div></div>
+    <div class="nav">
+      <h4>Approve <span>2</span></h4>
+      <div class="it"><span class="id">REQ-0032</span><span class="t">The two front doors agree…</span></div>
+      <div class="it"><span class="id">REQ-0034</span><span class="t">A write from a non-loopback…</span></div>
+      <h4>Now <span>1</span></h4>
+      <div class="it on"><span class="id">FEAT-0151</span><span class="t">The release walk has one…</span></div>
+      <h4>Next · PHASE-028 <span>2</span></h4>
+      <div class="it"><span class="id">FEAT-0080</span><span class="t">The h…</span></div>
+      <div class="it"><span class="id">FEAT-0079</span><span class="t">Sup…</span></div>
+      <div class="fold">▸ 4 planned phases · 6 features</div>
+      <div class="fold">▸ Future · 2</div>
+      <h4>Done since 1.0.0 <span>115</span></h4>
+      <div class="fold">▸ folded · open in Verify to ship</div>
+      <div class="fold">▸ 27 closed phases</div>
+    </div>
+    <div class="stage">
+      <div class="hdr"><h2>Build</h2><span class="sub">1 in flight · 2 need you · 8 queued · 115 done since the last release</span></div>
+      <div class="sec"><span>Approve · 2</span></div>
+      <div class="row"><div class="l"><span class="id">REQ-0032</span><span class="t">The two front doors agree, or differ on the record</span><span class="badge b-pending">draft</span></div><div class="r"><span>criteria 0 / 4</span><span>for FEAT-0083</span><span class="btn">Approve…</span></div></div>
+      <div class="row"><div class="l"><span class="id">REQ-0034</span><span class="t">A write from a non-loopback surface proves who is asking</span><span class="badge b-pending">draft</span></div><div class="r"><span>criteria 0 / 3</span><span>unattached</span><span class="btn">Approve…</span></div></div>
+      <div class="sec"><span>Now · 1</span></div>
+      <div class="row"><div class="l"><span class="id">FEAT-0151</span><span class="t">The release walk has one clear next action</span><span class="badge b-active">doing</span></div><div class="r"><span>tasks <span class="bar active"><i style="width:67%"></i></span> 2/3</span><span style="color:var(--status-active)">●</span><span>Claude · TASK-0631</span><span class="btn">Open</span></div></div>
+      <div class="sec"><span>Next · PHASE-028 Borrowed capability · 2</span><span>0 / 9 · 3 attention</span></div>
+      <div class="row"><div class="l"><span class="id">FEAT-0080</span><span class="t">The hooks the harness already fires reach the cockpit</span><span class="badge b-active">doing</span></div><div class="r"><span>tasks <span class="bar active"><i style="width:20%"></i></span> 1/5</span><span class="btn quiet">Open</span></div></div>
+      <div class="row"><div class="l"><span class="id">FEAT-0079</span><span class="t">Supervised sessions borrow the harness's permission model</span><span class="badge b-pending">planned</span></div><div class="r"><span>tasks 0/4</span><span class="btn quiet">Open</span></div></div>
+      <div class="fold" style="margin-top:8px">▸ PHASE-029 · PHASE-031 · PHASE-033 · PHASE-999 — 6 features planned, 10 attention marks</div>
+      <div class="sec"><span>Done since 1.0.0 · 115</span><span>ship them in Verify ▸</span></div>
+      <div class="fold">▸ 115 features, 27 phases — folded. Expanding fetches them.</div>
+    </div>
+    <div class="foot"><span>● sidecar: ready</span><span>~build</span></div>
+  </div>
+  <p class="cap">The navigator and the page carry the same sections. A phase is a heading inside <em>Next</em>, not a container for everything ever done; the 43 groups the features view sends today become one active phase, one fold for the planned ones and one fold for the closed ones. <em>Approve</em> sits here because a requirement's approval is the hand-off from design to build (ADR-0028).</p>
+</section>
+
+<!-- ===================================================================== -->
+<section class="plate" id="plate-subject">
+  <p class="ttl">Plate 4 — A feature (L3): the header says the state, the timeline says what happened, the note follows</p>
+  <div class="win with-right">
+    <div class="top"><span class="mode">Home</span><span class="mode">Design<b>1</b></span><span class="mode on">Build<b>2</b></span><span class="mode">Verify</span><span class="mode">Issues<b>18</b></span><span class="search">Search files, IDs, or commands…  ⌘P</span></div>
+    <div class="rail"><div class="sq on"><i>33</i><u></u></div><div class="sq"><i>89</i></div><div class="sq"></div><div class="sq"><i>4</i></div></div>
+    <div class="nav">
+      <h4>Now <span>1</span></h4>
+      <div class="it on"><span class="id">FEAT-0151</span><span class="t">The release walk has one…</span></div>
+      <div class="it" style="padding-left:18px"><span class="id">TASK-0629</span><span class="t">Show one walk action</span><span class="badge b-done">done</span></div>
+      <div class="it" style="padding-left:18px"><span class="id">TASK-0630</span><span class="t">Record and resume</span><span class="badge b-done">done</span></div>
+      <div class="it" style="padding-left:18px"><span class="id">TASK-0631</span><span class="t">Verify the guided walk</span><span class="badge b-active">doing</span></div>
+      <h4>Next · PHASE-028 <span>2</span></h4>
+      <div class="it"><span class="id">FEAT-0080</span><span class="t">The h…</span></div>
+      <div class="it"><span class="id">FEAT-0079</span><span class="t">Sup…</span></div>
+    </div>
+    <div class="stage">
+      <div class="card" style="margin-bottom:14px">
+        <div class="row" style="border-top:0;padding-top:0"><div class="l"><span class="id">FEAT-0151</span><span class="badge b-active">doing</span><span class="muted s12">PHASE-028 · owner edwin · updated today</span></div><div class="r"><span class="btn primary">Accept…</span><span class="btn">Run checks</span><span class="btn quiet">…</span></div></div>
+        <div style="font-size:17px;font-weight:600;margin:4px 0 8px">The release walk has one clear next action</div>
+        <div class="s12 muted" style="margin-bottom:8px">A person can perform, record and resume each owed release observation from one focused page with its necessary preparation.</div>
+        <div class="s12 muted">tasks <span class="bar active"><i style="width:67%"></i></span> 2 / 3 &nbsp;·&nbsp; criteria <span class="bar"><i style="width:60%"></i></span> 3 / 5 (REQ-0066) &nbsp;·&nbsp; checks <span class="bar warn"><i style="width:0"></i></span> 0 / 1 owed (TST-0089 partial) &nbsp;·&nbsp; 7 change notes</div>
+        <div class="s12" style="margin-top:8px"><span style="color:var(--status-active)">●</span> Claude · working on TASK-0631 · Read · 2 min ago &nbsp;<span class="faint">frontmatter ▸</span></div>
+      </div>
+      <div class="sec"><span>What happened</span><span class="muted">newest first · 12 events · show agent sessions ▸</span></div>
+      <div class="tl">
+        <div class="ev agent"><b>today 12:54</b> · Claude · TASK-0631 still <span class="badge b-active">doing</span> · 82 renderer cases pass · <span class="muted">session 3 · folded</span></div>
+        <div class="ev done"><b>today</b> · CHG-20260917 Show readiness on unscripted walk cards · <span class="badge b-done">merged</span> · 9a8c73a</div>
+        <div class="ev ask"><b>yesterday</b> · TST-0089 marked <span class="badge b-blocked">partial</span> by edwin · "steps 1–7 walked, step 8 not"</div>
+        <div class="ev done"><b>2026-09-16</b> · TASK-0630 Record and resume walk observations → <span class="badge b-done">done</span> · 476ee97</div>
+        <div class="ev done"><b>2026-09-16</b> · TASK-0629 Show one walk action → <span class="badge b-done">done</span></div>
+        <div class="ev"><b>2026-09-16</b> · created from Your Trainer FEAT-0122 · <span class="badge b-pending">planned</span> → <span class="badge b-active">doing</span></div>
+      </div>
+      <div class="fold" style="margin:10px 0 12px">▸ 3 agent sessions · $12.10 · 2 h 40 min · 25 notes, 6 tests, 5 source files touched</div>
+      <div class="sec"><span>The note</span></div>
+      <div style="font-size:13.5px"><b>Goal.</b> Edwin can open a release walk and see the next screen or action, the exact result to look for, and the control that records it. He can pause and resume without guessing the app state or repeating a valid observation…</div>
+    </div>
+    <div class="right">
+      <h4>Related</h4>
+      <div class="s12">requirement · <span class="id">REQ-0066</span> approved</div>
+      <div class="s12">risk · <span class="id">RISK-0010</span> open</div>
+      <div class="s12">surface · <span class="id">SUR-0004</span> The release walk</div>
+      <div class="s12 faint" style="margin-top:6px">▸ 7 changes · 2 features · 9 backlinks</div>
+      <h4 style="margin-top:14px">Verification</h4>
+      <div class="s12"><span class="id">TST-0089</span> partial · macos · yesterday</div>
+      <div class="s12 faint">▸ verdict history · 2 events</div>
+    </div>
+    <div class="foot"><span>● sidecar: ready</span><span>features/guided-walk/FEAT-0151-….md</span></div>
+  </div>
+  <p class="cap">Today this page opens on a 12-row frontmatter table. The same fields become a header card: status, phase, owner and date as one line, goal as one sentence, relationships as three labelled bars. The context pane's nine groups stay, folded to what has a state. The timeline is the history payload filtered to this subject, with agent sessions collapsed the way Claude's desktop app collapses tool calls.</p>
+</section>
+
+<!-- ===================================================================== -->
+<section class="plate" id="plate-design-flow">
+  <p class="ttl">Plate 5 — Design and review, one flow through four layers</p>
+  <div class="strip">
+    <div class="pane">
+      <h5>L0 · glance</h5>
+      <div style="display:flex;gap:14px;align-items:center;margin:14px 0"><div class="sq on" style="width:40px;height:40px"><i style="font-size:11px;min-width:18px;height:18px;line-height:18px">33</i></div><div class="s12 muted">rail square<br>Dock badge: <b class="mono">89</b> across the fleet</div></div>
+      <div class="s12" style="margin-top:14px">Design owes: <b>Decide 1 · Approve 2</b></div>
+      <div class="s12 faint">a count and a verb, never a title</div>
+    </div>
+    <div class="pane">
+      <h5>L1 · home row</h5>
+      <div class="row" style="border-top:0"><div class="l"><span class="badge b-pending">proposed</span><span class="t s12"><b>1 ADR</b> · ADR-0026 Remote workspace transport</span></div></div>
+      <div class="row"><div class="r" style="justify-content:space-between;width:100%"><span>12 d · 0 revisions since offered</span><span class="btn">Decide…</span></div></div>
+      <div class="s12 faint" style="margin-top:12px">the verb is the button; the row opens L3</div>
+    </div>
+    <div class="pane">
+      <h5>L2 · design view</h5>
+      <div class="sec" style="margin-top:0"><span>Awaiting you · 1</span></div>
+      <div class="s12"><span class="id">ADR-0026</span> Remote workspace… <span class="badge b-pending">proposed</span></div>
+      <div class="sec"><span>Offered · 0</span></div>
+      <div class="sec"><span>Drafting · 1</span></div>
+      <div class="s12"><span class="id">DES-0003</span> Intent page… <span class="badge b-pending">draft</span></div>
+      <div class="sec"><span>Accepted · being built · 2</span></div>
+      <div class="s12"><span class="id">DES-0011</span> Publication… <span class="bar" style="width:60px"><i style="width:80%"></i></span></div>
+      <div class="sec"><span>Implemented · 9</span><span>folded</span></div>
+      <div class="sec"><span>About this project · 10</span><span>folded</span></div>
+    </div>
+    <div class="pane">
+      <h5>L3 · the design</h5>
+      <div class="s12"><span class="id">DES-0015</span> <span class="badge b-pending">proposed</span> · revision 2 · asks you to <b>accept option C first</b></div>
+      <div style="margin:8px 0"><span class="thumb"></span> <span class="thumb" style="width:70px"></span></div>
+      <div class="s12">changed since your last look: <b>plate 2 redrawn</b></div>
+      <div style="margin-top:8px"><span class="btn primary">Accept</span> <span class="btn">Request changes</span> <span class="btn quiet">Decline</span></div>
+      <div class="s12 faint" style="margin-top:8px">then Problem · Approach · Review · frontmatter ▸</div>
+    </div>
+  </div>
+  <p class="cap">A design is its pictures, so at L3 the pictures come before the prose and the decision buttons sit under them. The Intent view's ten standing documents, which lead it today, become the last fold: they are read once a month and decided never. The verbs are the registry's (Decide, Accept, Approve); <em>Request changes</em> writes the existing <span class="mono">review_verdict</span>, no new state.</p>
+</section>
+
+<!-- ===================================================================== -->
+<section class="plate" id="plate-triage">
+  <p class="ttl">Plate 6 — Triage next (L3 for issues): one issue at a time, four dispositions, keyboard first</p>
+  <div class="win no-nav" style="height:520px">
+    <div class="top"><span class="mode">Home</span><span class="mode">Design<b>1</b></span><span class="mode">Build<b>2</b></span><span class="mode">Verify</span><span class="mode on">Issues<b>18</b></span><span class="search">Search files, IDs, or commands…  ⌘P</span></div>
+    <div class="rail"><div class="sq on"><i>33</i><u></u></div><div class="sq"><i>89</i></div><div class="sq"></div></div>
+    <div class="stage">
+      <div class="hdr"><h2>Triage</h2><span class="sub">1 of 18 · newest first · <span class="kbd">j</span> <span class="kbd">k</span> to move</span></div>
+      <div class="card">
+        <div class="row" style="border-top:0;padding-top:0"><div class="l"><span class="id">ISS-0309</span><span class="sev high">high</span><span class="badge b-blocked">triage</span><span class="muted s12">filed by Claude · yesterday · found by TST-0089 step 8 · macos</span></div><div class="r"><span class="faint s12">frontmatter ▸</span></div></div>
+        <div style="font-size:16px;font-weight:600;margin:6px 0 10px">A procedure's expectation quote is checked against nothing when its check states no Expect section</div>
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <span class="thumb"></span>
+          <div class="s12" style="flex:1"><b>Observed.</b> The walk page shows the step's quote as satisfied although the check has no <span class="mono">## Expect</span> to compare against. <br><b>Affects.</b> SUR-0004 The release walk · FEAT-0150 · the gate for the next release. <br><b>Proposed fix.</b> Refuse the procedure line in the bundled validator; 1 file, test exists.</div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+          <span class="btn primary">Accept for fixing <span class="kbd" style="color:#fff;border-color:#fff8">a</span></span>
+          <span class="btn">Defer <span class="kbd">d</span></span>
+          <span class="btn">Decline <span class="kbd">x</span></span>
+          <span class="btn">Duplicate of… <span class="kbd">u</span></span>
+          <span class="muted s12" style="margin-left:auto">severity <span class="sev high">high</span> ▾</span>
+        </div>
+      </div>
+      <div class="s12 muted">Next: <span class="id">ISS-0308</span> Re-ticking a step whose check stays owed writes a second identical ledger event · <span class="sev medium">medium</span> · 2 d</div>
+    </div>
+    <div class="foot"><span>● sidecar: ready</span><span>~issues/triage</span></div>
+  </div>
+  <p class="cap"><em>Accept</em> is <span class="mono">triage → open</span>, <em>Defer</em> and <em>Decline</em> are the existing transitions, <em>Duplicate of</em> is <span class="mono">declined</span> with a <span class="mono">related:</span> link. No new status. <em>Fix</em> appears only after acceptance, so the primary action no longer invites implementation before assessment. The evidence the check produced, the affected surface and the proposed fix are what the decision needs; the note is one fold down.</p>
+</section>
+
+<!-- ===================================================================== -->
+<section class="plate" id="plate-verify">
+  <p class="ttl">Plate 7 — Verify (L2): two scopes, every number labelled with what it counts</p>
+  <div class="win">
+    <div class="top"><span class="mode">Home</span><span class="mode">Design<b>1</b></span><span class="mode">Build<b>2</b></span><span class="mode on">Verify</span><span class="mode">Issues<b>18</b></span><span class="search">Search files, IDs, or commands…  ⌘P</span></div>
+    <div class="rail"><div class="sq on"><i>33</i><u></u></div><div class="sq"><i>89</i></div><div class="sq"></div><div class="sq"><i>4</i></div></div>
+    <div class="nav">
+      <h4>This release <span>3 owed</span></h4>
+      <div class="it"><span class="t">Publication · 1</span></div>
+      <div class="it"><span class="t">Notes and attachments · 1</span></div>
+      <div class="it"><span class="t">The viewer · 1</span></div>
+      <div class="fold">▸ 33 settled screens</div>
+      <h4>In flight <span>1</span></h4>
+      <div class="it"><span class="id">FEAT-0151</span><span class="t">TST-0089 partial</span></div>
+      <h4>Automated <span>43</span></h4>
+      <div class="fold">▸ no run recorded</div>
+      <h4>Retired <span>2</span></h4>
+    </div>
+    <div class="stage">
+      <div class="hdr"><h2>Verify</h2><span class="sub">platform macos ▾ · release: next (accumulating)</span></div>
+      <div class="card">
+        <h3>This release <span class="n">gate blocked</span></h3>
+        <div class="row" style="border-top:0;padding-top:0"><div class="l s12 muted">acceptance checks settled <span class="bar warn" style="width:200px"><i style="width:92%"></i></span> 33 / 36 &nbsp;·&nbsp; 3 owed, all new since 1.0.0, never walked &nbsp;·&nbsp; 0 regressed</div><div class="r"><span class="btn primary">Walk 3</span><span class="btn">Settle…</span></div></div>
+        <div class="row"><div class="l"><span class="muted s12">Publication</span><span class="id">TST-0083</span><span class="t s12">A release is prepared without an editor</span></div><div class="r"><span class="badge b-pending">owed</span></div></div>
+        <div class="row"><div class="l"><span class="muted s12">Notes and attachments</span><span class="id">TST-0086</span><span class="t s12">A note shows the pictures beside it</span></div><div class="r"><span class="badge b-pending">owed</span></div></div>
+        <div class="row"><div class="l"><span class="muted s12">The viewer</span><span class="id">TST-0087</span><span class="t s12">An HTML page opens in the viewer</span></div><div class="r"><span class="badge b-pending">owed</span></div></div>
+        <div class="fold" style="margin-top:8px">▸ 33 settled checks on 11 screens · coverage: 3 features nothing verifies · <span class="btn quiet">Commission checks</span></div>
+      </div>
+      <div class="card">
+        <h3>In flight <span class="n">FEAT-0151</span></h3>
+        <div class="row" style="border-top:0;padding-top:0"><div class="l"><span class="id">TST-0089</span><span class="t s12">A sitting walked step by step on the walk page</span><span class="badge b-blocked">partial</span></div><div class="r"><span>edwin · yesterday · "step 8 not walked"</span><span class="btn">Re-run</span></div></div>
+      </div>
+      <div class="card">
+        <h3>Automated <span class="n">43 tests</span><span class="badge b-archived">no run recorded</span></h3>
+        <div class="s12 muted">The suite carries <span class="mono">command:</span> on 43 notes and the cockpit has never recorded a run. That is stated, not drawn as 1 / 90 passing.</div>
+      </div>
+    </div>
+    <div class="foot"><span>● sidecar: ready</span><span>~verify</span></div>
+  </div>
+  <p class="cap">The tests view today says <em>Nothing owed on tests</em> beside a navigator that says <em>6 of 36 outstanding</em>; the two numbers count different scopes. Here each card names its scope, and the release's gate, walk, settle and coverage are one card instead of four sections. The overview's <em>Tests 1 / 90</em> tile, which counts statuses acceptance checks do not carry, is replaced by the two bars that mean something.</p>
+</section>
+
+</body>
+</html>
