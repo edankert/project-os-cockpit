@@ -134,7 +134,7 @@ This lives here rather than in `tools/instructions/QUALITY.md` because that file
 
 LIFECYCLE step 7 and the close-out skill both say to run `bash tools/scripts/validate-docs.sh` and **fix** what it reports. Neither says what to do when you cannot — and "cannot fix" is precisely the case that needs a human, so it is the one that must leave a record.
 
-**At close-out, an error this work caused is fixed, never filed.** An error you cannot fix is filed only under the filing bar in `tools/instructions/QUALITY.md` ("The filing bar", ADR-0047): its fix needs Edwin's decision, it lies in code this work did not change, or it is too large for the session. The close-out skill says the same; this section adds only how to file.
+**At close-out, an error this work caused is fixed, never filed.** An error you cannot fix is filed only under the filing bar in `tools/instructions/QUALITY.md` ("The filing bar", ADR-0047). This section adds only how to file.
 
 1. Run the validator. Fix what you can; most of what appears mid-session is your own half-finished work (`METRICS` is corrected automatically by `sync-snapshot.py` at pre-commit).
 2. For an error the filing bar admits, **create an `ISS-*`** carrying the error's `[CODE]` and message verbatim, linking the note it names.
