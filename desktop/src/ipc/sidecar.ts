@@ -176,7 +176,7 @@ async function spawnSidecar(
   const existing = sidecars.get(workspace.id);
   if (existing && existing.process.exitCode == null && existing.process.signalCode == null) {
     existing.windowId = window.id;
-    subscribeAgentFocus(window, existing.url);
+    subscribeAgentFocus(window, existing.url, workspace.id);
     setSidecarUrl(workspace.id, existing.url);
     void markOpened(workspace.id);
     send(window, {
@@ -273,7 +273,7 @@ async function spawnSidecar(
   }
 
   await markOpened(workspace.id);
-  subscribeAgentFocus(window, url);
+  subscribeAgentFocus(window, url, workspace.id);
   // Point the instrumentation scripts (FEAT-0019) at the live sidecar.
   setSidecarUrl(workspace.id, url);
   const readyPayload: SidecarReadyPayload = {

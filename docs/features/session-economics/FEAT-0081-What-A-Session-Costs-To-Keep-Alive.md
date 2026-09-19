@@ -7,7 +7,7 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-08-06
-updated: 2026-08-06
+updated: 2026-09-16
 source: ["user:edwin"]
 goal: "The strip already shows ctx% and a dollar total; neither says what the next turn will cost. Read the transcript the cockpit already knows the path to, and say whether the cache is warm, what the prefix weighs, and what resuming cold would cost."
 requirements: []
@@ -31,11 +31,15 @@ release: ""
 reviewed_by: "model:claude-opus-5"
 review_date: 2026-08-06
 review_verdict: approved
-related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]"]
+related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]", "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
 
 ---
 
 # What a session costs to keep alive
+
+## Agent coverage — 2026-09-16
+
+The transcript reader and its warm/cooling/cold cost estimate use Claude Code usage fields. Codex has a separate transcript format and does not provide a verified cache lifetime through the cockpit's current hook feed. A Codex session now shows `cache unknown` in the strip, while the rail may grey an old state based on activity age. That grey state must not be read as measured Codex cache expiry. [[ISS-0312]] keeps exact Codex cache economics open for a supported usage source.
 
 ## Goal
 

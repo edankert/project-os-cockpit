@@ -6,7 +6,7 @@ title: "Capability register: what the cockpit can do today, keyed so a sibling a
 status: active
 owner: user:edwin
 created: 2026-09-06
-updated: 2026-09-14
+updated: 2026-09-16
 scope: "project"
 source:
   - "Edwin 2026-09-06: 'make sure to mark the current cockpit functionality so if any new cockpit functionality arrives which it will that we can adapt the other repo accordingly'"
@@ -85,6 +85,7 @@ Measured from `index.html`, `renderer.ts` and `main.ts` at the baseline.
 | `shell.pages.agents` | all sessions across the fleet | `~agents` |
 | `shell.pages.inbox` | the inbox tray and page: store, discard, triage | `~inbox`, `/api/inbox/*` |
 | `shell.agents.strip` | agent strip: state dot, cost, context used, conversation weight, cache temperature, touched notes, dispatch queue button, expand | `#agent-strip` |
+| `shell.agents.usage` | **Newly registered 2026-09-16 ([[FEAT-0035]], [[TASK-0628]]).** Account usage at the sidebar foot: separate Claude 5h/7d and OpenAI 7d percentage bars, colour thresholds, reset times and per-provider freshness. Claude uses statusline readings; OpenAI reads the signed-in Codex account through a bounded app-server request every two minutes. Missing quotas are hidden; failed reads retain the last reading and its age. | `#ws-attention`, `ipc/codex-usage.ts`, `agents:codex-usage` |
 | `shell.agents.attention` | agents needing attention, above the navigator | `#ws-attention` |
 | `shell.agents.approvals` | approvals and dispatch requests; approve; dispatch a verb to an agent | `/api/cockpit/approvals`, `/api/cockpit/dispatch` |
 | `shell.agents.follow` | follow agent navigation per workspace (Following toggle); `cockpit focus` lands here | `#follow-toggle`, `/api/cockpit/focus` |

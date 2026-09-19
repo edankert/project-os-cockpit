@@ -114,6 +114,7 @@ const api = {
     },
   },
   agents: {
+    codexUsage: (): Promise<unknown> => ipcRenderer.invoke('agents:codex-usage'),
     // Cross-workspace fleet snapshot for the ~agents screen (FEAT-0032).
     fleet: (): Promise<unknown> => ipcRenderer.invoke('agents:fleet'),
     // Session history for one workspace (TASK-0180 / ISS-0013).

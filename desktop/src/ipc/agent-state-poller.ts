@@ -32,6 +32,8 @@ interface AgentStatePayload {
   agent?: string;
   message?: string;
   decayed_from?: string;
+  session_id?: string;
+  attention?: { state: string; ts: string; agent?: string; message?: string; session_id?: string }[];
 }
 
 type WorkspacesGetter = () => Workspace[];
@@ -69,7 +71,7 @@ function applyDecay(payload: AgentStatePayload | null): AgentStatePayload | null
   if (!payload || !DECAYABLE.has(payload.state)) return payload;
   const ts = Date.parse(payload.ts);
   if (!Number.isFinite(ts) || Date.now() - ts <= DECAY_MS) return payload;
-  return { state: 'idle', ts: payload.ts, decayed_from: payload.state };
+  return { ...payload, state: 'idle', decayed_from: payload.state };
 }
 
 interface PollerDeps {

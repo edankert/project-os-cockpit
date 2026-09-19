@@ -9,6 +9,9 @@
 //
 // So the main process subscribes to each active sidecar's SSE stream
 // and, on a `cockpit:focus` event, calls `window.show()` + `focus()`.
+// Forward agent-state over this same stream. A permission request may
+// resolve between two five-second state-file polls, while the renderer's
+// file-origin EventSource cannot read the sidecar stream without CORS.
 // We keep one subscription per window and tear it down when the
 // sidecar exits or the window closes.
 
@@ -25,6 +28,7 @@ const subs = new Map<number, Subscription>();
 export function subscribeAgentFocus(
   window: BrowserWindow,
   sidecarUrl: string,
+  workspaceId: string,
 ): void {
   unsubscribeAgentFocus(window);
 
@@ -45,6 +49,15 @@ export function subscribeAgentFocus(
     let currentData = '';
 
     const handleEvent = (): void => {
+      if (currentEvent === 'cockpit:agent-state'
+          && !window.isDestroyed()
+          && subs.get(window.id)?.request === req) {
+        const payload = tryParseJson(currentData);
+        if (payload && typeof payload === 'object'
+            && 'state' in payload && typeof payload.state === 'string') {
+          window.webContents.send('workspaces:agent-state', { workspaceId, payload });
+        }
+      }
       if (currentEvent === 'cockpit:focus') {
         // Surface the focus to the user: bring the window forward.
         if (!window.isDestroyed()) {
@@ -80,10 +93,10 @@ export function subscribeAgentFocus(
       }
     });
 
-    res.on('end', () => { subs.delete(window.id); });
-    res.on('error', () => { subs.delete(window.id); });
+    res.on('end', () => { if (subs.get(window.id)?.request === req) subs.delete(window.id); });
+    res.on('error', () => { if (subs.get(window.id)?.request === req) subs.delete(window.id); });
   });
-  req.on('error', () => { subs.delete(window.id); });
+  req.on('error', () => { if (subs.get(window.id)?.request === req) subs.delete(window.id); });
 
   subs.set(window.id, { windowId: window.id, request: req });
 }

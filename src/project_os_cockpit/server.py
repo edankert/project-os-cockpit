@@ -166,6 +166,9 @@ class CockpitState:
         self._lock = threading.Lock()
         self._agent_focus: dict[str, Any] | None = None
         self._agent_state: dict[str, Any] | None = None
+        # Hook states are tracked by session before choosing a workspace
+        # headline. A late Claude event must not erase a busy Codex turn.
+        self._hook_states: dict[str, dict[str, Any]] = {}
         # Flag flipped to True after the decay thread (TASK-0077)
         # observes a stored busy/waiting that has aged out; ensures
         # we only fire ONE synthetic SSE per decay event.
@@ -197,6 +200,14 @@ class CockpitState:
             return
         if isinstance(data, dict) and isinstance(data.get("state"), str):
             self._agent_state = data
+            saved = data.get("hook_sessions")
+            if isinstance(saved, dict):
+                self._hook_states = {
+                    sid: row for sid, row in saved.items()
+                    if isinstance(sid, str) and isinstance(row, dict)
+                    and isinstance(row.get("state"), str)
+                    and isinstance(row.get("ts"), str)
+                }
 
     def _persist_agent_state(self, payload: dict[str, Any] | None) -> None:
         """Mirror the in-memory state to disk for cross-workspace
@@ -253,6 +264,8 @@ class CockpitState:
         if source != "manual":
             payload["source"] = source
         with self._lock:
+            if source == "manual":
+                self._hook_states.clear()
             self._agent_state = payload
             # A fresh declaration clears the decay-observed flag so the
             # next decay event (if any) fires its own SSE.
@@ -262,6 +275,78 @@ class CockpitState:
             })
             self._persist_agent_state(payload)
         return payload
+
+    def record_agent_hook_state(
+        self, state: str, *, session_id: str, agent: str,
+        message: str | None = None, ended: bool = False,
+    ) -> dict[str, Any]:
+        """Choose a workspace headline from recent hook sessions.
+
+        Keep a separate attention entry for a waiting agent when another
+        agent is busy in the same project. The renderer still paints one
+        icon and one card per project.
+        """
+        ts = _utc_now_iso()
+        session_id = session_id[:128]
+        agent = agent[:40]
+        message = message[:300] if isinstance(message, str) else None
+        with self._lock:
+            if ended:
+                self._hook_states.pop(session_id, None)
+            else:
+                row: dict[str, Any] = {
+                    "state": state, "agent": agent, "ts": ts,
+                    "session_id": session_id,
+                }
+                if message:
+                    row["message"] = message
+                self._hook_states[session_id] = row
+            # This is attention freshness, not a claim about any model's
+            # prompt-cache TTL. The renderer applies its own age policy.
+            cutoff = _parse_iso(ts) - 3600
+            self._hook_states = {
+                sid: row for sid, row in self._hook_states.items()
+                if _parse_iso(row.get("ts", "")) > cutoff
+            }
+            if len(self._hook_states) > 32:
+                newest = sorted(
+                    self._hook_states.items(),
+                    key=lambda item: _parse_iso(item[1]["ts"]),
+                    reverse=True,
+                )[:32]
+                self._hook_states = dict(newest)
+            priority = {"needs-input": 3, "busy": 2, "waiting": 1}
+            rows = sorted(
+                self._hook_states.values(),
+                key=lambda row: (priority.get(row["state"], 0),
+                                 _parse_iso(row["ts"])),
+                reverse=True,
+            )
+            chosen = rows[0] if rows else {
+                "state": "idle", "agent": agent, "ts": ts,
+                "session_id": session_id,
+            }
+            attention = [
+                dict(row)
+                for row in rows if row["state"] in ("waiting", "needs-input")
+            ]
+            payload: dict[str, Any] = {
+                "state": chosen["state"], "agent": chosen["agent"],
+                "ts": chosen["ts"], "source": "hook",
+                "session_id": chosen["session_id"],
+                "attention": attention,
+                "hook_sessions": dict(self._hook_states),
+            }
+            if chosen.get("message"):
+                payload["message"] = chosen["message"]
+            self._agent_state = payload
+            self._agent_state_decay_observed = False
+            self._history.appendleft({
+                "ts": ts, "source": "agent-state",
+                **{k: v for k, v in payload.items() if k != "hook_sessions"},
+            })
+            self._persist_agent_state(payload)
+            return payload
 
     def _effective_agent_state(self, now: float) -> dict[str, Any] | None:
         """Apply lazy decay to the stored agent-state for read paths.
@@ -280,11 +365,7 @@ class CockpitState:
         age = now - _parse_iso(stored["ts"])
         if age <= _AGENT_STATE_DECAY_SECONDS:
             return stored
-        return {
-            "state": "idle",
-            "decayed_from": stored["state"],
-            "ts": stored["ts"],
-        }
+        return {**stored, "state": "idle", "decayed_from": stored["state"]}
 
     def decay_tick(self, now: float | None = None) -> dict[str, Any] | None:
         """Called by the decay thread (TASK-0077). Returns the
@@ -303,11 +384,7 @@ class CockpitState:
             if self._agent_state_decay_observed:
                 return None
             self._agent_state_decay_observed = True
-            synthetic = {
-                "state": "idle",
-                "decayed_from": stored["state"],
-                "ts": stored["ts"],
-            }
+            synthetic = {**stored, "state": "idle", "decayed_from": stored["state"]}
             # Mirror the observable state to disk so the workspace
             # rail (TASK-0082) sees the same `idle` the SSE consumers
             # see, without needing to re-derive decay on the reader side.
@@ -1703,6 +1780,11 @@ def _make_handler(
                 )
                 return
             params = urllib.parse.parse_qs(query_string)
+            body.pop("_cockpit_notify", None)
+            if (params.get("agent") or [None])[0] == "codex" and params.get("event"):
+                # Codex's legacy notify callback supplies the event through
+                # the query. Native hooks carry hook_event_name themselves.
+                body["_cockpit_notify"] = True
             for key, field in (("event", "hook_event_name"), ("agent", "agent")):
                 default = (params.get(key) or [None])[0]
                 if default and not body.get(field):
@@ -1738,11 +1820,13 @@ def _make_handler(
             state_value = outcome.get("state")
             if state_value:
                 agent_name = body.get("agent")
-                payload = state.record_agent_state(
+                session_id = body.get("session_id") or body.get("thread-id")
+                payload = state.record_agent_hook_state(
                     state_value,
+                    session_id=str(session_id) if session_id else "unknown",
                     agent=str(agent_name) if agent_name else "claude",
                     message=outcome.get("message"),
-                    source="hook",
+                    ended=body.get("hook_event_name") == "SessionEnd",
                 )
                 bus.publish(ControlEvent("cockpit:agent-state", payload))
             activity = outcome.get("activity")

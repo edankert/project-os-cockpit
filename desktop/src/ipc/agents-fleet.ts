@@ -16,6 +16,7 @@ import { getAllWorkspaces } from './workspaces';
 import { getLastAgentPayloads } from './agent-state-poller';
 import { sidecarUrlFor } from './sidecar';
 import { queueDepthFor } from './dispatch-queue';
+import { getCodexUsage } from './codex-usage';
 
 export interface FleetRow {
   workspaceId: string;
@@ -130,6 +131,7 @@ async function buildRow(ws: { id: string; name: string; root: string }): Promise
 }
 
 export function registerAgentsFleetIpc(): void {
+  ipcMain.handle('agents:codex-usage', () => getCodexUsage());
   ipcMain.handle('agents:fleet', async (): Promise<FleetPayload> => {
     const now = Date.now();
     if (cache && now - cache.at < CACHE_MS) return cache.payload;

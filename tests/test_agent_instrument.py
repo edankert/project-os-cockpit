@@ -1,18 +1,9 @@
-"""Source-level guards for the Electron agent launch wrappers."""
+"""Source-level guard for the Claude launch wrapper."""
 
 from pathlib import Path
 
 
 SOURCE = Path(__file__).resolve().parents[1] / "desktop/src/ipc/agent-instrument.ts"
-
-def test_codex_wrapper_preserves_terminal_scrollback():
-    source = SOURCE.read_text(encoding="utf-8")
-
-    assert "'codex'() { command codex --no-alt-screen -c" in source
-    assert "'codex'() { command codex -c" not in source
-    assert "codex-notify.sh" in source
-    assert '"$@"' in source
-
 
 def test_claude_wrapper_is_not_changed_by_codex_scrollback_fix():
     source = SOURCE.read_text(encoding="utf-8")

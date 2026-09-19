@@ -2,39 +2,44 @@
 type: "[[task]]"
 id: TASK-0116
 aliases: ["TASK-0116"]
-title: "Codex CLI hooks.json + notify injection"
+title: "Codex CLI notify injection"
 status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-20
+updated: 2026-09-16
 verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
 parent: "[[FEAT-0019-Agent-Hook-Ingestion]]"
 effort: "S"
 depends: ["[[TASK-0114]]"]
 blocks: []
-related: ["[[RISK-0004-Hook-Injection-Surface]]"]
+related: ["[[RISK-0004-Hook-Injection-Surface]]", "[[ISS-0312]]", "[[CHG-20260916-Document-Codex-integration-gap-and-path-to-Claude-parity]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
 tests: ["[[TST-0011]]"]
 waiver_expires: 2026-10-23
 
 ---
 
-# Codex hooks.json + notify injection
+# Codex CLI notify injection
 
-## Definition of Done
-- [x] Codex sessions spawned in the cockpit PTY carry `notify` (for `agent-turn-complete` / `approval-requested`) and lifecycle hooks (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`) forwarding to the sidecar `/api/agent-hook`.
-- [x] Injection via `$CODEX_HOME`-scoped generated config under the app state dir; the user's `~/.codex` is never written.
-- [x] The one-time TUI trust prompt (non-managed hooks) is documented and surfaced honestly, never auto-approved.
-- [x] Same kill switch as TASK-0115 disables it.
+## Delivered scope
+- [x] Codex sessions started in the cockpit's zsh PTY receive a `notify` callback that forwards turn-complete payloads and attempts to map approval-requested payloads to `/api/agent-hook`.
+- [x] The callback script lives in the app state directory, and the wrapper passes its path through Codex's `-c notify=...` option. The implementation does not redirect `$CODEX_HOME` or write `~/.codex`.
+- [x] The `COCKPIT_NO_INSTRUMENT` kill switch disables the wrapper.
 
-## Steps
-- [x] Generate per-workspace `config.toml`/`hooks.json` fragment + notify forwarder script.
-- [x] Wire `CODEX_HOME` (or equivalent layering) into the PTY env without hiding the user's own config; verify Codex still sees user auth/session state.
-- [x] End-to-end verify with a live `codex` session; capture fixtures.
+## Original plan not delivered
+- [ ] Generate and load native Codex lifecycle hooks for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, and `SessionEnd`.
+- [ ] Verify Codex's hook trust review and user authentication with the chosen installation path.
+- [ ] Complete the live Codex row in [[TST-0011]] or its successor, including approval and session exit.
+
+These items are rehomed to [[ISS-0312]]. This task remains `done` for the narrower July 2026 `notify` delivery; the checked lifecycle-hook, `$CODEX_HOME`, trust-prompt, and live-verification claims in its earlier record were incorrect.
 
 ## Notes
-If `CODEX_HOME` redirection would hide the user's auth, prefer the project-scoped `.codex/hooks.json` mechanism inside the workspace with an explicit opt-in, or skip transparent injection and document manual setup — never break the user's Codex login.
+Do not redirect `CODEX_HOME` if that hides user authentication or session state. A project `.codex/hooks.json` requires trust review. An external user-level installation requires explicit opt-in under [[RISK-0004]]. [[ISS-0312]] records the installation choice to settle before implementation.
 
 ## Verification
 
-Automated smoke: the ZDOTDIR `.zshrc` resolves `codex` to `command codex -c notify=[...]` pointing at the generated `codex-notify.sh`; exercising that script forwarded to the sidecar with correct event mapping (agent-turn-complete→Stop, approval-requested→PermissionRequest). `$CODEX_HOME`/`~/.codex` untouched; same `COCKPIT_NO_INSTRUMENT` kill switch. Codex exposes only the `notify` program (not Claude-style per-tool lifecycle hooks), so the notify forwarder is the feasible mechanism; the broader lifecycle-hook list in the original DoD is not offered by the Codex CLI and is descoped to notify.
+The automated smoke checks the ZDOTDIR `.zshrc` wrapper and sends synthetic `agent-turn-complete` and `approval-requested` payloads through `codex-notify.sh` to the sidecar. It does not prove that the installed Codex CLI emits both payloads in a live session. The Codex row in [[TST-0011]] was skipped. OpenAI's current [Hooks documentation](https://learn.chatgpt.com/docs/hooks) describes native lifecycle hooks, so the earlier statement that Codex exposes only `notify` is obsolete.
+
+## Follow-up delivery — 2026-09-16
+
+[[ISS-0312]] now supplies native per-launch Codex hooks for prompt, tool, approval, stop, and session boundaries. This does not change the July scope or its recorded verification waiver. The new wrapper and sidecar paths have automated checks; the real CLI and UI walkthrough in [[TST-0011]] is still outstanding.

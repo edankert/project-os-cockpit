@@ -7,7 +7,7 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-20
+updated: 2026-09-16
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
@@ -15,7 +15,7 @@ verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accept
 goal: "Make the instrumented agent visible: a live activity strip above the terminal (current prompt, tool, file, cost/context meters), a cross-workspace needs-input inbox, and live attribution badges in the nav for notes the agent just touched."
 requirements: []
 tasks: ["[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0120]]"]
-related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0013-Agent-State-Signal]]"]
+related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0013-Agent-State-Signal]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]", "[[CHG-20260916-Deliver-live-Codex-approval-to-Needs-You]]", "[[CHG-20260916-Show-live-agent-in-Needs-You-headline]]", "[[CHG-20260916-Name-active-agent-in-Needs-You-project-cards]]"]
 waiver_expires: 2026-10-23
 
 ---
@@ -54,3 +54,15 @@ At a glance, the user can see what each agent is working on, whether any agent n
 
 - Tasks: to be broken down (`plan/PLAN.md`)
 - Render surface: `desktop/src/renderer/renderer.ts` (terminal pane, rail, nav renderers)
+
+## Codex follow-up — 2026-09-16
+
+The project icon shows the highest-priority recent session state for that workspace. Needs you can still list a Claude turn awaiting review while Codex is working in the same project. The activity strip uses the session's own agent and state instead of combining a Codex session with a later Claude event. The one-hour rail age rule remains an activity cutoff for Codex; it does not prove that Codex's prompt cache expired.
+
+For the open workspace, Electron main forwards each sidecar agent-state event over IPC to the project icon and Needs you. The five-second state-file poll still covers other workspaces and startup, but an approval can begin and end between its reads. The main process reuses its local sidecar event-stream connection so the renderer receives brief approval transitions without relying on a cross-origin stream from its `file://` page.
+
+When one session is working while another waits in the same project, the Needs you card names the working agent in its headline and puts the older review request on a second line. A current approval request remains the headline until resolved. One card still represents the project.
+
+Record and publication cards also name the active agent in their status line, so a busy Codex project reads “Codex · working…” after any older waiting request ages out. Existing hook messages that already start with the agent name are not prefixed again.
+
+Those surfaces require a real Codex event stream. Edwin's next live check found that the current Codex process still runs with the old `notify` wrapper and cannot report a new prompt or tool use. A fresh launch from a refreshed shell can send those events after the hook command is quoted correctly ([[CHG-20260916-Fix-Codex-status-and-Needs-You-feed]]). The manual screen walk remains open in [[TST-0011]].

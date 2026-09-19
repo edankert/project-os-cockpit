@@ -179,6 +179,60 @@ def test_stop_and_session_end_map_to_waiting_then_idle(tmp_path: Path):
         httpd.server_close()
 
 
+def test_claude_waiting_does_not_hide_busy_codex_session(tmp_path: Path):
+    docs = _make_workspace(tmp_path)
+    _server, httpd, port = _spin_up(docs)
+    try:
+        _hook(port, {"hook_event_name": "UserPromptSubmit", "session_id": "claude-1",
+                     "agent": "claude", "prompt": "review"})
+        _hook(port, {"hook_event_name": "Stop", "session_id": "claude-1",
+                     "agent": "claude"})
+        _hook(port, {"hook_event_name": "UserPromptSubmit", "session_id": "codex-1",
+                     "agent": "codex", "prompt": "fix"})
+        snap = _get(port, "/api/cockpit/state")
+        assert snap["agent_state"]["state"] == "busy"
+        assert snap["agent_state"]["agent"] == "codex"
+        assert snap["agent_state"]["session_id"] == "codex-1"
+        assert snap["session"]["agent"] == "codex"
+        assert snap["agent_state"]["attention"][0]["agent"] == "claude"
+        assert snap["agent_state"]["attention"][0]["state"] == "waiting"
+
+        _hook(port, {"hook_event_name": "SessionEnd", "session_id": "claude-1",
+                     "agent": "claude"})
+        snap = _get(port, "/api/cockpit/state")
+        assert snap["agent_state"]["state"] == "busy"
+        assert snap["agent_state"]["agent"] == "codex"
+        assert snap["agent_state"]["attention"] == []
+
+        _hook(port, {"hook_event_name": "Stop", "session_id": "codex-1",
+                     "agent": "codex"})
+        assert _get(port, "/api/cockpit/state")["agent_state"]["state"] == "waiting"
+        _hook(port, {"hook_event_name": "SessionEnd", "session_id": "codex-1",
+                     "agent": "codex"})
+        assert _get(port, "/api/cockpit/state")["agent_state"]["state"] == "idle"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_codex_apply_patch_records_workspace_file(tmp_path: Path):
+    docs = _make_workspace(tmp_path)
+    _server, httpd, port = _spin_up(docs)
+    try:
+        _hook(port, {
+            "hook_event_name": "PostToolUse", "session_id": "codex-1",
+            "agent": "codex", "cwd": str(docs.parent),
+            "tool_name": "apply_patch",
+            "tool_input": {"command": "*** Begin Patch\n*** Update File: docs/README.md\n@@\n*** End Patch"},
+        })
+        snap = _get(port, "/api/cockpit/state")
+        assert snap["activity"]["rel"] == "README.md"
+        assert "README.md" in snap["session"]["files"]
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
 def test_normalize_reset_to_iso():
     """resets_at is normalised to an ISO string so every UI surface
     parses it identically (review finding F2)."""
@@ -363,6 +417,30 @@ def test_query_param_defaults_for_forwarders(tmp_path: Path):
         assert snap["agent_state"]["agent"] == "codex"
         assert snap["session"]["session_id"] == "codex-th-1"
         assert snap["session"]["agent"] == "codex"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_late_codex_notify_cannot_revive_ended_native_session(tmp_path: Path):
+    docs = _make_workspace(tmp_path)
+    _server, httpd, port = _spin_up(docs)
+    try:
+        _post(port, "/api/agent-hook?agent=codex", {
+            "hook_event_name": "UserPromptSubmit", "session_id": "codex-th-1",
+            "prompt": "fix",
+        })
+        _post(port, "/api/agent-hook?agent=codex", {
+            "hook_event_name": "SessionEnd", "session_id": "codex-th-1",
+        })
+        status, response = _post(
+            port, "/api/agent-hook?event=Stop&agent=codex",
+            {"thread-id": "codex-th-1", "type": "agent-turn-complete"},
+        )
+        assert status == 200 and response["ignored"] is True
+        snap = _get(port, "/api/cockpit/state")
+        assert snap["agent_state"]["state"] == "idle"
+        assert snap["session"] is None
     finally:
         httpd.shutdown()
         httpd.server_close()

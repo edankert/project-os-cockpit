@@ -34,6 +34,7 @@ import datetime as _dt
 import json
 import logging
 import os
+import re
 import threading
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,24 @@ _WAITING_NOTIFICATIONS = frozenset({"idle_prompt"})
 _EDIT_TOOLS = frozenset(
     {"Edit", "Write", "MultiEdit", "NotebookEdit", "apply_patch"}
 )
+_PATCH_PATH = re.compile(r"^\*\*\* (?:Update File|Add File|Delete File|Move to): (.+)$", re.MULTILINE)
+
+
+def _codex_patch_paths(command: str, cwd: str | None, root: Path) -> list[str]:
+    """Read file paths from an apply_patch payload, never from a Bash command."""
+    base = Path(cwd) if isinstance(cwd, str) and cwd else root
+    paths: list[str] = []
+    for match in _PATCH_PATH.finditer(command):
+        candidate = Path(match.group(1).strip())
+        absolute = candidate if candidate.is_absolute() else base / candidate
+        absolute = absolute.resolve(strict=False)
+        if relative_to_ci(absolute, root) is not None:
+            value = str(absolute)
+            if value not in paths:
+                paths.append(value)
+        if len(paths) >= FILES_MAX:
+            break
+    return paths
 # Docs-note filename prefixes that satisfy the documentation contract
 # for the undocumented-work rule (TASK-0125).
 _DOC_NOTE_PREFIXES = ("TASK-", "ISS-", "CHG-")
@@ -342,6 +361,12 @@ class AgentSessionTracker:
                         if v > cutoff
                     }
             sess = self._session_locked(sid, agent, ts)
+            if agent == "codex" and body.get("_cockpit_notify"):
+                if sess.get("native_codex_hook_seen"):
+                    return {"ok": True, "state": None, "message": None,
+                            "activity": None, "ignored": True}
+            elif agent == "codex":
+                sess["native_codex_hook_seen"] = True
             sess["last_event"] = ts
             # A session receiving fresh activity is alive again — clear a
             # stale `ended` marker (ISS-0014). `_seed` stamps `ended` on
@@ -397,6 +422,19 @@ class AgentSessionTracker:
                         activity["file"] = file_path
                         if rel is not None:
                             activity["rel"] = rel
+                    elif (
+                        agent == "codex" and tool == "apply_patch"
+                        and event == "PostToolUse"
+                        and isinstance(tool_input.get("command"), str)
+                    ):
+                        for patch_path in _codex_patch_paths(
+                            tool_input["command"], body.get("cwd"),
+                            self._docs_root.parent,
+                        ):
+                            rel = self._record_file_locked(sess, patch_path)
+                            activity["file"] = patch_path
+                            if rel is not None:
+                                activity["rel"] = rel
                 # A tool event means the agent is actively working —
                 # refresh busy so long tasks don't decay mid-flight.
                 state = "busy"
@@ -482,6 +520,7 @@ class AgentSessionTracker:
             activity["undocumented"] = sess["undocumented"]
             if state is not None:
                 activity["state"] = state
+                sess["state"] = state
             if not ignored:
                 self._activity = activity
             self._persist_locked(
@@ -636,13 +675,22 @@ class AgentSessionTracker:
     ) -> dict[str, Any] | None:
         if now is None:
             now = _dt.datetime.now(_dt.timezone.utc).timestamp()
-        for sid in reversed(self._order):
-            sess = self._sessions[sid]
-            if sess.get("ended") is None and (
-                now - _parse_iso(sess["last_event"]) <= self._live_ttl
-            ):
-                return sess
-        return None
+        candidates = [
+            self._sessions[sid] for sid in self._order
+            if self._sessions[sid].get("ended") is None
+            and now - _parse_iso(self._sessions[sid]["last_event"])
+            <= self._live_ttl
+        ]
+        if not candidates:
+            return None
+        priority = {"needs-input": 3, "busy": 2, "waiting": 1}
+        return max(
+            candidates,
+            key=lambda sess: (
+                priority.get(sess.get("state"), 0),
+                _parse_iso(sess["last_event"]),
+            ),
+        )
 
     def has_live_session(self, now: float | None = None) -> bool:
         with self._lock:
@@ -654,6 +702,7 @@ class AgentSessionTracker:
         return {
             "session_id": sess["session_id"],
             "agent": sess.get("agent"),
+            "state": sess.get("state"),
             "started": sess.get("started"),
             "ended": sess.get("ended"),
             "live": live,
@@ -735,7 +784,7 @@ class AgentSessionTracker:
                 out["rate_limits"] = lrl["rate_limits"]
                 out["rate_limits_at"] = lrl["rate_limits_at"]
             shown = live if live is not None else last
-            if shown is not None:
+            if shown is not None and shown.get("agent") == "claude":
                 cache = session_cache.live_state(shown.get("transcript_path"))
                 if cache is not None:
                     out["cache"] = cache.as_dict()

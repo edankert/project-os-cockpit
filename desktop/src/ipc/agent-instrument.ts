@@ -18,8 +18,11 @@
 //   instrument/<ws>/hook-forward.sh    stdin JSON → POST /api/agent-hook
 //   instrument/<ws>/statusline.sh      statusline JSON → POST (debounced)
 //                                      + echoes a short status string.
+//   instrument/<ws>/codex-hook-forward.sh  Codex hook stdin JSON → POST.
 //   instrument/<ws>/codex-notify.sh    Codex notify argv[1] JSON → POST
-//                                      with ?event= mapping.
+//                                      with ?event= mapping as a fallback.
+//   instrument/<ws>/codex-launch.sh    per-launch Codex flags; regenerated
+//                                      when the app attaches to the workspace.
 //   instrument/<ws>/hook-env           COCKPIT_HOOK_URL=<sidecar url>;
 //                                      rewritten whenever the sidecar
 //                                      (re)spawns, so scripts always hit
@@ -45,6 +48,16 @@ const CLAUDE_HOOK_EVENTS = [
   'SessionEnd',
 ] as const;
 
+const CODEX_HOOK_EVENTS = [
+  'SessionStart',
+  'UserPromptSubmit',
+  'PreToolUse',
+  'PostToolUse',
+  'PermissionRequest',
+  'Stop',
+  'SessionEnd',
+] as const;
+
 export function instrumentationDisabled(): boolean {
   return process.env.COCKPIT_NO_INSTRUMENT === '1';
 }
@@ -61,20 +74,22 @@ function writeExecutable(filePath: string, content: string): void {
   fs.writeFileSync(filePath, content, { encoding: 'utf-8', mode: 0o755 });
 }
 
-function hookForwardScript(): string {
+function hookForwardScript(agent: 'claude' | 'codex' = 'claude'): string {
+  const query = agent === 'codex' ? '?agent=codex' : '';
+  const output = agent === 'codex' ? "printf '{}\\n'\n" : '';
   return `#!/bin/sh
-# project-os-cockpit (FEAT-0019): forward a Claude Code hook JSON blob
+# project-os-cockpit (FEAT-0019): forward an agent hook JSON blob
 # (stdin) to the workspace sidecar. Never blocks the agent, never fails
 # the hook — worst case the event is dropped.
 DIR="$(cd "$(dirname "$0")" && pwd)"
 [ -f "$DIR/hook-env" ] && . "$DIR/hook-env"
 if [ -z "$COCKPIT_HOOK_URL" ] || [ -n "$COCKPIT_NO_INSTRUMENT" ]; then
   cat >/dev/null 2>&1
-  exit 0
+  ${output}  exit 0
 fi
 curl -s -m 2 -X POST -H 'Content-Type: application/json' \\
-  --data-binary @- "$COCKPIT_HOOK_URL/api/agent-hook" >/dev/null 2>&1
-exit 0
+  --data-binary @- "$COCKPIT_HOOK_URL/api/agent-hook${query}" >/dev/null 2>&1
+${output}exit 0
 `;
 }
 
@@ -164,6 +179,28 @@ function claudeSettings(dir: string): string {
   );
 }
 
+function codexHookArgs(dir: string): string {
+  const forward = path.join(dir, 'codex-hook-forward.sh');
+  // Codex's session-flag layer adds these hooks alongside user and project
+  // layers. One handler per event avoids copying and double-running either.
+  // Keep commands stable so Codex's normal hook trust review can remember them.
+  return CODEX_HOOK_EVENTS.map((event) => {
+    // TOML quotes delimit the value; the hook runner still passes the
+    // decoded command to a shell. Quote the path a second time for that
+    // shell because userData contains "Application Support" on macOS.
+    const value = `hooks.${event}=[{hooks=[{type="command",command=${JSON.stringify(shellQuotePath(forward))},timeout=3}]}]`;
+    return `-c ${shellQuotePath(value)}`;
+  }).join(' ');
+}
+
+function codexLaunchScript(dir: string): string {
+  return `#!/bin/sh
+# The parent zsh can outlive a cockpit rebuild in tmux. Keep its function
+# stable and load fresh Codex flags from this regenerated file each launch.
+exec codex --no-alt-screen ${codexHookArgs(dir)} -c ${shellQuotePath(`notify=[${JSON.stringify(path.join(dir, 'codex-notify.sh'))}]`)} "$@"
+`;
+}
+
 function zshrc(dir: string): string {
   return `# project-os-cockpit instrumented shell (FEAT-0019).
 # Sources your real zsh config first; the only additions are the
@@ -181,7 +218,7 @@ if [ -z "$COCKPIT_NO_INSTRUMENT" ]; then
   unalias claude 2>/dev/null
   unalias codex 2>/dev/null
   'claude'() { command claude --settings ${JSON.stringify(path.join(dir, 'claude-settings.json'))} "$@"; }
-  'codex'() { command codex --no-alt-screen -c "notify=[${JSON.stringify(path.join(dir, 'codex-notify.sh')).replace(/"/g, '\\"')}]" "$@"; }
+  'codex'() { ${shellQuotePath(path.join(dir, 'codex-launch.sh'))} "$@"; }
 fi
 `;
 }
@@ -201,8 +238,10 @@ export function ensureInstrumentation(
     const zdotdir = path.join(dir, 'zdotdir');
     fs.mkdirSync(zdotdir, { recursive: true });
     writeExecutable(path.join(dir, 'hook-forward.sh'), hookForwardScript());
+    writeExecutable(path.join(dir, 'codex-hook-forward.sh'), hookForwardScript('codex'));
     writeExecutable(path.join(dir, 'statusline.sh'), statuslineScript());
     writeExecutable(path.join(dir, 'codex-notify.sh'), codexNotifyScript());
+    writeExecutable(path.join(dir, 'codex-launch.sh'), codexLaunchScript(dir));
     fs.writeFileSync(
       path.join(dir, 'claude-settings.json'), claudeSettings(dir), 'utf-8',
     );

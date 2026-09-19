@@ -8,8 +8,8 @@ severity: medium
 likelihood: medium
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-05
-related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]"]
+updated: 2026-09-16
+related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
 mitigation:
   - "Per-spawn injection only for terminal instrumentation: generated settings/hooks files live under the app's own state dir and are passed via env/flags; ~/.claude is written ONLY by the explicit settings toggle (FEAT-0027) — marker-identified entries, one-time backup, surgical uninstall."
   - "Treat /api/agent-hook payloads as untrusted: validate shape, cap size, never render content as HTML, rate-limit per source."
@@ -36,3 +36,11 @@ Medium — no data loss, but wrong agent-state display undermines the core promi
 ## Mitigations
 
 See frontmatter `mitigation` list. The kill switch and the never-touch-user-config rule are the two non-negotiables; schema-drift tolerance (log-and-drop unknown events) keeps a CLI upgrade from breaking the cockpit. Verification: a test asserting `~/.claude` / `~/.codex` mtimes are untouched by a spawn-instrument-teardown cycle, plus endpoint fuzz tests for malformed payloads.
+
+The 2026-09-16 Codex follow-up uses one per-launch command hook for each lifecycle event. The hook posts to the workspace sidecar and returns no approval decision. It does not bypass Codex hook trust or write user configuration. Hook payloads contain session ids and may contain prompts; the sidecar clips stored prompts, and the project-state file stores only agent, state, message, time, and a bounded set of session statuses. A live walkthrough must confirm that trust review and user/project hooks all behave as documented.
+
+The command path in a Codex hook is parsed twice: TOML reads the string, then a shell runs the decoded command. Quoting only for TOML left the path under `Application Support` split at its space. The generated command now retains shell quotes inside the TOML string, and a test runs that decoded command through `/bin/sh` ([[CHG-20260916-Fix-Codex-status-and-Needs-You-feed]]).
+
+### Codex account quota contract (2026-09-16)
+
+[[TASK-0628]] also depends on the installed CLI's documented app-server account API. Schema drift, missing login, or a CLI absent from the GUI environment can prevent quota reads. The reader accepts only a numeric weekly percentage from the general Codex bucket, bounds stdout and process lifetime, discards raw account fields, and shows no invented zero on failure. It starts no thread, sends no prompt, requests no login, and writes no CLI configuration. Last-known values retain their original capture age; unavailable data never becomes a fresh measurement.

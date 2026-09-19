@@ -151,6 +151,15 @@ test('attentionIds: only waiting/needs-input, and only while warm', () => {
   assert.deepEqual(Array.from(attentionIds(states, at(61 * 60 * 1000))), []);
 });
 
+test('attentionIds: a waiting Claude session remains visible while Codex works', () => {
+  const state = {
+    ts: '2026-08-06T12:10:00Z', state: 'busy', agent: 'codex',
+    attention: [{ ts: '2026-08-06T12:00:00Z', state: 'waiting', agent: 'claude' }],
+  };
+  assert.deepEqual(Array.from(attentionIds([['mixed', state]], at(30 * 60 * 1000))), ['mixed']);
+  assert.deepEqual(Array.from(attentionIds([['mixed', state]], at(2 * HOUR))), []);
+});
+
 test('attentionIds: the 211-hour entries from ISS-0105 are gone', () => {
   const states = [
     ['recent', { ts: '2026-08-06T12:00:00Z', state: 'waiting' }],

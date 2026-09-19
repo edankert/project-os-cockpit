@@ -232,6 +232,20 @@ def test_state_file_seeds_on_construction(tmp_path):
     assert snap["agent_state"]["target"] == "FEAT-0010"
 
 
+def test_hook_sessions_survive_sidecar_restart(tmp_path):
+    path = tmp_path / ".cockpit" / "agent-state.json"
+    first = CockpitState(state_path=path)
+    first.record_agent_hook_state("waiting", session_id="claude-1", agent="claude")
+
+    restarted = CockpitState(state_path=path)
+    payload = restarted.record_agent_hook_state(
+        "busy", session_id="codex-1", agent="codex"
+    )
+    assert payload["state"] == "busy"
+    assert payload["agent"] == "codex"
+    assert payload["attention"][0]["agent"] == "claude"
+
+
 def test_state_file_tolerates_missing_and_malformed(tmp_path):
     missing = tmp_path / ".cockpit" / "missing.json"
     state = CockpitState(state_path=missing)

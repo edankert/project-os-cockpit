@@ -27,6 +27,16 @@ interface TemperatureInput {
   ts?: string | null;
   /** Current agent state. */
   state?: string | null;
+  agent?: string | null;
+}
+
+interface AttentionState extends TemperatureInput {
+  message?: string | null;
+}
+
+interface ProjectAttentionInput extends AttentionState {
+  decayed_from?: unknown;
+  attention?: AttentionState[];
 }
 
 /** `warm`, `cold`, or `unknown` when there is no usable timestamp.
@@ -85,15 +95,18 @@ function railKey(
  *  its obligation lives on the grey square instead (TASK-0347).
  */
 function attentionIds(
-  states: Iterable<[string, { ts?: string | null; state?: string | null; decayed_from?: unknown }]>,
+  states: Iterable<[string, ProjectAttentionInput]>,
   now: number,
   ttlMs: number = CACHE_TTL_MS,
 ): string[] {
   const out: string[] = [];
   for (const [id, st] of states) {
-    if (!st || st.decayed_from) continue;
-    if (st.state !== 'needs-input' && st.state !== 'waiting') continue;
-    if (cacheTemperature(st, now, ttlMs) === 'cold') continue;
+    if (!st) continue;
+    const candidates = Array.isArray(st.attention) ? st.attention
+      : (st.decayed_from ? [] : [st]);
+    if (!candidates.some((row) =>
+      (row.state === 'needs-input' || row.state === 'waiting')
+      && cacheTemperature(row, now, ttlMs) !== 'cold')) continue;
     out.push(id);
   }
   return out;

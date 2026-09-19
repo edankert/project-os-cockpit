@@ -3,17 +3,17 @@ type: "[[issue]]"
 id: ISS-0311
 aliases: ["ISS-0311"]
 title: "Exiting Codex closes the Electron cockpit instead of returning to the shell"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-09-15
-updated: 2026-09-15
+updated: 2026-09-16
 source: ["Edwin, 2026-09-15: when exiting codex it seems to exit from electron cockpit as well, which should not happen it should just exit back to the terminal"]
 severity: high
 component: desktop-terminal
 phase: "[[PHASE-004-Embedded-Terminal]]"
 parent: ""
-related: ["[[FEAT-0003]]", "[[ISS-0310]]", "[[TASK-0627]]", "[[CHG-20260915-Fix-terminal-scrollback-and-Codex-exit-lifecycle]]"]
-tests: ["tests/test_view_landings.py::test_a_terminal_child_exit_does_not_quit_the_electron_app"]
+related: ["[[FEAT-0003]]", "[[ISS-0310]]", "[[TASK-0627]]", "[[CHG-20260915-Fix-terminal-scrollback-and-Codex-exit-lifecycle]]", "[[CHG-20260916-Keep-cockpit-shell-open-after-Codex-exits]]", "[[CHG-20260916-Finish-PHASE-004-terminal-scrollback-and-Codex-exit]]"]
+tests: ["tests/test_view_landings.py::test_a_terminal_child_exit_does_not_quit_the_electron_app", "desktop/tests/codex-shell-exit.test.mjs", "desktop/tests/terminal-history.test.mjs"]
 ---
 
 # Exiting Codex closes the Electron cockpit
@@ -44,6 +44,10 @@ The cockpit appears to exit together with Codex instead of leaving the user at t
 
 - `desktop/src/ipc/terminal.ts` owns the PTY child and emits `terminal:exit` when it exits.
 - `desktop/src/main.ts` owns Electron quit handling and should only run it for an app/window quit, not for a child command exit.
+- The current generated zsh wrapper invokes `command codex` inside a shell function. A source-text test checks its flags but does not run the shell, so it cannot prove that control returns to the prompt after the command exits.
+- `desktop/tests/codex-shell-exit.test.mjs` now starts the generated zsh environment with a Codex stand-in. The stand-in exits with status 17, and the next command runs in the same shell process. This confirms the wrapper returns control after a child command exits; it does not prove the Electron window stays open in a live session.
+- `desktop/tests/terminal-history.test.mjs` now simulates a PTY exit. The terminal backend sends `terminal:exit` to the renderer and does not call Electron quit.
+- The 2026-09-16 isolated Electron walk started real Codex CLI 0.154.0 through the generated wrapper. Its `/exit` command returned to the shell. A later `printf` command ran in the same terminal, and the Electron window remained open ([[TASK-0627]]).
 - No sibling issue was found for this exact child-exit-to-Electron-quit symptom; related terminal siblings [[ISS-0016]], [[ISS-0154]], [[ISS-0160]], [[ISS-0161]], and [[ISS-0310]] were searched by `terminal`, `scroll`, `mouse`, `codex`, `exit`, and `quit`.
 
 ## Impact analysis
@@ -56,6 +60,7 @@ No new dependency, environment variable, credential, directory, or network contr
 
 ## Next Actions
 
-- [ ] Prove that a child command exit only updates the terminal and does not close the Electron window.
-- [ ] Return to the shell prompt after Codex exits.
-- [ ] Walk Codex, Claude, and a plain shell in the rebuilt cockpit.
+- [x] Run a shell-level check that the generated Codex wrapper returns to the same shell after the Codex process exits.
+- [x] Prove in the rebuilt Electron cockpit that a child command exit does not close the window.
+- [x] Return to the shell prompt after Codex exits and run another command.
+- [x] Walk Codex, Claude, and a plain shell in the rebuilt isolated cockpit.

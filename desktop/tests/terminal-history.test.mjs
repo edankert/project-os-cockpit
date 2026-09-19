@@ -17,13 +17,17 @@ async function terminalHarness() {
   const source = await fs.readFile(built, 'utf-8');
   const handlers = new Map();
   const commands = [];
-  const window = { id: 7, isDestroyed: () => false, webContents: { send() {} } };
+  const events = [];
+  let quitCalls = 0;
+  let ptyExit;
+  const window = { id: 7, isDestroyed: () => false,
+    webContents: { send: (channel, payload) => events.push({ channel, payload }) } };
   let paneState = '0 0 ';
   let mouseFlag = '0';
   const tmux = '/opt/homebrew/bin/tmux';
   const fakeRequire = (name) => {
     if (name === 'electron') return {
-      app: { getPath: () => '/private/tmp/terminal-history-test' },
+      app: { getPath: () => '/private/tmp/terminal-history-test', quit: () => { quitCalls++; } },
       BrowserWindow: {
         fromWebContents: (sender) => sender === 'owner' ? window : null,
         fromId: () => window,
@@ -51,7 +55,7 @@ async function terminalHarness() {
     if (name === 'node:os') return os;
     if (name === 'node:path') return path;
     if (name === 'node-pty') return {
-      spawn: () => ({ onData() {}, onExit() {}, write() {}, resize() {}, kill() {} }),
+      spawn: () => ({ onData() {}, onExit(cb) { ptyExit = cb; }, write() {}, resize() {}, kill() {} }),
     };
     if (name === './agent-instrument') return { ensureInstrumentation: () => null };
     throw new Error(`Unexpected import: ${name}`);
@@ -72,13 +76,26 @@ async function terminalHarness() {
   assert.equal(spawn.viaTmux, true);
   return {
     commands,
+    events,
     handlers,
+    exitPty: (info) => ptyExit(info),
+    quitCalls: () => quitCalls,
     setPaneState: (state) => { paneState = state; },
     setMouseFlag: (flag) => { mouseFlag = flag; },
     call: (channel, payload) => handlers.get(channel)(
       { sender: 'owner' }, { workspaceId: 'test-workspace', ...payload }),
   };
 }
+
+test('a terminal child exit notifies the pane without quitting Electron', async () => {
+  const h = await terminalHarness();
+  h.exitPty({ exitCode: 17, signal: 0 });
+  assert.equal(h.quitCalls(), 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(h.events)), [{
+    channel: 'terminal:exit',
+    payload: { workspaceId: 'test-workspace', exitCode: 17, signal: 0 },
+  }]);
+});
 
 test('Codex and a shell scroll tmux history while an alternate-screen program keeps arrow scrolling', async () => {
   const h = await terminalHarness();

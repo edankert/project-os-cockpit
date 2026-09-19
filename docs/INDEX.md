@@ -3,7 +3,7 @@ type: reference
 id: INDEX
 owner: team:docs
 created: 2026-01-26
-updated: 2026-08-12
+updated: 2026-09-16
 tags: [index]
 ---
 
@@ -18,6 +18,7 @@ Primary entrypoints for this documentation system.
 - Phase registry: `PHASES.md`
 - Workflows: `[[workflows/README]]`
 - Reference area: `reference/README.md`
+- Possible future cockpit enhancements: [review, research and visual progress preferences](reference/future-enhancements/README.md)
 - Reference note template: `__templates__/reference.md`
 - Lifecycle rules: `../tools/instructions/LIFECYCLE.md`
 - Markdown authoring rules: `../tools/instructions/MARKDOWN.md`

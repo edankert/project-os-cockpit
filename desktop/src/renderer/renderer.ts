@@ -58,6 +58,8 @@ interface AgentStatePayload {
   agent?: string;
   message?: string;
   decayed_from?: string;
+  session_id?: string;
+  attention?: { state: string; ts: string; agent?: string; message?: string; session_id?: string }[];
 }
 
 interface QueuedDispatch {
@@ -113,6 +115,7 @@ interface CockpitApi {
     onDispatchSelection: (cb: (text: string) => void) => () => void;
   };
   agents: {
+    codexUsage: () => Promise<{ weekly: RateWindow | null; capturedAt: number } | null>;
     fleet: () => Promise<FleetPayload>;
     sessions: (workspaceId: string) => Promise<AgentSessionSlim[]>;
   };
@@ -634,8 +637,9 @@ function applyAgentStateToSquare(li: HTMLLIElement, ws: Workspace): void {
   const cold = isColdWorkspace(state);
   const stateLine = state
     ? `\nagent: ${state.state}${state.message ? ` — ${state.message}` : ''}`
-      + (cold ? `\ncold — last turn ${fmtDuration(state.ts || null, null)} ago;`
-        + ' resuming re-writes the cached prefix' : '')
+      + (cold ? state.agent === 'codex'
+        ? `\nold activity — last Codex event ${fmtDuration(state.ts || null, null)} ago; cache temperature unknown`
+        : `\ncold — last turn ${fmtDuration(state.ts || null, null)} ago; resuming re-writes the cached prefix` : '')
     : '';
   // The base tooltip. Health appends to THIS rather than to whatever
   // `title` currently holds — otherwise two independent repaint paths
@@ -3202,6 +3206,7 @@ cockpitApi.workspaces.onAgentState((ev) => {
     refreshFooterAgent();
     void refreshAgentSnapshot();
     scheduleAck();  // new alert on the workspace you're looking at
+    if (ev.payload?.state) cockpitApi.dispatch.poke(activeId, ev.payload.state);
   }
   refreshAttention();
   if (currentRel === '~agents') void renderAgentsPage(true);
@@ -18270,6 +18275,7 @@ interface AgentCostSnapshot {
 interface AgentSessionSlim {
   session_id: string;
   agent: string | null;
+  state?: string | null;
   started: string | null;
   ended: string | null;
   live: boolean;
@@ -18343,11 +18349,18 @@ declare function cacheBadge(cache: AgentCacheState | null | undefined): {
   weight: string; label: string; title: string; tone: string; switch: boolean;
 } | null;
 
-function renderAgentStripCache(cache: AgentCacheState | null | undefined): void {
+function renderAgentStripCache(cache: AgentCacheState | null | undefined, agent?: string | null): void {
   const badge = cacheBadge(cache);
   if (!badge) {
     agentStripWeight.hidden = true;
-    agentStripCache.hidden = true;
+    if (agent === 'codex') {
+      agentStripCache.textContent = 'cache unknown';
+      agentStripCache.title = 'Codex has not supplied a verified cache lifetime or prefix weight for this session.';
+      agentStripCache.dataset.cache = 'unknown';
+      agentStripCache.hidden = false;
+    } else {
+      agentStripCache.hidden = true;
+    }
     return;
   }
   agentStripWeight.textContent = badge.weight;
@@ -18396,25 +18409,25 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
     return;
   }
   const live = session.live;
+  const sessionActivity = activity?.session_id === session.session_id ? activity : null;
+  const projectState = agentStates.get(activeId || '');
   agentStrip.hidden = false;
   agentStrip.classList.toggle('is-ended', !live);
   const state = live
-    ? (activity?.state || agentStates.get(activeId || '')?.state || 'busy')
+    ? (session.state || sessionActivity?.state
+      || (projectState?.session_id === session.session_id ? projectState.state : null)
+      || 'busy')
     : 'idle';
   agentStripDot.dataset.state = state;
-  // Prefer the live hook agent over a stale last_session agent so the
-  // strip and rail dot never disagree (ISS-0012) — a one-off codex run
-  // must not relabel a live claude workspace.
-  agentStripAgent.textContent =
-    activity?.agent || agentStates.get(activeId || '')?.agent || session.agent || 'agent';
-  if (live && activity?.prompt) stripLastPrompt = activity.prompt;
+  agentStripAgent.textContent = session.agent || sessionActivity?.agent || 'agent';
+  if (live && sessionActivity?.prompt) stripLastPrompt = sessionActivity.prompt;
   else if (session.last_prompt) stripLastPrompt = session.last_prompt;
   let detail = '';
-  if (live && activity?.tool && activity?.file) {
-    const short = (activity.rel || activity.file).split('/').pop() || activity.file;
-    detail = `${activity.tool} · ${short}`;
-  } else if (live && activity?.tool) {
-    detail = activity.tool;
+  if (live && sessionActivity?.tool && sessionActivity?.file) {
+    const short = (sessionActivity.rel || sessionActivity.file).split('/').pop() || sessionActivity.file;
+    detail = `${sessionActivity.tool} · ${short}`;
+  } else if (live && sessionActivity?.tool) {
+    detail = sessionActivity.tool;
   }
   const label = live ? agentStateLabel(state) : 'last session';
   agentStripText.textContent = detail
@@ -18423,9 +18436,9 @@ function showAgentStrip(activity: AgentActivity | null, session: AgentSessionSli
       ? `${label} — ${stripLastPrompt}`
       : label;
   agentStripText.title = stripLastPrompt;
-  agentStripUndoc.hidden = !((live && activity?.undocumented) || session.undocumented);
-  renderAgentStripCost(session.cost || (live ? activity?.cost : undefined));
-  renderAgentStripCache(lastAgentSnap?.cache);
+  agentStripUndoc.hidden = !((live && sessionActivity?.undocumented) || session.undocumented);
+  renderAgentStripCost(session.cost || (live ? sessionActivity?.cost : undefined));
+  renderAgentStripCache(lastAgentSnap?.cache, session.agent);
   renderInflightBoxes();  // inline in-flight boxes before ctx (FEAT-0038)
 }
 
@@ -18876,6 +18889,9 @@ interface AttentionEntry {
    *  ACTION that publishes, and because the record cards count notes. */
   kind: 'needs-input' | 'waiting' | 'record' | 'publish';
   message: string;
+  /** A different session still needs review while the headline names
+   *  the agent currently working in this project. */
+  pendingMessage?: string;
   ts: string;
   /** The project's git state: work in flight, and work not published.
    *
@@ -19025,6 +19041,16 @@ function uncommittedText(dirty: number): string {
  *  trying to convey?"* Nothing, was the honest answer. On this line it is
  *  unambiguous: it is the age of the state named beside it.
  */
+function agentMessage(agent: string | undefined, message: string): string {
+  if (!agent) return message;
+  const lower = message.toLowerCase();
+  const name = agent.toLowerCase();
+  if (lower === name || lower.startsWith(`${name} `) || lower.startsWith(`${name}:`)) {
+    return message;
+  }
+  return `${agent.charAt(0).toUpperCase()}${agent.slice(1)} · ${message}`;
+}
+
 function agentLine(wsId: string, cost?: number): string {
   const st = agentStates.get(wsId);
   const bits: string[] = [];
@@ -19042,6 +19068,7 @@ function agentLine(wsId: string, cost?: number): string {
       case 'error':       bits.push(msg || 'stopped on an error'); break;
       default:            bits.push('idle'); break;
     }
+    bits[0] = agentMessage(st?.agent, bits[0]);
   }
   // How long it has been in that state — including how long it has been idle,
   // which is the question a quiet project actually raises.
@@ -19095,16 +19122,17 @@ function dismissAlert(wsId: string, ts: string): void {
   refreshAttention();
 }
 
-/** Everything the card displays, as one string (TASK-0420).
+/** The card's stable claims, as one string (TASK-0420).
  *
- *  Built beside the entry so it cannot drift from what is rendered: if a line
- *  is on the card, it is in here, and any of it moving is *"an actual state
- *  changing in that project"* — which is the promise the ✕ makes.
+ *  State and request identity are included, while the elapsed duration in
+ *  the headline is excluded: passing time alone must not undo a dismissal.
  */
 function attentionFingerprint(e: AttentionEntry, d: DigestSummary | undefined): string {
   const live = agentStates.get(e.workspaceId);
   return [
     e.kind,
+    e.pendingMessage ?? '',
+    e.kind === 'waiting' || e.kind === 'needs-input' ? e.ts : '',
     live?.state ?? '',
     live?.ts ?? '',
     d ? d.needsYou : '',
@@ -19209,6 +19237,25 @@ function digestFor(wsId: string): DigestSummary | undefined {
   };
 }
 
+/** Keep the project's live work in the headline without losing an older
+ *  session's outstanding review. Hook messages can already start with an
+ *  agent name, so do not add that name twice. */
+function attentionAgentCopy(
+  state: AgentStatePayload,
+  pending: { state: string; agent?: string; message?: string; session_id?: string },
+  liveLine: string,
+): { message: string; pendingMessage?: string } {
+  const pendingText = agentMessage(pending.agent, pending.message
+    || (pending.state === 'needs-input' ? 'needs your input' : 'turn finished — review'));
+  if (state.state === 'busy') {
+    return {
+      message: agentMessage(state.agent, liveLine),
+      pendingMessage: pendingText,
+    };
+  }
+  return { message: pendingText };
+}
+
 function attentionEntries(): AttentionEntry[] {
   const out: AttentionEntry[] = [];
   const activeCost = lastAgentSnap?.session?.cost?.total_cost_usd;
@@ -19218,20 +19265,23 @@ function attentionEntries(): AttentionEntry[] {
   const eligible = new Set(attentionIds(agentStates, Date.now()));
   for (const [wsId, state] of agentStates) {
     if (!eligible.has(wsId)) continue;
-    // `attentionIds` already guarantees this; repeated only to narrow the
-    // type, since the policy now lives in a plain-script module TypeScript
-    // cannot see through. A cast would hide a real mismatch here.
-    const kind = state.state;
+    const pending = state.attention?.find((row) =>
+      (row.state === 'needs-input' || row.state === 'waiting')
+      && cacheTemperature(row, Date.now()) !== 'cold') || state;
+    const kind = pending.state;
     if (kind !== 'needs-input' && kind !== 'waiting') continue;
     const ws = workspaces.find((w) => w.id === wsId);
+    const copy = attentionAgentCopy(state, pending, agentLine(wsId));
+    const sameSession = !pending.session_id
+      || pending.session_id === lastAgentSnap?.session?.session_id;
     out.push({
       workspaceId: wsId,
       name: ws ? effectiveName(ws) : wsId,
       kind,
-      message: state.message
-        || (state.state === 'needs-input' ? 'needs your input' : 'turn finished — review'),
-      ts: state.ts || '',
-      cost: wsId === activeId && typeof activeCost === 'number' ? activeCost : undefined,
+      message: copy.message,
+      pendingMessage: copy.pendingMessage,
+      ts: pending.ts || '',
+      cost: wsId === activeId && sameSession && typeof activeCost === 'number' ? activeCost : undefined,
     });
   }
   // The since-line rides on the card that already exists (TASK-0313). A
@@ -19389,6 +19439,12 @@ function buildAttentionRow(entry: AttentionEntry): HTMLElement {
   msg.className = 'ws-attention-msg';
   msg.textContent = entry.message;
   body.append(name, msg);
+  if (entry.pendingMessage) {
+    const pending = document.createElement('span');
+    pending.className = 'ws-attention-pending';
+    pending.textContent = entry.pendingMessage;
+    body.appendChild(pending);
+  }
   if (entry.since) {
     const since = document.createElement('span');
     since.className = 'ws-attention-since';
@@ -19600,6 +19656,19 @@ let latestRateLimits: Record<string, RateWindow> | null = null;
 // workspace and never downgrade — switching projects can't change the
 // number (TASK-0169).
 let rateLimitsAsOf = 0;
+let openAIWeekly: RateWindow | null = null;
+let openAIUsageAsOf = 0;
+
+async function pollOpenAIUsage(): Promise<void> {
+  try {
+    const reading = await cockpitApi.agents.codexUsage();
+    if (reading && Number.isFinite(reading.capturedAt) && reading.capturedAt > openAIUsageAsOf) {
+      openAIWeekly = reading.weekly;
+      openAIUsageAsOf = reading.capturedAt;
+    }
+  } catch { /* unavailable CLI or bridge — retain the last reading and its age */ }
+  finally { refreshAttention(); }
+}
 
 // Persist the freshest account-global reading so the Usage block is
 // visible immediately on launch and across workspace switches — it's an
@@ -19670,6 +19739,7 @@ function noteRateLimits(rl: Record<string, RateWindow>, capturedAt?: string): vo
 // workspaces (TASK-0171) — a silent backstop; there is no on-demand
 // refresh because the statusline is the only usage source (TASK-0172).
 async function pollUsage(): Promise<void> {
+  void pollOpenAIUsage();
   try {
     const payload = await cockpitApi.agents.fleet();
     let best: { rl: Record<string, RateWindow>; at: number } | null = null;
@@ -19708,6 +19778,11 @@ function budgetRow(label: string, w: RateWindow): HTMLElement {
   lab.textContent = label;
   const track = document.createElement('span');
   track.className = 'ws-budget-track';
+  track.setAttribute('role', 'progressbar');
+  track.setAttribute('aria-label', `${label} allowance used`);
+  track.setAttribute('aria-valuemin', '0');
+  track.setAttribute('aria-valuemax', '100');
+  track.setAttribute('aria-valuenow', String(pct));
   const fill = document.createElement('span');
   fill.className = 'ws-budget-fill' + (tier ? ` ${tier}` : '');
   fill.style.width = `${pct}%`;
@@ -19718,54 +19793,74 @@ function budgetRow(label: string, w: RateWindow): HTMLElement {
   row.append(lab, track, val);
   if (w.resets_at) {
     const d = new Date(w.resets_at);
-    if (!Number.isNaN(d.getTime())) row.title = `resets ${d.toLocaleTimeString()}`;
+    if (!Number.isNaN(d.getTime())) row.title = `${Math.round(pct)}% used · resets ${d.toLocaleString()}`;
   }
   return row;
 }
 
-function buildBudgetBlock(): HTMLElement | null {
-  const rl = latestRateLimits;
-  if (!rl) return null;
-  const rows: HTMLElement[] = [];
-  const five = rl.five_hour;
-  const seven = rl.seven_day;
-  if (five && typeof five.used_percentage === 'number') rows.push(budgetRow('5h', five));
-  if (seven && typeof seven.used_percentage === 'number') rows.push(budgetRow('7d', seven));
-  if (rows.length === 0) return null;
-  const block = document.createElement('div');
-  block.className = 'ws-budget';
-  // Header: "Usage" + as-of freshness (TASK-0169; refresh button removed in TASK-0172).
+function budgetProviderHead(label: string, capturedAt: number): HTMLElement {
   const head = document.createElement('div');
-  head.className = 'ws-budget-head';
+  head.className = 'ws-budget-provider';
   const title = document.createElement('span');
-  title.textContent = 'Usage';
+  title.textContent = label;
   head.appendChild(title);
   const asOf = document.createElement('span');
   asOf.className = 'ws-budget-asof';
-  if (rateLimitsAsOf > 0) {
-    const ageMin = Math.floor((Date.now() - rateLimitsAsOf) / 60_000);
+  if (capturedAt > 0) {
+    const ageMin = Math.max(0, Math.floor((Date.now() - capturedAt) / 60_000));
     asOf.textContent = ageMin < 1 ? 'just now' : `${ageMin}m ago`;
     if (ageMin >= 10) asOf.classList.add('stale');
-    asOf.title = `Reading captured ${new Date(rateLimitsAsOf).toLocaleTimeString()}`;
+    asOf.title = `Reading captured ${new Date(capturedAt).toLocaleString()}`;
   }
   head.appendChild(asOf);
+  return head;
+}
+
+function buildBudgetBlock(): HTMLElement | null {
+  const five = latestRateLimits?.five_hour;
+  const seven = latestRateLimits?.seven_day;
+  const valid = (w: RateWindow | null | undefined): w is RateWindow =>
+    Boolean(w && typeof w.used_percentage === 'number' && Number.isFinite(w.used_percentage));
+  if (!valid(five) && !valid(seven) && !valid(openAIWeekly)) return null;
+  const block = document.createElement('div');
+  block.className = 'ws-budget';
+  const head = document.createElement('div');
+  head.className = 'ws-budget-head';
+  head.textContent = 'Usage';
+  head.title = 'Percentage of each account allowance used';
   block.appendChild(head);
-  for (const r of rows) block.appendChild(r);
-  // Reset caption for the binding (5h) window.
-  if (five?.resets_at) {
-    const d = new Date(five.resets_at);
-    if (!Number.isNaN(d.getTime())) {
-      const cap = document.createElement('div');
-      cap.className = 'ws-budget-reset';
-      cap.textContent = `5h resets ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-      const proj = budgetProjection('five_hour', five);
-      if (proj) {
-        const p = document.createElement('span');
-        p.className = 'ws-budget-proj';
-        p.textContent = ` · ${proj}`;
-        cap.appendChild(p);
+  if (valid(five) || valid(seven)) {
+    block.appendChild(budgetProviderHead('Claude', rateLimitsAsOf));
+    if (valid(five)) block.appendChild(budgetRow('5h', five));
+    if (valid(seven)) block.appendChild(budgetRow('7d', seven));
+    if (five?.resets_at) {
+      const d = new Date(five.resets_at);
+      if (!Number.isNaN(d.getTime())) {
+        const cap = document.createElement('div');
+        cap.className = 'ws-budget-reset';
+        cap.textContent = `5h resets ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        const proj = budgetProjection('five_hour', five);
+        if (proj) {
+          const p = document.createElement('span');
+          p.className = 'ws-budget-proj';
+          p.textContent = ` · ${proj}`;
+          cap.appendChild(p);
+        }
+        block.appendChild(cap);
       }
-      block.appendChild(cap);
+    }
+  }
+  if (valid(openAIWeekly)) {
+    block.appendChild(budgetProviderHead('OpenAI', openAIUsageAsOf));
+    block.appendChild(budgetRow('7d', openAIWeekly));
+    if (openAIWeekly.resets_at) {
+      const d = new Date(openAIWeekly.resets_at);
+      if (!Number.isNaN(d.getTime())) {
+        const cap = document.createElement('div');
+        cap.className = 'ws-budget-reset';
+        cap.textContent = `7d resets ${d.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+        block.appendChild(cap);
+      }
     }
   }
   return block;
@@ -19875,8 +19970,12 @@ function pruneAckedAlerts(): void {
 
 function attentionStateForAck(wsId: string): AgentStatePayload | null {
   const st = agentStates.get(wsId);
-  if (!st || st.decayed_from) return null;
-  if (st.state !== 'needs-input' && st.state !== 'waiting') return null;
+  if (!st) return null;
+  const pending = st.attention?.find((row) =>
+    (row.state === 'needs-input' || row.state === 'waiting')
+    && cacheTemperature(row, Date.now()) !== 'cold');
+  if (pending) return { ...st, ...pending };
+  if (st.decayed_from || (st.state !== 'needs-input' && st.state !== 'waiting')) return null;
   return st;
 }
 
