@@ -407,11 +407,17 @@ def test_the_phase_in_flight_leads_the_features_navigator(index: Index) -> None:
     17th to 1st' and stopped being true the moment PHASE-022 closed. An
     assertion that only holds while the work is open is not an assertion.
     """
-    groups = cockpit._features_groups(index)
+    # The unattached-requirements group is appended after the phase groups
+    # on purpose; it is not a phase and takes no part in the banding.
+    groups = [g for g in cockpit._features_groups(index) if g["key"] != "unattached-reqs"]
     ranks = [
         cockpit._phase_group_rank(
             cockpit._resolve_phase(index, g["key"]) if g["key"].startswith("PHASE-") else None,
-            [],
+            # The group's own features, as the navigator's sort passes them.
+            # With [] a group that has no phase note (Unphased) fell back to
+            # "finished" here while the navigator correctly ranked it by its
+            # open features, and the test failed on a correct order.
+            [index.get(p) for p in (index.by_id(i["id"]) for i in g["items"]) if p is not None],
         )
         for g in groups
     ]

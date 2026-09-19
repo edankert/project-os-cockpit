@@ -137,6 +137,10 @@ const VALIDATION_LABELS: Record<string, string> = {
   'LEDGER-SEALED': 'a sealed ledger was edited',
   'LEDGER-NAME': 'a ledger filename names no platform',
   'NOTE-FRONTMATTER': 'a note whose frontmatter will not parse',
+  'REVIEW-ROUND': 'a review ran more than two rounds',
+  'ACCEPT-LOCATION': 'a walked check is outside docs/tests/acceptance/',
+  'ISSUE-REPORTER': 'an issue does not say who reported it',
+  'ISSUE-QUESTION': 'an issue waits on the owner but states no question',
 };
 
 

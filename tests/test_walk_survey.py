@@ -330,5 +330,15 @@ def test_the_live_survey_is_what_its_change_notes_name() -> None:
                                                     only=added)
                 for sid, _ in change.screens}
     got = {e["surface_note"] or e["surface"] for e in payload["survey"]}
-    assert got == expected
+    #: A changed dialog brings its containing screen onto the survey even when
+    #: no change note names that screen ("The walk", rule 2; `build_survey`).
+    #: Such a row has no sentences, and it must be the parent of a row that
+    #: was named. The test predated that rule and failed on a correct survey.
+    parents = {e["parent"] for e in payload["survey"] if e["parent"]}
+    for e in payload["survey"]:
+        sid = e["surface_note"] or e["surface"]
+        if sid not in expected:
+            assert not e["changes"] and sid in parents, (
+                "%s is on the survey, but no change note names it and it contains no changed screen" % sid)
+    assert expected <= got
     assert "TST-" not in json.dumps(payload["survey"])

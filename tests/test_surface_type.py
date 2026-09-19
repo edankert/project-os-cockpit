@@ -104,6 +104,13 @@ def _design_groups(docs: Path) -> dict[str, dict]:
             for g in cockpit.nav_payload(Index.build(docs), "design")["groups"]}
 
 
+def _surface_ids() -> list[str]:
+    """The surface notes on disk. The tests below used to name SUR-0001 alone
+    and broke as soon as the repo gained a second screen (2026-09-19); they
+    now read what is there."""
+    return sorted(p.name[:8] for p in (ROOT / "docs" / "surfaces").glob("SUR-*.md"))
+
+
 def test_surfaces_have_a_home_on_the_design_view() -> None:
     """Edwin: *"where should they be visible, probably in the design?"* — and
     the answer holds for the reason that group exists: the design view carries
@@ -117,7 +124,9 @@ def test_surfaces_have_a_home_on_the_design_view() -> None:
     """
     groups = _design_groups(ROOT / "docs")
     assert "surfaces" in groups, sorted(groups)
-    assert [i["id"] for i in groups["surfaces"]["items"]] == ["SUR-0001"]
+    ids = _surface_ids()
+    assert ids, "the repo has no surface notes, so this test checks nothing"
+    assert [i["id"] for i in groups["surfaces"]["items"]] == ids
 
 
 def test_a_surface_with_no_checks_is_visible_as_such() -> None:
@@ -135,13 +144,16 @@ def test_a_surface_with_no_checks_is_visible_as_such() -> None:
     from project_os_cockpit.index import Index
 
     index = Index.build(ROOT / "docs")
-    assert cockpit.surface_coverage(index) == {"SUR-0001": 0}
+    coverage = cockpit.surface_coverage(index)
+    assert sorted(coverage) == _surface_ids()
     head = str(_design_groups(ROOT / "docs")["surfaces"]["label"])
     #: **The screen count leads the head** ([[TASK-0625]], 2026-09-14). The
     #: 12 to 15 target FEAT-0130 set is about top-level screens, and the head
     #: is where a reader checks a repo against it. The uncovered count keeps
     #: its place after it — that is what TASK-0516 put here and it still holds.
-    assert head == "Surfaces · 1 screen · 1 with no checks", head
+    n, bare = len(coverage), sum(1 for v in coverage.values() if v == 0)
+    want = "Surfaces · %d screen%s" % (n, "" if n == 1 else "s") + (" · %d with no checks" % bare if bare else "")
+    assert head == want, head
 
 
 def test_the_count_is_not_sent_on_a_field_no_renderer_draws() -> None:
