@@ -112,7 +112,33 @@ bash tools/scripts/close-out-commit.sh <paths…> [-m "extra context"]
 
 ## A verdict is answered, not flipped (ISS-0253)
 
-`review_verdict` is **sticky and nothing refreshes it.** A reviewer writes `changes-requested`, the findings are acted on — often within the hour — the note reaches `done`/`merged`/`fixed`/`implemented`, and no mechanism writes a new verdict. Measured 2026-08-20: **49 notes carried `changes-requested` and 43 of them were at a terminal status**, dating back to 2026-08-02.
+`review_verdict` is **sticky and nothing refreshes it.** A reviewer writes `changes-requested`, the findings are acted on — often within the hour — the note reaches `done`/`merged`/`fixed`/`implemented`, and no mechanism writes a new verdict.
+
+**The live count is the validator's, not a number written here.** `REVIEW-STALE` computes exactly this set on every run — a terminal note carrying an owed verdict with no `review_response:` — so `bash tools/scripts/validate-docs.sh 2>&1 | grep -c REVIEW-STALE` answers the question today and a figure in this file cannot. On **2026-09-20 it reported 61**, and the backlog goes back to 2026-08-02. For the wider set, including notes that have since answered:
+
+```
+python3 - <<'EOF'
+import pathlib, re
+TERM = {"done","fixed","merged","implemented","passing","released","closed"}
+tot = term = 0
+for f in pathlib.Path("docs").rglob("*.md"):
+    t = f.read_text(errors="replace")
+    if not t.startswith("---\n"): continue
+    end = t.find("\n---", 3)
+    if end == -1: continue
+    fm = t[4:end]
+    v = re.search(r"^review_verdict:\s*[\"']?([a-z-]+)", fm, re.M)
+    if not v or v.group(1) != "changes-requested": continue
+    tot += 1
+    s = re.search(r"^status:\s*[\"']?([a-z-]+)", fm, re.M)
+    if s and s.group(1) in TERM: term += 1
+print(tot, term)
+EOF
+```
+
+On 2026-09-20 that answered **78 notes carrying `changes-requested`, 71 of them at a terminal status** — against 49 and 43 when this paragraph was written on 2026-08-20 (ISS-0278, which is why the command is here and the number is dated).
+
+**Count it in frontmatter, not with `grep -rl`.** A plain `grep -rl "review_verdict: changes-requested" docs` returned 81 on the same day, because it also matches notes that merely *discuss* the field — this section's own worked example is one of them. Three methods, three numbers, and only one of them answers the question asked.
 
 **Do not flip somebody else's verdict.** That is what [[project-os-dev#ADR-0011]] exists to prevent: a verdict is the reviewer's, and self-clearing it turns an independent gate into a formality.
 

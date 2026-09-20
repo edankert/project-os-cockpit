@@ -2,18 +2,19 @@
 type: "[[issue]]"
 id: ISS-0278
 title: "CLAUDE.md says 49 notes carry a stale changes-requested verdict; today there are 89"
-status: open
+status: fixed
 phase: "[[PHASE-999-Future]]"
 owner: unassigned
 reported_by: agent
 created: 2026-09-05
-updated: "2026-09-19"
+updated: "2026-09-20"
 source: ["Measured while drawing DES-0013; the design needed a real number for its review-queue mocks"]
 severity: low
 component: docs
 parent: ""
 related: ["[[project-os-deck#DES-0001]]", "[[ISS-0253-A-Verdict-Is-Answered-Not-Flipped]]", "[[project-os-dev#ADR-0011]]"]
 tests: []
+fixed_by: "[[TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review]]"
 ---
 
 # CLAUDE.md understates how many verdicts are stale
@@ -64,3 +65,21 @@ Evidence: `CLAUDE.md:115` still reads "Measured 2026-08-20: **49 notes carried `
 **Belongs to:** no feature. **Next:** Small docs fix: replace the number with a pointer to the validator's `REVIEW-STALE` warning (option 3), or restate it as a dated floor (option 1).
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Fixed 2026-09-20 (TASK-0632)
+
+**What changed.** The paragraph in `CLAUDE.md` no longer carries a bare number. It now names the validator's `REVIEW-STALE` check as the live count, gives the command that reads it, gives a second command for the wider set, and dates both measurements. That is options 1, 2 and 3 taken together rather than a choice between them: the pointer cannot go stale, and the dated figures still tell a reader the size of the thing without running anything.
+
+**Measured 2026-09-20, three ways, three answers — which is the finding.**
+
+| method | what it counts | answer |
+| --- | --- | --- |
+| `validate-docs.sh \| grep -c REVIEW-STALE` | terminal, owed verdict, **no** `review_response:` — the notes that still owe something | **61** |
+| frontmatter parse | every note whose `review_verdict:` is `changes-requested`, and how many are terminal | **78 / 71** |
+| `grep -rl "review_verdict: changes-requested" docs` | the above **plus every note that merely discusses the field** | 81 |
+
+The issue's own "Checked 2026-09-19" line says 89 and 76; that was the `grep -rl` method a day earlier. The number moved by eight overnight, which is not eight verdicts — it is the counting. `CLAUDE.md` now says so, and says to count in frontmatter.
+
+**No test.** Docs only, as [[ISS-0313]] states. The rule this paragraph supports is unchanged and correct; only its supporting measurement was wrong.
+
+**Not done: making the validator print the total.** `REVIEW-STALE` emits one warning per note and the count comes from `grep -c`. A one-line summary would be friendlier and is a change to a template-owned file, so it is not made here.
