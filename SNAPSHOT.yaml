@@ -4739,12 +4739,12 @@ metrics:
     features_done: 135
     tasks_total: 626
     tasks_done: 587
-    tests_total: 50
+    tests_total: 51
     tests_passing: 1
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 18
+    issues_open: 19
     issues_triage: 0
     risks_open: 8
     releases_total: 1
