@@ -233,6 +233,7 @@ These continue the numbering in [[PHASE-045-The-Cockpit-In-Layers]], which carri
 ## Revisions
 
 - 2026-09-20 — first offer. Seven plates, measured across all thirteen repositories, with the market scan in [[REFERENCE-ABSTRACTION-LEVELS-SCAN]].
+- 2026-09-20 — plates re-captured at real size on Edwin's word that they were too big. They were taken at twice the screen's scale, so a 1,160-pixel-wide plate arrived as a 2,440-pixel image; they are now 1,220 pixels wide (1,460 for the five-panel plate 4), which matches DES-0015's, and the seven files together dropped from 1.5 MB to 620 KB. Nothing in the pictures changed.
 
 ## Review
 
