@@ -236,3 +236,121 @@ def test_nested_indent_tasks(tmp_path: Path):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+# ---- the position must name the same row in the page and the file ---------
+# (ISS-0184)
+
+
+def _make_docs_with_an_absorbed_list(tmp_path: Path) -> tuple[Path, Path]:
+    """A document whose file holds five task lines and whose page draws two.
+
+    The first list opens on the line immediately after a paragraph, with no
+    blank line between. Markdown calls that lazy continuation: the list is
+    absorbed into the paragraph and draws no checkbox at all, while a
+    line-based reader counts every row. This is the shape the whole issue is
+    about, written out rather than described.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    note = docs / "suite.md"
+    note.write_text(
+        "# Suite\n"
+        "\n"
+        "## Export gating\n"
+        "\n"
+        "These are the rows nobody can click:\n"
+        "- [ ] absorbed one\n"
+        "- [ ] absorbed two\n"
+        "- [ ] absorbed three\n"
+        "\n"
+        "## Per-rider export\n"
+        "\n"
+        "- [ ] drawn one\n"
+        "- [ ] drawn two\n",
+        encoding="utf-8",
+    )
+    return docs, note
+
+
+def test_a_click_is_refused_when_the_page_and_the_file_hold_different_boxes(
+    tmp_path: Path,
+) -> None:
+    """**The reader ticks one row and a different row changes** (ISS-0184).
+
+    On this document the page draws two checkboxes and the file holds five, so
+    position 0 is "drawn one" to the reader and "absorbed one" to the server.
+    Before this guard the write landed on "absorbed one" and the endpoint
+    answered `{"ok": true}` — a tick the reader cannot see, on a row they were
+    not looking at, reported as success.
+
+    Asserted on the file as well as on the reply, because a refusal that still
+    writes is the failure wearing a different answer.
+    """
+    docs, note = _make_docs_with_an_absorbed_list(tmp_path)
+    before = note.read_text(encoding="utf-8")
+    port, httpd = _spin_up(docs)
+    try:
+        status, body = _post(port, {
+            "path": "suite.md", "index": 0, "checked": True,
+        })
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+    assert status == 404, (status, body)
+    assert body["ok"] is False
+    assert "cannot be addressed" in body["error"], body["error"]
+    assert note.read_text(encoding="utf-8") == before, (
+        "the toggle was refused and wrote anyway")
+
+
+def test_a_click_is_refused_when_the_text_does_not_match_the_line(
+    tmp_path: Path,
+) -> None:
+    """The second guard: the counts agree, and the file still moved.
+
+    A page is drawn, somebody edits the file, and the reader clicks. Position 1
+    was "beta" when the page was drawn and is "inserted" now. The client sends
+    the prose it is showing, so the server can see the two disagree instead of
+    ticking whatever has moved into that slot.
+    """
+    docs, note = _make_docs_with_tasks(tmp_path)
+    port, httpd = _spin_up(docs)
+    try:
+        status, body = _post(port, {
+            "path": "checklist.md", "index": 2, "checked": True,
+            "raw": "beta",
+        })
+        assert status == 404, (status, body)
+        assert "on the page" in body["error"], body["error"]
+        assert "- [ ] gamma" in note.read_text(encoding="utf-8"), (
+            "the mismatched toggle wrote to gamma anyway")
+
+        #: And the matching text writes, so the guard is not simply refusing
+        #: everything — which a refusal-only assertion cannot tell apart.
+        status, body = _post(port, {
+            "path": "checklist.md", "index": 2, "checked": True,
+            "raw": "gamma",
+        })
+        assert status == 200, (status, body)
+        assert "- [x] gamma" in note.read_text(encoding="utf-8")
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_the_renderer_sends_the_text_it_is_showing() -> None:
+    """The client half. The server's text guard can only fire on what it is
+    given, so the call site that omits it is the way this fix stops working.
+
+    Weak by itself — it reads the source — which is why it is the second guard
+    here and not the only one: the count refusal above needs nothing from the
+    client at all.
+    """
+    src = (Path(__file__).resolve().parents[1] / "desktop" / "src"
+           / "renderer" / "renderer.ts").read_text(encoding="utf-8")
+    i = src.index("/api/notes/check-toggle")
+    window = src[i - 600:i + 400]
+    assert "tgt.dataset.raw" in window, window
+    assert "{ raw }" in window, window

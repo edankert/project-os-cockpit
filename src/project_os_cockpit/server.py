@@ -3278,7 +3278,15 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": f"not a markdown file: {rel}"},
                                    status=HTTPStatus.NOT_FOUND)
                 return
-            ok, error = _toggle_task_at(target, idx, checked)
+            #: The prose the client read off the box it clicked (ISS-0184).
+            #: Optional, because a page drawn by an older sidecar does not send
+            #: it and the count refusal below is the guard that does not depend
+            #: on the client at all.
+            expect = body.get("raw")
+            ok, error = _toggle_task_at(
+                target, idx, checked,
+                expect=expect if isinstance(expect, str) else None,
+            )
             if not ok:
                 self._respond_json({"ok": False, "error": error},
                                    status=HTTPStatus.NOT_FOUND)
@@ -4264,7 +4272,7 @@ _TASK_LINE_RE = _re.compile(r"^(\s*[-*+]\s+)\[([ xX])\](\s)")
 
 
 def _toggle_task_at(
-    target: Path, index: int, checked: bool,
+    target: Path, index: int, checked: bool, expect: str | None = None,
 ) -> tuple[bool, str]:
     """Toggle the ``index``-th task-list checkbox in ``target`` to
     ``checked``. Returns ``(ok, error_message)``.
@@ -4273,6 +4281,31 @@ def _toggle_task_at(
     render. The rendered DOM and the source are walked in the same
     document order, so the Nth rendered checkbox corresponds to the
     Nth matching source line.
+
+    **Two refusals stand between that assumption and somebody else's row**
+    (ISS-0184).
+
+    The first is the count. The correspondence above holds only while every
+    ``- [ ]`` line in the file draws a box on the page, and one does not: a
+    task list that opens immediately after a paragraph line, with no blank
+    line between, is absorbed into that paragraph and draws nothing. The file
+    then has rows the page has not, and from the first of them onwards every
+    click lands one row too early — silently, reporting success. The
+    *labelling* path already refuses in exactly this case, by leaving
+    ``data-raw`` off rather than telling a box it is a line it is not
+    (ISS-0175); this is that same refusal applied to the write.
+
+    The second is the text. ``expect`` is the prose the client read off the
+    box it clicked. The counts can agree and still be addressing a different
+    document — the file may have been edited since the page was drawn — so
+    when the client sends the text, the line about to change has to be that
+    text. Compared through ``note_writes._criterion_text`` so a resolved
+    criterion's evidence is stripped on both sides, the same normalisation
+    ``data-raw`` is written with.
+
+    A refusal is the specified behaviour, not a degradation: where the address
+    cannot be established the box is not writable, and the reader is told so
+    instead of having a tick appear somewhere they cannot see.
     """
     key = str(target)
     with _TASK_TOGGLE_LOCKS_MUTEX:
@@ -4297,6 +4330,29 @@ def _toggle_task_at(
                 f"checkbox index {index} not found "
                 f"(only {seen + 1} checkbox(es) in file)"
             )
+        in_file = sum(1 for line in lines if _TASK_LINE_RE.match(line))
+        try:
+            _, body_md = note_writes._split_frontmatter(text)
+        except note_writes.WriteError:
+            body_md = text
+        on_page = renderer.rendered_checkbox_count(
+            body_md, source_path=target)
+        if on_page != in_file:
+            return False, (
+                f"this document's checkboxes cannot be addressed: the page "
+                f"draws {on_page} and the file holds {in_file}, so position "
+                f"{index} names a different row in each. A task list that "
+                f"opens immediately after a paragraph line draws no checkbox; "
+                f"add a blank line before it."
+            )
+        if expect is not None and expect.strip():
+            here = note_writes._criterion_text(lines[hit])
+            if (here or "").strip() != expect.strip():
+                return False, (
+                    f"checkbox {index} reads {(here or '').strip()!r} in the "
+                    f"file and {expect.strip()!r} on the page; the file "
+                    f"changed since it was drawn. Reload and click again."
+                )
         replacement = "x" if checked else " "
         lines[hit] = _TASK_LINE_RE.sub(
             lambda m: f"{m.group(1)}[{replacement}]{m.group(3)}",

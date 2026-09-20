@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0184
 aliases: ["ISS-0184"]
 title: "Clicking a checkbox in a Markdown document can tick a different line if the page shows fewer checkboxes than the file holds"
-status: "open"
+status: "fixed"
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-08-17
-updated: "2026-09-19"
+updated: "2026-09-20"
 reported_by: user:edwin
 source: ["Edwin 2026-08-17: 'I thought we would have the checkboxes in the acceptance-tests.md to have 3 states and we would allow to add text there'", "Reproduced against a throwaway copy of ../your-trainer's suite on 2026-08-17"]
 severity: medium
@@ -15,6 +15,7 @@ component: cockpit-server
 parent: ""
 related: ["[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]", "[[FEAT-0104-The-Suite-Is-The-Surface]]", "[[FEAT-0103-The-Gate-Is-Walkable]]", "[[FEAT-0111-The-Marks-The-Record-Already-Uses]]", "[[ISS-0177-An-Exception-Mark-Drops-A-Check-With-No-Justification]]"]
 tests: []
+fixed_by: "[[TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review]]"
 ---
 
 # Clicking a checkbox can tick a different line than the one clicked
@@ -117,3 +118,23 @@ Evidence: the client sends only the checkbox's position among the rendered boxes
 **Belongs to:** no open feature (the acceptance checks moved to notes and no longer use this endpoint). **Next:** small fix in `_serve_check_toggle`/the renderer change handler, with a failing test first.
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Fixed 2026-09-20 (TASK-0632)
+
+**What changed.** `_toggle_task_at` (`src/project_os_cockpit/server.py`) now refuses two ways instead of trusting the position.
+
+1. **The counts must agree.** It renders the note's body and counts the checkboxes the page draws, then counts the `- [ ]` lines the file holds. When the two differ, the position names a different row in each, so the write is refused and the reply says why: *"this document's checkboxes cannot be addressed: the page draws N and the file holds M"*. This is the refusal `_annotate_checkbox_source` has made on the labelling side since [[ISS-0175]], applied to the write. It needs nothing from the client.
+2. **The text must match.** The renderer now sends the box's `data-raw` prose beside its index (`desktop/src/renderer/renderer.ts`), and the server compares it — through `note_writes._criterion_text`, so evidence is stripped on both sides — with the line it is about to change. That catches the case the counts cannot: the file was edited after the page was drawn.
+
+`renderer.rendered_checkbox_count` is the new helper that answers "how many boxes does this body draw", by rendering. There is no cheaper honest answer: pymdownx.tasklist's rules are the only authority on what draws a box. Measured at 66 ms on the largest checklist in the fleet (43 boxes, `your-trainer/docs/requirements/PRD-Original.md`), which is a click, not a page load.
+
+**It was live, not latent.** The WITHDRAWN section above is still right that `your-trainer`'s suite agreed on the day it was measured. But any document with an absorbed task list diverges, and the divergence is silent: before this change, a POST of index 0 against such a file wrote to the first absorbed row and answered `{"ok": true}`. The test fixture is that document.
+
+**Which test guards it.** `tests/test_check_toggle.py`:
+- `test_a_click_is_refused_when_the_page_and_the_file_hold_different_boxes` — a file with three absorbed rows and two drawn ones. Asserts the 404, the message, and that the file is byte-identical afterwards.
+- `test_a_click_is_refused_when_the_text_does_not_match_the_line` — asserts both directions: the wrong text is refused and does not write, and the right text writes.
+- `test_the_renderer_sends_the_text_it_is_showing` — the client half, read off the source. Weak on its own, which is why the count refusal above needs no client at all.
+
+**Run both ways.** With the fix: `13 passed`. With `server.py`, `renderer.py` and `renderer.ts` reverted: `3 failed, 10 passed`. `npx tsc --noEmit` is clean and the node suite passes.
+
+**What is not done.** Expected #1 above wanted a checkbox addressed by something that survives an edit, and this is not that; it is the refusal Expected #2 asked for, which is what makes the endpoint safe. Expected #3 — naming the rows that render no checkbox so the repo that owns them can add the blank line — is now in the refusal message rather than in a report. A document-wide address scheme stays a design question and is not reopened here.

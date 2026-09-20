@@ -2860,11 +2860,23 @@ docView.addEventListener('change', async (e) => {
 
   const pathOnly = stripFragment(currentRel);
   const desired = tgt.checked;
+  //: **The position alone can name somebody else's row** ([[ISS-0184]]). The
+  //: server finds the box by counting `- [ ]` lines in the file, and the file
+  //: can hold lines the page does not draw. Sending the prose this box shows
+  //: lets the server check that the line it is about to change is the line
+  //: the reader clicked. `data-raw` is the source text, written by
+  //: `renderer._annotate_checkbox_source`; it is absent exactly when the
+  //: counts already disagree, and the server refuses on the counts in that
+  //: case, so leaving it off is safe rather than silent.
+  const raw = tgt.dataset.raw;
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/notes/check-toggle`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: pathOnly, index: idx, checked: desired }),
+      body: JSON.stringify({
+        path: pathOnly, index: idx, checked: desired,
+        ...(typeof raw === 'string' && raw.trim() ? { raw } : {}),
+      }),
     });
     if (!resp.ok) {
       tgt.checked = !desired; // revert optimistic update
