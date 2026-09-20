@@ -3,17 +3,18 @@ type: "[[issue]]"
 id: ISS-0271
 aliases: ["ISS-0271"]
 title: "FEAT-0143 says it has no user-facing surface, yet five checks-page and release-page fixes sit under it and no change note records them"
-status: open
+status: fixed
 owner: user:edwin
 reported_by: review
 created: 2026-08-30
-updated: "2026-09-19"
+updated: "2026-09-20"
 severity: medium
 component: docs
 phase:
 source: ["Independent review of 46d6593..c861414, 2026-08-30, model:claude-opus-5, fresh context"]
 related: ["[[FEAT-0143-The-Fleet-Runs-One-Validator]]", "[[TASK-0587-The-Derived-Set-Is-This-Releases-Platforms]]", "[[TASK-0588-A-Write-Is-Not-A-Navigation]]", "[[TASK-0589-A-View-Knows-Which-Pages-It-Owns]]", "[[TASK-0590-A-Write-Is-Readable-When-It-Answers]]", "[[TASK-0591-Retiring-Removes-The-Obligation]]"]
 tests: []
+fixed_by: "[[TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review]]"
 ---
 
 # Five page fixes are filed under a validator feature
@@ -45,9 +46,9 @@ That omission also silently skipped a trigger: the independent-review skill fire
 
 ## Next Actions
 
-- [ ] Give these five tasks a parent that describes them, or restate FEAT-0143's goal and re-open it.
-- [ ] Re-check `acceptance_exception` against whatever the parent ends up being.
-- [ ] Write the CHG note for the five behaviour changes.
+- [~] Give these five tasks a parent that describes them, or restate FEAT-0143's goal and re-open it.
+- [x] Re-check `acceptance_exception` against whatever the parent ends up being.
+- [x] Write the CHG note for the five behaviour changes.
 
 ## Checked against the code, 2026-09-19: still true, kept
 
@@ -58,3 +59,13 @@ Evidence: `docs/features/fleet-validator-sync/FEAT-0143-The-Fleet-Runs-One-Valid
 **Belongs to:** FEAT-0143. **Next:** Docs-only: write one CHG note naming the five behaviour changes, and narrow `acceptance_exception` to the migration tasks (or move the five tasks to a feature of their own).
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Fixed 2026-09-20 (TASK-0632)
+
+**The change note exists.** [[CHG-20260830-Five-Fixes-To-The-Release-Page-The-Checks-Page-And-The-Gate]], dated the day the code landed rather than the day it was written, because a change note records when something changed. It names each of the five behaviours as something a person sees: a release page offering only what its platform can ship, a tick that keeps the tier and area you are walking, a write that does not throw you off the page, a mark readable by the very next request, and a retired check that stops blocking a release. It links the five tasks, the five issues and the commit, and its `review_response:` records that the review's finding about these tasks — [[ISS-0266]] — was acted on.
+
+**The waiver is narrowed.** [[FEAT-0143]]'s `acceptance_exception:` now covers TASK-0579 to TASK-0586 by name — the census, the tool, the four migrations and the drift check — and says in the same sentence that it does **not** cover TASK-0587 to TASK-0591, pointing at the change note. The claim that the feature ships no user-facing surface was false the moment those five arrived, and the field no longer makes it.
+
+**The five tasks stay where they are, and that box is `- [~]` rather than ticked.** Moving them would change a reviewed, closed feature's contents after the fact, and the review's verdict points at what it pointed at. The traceability problem this issue raised — a reader asking why the checks page changed and landing on a validator migration — is answered by the change note, which is the artifact a reader of `docs/changes/` actually reaches. Minting a feature to re-home five finished tasks would be bookkeeping that loses the history rather than recording it.
+
+**Docs only, no test**, as [[ISS-0313]] states.

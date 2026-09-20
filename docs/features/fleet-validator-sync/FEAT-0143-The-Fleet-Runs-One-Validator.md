@@ -6,7 +6,7 @@ title: "The fleet runs one validator — the migration is two mechanical rules, 
 status: done
 owner: user:edwin
 created: 2026-08-29
-updated: 2026-08-29
+updated: 2026-09-20
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-29
 review_verdict: changes-requested
@@ -18,7 +18,7 @@ goal: "Move every fleet repo onto the upstream validator — which is what carri
 requirements: []
 tasks: ["[[TASK-0579-Count-The-Flood-By-Rule]]", "[[TASK-0580-The-Migration-Is-A-Tool-Not-A-Session]]", "[[TASK-0581-Migrate-Obsidian-Supernote-Sync]]", "[[TASK-0582-Migrate-Your-Health]]", "[[TASK-0583-Migrate-Your-Sudoku]]", "[[TASK-0584-Migrate-Your-Trainer]]", "[[TASK-0585-Drift-Is-Measured-Not-Noticed]]", "[[TASK-0586-Your-Trainer-Scopes-Its-Release]]", "[[TASK-0587-The-Derived-Set-Is-This-Releases-Platforms]]", "[[TASK-0588-A-Write-Is-Not-A-Navigation]]", "[[TASK-0589-A-View-Knows-Which-Pages-It-Owns]]", "[[TASK-0590-A-Write-Is-Readable-When-It-Answers]]", "[[TASK-0591-Retiring-Removes-The-Obligation]]"]
 release: ""
-acceptance_exception: "This feature ships no user-facing surface: it is a migration of four repos' pre-commit tooling plus a CI check. Its observable behaviour is `validate-docs.py` exiting 0 in repos where upstream's rules previously reported 1086 errors, which is what its automated tests assert directly."
+acceptance_exception: "Narrowed 2026-09-20 (ISS-0271). It covers TASK-0579 to TASK-0586 only — the census, the migration tool, the four repo migrations and the drift check. Those ship no user-facing surface: their observable behaviour is `validate-docs.py` exiting 0 in repos where upstream's rules previously reported 1086 errors, which is what their automated tests assert directly. It does NOT cover TASK-0587 to TASK-0591, which joined this feature on 2026-08-30 and are five user-facing changes to the release page, the checks page and the acceptance gate. The original wording claimed the whole feature had no user-facing surface and was false the moment those five arrived. They are recorded in CHG-20260830-Five-Fixes-To-The-Release-Page-The-Checks-Page-And-The-Gate and their guards are ISS-0266's."
 acceptance: ""
 design: ""
 related: ["[[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]", "[[FEAT-0142-A-Release-Says-What-Is-In-It]]"]
