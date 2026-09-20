@@ -3,11 +3,11 @@ type: "[[issue]]"
 id: ISS-0292
 aliases: ["ISS-0292"]
 title: "Another app that reads the same notes has to keep its own copy of the status groups, the severity list and the note types, and its copy has already gone wrong once"
-status: open
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-09-09
-updated: "2026-09-19"
+updated: "2026-09-20"
 reported_by: agent
 source: ["Filed from project-os-deck on 2026-09-09, by TASK-0044 of FEAT-0012, which is the task that had to copy the vocabulary"]
 severity: medium
@@ -15,6 +15,7 @@ component: api
 parent: ""
 related: []
 tests: []
+fixed_by: "[[TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review]]"
 ---
 
 # Other apps must copy the status groups, severities and note types, and the copies go wrong
@@ -51,8 +52,8 @@ Deck's choice was a text box and the sidecar's refusal quoted back, rather than 
 - `project-os-deck/desktop/tests/band-and-face.test.mjs` — what fails when the two diverge.
 
 ## Next Actions
-- [ ] Decide whether the vocabulary is worth serving, or whether a pinned copy per client is the accepted answer
-- [ ] If it is served, name the endpoint and the shape, and tell Deck so its copy can go
+- [x] Decide whether the vocabulary is worth serving, or whether a pinned copy per client is the accepted answer
+- [x] If it is served, name the endpoint and the shape, and tell Deck so its copy can go
 
 ## Checked against the code, 2026-09-19: still true, kept
 
@@ -65,3 +66,27 @@ Small fix: yes. One read-only route that returns these six constants as JSON, be
 **Belongs to:** no feature. **Next:** add one read route (for example `GET /api/cockpit/vocabulary`) and record it in `docs/reference/cockpit-capability-register.md` so Deck can adopt it.
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Fixed 2026-09-20 (TASK-0632)
+
+**What changed.** `GET /api/cockpit/vocabulary` serves the tables. It is a read, so it sits behind the guards every other read sits behind and adds no write surface. The payload is built by `cockpit.vocabulary_payload()` from the modules that own each table, so there is still one authority and the route is a view of it rather than a seventh copy:
+
+| key | what it carries | source |
+| --- | --- | --- |
+| `bands` | each band with its members | `statuses.BANDS` |
+| `band_tokens` | the CSS custom property per band | `statuses.BAND_TOKEN` |
+| `completed` | the terminal set, sorted | `statuses.COMPLETED_STATUSES` |
+| `legacy_bands` | retired values mapped to the band they used to occupy | `statuses.LEGACY_STATUS_BAND` |
+| `severity_order` | the ranking the Issues view bands by | `cockpit.SEVERITY_ORDER` |
+| `severities` | the values a write will accept, sorted | `note_writes.SEVERITIES` |
+| `callout_types` | the `> [!type]` names that render, sorted | `callouts.KNOWN_TYPES` |
+
+**Two things a client should know.** `severity_order` and `severities` are separate on purpose — one is a ranking a view draws with, the other is a write-time refusal list — and they hold the same four values today only by coincidence. Everything derived from a Python set is sorted before it is sent, because a frozenset's iteration order is not stable across runs and Deck pins this kind of payload to a fixture.
+
+**Which test guards it.** `tests/test_vocabulary_route.py`, four cases over the live route: every table present and equal to its source module; the three statuses Deck banded wrong are in `pending` and not in `active`; the served severities are exactly the ones `/api/notes/transition` accepts, asserted both ways; and two consecutive calls return byte-identical JSON with the set-derived lists sorted.
+
+**Run both ways.** With the route: `4 passed`. With `server.py` and `cockpit.py` reverted: `4 failed`, all on the 404.
+
+**Recorded where Deck will look.** `docs/reference/cockpit-capability-register.md` gains the row `api.read.vocabulary`.
+
+**What is still owed, in the other repository.** Deck can now drop `desktop/src/shared/statuses.ts`, `desktop/fixtures/cockpit-statuses.json`, `tools/scripts/record-sidecar-fixture.py` and the fixture half of `desktop/tests/band-and-face.test.mjs`, and it can offer a severity picker instead of a text box. None of that is done here; it is work in `project-os-deck` and this issue closes on the endpoint existing.

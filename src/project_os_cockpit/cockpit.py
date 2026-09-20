@@ -401,6 +401,54 @@ _TASK_STATUS_RANK: dict[str, int] = {s: i for i, s in enumerate(TASK_STATUS_ORDE
 SEVERITY_ORDER: tuple[str, ...] = ("critical", "high", "medium", "low")
 _SEVERITY_RANK: dict[str, int] = {s: i for i, s in enumerate(SEVERITY_ORDER)}
 
+
+def vocabulary_payload() -> dict[str, Any]:
+    """The vocabularies a second application needs, as data (ISS-0292).
+
+    **Why this exists.** Inside this repository the tables below are safe:
+    `tests/test_status_vocabulary.py` parses `static/cockpit.js`, both
+    stylesheets and the Electron renderer, so no surface here can fall behind
+    `statuses.py`. Outside it there is no such rope. project-os-deck reads the
+    same notes, could not ask, and so copied the bands — and put `draft`,
+    `proposed` and `ready` in the wrong one within two days. It also asks for
+    an issue's severity in a free text box, because the four legal values were
+    not available to offer, and quotes the sidecar's refusal back when the
+    typing is wrong.
+
+    **Six tables, each named where it lives**, so a client that adopts this can
+    drop its copy and a reader can find the authority:
+
+    * `bands` / `band_tokens` / `completed` / `legacy_bands` — `statuses.py`.
+    * `severity_order` — this module; the order the Issues view bands by.
+    * `severities` — `note_writes.SEVERITIES`; what `/api/notes/transition`
+      will actually accept while an issue leaves `triage`.
+    * `callout_types` — `callouts.KNOWN_TYPES`; the `> [!type]` names that
+      render as a callout rather than as an unknown one.
+
+    `severity_order` and `severities` are deliberately both here and
+    deliberately separate: one is a ranking a view draws with and the other is
+    a write-time refusal list. They happen to hold the same four values today,
+    and a client that conflated them would be wrong the day either moves.
+
+    Sorted where the source is a set, because a frozenset's iteration order is
+    not stable across runs and a payload that reorders itself defeats any
+    client that pins it to a fixture — which is exactly what Deck does.
+    """
+    from . import callouts as _callouts
+    from . import note_writes as _note_writes
+
+    return {
+        "schema_version": SCHEMA_VERSION,
+        "bands": {band: list(members)
+                  for band, members in statuses.BANDS.items()},
+        "band_tokens": dict(statuses.BAND_TOKEN),
+        "completed": sorted(statuses.COMPLETED_STATUSES),
+        "legacy_bands": dict(statuses.LEGACY_STATUS_BAND),
+        "severity_order": list(SEVERITY_ORDER),
+        "severities": sorted(_note_writes.SEVERITIES),
+        "callout_types": sorted(_callouts.KNOWN_TYPES),
+    }
+
 # Recent-mode time buckets (in render order).
 _RECENT_BUCKETS = (
     ("today", "Today"),

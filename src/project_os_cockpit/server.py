@@ -1031,6 +1031,15 @@ def _make_handler(
                 self._respond_json(criteria.debt_payload(index))
                 return
 
+            #: ``GET /api/cockpit/vocabulary`` — the status bands, the severity
+            #: lists and the callout types, as data (ISS-0292). A second app
+            #: over the same notes had to copy these and its copy drifted
+            #: within two days; a read is what lets it ask instead. Behind the
+            #: same guards as every other read, and it adds no write surface.
+            if path == "/api/cockpit/vocabulary":
+                self._respond_json(cockpit.vocabulary_payload())
+                return
+
             if path == "/api/cockpit/transitions":
                 self._respond_json({
                     "transitions": status_diff.transitions() if status_diff else [],
