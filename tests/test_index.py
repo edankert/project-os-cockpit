@@ -332,3 +332,62 @@ def test_implemented_status_sorts_and_collapses_with_the_done_family() -> None:
     assert STATUS_RANK["done"] <= STATUS_RANK["implemented"] <= STATUS_RANK["verified"]
     assert STATUS_RANK["implemented"] > STATUS_RANK["backlog"]
     assert "implemented" in COLLAPSED_BY_DEFAULT
+
+
+# --- a list-valued type is still a type (ISS-0279) -------------------------
+
+
+def test_a_type_written_as_a_list_is_the_same_type_as_the_string(
+    tmp_path: Path,
+) -> None:
+    """**Obsidian writes a list, and the vault went untyped** (ISS-0279).
+
+    A property set through Obsidian's editor is written as a YAML list, so a
+    note's `type:` arrives as `["[[@Character]]"]`. `_normalise_type` returned
+    `None` for anything that was not a string, so 99 of the 407 notes in
+    Edwin's vault indexed with no type at all and the Library had no Character,
+    Page, Location, Chapter or Story group to show.
+
+    Asserted through `Index.build` rather than on the helper, because what the
+    reader notices is the group the Library draws, and `type_counts()` is what
+    it draws it from.
+    """
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "Ada.md").write_text(
+        '---\ntype:\n  - "[[@Character]]"\ntitle: "Ada"\n---\n\n# Ada\n',
+        encoding="utf-8")
+    (docs / "Bea.md").write_text(
+        '---\ntype: "[[@Character]]"\ntitle: "Bea"\n---\n\n# Bea\n',
+        encoding="utf-8")
+
+    index = Index.build(docs)
+
+    assert index.get(docs / "Ada.md").note_type == "@character", (
+        "a list-valued type: still indexes as untyped, so the Library shows "
+        "no group for it")
+    assert index.get(docs / "Bea.md").note_type == "@character"
+    assert index.type_counts()["@character"] == 2
+
+
+def test_the_first_usable_element_of_a_type_list_wins(tmp_path: Path) -> None:
+    """A multi-element list has no meaning the templates ever wrote, so the
+    rule is stated by a test rather than left to whoever reads the code next:
+    the first element that normalises to something is the type, and an empty
+    or unusable one is skipped rather than returned."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "Two.md").write_text(
+        '---\ntype:\n  - "[[Page]]"\n  - "[[Panel]]"\ntitle: "Two"\n---\n\n# Two\n',
+        encoding="utf-8")
+    (docs / "Blank.md").write_text(
+        '---\ntype:\n  - ""\n  - "[[Location]]"\ntitle: "Blank"\n---\n\n# Blank\n',
+        encoding="utf-8")
+    (docs / "None.md").write_text(
+        '---\ntype: []\ntitle: "None"\n---\n\n# None\n', encoding="utf-8")
+
+    index = Index.build(docs)
+
+    assert index.get(docs / "Two.md").note_type == "page"
+    assert index.get(docs / "Blank.md").note_type == "location"
+    assert index.get(docs / "None.md").note_type is None

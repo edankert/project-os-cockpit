@@ -68,7 +68,7 @@ counters:
   # A place in the product a check's area: names (TASK-0514).
   SUR: 4
   REL: 1
-  TASK: 631
+  TASK: 632
   TST: 90
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -2062,7 +2062,7 @@ items:
     ISS-0279:
       file: "docs/issues/ISS-0279-A-List-Valued-Type-Field-Loses-Its-Type.md"
       title: "A note whose type: is written as a list gets no type, so the Library shows no Character, Page or Location groups for Edwin's vault"
-      status: open
+      status: fixed
       owner: unassigned
       severity: medium
       component: index
@@ -4703,14 +4703,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 153
     features_done: 135
-    tasks_total: 625
+    tasks_total: 626
     tasks_done: 586
     tests_total: 50
     tests_passing: 1
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 25
+    issues_open: 24
     issues_triage: 0
     risks_open: 8
     releases_total: 1

@@ -2,18 +2,19 @@
 type: "[[issue]]"
 id: ISS-0279
 title: "A note whose type: is written as a list gets no type, so the Library shows no Character, Page or Location groups for Edwin's vault"
-status: open
+status: fixed
 phase:
 owner: unassigned
 reported_by: agent
 created: 2026-09-06
-updated: "2026-09-19"
+updated: "2026-09-20"
 source: ["Measured 2026-09-06 while writing [[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]: the sidecar run against ~/Notes returned a Library with a Panel group of zero"]
 severity: medium
 component: index
 parent: ""
 related: ["[[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]", "[[ISS-0023]]"]
 tests: []
+fixed_by: "[[TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review]]"
 ---
 
 # A note whose type is a list shows up untyped
@@ -63,9 +64,9 @@ The same function handles `status:`, and one Comics note carries a status list c
 
 ## Next Actions
 
-- [ ] Accept a list in `_normalise_type`, taking the first element, and say so in the docstring.
-- [ ] Decide what a multi-element list means, and add a test with both forms.
-- [ ] Re-run the Library payload against the vault and record the groups it returns.
+- [x] Accept a list in `_normalise_type`, taking the first element, and say so in the docstring.
+- [x] Decide what a multi-element list means, and add a test with both forms.
+- [~] Re-run the Library payload against the vault and record the groups it returns.
 
 ## Checked against the code, 2026-09-19: still true, kept
 
@@ -76,3 +77,17 @@ Evidence: `src/project_os_cockpit/index.py:657-658` in `_normalise_type`: `if no
 **Belongs to:** no feature. **Next:** Small fix: accept a list in `_normalise_type`, take the first element, and add a test with both forms.
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Fixed 2026-09-20 (TASK-0632)
+
+**What changed.** `_normalise_type` in `src/project_os_cockpit/index.py` now accepts a list and returns the first element that normalises to something. A note whose `type:` is `["[[@Character]]"]` indexes as `@character`, exactly as the string form does, so the Library draws a group for it.
+
+**The multi-element rule, decided.** The first usable element wins. Neither the project-os templates nor the vault's own ever write a second one, so there is nothing to preserve; taking the first is what the one-element case already implies and it never invents a type the list does not name. An empty string in the list is skipped rather than returned, and an empty list is still untyped. The docstring says so.
+
+**Which test guards it.** `tests/test_index.py::test_a_type_written_as_a_list_is_the_same_type_as_the_string` and `::test_the_first_usable_element_of_a_type_list_wins`. Both go through `Index.build` and `type_counts()` rather than calling the helper, because the Library's group is what a reader notices.
+
+**Run both ways.** With the fix: `18 passed`. With `index.py` reverted (`git stash push src/project_os_cockpit/index.py`): `2 failed, 16 passed`, the first on `note_type is None` where `@character` was expected.
+
+**Not re-run against the vault.** The Library payload over `~/Notes` was not measured again — that needs Edwin's vault and a running sidecar, and the counts in the Evidence table above are what the fix was sized on. The `- [~]` box records it as cut rather than done.
+
+Commit: see the repository history for `ISS-0279`.
