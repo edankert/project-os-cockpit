@@ -131,3 +131,48 @@ def test_the_endpoint_reindexes_before_it_answers() -> None:
     assert "self._reindex(check_id)" in body, body[-600:]
     assert body.index("self._reindex(check_id)") < body.rindex(
         'self._respond_json({"ok": True'), "reindex must precede the response"
+
+
+# ---- the retire path is the same race (ISS-0266, mutant C2) ---------------
+
+
+def test_a_retirement_is_visible_to_the_next_read(tmp_path: Path) -> None:
+    """**The second write path, and nothing covered it** (ISS-0266, mutant C2).
+
+    [[TASK-0590]] recorded *"Removing the `_reindex` call fails both. Run, not
+    assumed."* That is true of `mark-check` and was never true of
+    `retire-check`: the two tests above exercise the mark path only, so
+    deleting `_reindex` from `_serve_retire_check` failed nothing while the
+    checks page repainted from a stale index and went on showing a check the
+    reader had just retired.
+
+    Asserted the way the mark path is asserted — through the gate a reader
+    looks at, with no watcher running — so the only thing that can make the
+    retirement visible is the endpoint doing it.
+    """
+    port, httpd = _spin_up(_docs(tmp_path))
+    try:
+        assert _blocking_mark(port) == "todo"
+        assert _post(port, "/api/notes/retire-check", {
+            "id": "TST-0001",
+            "reason": "the behaviour it walked was removed",
+        })["ok"] is True
+        assert _blocking_mark(port) == "settled", (
+            "the retirement is not readable by the next request — the page "
+            "repaints from a stale index and still shows the retired check")
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
+def test_the_retire_endpoint_reindexes_before_it_answers() -> None:
+    """Same ordering property as the mark path, and invisible at runtime for
+    the same reason: reindexing after the response still passes on a slow
+    machine while losing the race in the app."""
+    src = (Path(__file__).resolve().parents[1] / "src" / "project_os_cockpit"
+           / "server.py").read_text(encoding="utf-8")
+    i = src.index("def _serve_retire_check")
+    body = src[i:src.index("def _serve_mark_released", i)]
+    assert "self._reindex(" in body, body[-600:]
+    assert body.index("self._reindex(") < body.rindex(
+        'self._respond_json({"ok": True'), "reindex must precede the response"

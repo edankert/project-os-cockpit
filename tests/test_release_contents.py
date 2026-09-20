@@ -415,5 +415,66 @@ def test_the_navigator_and_the_page_derive_the_same_set(tmp_path: Path) -> None:
 
     assert "FEAT-0002" not in in_the_pane, \
         "the navigator lists an iOS feature under an Android release"
-    assert on_the_page <= in_the_pane or in_the_pane <= on_the_page, \
+    #: **An equality, because a subset in either direction is not agreement**
+    #: ([[ISS-0266]]). This read `on_the_page <= in_the_pane or in_the_pane <=
+    #: on_the_page`, which is satisfied when the navigator drops rows, when it
+    #: gains rows, and when it returns nothing at all — only a crossing
+    #: divergence failed it. The note above claims the guard "has to fail when
+    #: they diverge, whichever one moves", and this is the assertion that does
+    #: that. In this fixture the two sets are exactly equal, so nothing is
+    #: being relaxed to make it pass.
+    assert on_the_page == in_the_pane, \
         f"navigator and page disagree: pane={sorted(in_the_pane)} page={sorted(on_the_page)}"
+
+
+# ---- the page the issue was reported against (ISS-0266, mutants A4 / A5) ---
+
+
+def test_the_release_page_lists_only_what_this_release_can_ship(
+    tmp_path: Path,
+) -> None:
+    """**[[ISS-0261]] is about a release PAGE, and no test read one** (mutant A4).
+
+    The guards written for that fix cover `shipping_in`, the helper, and
+    `_publication_groups`, the navigator. `release_payload` is the page Edwin
+    was looking at when he reported it, and it reads `shipping_in` with
+    nothing asserting that it does. Reverting its one changed line to the
+    unfiltered `unreleased_payload` set passed the whole suite — 2126 tests —
+    on 2026-08-30, and the page went back to offering an Android release ten
+    features no Android build can contain.
+    """
+    from project_os_cockpit.publication import release_payload
+
+    docs = _platform_repo(tmp_path)
+    contents = release_payload(
+        docs.parent, Index.build(docs), "REL-0001")["contents"]
+
+    ids = {str(r.get("id") or "") for r in contents["rows"]}
+    assert contents["kind"] == "derived", contents["kind"]
+    assert "FEAT-0002" not in ids, \
+        "the release page offers an Android release an iOS feature"
+    assert "FEAT-0005" not in ids, \
+        "the release page offers an Android release a web feature"
+    assert "FEAT-0001" in ids and "FEAT-0003" in ids
+
+
+def test_the_release_page_counts_the_rows_it_is_showing(tmp_path: Path) -> None:
+    """**The heading and the list have to be the same set** (mutant A5).
+
+    `unreleased_payload`'s count is fleet-wide and these rows are scoped to
+    one platform, so taking the card's number gives a page that says "5
+    features" above three of them. Asserted as an equality with the rows
+    rather than as a literal, so it stays true when the fixture grows.
+    """
+    from project_os_cockpit.publication import release_payload
+    from project_os_cockpit.cockpit import unreleased_payload
+
+    docs = _platform_repo(tmp_path)
+    index = Index.build(docs)
+    contents = release_payload(docs.parent, index, "REL-0001")["contents"]
+
+    assert contents["count"] == len(contents["rows"]), \
+        "the count over the list is not the length of the list"
+    assert contents["count"] < len(unreleased_payload(index)["items"]), \
+        ("the count is the fleet-wide unshipped figure again, not this "
+         "release's platform's")

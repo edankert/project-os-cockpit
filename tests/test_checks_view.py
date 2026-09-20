@@ -530,6 +530,28 @@ def test_marking_a_check_does_not_clear_the_readers_filters() -> None:
         "the address-driven render is being used as a repaint again"
 
 
+def test_the_repaint_actually_keeps_the_filters() -> None:
+    """**The fix is one argument, and nothing asserted it** (ISS-0266, mutant B1).
+
+    `repaintChecksPage` is the whole of ISS-0262's fix, and the three guards
+    around it check the callback's NAME. Change its one line from
+    `renderChecksPage('', '', { keepFilters: true })` to
+    `renderChecksPage('', '')` and all three still pass while every tick
+    clears the reader's tier and area again — measured against the full suite
+    on 2026-08-30, and still true on 2026-09-19.
+
+    So this reads inside the function's own braces. The property is not which
+    function repaints, which the test above owns; it is what that repaint
+    asks for.
+    """
+    src = _renderer()
+    body = js_function_body(src, "async function repaintChecksPage")
+    assert "keepFilters: true" in body, (
+        "the repaint no longer opts out of the address reset, so a mark "
+        "clears the filters the reader is walking (ISS-0262): " + body)
+    assert "renderChecksPage(" in body, body
+
+
 def test_every_write_on_the_checks_page_repaints_the_same_way() -> None:
     """Mark and retire are the two write paths, and a third will be added.
 
@@ -591,10 +613,33 @@ def test_the_landing_still_fires_when_the_reader_is_elsewhere() -> None:
     FEAT-0092's whole point — a view that leaves the centre pane on whatever
     you were reading — comes back."""
     src = _renderer()
-    i = src.index("function onOwnedPage")
-    body = src[i:i + 400]
+    body = js_function_body(src, "function onOwnedPage")
     assert "if (!rel) return false;" in body, body
     assert "rel === `~${navMode}`" in body, body
+
+
+def test_the_landing_guard_reads_the_pages_this_view_owns() -> None:
+    """**The rest of the function, which was the fix** (ISS-0266, mutant B2).
+
+    Cut `onOwnedPage` down to its first two lines and it is exactly the
+    equality test ISS-0263 replaced. `VIEW_OWNED_PAGES` stays in the file, the
+    call site stays in `loadWsNav`, and both existing guards keep passing —
+    one checks the constant exists, the other checks the first two lines — so
+    the reader is evicted from `~checks` on every mark again with the suite
+    green.
+
+    The lookup is what the fix added, so the lookup is what is asserted, and
+    the prefix match with it: `~walk/android` is a page Publication owns and
+    an equality on `'~walk'` would throw the walker off it.
+    """
+    src = _renderer()
+    body = js_function_body(src, "function onOwnedPage")
+    assert "VIEW_OWNED_PAGES[navMode]" in body, (
+        "onOwnedPage no longer consults the pages this view owns; it is back "
+        "to the equality test ISS-0263 replaced: " + body)
+    assert "rel.startsWith(" in body, (
+        "a page below an owned page is no longer owned — `~walk/android` "
+        "would evict the walker mid-walk: " + body)
 
 
 # ---- retiring removes the obligation, not the record (ISS-0265) ------------

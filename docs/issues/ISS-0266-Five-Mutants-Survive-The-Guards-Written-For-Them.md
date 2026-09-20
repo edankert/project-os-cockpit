@@ -3,16 +3,17 @@ type: "[[issue]]"
 id: ISS-0266
 aliases: ["ISS-0266"]
 title: "Three earlier fixes can be undone by a one-line edit while every test still passes: the checks page losing its filters, the reader being thrown off it, and a retired check reading stale"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-08-30
-updated: "2026-09-19"
+updated: "2026-09-20"
 severity: high
 component: tests
 phase:
 source: ["Independent review of 46d6593..c861414, 2026-08-30, model:claude-opus-5, fresh context"]
 related: ["[[ISS-0262-Marking-A-Check-Clears-The-Filter-You-Are-Walking]]", "[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]", "[[ISS-0264-A-Write-Is-Not-Readable-By-The-Next-Request]]", "[[ISS-0261-A-Release-Is-Offered-Features-Its-Platform-Cannot-Ship]]", "[[TASK-0588-A-Write-Is-Not-A-Navigation]]", "[[TASK-0589-A-View-Knows-Which-Pages-It-Owns]]", "[[TASK-0590-A-Write-Is-Readable-When-It-Answers]]", "[[TASK-0587-The-Derived-Set-Is-This-Releases-Platforms]]"]
 tests: []
+fixed_by: "[[TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review]]"
 reported_by: review
 ---
 
@@ -64,11 +65,11 @@ TASK-0587 describes this as asserting *"they AGREE rather than asserting a fact 
 
 ## Next Actions
 
-- [ ] Assert inside `repaintChecksPage`'s body that it passes `keepFilters: true`, and inside `onOwnedPage`'s body that it consults `VIEW_OWNED_PAGES[navMode]` — both kill their mutant without a new harness.
-- [ ] Guard `release_payload`'s derived rows and count directly (the fixture in `test_release_contents.py` already has everything needed).
-- [ ] Extend `test_mark_check_is_readable.py` to `retire-check`.
-- [ ] Make the navigator/page assertion an equality.
-- [ ] Longer term: `onOwnedPage` is a pure function and belongs where `desktop/tests/*.test.mjs` can run it.
+- [x] Assert inside `repaintChecksPage`'s body that it passes `keepFilters: true`, and inside `onOwnedPage`'s body that it consults `VIEW_OWNED_PAGES[navMode]` — both kill their mutant without a new harness.
+- [x] Guard `release_payload`'s derived rows and count directly (the fixture in `test_release_contents.py` already has everything needed).
+- [x] Extend `test_mark_check_is_readable.py` to `retire-check`.
+- [x] Make the navigator/page assertion an equality.
+- [~] Longer term: `onOwnedPage` is a pure function and belongs where `desktop/tests/*.test.mjs` can run it.
 
 ## Checked against the code, 2026-09-19: still true, kept
 
@@ -81,3 +82,25 @@ Evidence: B1 survives. `desktop/src/renderer/renderer.ts:10552-10554` has `repai
 **Belongs to:** no feature (the guards of TASK-0587 to TASK-0590). **Next:** add the four assertions from Next Actions above; run each mutant once to see it die.
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Fixed 2026-09-20 (TASK-0632)
+
+**All five mutants now die.** Each was re-applied to a clean tree, the suite re-run, and the tree restored — run, not assumed.
+
+| mutant | what it undoes | killed by |
+| --- | --- | --- |
+| A4 | `release_payload`'s derived rows go back to the unfiltered set | `tests/test_release_contents.py::test_the_release_page_lists_only_what_this_release_can_ship` (and A5's test with it) |
+| A5 | the heading counts the fleet-wide figure over platform-scoped rows | `::test_the_release_page_counts_the_rows_it_is_showing` |
+| B1 | `repaintChecksPage` stops asking to keep the filters | `tests/test_checks_view.py::test_the_repaint_actually_keeps_the_filters` |
+| B2 | `onOwnedPage` shrinks back to the equality test ISS-0263 replaced | `::test_the_landing_guard_reads_the_pages_this_view_owns` |
+| C2 | `retire-check` stops reindexing before it answers | `tests/test_mark_check_is_readable.py::test_a_retirement_is_visible_to_the_next_read` and `::test_the_retire_endpoint_reindexes_before_it_answers` |
+
+**No product code changed.** Six tests were added and one assertion was tightened; the three behaviours were already correct and are now held there.
+
+**The weak assertion is now an equality.** `test_the_navigator_and_the_page_derive_the_same_set` read `on_the_page <= in_the_pane or in_the_pane <= on_the_page`, which a subset in either direction satisfies — so it passed when the navigator dropped rows, gained rows, or returned nothing. It now reads `on_the_page == in_the_pane`. The two sets are exactly equal in the fixture, so nothing was relaxed to make it pass.
+
+**What is asserted, and how.** B1 and B2 read inside the function's own braces through `conftest.js_function_body`, not a character window — a window is a guess about a distance, and this suite has had it fail in both directions ([[ISS-0275]]). C2 goes through the gate a reader looks at with no watcher running, so only the endpoint can make the retirement visible. A4 and A5 call `release_payload` directly, which is the page [[ISS-0261]] was reported against and the one surface the earlier guards skipped.
+
+**Still open, and deliberately.** The last Next Action — moving `onOwnedPage` somewhere `desktop/tests/*.test.mjs` can execute it — is not done and is marked `- [~]`. It is a refactor of where a function lives rather than a guard, the two assertions above kill the mutant today, and `tests/test_desktop_node_suite.py` already records why source-reading guards are weaker. Worth doing; not this ticket.
+
+**Run both ways.** With the new tests and clean code: `75 passed` across the three files. With each mutant applied in turn: A4 `2 failed`, A5 `1 failed`, B1 `1 failed`, B2 `1 failed`, C2 `2 failed`.
