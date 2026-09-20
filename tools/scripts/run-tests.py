@@ -1,37 +1,18 @@
 #!/usr/bin/env python3
-"""Execute TST-* notes that declare a `command:` and report what happened (ADR-0038).
+"""Run every TST-* note's `command:` and report the outcome.
 
-A test note carrying a `command:` records **that a machine executes it**. It does
-not record whether it passed, and this script does not write one.
+A test that carries a `command:` records no verdict on its note (project-os-dev
+ADR-0025; STATUSES.md [[test]]): this script runs it, prints passing / failing /
+unrunnable per test, and exits 1 on any failure. In CI that exit code is the
+verdict. It never writes to a note. An unrunnable command (exit 127, a missing
+tool, a timeout) is an environment gap locally, reported and not counted as a
+failure; in CI (the `CI` variable set) it fails the run, because a test CI
+cannot run has no verdict, unless PROJECT_OS_ALLOW_UNRUNNABLE=1 accepts that.
 
-`QUALITY.md` builds its close-out rules on one gate: an item may not reach a
-terminal status while a linked TST-* is not `passing`. Across 10 repos and 5,890
-status writes that gate has never once observed a failure -- `failing` was
-written zero times, 78% of test notes are born `passing`, and 99% never change
-again.
+Notes that share a `command:` run it once and share the outcome: a second run of
+the same command in the same tree cannot reach a different verdict.
 
-**That measurement is unchanged; its reading is.** `project-os-dev#ADR-0010`
-read "no failure was ever recorded" as *authors do not record failures* and moved
-the writer here. The alternative reading fits the same number and costs a field
-instead of a mechanism: **a red automated test is not a state anybody records,
-because it is a state nobody ships.** A broken build gets fixed, not documented.
-
-So the verdict lives in CI, and what the note keeps is the `command:` -- which is
-strictly the better claim, because a stamped `passing` cannot notice that the
-test it stands for was renamed and a command that stops resolving can.
-
-Three outcomes, still deliberately distinguished, and all three are reported
-rather than stored:
-
-  passing     exit 0
-  failing     non-zero exit -- the check ran and the system is wrong
-  unrunnable  the command could not execute at all (missing binary, missing
-              env, timeout)
-
-Exit codes: 0 = no failures, 1 = at least one test failed, 2 = usage error.
-
-Stdlib only. Usage:
-    run-tests.py [--repo-root PATH] [--filter TST-0001] [--timeout N]
+Usage: run-tests.py [--repo-root DIR] [--filter TST-0001 ...] [--timeout SECONDS]
 """
 
 from __future__ import annotations
@@ -45,6 +26,8 @@ import sys
 from pathlib import Path
 
 DEFAULT_TIMEOUT = 600
+# How much of a failing command's output to echo, so CI says *why* it failed.
+FAILURE_OUTPUT_LINES = 40
 
 
 def split_frontmatter(text):
@@ -61,6 +44,34 @@ def fm_get(fm, key):
     if not m:
         return ""
     return m.group(1).strip().strip('"').strip("'")
+
+
+def ci_suite_command(root):
+    """The one command CI runs for this repo, or "" when none is declared.
+
+    **A repo's test notes usually carry filtered commands, and CI should not run
+    them one by one.** your-health has 26 notes whose command is the same Gradle
+    task with different `--tests` filters, each a subset of the whole suite: 26
+    cold runs for an answer one run already gives. A repo declares the covering
+    command in `SNAPSHOT.yaml`, and CI runs that instead:
+
+        ci:
+          suite_command: "./gradlew test --rerun-tasks"
+
+    Declaring nothing keeps the old behaviour — every command runs — so a repo
+    that has not thought about this loses no checking.
+    """
+    try:
+        text = (root / "SNAPSHOT.yaml").read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    block = re.search(r"^ci:[ \t]*$((?:\n(?:[ \t]+.*)?)*)", text, re.M)
+    if not block:
+        return ""
+    line = re.search(r"^[ \t]+suite_command:[ \t]*(.+?)[ \t]*$", block.group(1), re.M)
+    if not line:
+        return ""
+    return line.group(1).strip().strip('"').strip("'")
 
 
 def discover(root, only=None):
@@ -91,33 +102,6 @@ def discover(root, only=None):
     return out
 
 
-def ci_suite_command(root):
-    """The one command CI runs for this repo, or "" when none is declared.
-
-    **A repo's test notes usually carry filtered commands, and CI should not run
-    them one by one.** your-health has 26 notes whose command is the same Gradle
-    task with different `--tests` filters, each a subset of the whole suite: 26
-    cold runs for an answer one run already gives. A repo declares the covering
-    command in `SNAPSHOT.yaml`, and CI runs that instead:
-
-        ci:
-          suite_command: "./gradlew test --rerun-tasks"
-
-    Declaring nothing keeps the old behaviour — every command runs — so a repo
-    that has not thought about this loses no checking.
-    """
-    try:
-        text = (root / "SNAPSHOT.yaml").read_text(encoding="utf-8")
-    except OSError:
-        return ""
-    block = re.search(r"^ci:[ \t]*$((?:\n(?:[ \t]+.*)?)*)", text, re.M)
-    if not block:
-        return ""
-    line = re.search(r"^[ \t]+suite_command:[ \t]*(.+?)[ \t]*$", block.group(1), re.M)
-    if not line:
-        return ""
-    return line.group(1).strip().strip('"').strip("'")
-
 def run_one(root, cmd, timeout):
     """Return (outcome, exit_code, detail)."""
     try:
@@ -126,25 +110,30 @@ def run_one(root, cmd, timeout):
             env={**os.environ, "PROJECT_OS_TEST_RUN": "1"},
         )
     except subprocess.TimeoutExpired:
-        return "unrunnable", None, "timed out after %ss" % timeout
+        return "unrunnable", None, "timed out after %ss" % timeout, []
     except OSError as exc:
-        return "unrunnable", None, "could not execute: %s" % exc
+        return "unrunnable", None, "could not execute: %s" % exc, []
     # 127 is the shell's "command not found"; treat as environmental, not a failure.
     if proc.returncode == 127:
         head = (proc.stderr or "").strip().splitlines()[:1]
-        return "unrunnable", 127, "command not found%s" % (": " + head[0] if head else "")
-    tail = ((proc.stderr or "") + (proc.stdout or "")).strip().splitlines()[-1:]
-    return ("passing" if proc.returncode == 0 else "failing"), proc.returncode, (tail[0] if tail else "")
+        return "unrunnable", 127, "command not found%s" % (": " + head[0] if head else ""), []
+    combined = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    lines = combined.splitlines()
+    tail = lines[-1:]
+    outcome = "passing" if proc.returncode == 0 else "failing"
+    # A verdict nobody can diagnose is a poor verdict. On a failure the captured
+    # output is what says whether the code is wrong or the runner is missing a
+    # toolchain, and it is otherwise thrown away -- a CI run reported only
+    # "failing  ./gradlew test" and the log held nothing else.
+    if outcome == "failing" and lines:
+        detail_lines = lines[-FAILURE_OUTPUT_LINES:]
+        return outcome, proc.returncode, (tail[0] if tail else ""), detail_lines
+    return outcome, proc.returncode, (tail[0] if tail else ""), []
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="Run TST-* commands and stamp their status.")
+    ap = argparse.ArgumentParser(description="Run every TST-* command: and report; CI is the verdict (ADR-0025).")
     ap.add_argument("--repo-root", default=".")
-    #: **Kept, and inert** (ADR-0038). Removing the flag would make every
-    #: existing invocation fail with a usage error, and the honest answer to
-    #: `--write` is not "unknown option" -- it is "there is nothing to write".
-    ap.add_argument("--write", action="store_true",
-                    help="Accepted and ignored: an automated test records no verdict (ADR-0038)")
     ap.add_argument("--filter", action="append", default=None, help="Only these TST ids")
     ap.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT)
     ap.add_argument("--ci", action="store_true",
@@ -162,9 +151,8 @@ def main(argv=None):
         print("run-tests: %s — no TST-* notes declare a `command:`" % root.name)
         return 0
 
-    if args.write:
-        print("run-tests: --write is ignored; an automated test records no verdict (ADR-0038)",
-              file=sys.stderr)
+    # ADR-0025 (project-os-dev): the runner never writes to a note. A test
+    # with a command: records no verdict; this exit code, in CI, is the verdict.
     suite = ci_suite_command(root) if args.ci else ""
     if suite:
         # The declared command covers what the filtered ones check, so running it
@@ -191,16 +179,46 @@ def main(argv=None):
         print("   note: no ci.suite_command in SNAPSHOT.yaml; running every command")
 
     counts = {"passing": 0, "failing": 0, "unrunnable": 0}
-    print("== %s ==" % root.name)
+    # Two notes may carry the same command:, and several usually do — a suite-wide
+    # command belongs on every test it verifies. Running it a second time cannot
+    # reach a different verdict, so the first run's outcome is reused. Nine repos
+    # ran one Gradle suite twenty-nine times before this existed; at the default
+    # timeout that is hours of CI for one answer.
+    already = {}
+    print("== RUN  %s ==" % root.name)
     for _path, tid, cmd in tests:
-        outcome, _code, detail = run_one(root, cmd, args.timeout)
+        seen = already.get(cmd)
+        if seen is None:
+            outcome, _code, detail, output = run_one(root, cmd, args.timeout)
+            already[cmd] = (outcome, detail, tid)
+            note = ""
+        else:
+            outcome, detail, first = seen
+            note = "  (same command as %s)" % first
+            output = []
         counts[outcome] += 1
-        print("   %-12s %-10s %s%s" % (tid, outcome, cmd[:48], ("  — " + detail[:60]) if detail else ""))
+        print("   %-12s %-10s %s%s%s" % (
+            tid, outcome, cmd[:48], ("  — " + detail[:60]) if detail and not note else "", note))
+        for line in output:
+            print("      | %s" % line)
 
     print("   passing=%(passing)d failing=%(failing)d unrunnable=%(unrunnable)d" % counts)
+    if len(already) < len(tests):
+        print("   %d command(s) ran; %d note(s) shared a result"
+              % (len(already), len(tests) - len(already)))
+    # Locally an unrunnable command (a missing sibling checkout, a missing
+    # tool, a timeout) is an environment gap and not a failure. In CI it is a
+    # red build, because CI is the verdict and a test CI cannot run has none;
+    # set PROJECT_OS_ALLOW_UNRUNNABLE=1 to accept the gap deliberately.
+    ci_value = (os.environ.get("CI") or "").strip().lower()
+    in_ci = ci_value not in ("", "0", "false", "no") and not os.environ.get("PROJECT_OS_ALLOW_UNRUNNABLE")
     if counts["unrunnable"]:
-        print("   note: unrunnable is an environment gap, not a failure")
-    return 1 if counts["failing"] else 0
+        if in_ci:
+            print("   CI cannot run these tests, so they have no verdict; check out what they need "
+                  "(a sibling ../project-os for cross-repo commands) or set PROJECT_OS_ALLOW_UNRUNNABLE=1")
+        else:
+            print("   note: an unrunnable test is an environment gap, not a failure")
+    return 1 if counts["failing"] or (in_ci and counts["unrunnable"]) else 0
 
 
 if __name__ == "__main__":

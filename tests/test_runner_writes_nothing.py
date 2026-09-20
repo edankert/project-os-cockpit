@@ -1,5 +1,11 @@
 """`run-tests.py` reports and does not write ([[REQ-0058]], TASK-0559).
 
+This repo runs the template's runner as of 2026-09-20 (project-os-dev ISS-0075).
+It kept its own for a month under a `keep_local:` exception, which left it
+behind five template fixes and carrying a crash in the `--ci` path. Everything
+below held for both runners; only `--write` differed, and it is now refused
+rather than accepted-and-ignored.
+
 A test note carrying a `command:` records that a machine executes it. Whether the
 machine was happy is CI's answer, and CI answers it better: a stamped `passing`
 cannot notice that the test it stands for was renamed, and a `command:` that
@@ -81,7 +87,7 @@ def test_no_outcome_writes_anything(repo: Path, command: str, label: str) -> Non
     """All three outcomes, including the two that used to write."""
     note = _note(repo, command)
     before = note.read_bytes()
-    result = _execute(repo, "--write")
+    result = _execute(repo)
     assert label in result.stdout, result.stdout
     assert note.read_bytes() == before, "the note was rewritten"
 
@@ -95,20 +101,21 @@ def test_a_failing_command_leaves_the_note_alone(repo: Path) -> None:
     """
     note = _note(repo, "\"exit 1\"")
     before = note.read_text(encoding="utf-8")
-    assert _execute(repo, "--write").returncode == 1, "a failure is still reported"
+    assert _execute(repo).returncode == 1, "a failure is still reported"
     assert note.read_text(encoding="utf-8") == before
 
 
-def test_write_is_accepted_and_says_it_does_nothing(repo: Path) -> None:
-    """Kept and inert: `--write` must not become an unknown-option error.
+def test_write_is_refused(repo: Path) -> None:
+    """`--write` is gone, and asking for it is a usage error.
 
-    Every existing invocation passes it. "There is nothing to write" is a
-    different answer from "no such flag", and only one of them is true.
+    ADR-0038 kept the flag inert because every invocation of the day passed it.
+    That stopped being true: on 2026-09-20 no executable caller in the fleet
+    passed it, and the template's runner had rejected it since 2026-09-03
+    (project-os-dev FEAT-0028, ISS-0075). Refusing it is now the honest answer.
     """
     _note(repo, "\"exit 0\"")
     result = _execute(repo, "--write")
-    assert result.returncode == 0
-    assert "ignored" in result.stderr.lower()
+    assert result.returncode == 2, result.stderr
 
 
 def test_the_script_carries_no_way_to_write_frontmatter(repo: Path) -> None:

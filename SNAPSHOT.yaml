@@ -9,6 +9,16 @@ project:
   summary: "Three-pane web cockpit for project-os documentation — frontmatter-aware Markdown render, [[wikilink]] resolution, project-os ID linking, live reload via SSE, optional embedded local-only terminal."
   repo_root: "."
 
+# The one command CI runs for this repo (project-os-dev ISS-0075). 43 of the 44
+# test notes carry a `.venv/bin/...` command, and CI installs into the runner's
+# system Python without making a .venv, so every one of them exited 127 there.
+# The old runner called that "unrunnable, not a failure" and exited 0: the job
+# went green in 21-33s having executed no test at all. The template's runner
+# runs this single covering command instead, and fails the build when CI cannot
+# run a test. Verified locally 2026-09-20: 2195 passed, 6 skipped.
+ci:
+  suite_command: "python3 -m pytest -q"
+
 retention:
   policy: active-and-recent
   recent_changes_max: 25
@@ -61,7 +71,7 @@ counters:
     last_date: 20260916
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 154
-  ISS: 313
+  ISS: 314
   PHASE: 45
   REQ: 66
   RISK: 10
@@ -69,7 +79,7 @@ counters:
   SUR: 4
   REL: 1
   TASK: 632
-  TST: 90
+  TST: 91
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
 focus:
