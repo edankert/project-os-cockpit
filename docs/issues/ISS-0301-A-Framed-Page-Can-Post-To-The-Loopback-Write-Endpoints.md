@@ -7,7 +7,7 @@ status: open
 phase: ""
 owner: user:edwin
 created: 2026-09-12
-updated: "2026-09-19"
+updated: "2026-09-20"
 reported_by: review
 source: ["Independent review of FEAT-0147/FEAT-0148, 2026-09-12, finding 9: 'the sandbox denies reads, not writes ... a framed page has allow-scripts, knows its sidecar URL from location, and originates on the machine, so _require_loopback passes; it cannot read the reply and does not need to'"]
 severity: medium
@@ -62,3 +62,60 @@ Small fix: yes for the first half. Refusing a body whose `Content-Type` is not `
 **Belongs to:** no feature (related to FEAT-0148 and RISK-0008). **Next:** refuse non-JSON bodies on write routes with a test, then decide on the token separately.
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## The fix is made and is waiting for Edwin to see it (2026-09-20, TASK-0632)
+
+**This issue stays `open` on purpose.** [[ISS-0313]] marks it *"Security: show Edwin before closing"*, and a security change that closes itself has had one reviewer. The code is committed; the status is the thing being held.
+
+### What to look at
+
+`src/project_os_cockpit/server.py`, the new `_require_json_content_type`. A write whose `Content-Type` is not `application/json` is refused with **415 Unsupported Media Type**, before the body is read.
+
+```
+$ curl -X POST -H 'Content-Type: text/plain' -d '{"kind":"bogus"}' .../api/cockpit/review-request
+{"ok": false, "error": "a write must say Content-Type: application/json; this one said 'text/plain'"}
+```
+
+Before: `unknown kind: bogus`, which is the route reporting that it read and understood the body.
+
+### Why this specific header closes anything
+
+A browser sends a cross-origin POST **without asking permission first** only while the `Content-Type` is one of three "simple" values: `text/plain`, `application/x-www-form-urlencoded`, `multipart/form-data`. Requiring `application/json` forces a preflight, and the sidecar answers no preflight. All four are refused by the tests, and so is an absent header — every client this repo knows sends one, and "absent" is what a hand-rolled `fetch` from a framed page produces.
+
+### Checked before it landed, as the ticket asked
+
+**Every client already sends the header.** No client change was needed and nothing was broken.
+
+| client | where | sends it |
+| --- | --- | --- |
+| Electron renderer | `desktop/src/renderer/renderer.ts` — six POST sites | yes |
+| sidecar's own page | `src/project_os_cockpit/static/cockpit.js:154` | yes |
+| `cockpit` CLI, including `cockpit signal` | `src/project_os_cockpit/cli.py:84` | yes |
+| agent hook, statusline and Codex notify forwarders | `desktop/src/ipc/agent-instrument.ts` — `curl -H 'Content-Type: application/json'` in all three emitted scripts | yes |
+| dispatch queue | `desktop/src/ipc/dispatch-queue.ts:147` | yes |
+| **project-os-deck** | `desktop/src/shared/write-client.ts:223-225` — its single `post()`, which every sidecar write goes through | yes |
+
+Deck's `/deck/sidecar/` proxy forwards **reads only** (`desktop/src/main/host.ts`, `READ_METHODS`), so it is not a second path in.
+
+### It covers more routes than the report described
+
+The report named `_read_json_body`. Five write handlers had their own copy of that body reader and would have kept the hole: `/api/cockpit/agent-state`, `/api/cockpit/dispatch`, `/api/notes/check-toggle`, `/api/cockpit/focus` and `/api/cockpit/tab-state`. All five now call the shared reader, which also gives them the size cap their copies never had. `/api/agent-hook` keeps its own reader — it refuses an empty body and drops the connection on an oversized one — and calls the guard directly.
+
+### Which test guards it
+
+`tests/test_write_content_type.py`, nine cases. The reviewer's curl run as itself; the same request with the right header still reaching the route; all four no-preflight content types plus the absent one; `application/json; charset=utf-8` accepted, because refusing it is how a guard becomes the thing someone disables; and a sweep over **every** guarded POST route in the dispatch table, so a route that grows its own body reader fails here instead of falling out silently.
+
+**Run both ways.** With the guard: `9 passed`. With `server.py` reverted: `7 failed, 2 passed`. The ten write-path suites around it pass 159.
+
+### What this does NOT fix
+
+- **A page that sets the header.** It is then preflighted, and the sidecar refuses no preflight because it answers none. The day something answers one, this guard stops mattering.
+- **The `Origin` / `Sec-Fetch-Site` check**, the cheap second layer the report suggests. Not made.
+- **A secret the shell knows and a framed page does not.** That is the real fix, and it is a bigger change: every write endpoint requires it, the shell sends it, and `_require_loopback` stops being the only gate. Not started.
+- **No Content-Security-Policy** on a framed file (`server.py`, the `/framed/` response).
+
+[[RISK-0008-The-Sandbox-Is-The-Only-Boundary]] should be re-read against this, and is not amended here.
+
+### To close this
+
+Edwin reads the above, runs the curl if he wants to, and says so. Then the status goes to `fixed`.

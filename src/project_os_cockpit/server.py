@@ -1617,16 +1617,11 @@ def _make_handler(
             thread emits a synthetic event flipping the observable
             state to ``idle``.
             """
-            try:
-                length = int(self.headers.get("Content-Length") or 0)
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length) if length else b""
-            try:
-                body = json.loads(raw.decode("utf-8")) if raw else {}
-            except (ValueError, UnicodeDecodeError):
-                self._respond_json({"ok": False, "error": "invalid JSON"},
-                                   status=HTTPStatus.BAD_REQUEST)
+            #: Through the shared reader, so the `Content-Type` refusal is in
+            #: one place rather than repeated four times (ISS-0301). What this
+            #: gains besides the guard is the size cap the copy never had.
+            body = self._read_json_body()
+            if body is None:
                 return
             state_value = (body.get("state") or "").strip().lower()
             if not state_value:
@@ -1754,6 +1749,13 @@ def _make_handler(
             pass a raw upstream blob without rewriting JSON (the
             statusline and Codex notify scripts use this).
             """
+            #: This one keeps its own body reader — it refuses an empty body
+            #: and drops the connection on an oversized one, neither of which
+            #: the shared reader does — so it calls the guard directly
+            #: (ISS-0301). All three forwarders that reach it are shell scripts
+            #: this repo emits, and each already sends the header.
+            if not self._require_json_content_type():
+                return
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
@@ -1854,16 +1856,11 @@ def _make_handler(
             enqueue?}``. With ``enqueue`` the record is also stored as
             a queue-request for the desktop shell (the `cockpit
             dispatch` CLI path, TASK-0136) and announced over SSE."""
-            try:
-                length = int(self.headers.get("Content-Length") or 0)
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length) if length else b""
-            try:
-                body = json.loads(raw.decode("utf-8")) if raw else {}
-            except (ValueError, UnicodeDecodeError):
-                self._respond_json({"ok": False, "error": "invalid JSON"},
-                                   status=HTTPStatus.BAD_REQUEST)
+            #: Through the shared reader, so the `Content-Type` refusal is in
+            #: one place rather than repeated four times (ISS-0301). What this
+            #: gains besides the guard is the size cap the copy never had.
+            body = self._read_json_body()
+            if body is None:
                 return
             note_id = body.get("id")
             if not isinstance(note_id, str) or not note_id.strip():
@@ -1895,6 +1892,52 @@ def _make_handler(
             host = (self.client_address[0] if self.client_address else "") or ""
             return host in _LOOPBACK_HOSTS
 
+        def _require_json_content_type(self) -> bool:
+            """Refuse a body that does not say it is JSON (ISS-0301).
+
+            **This is the no-preflight path, closed.** A browser will send a
+            cross-origin POST with no permission asked first only while its
+            `Content-Type` is one of three "simple" values — `text/plain`,
+            `application/x-www-form-urlencoded` or `multipart/form-data`. Ask
+            for `application/json` and the browser has to preflight, which the
+            sidecar answers for nothing.
+
+            That matters because `_require_loopback` asks **where the request
+            came from**, and a page the cockpit's viewer frames comes from this
+            machine, so it passes. Its sandbox is `allow-scripts` with no
+            same-origin flag: it cannot read the reply, and it does not need to
+            — the write happens either way. The reviewer demonstrated it
+            against a live sidecar with one `curl -H 'Content-Type:
+            text/plain'`.
+
+            **Checked against every client first.** The Electron renderer, the
+            sidecar's own `static/cockpit.js`, the hook and statusline
+            forwarders, the dispatch queue, the `cockpit` CLI
+            (`cli.py`) and project-os-deck's one write path
+            (`desktop/src/shared/write-client.ts`) all set the header already.
+            Deck's sidecar proxy forwards reads only.
+
+            An absent header is refused too. Every client this repo knows sends
+            one, and "absent" is precisely what a hand-rolled `fetch` from a
+            framed page produces when it is trying not to be noticed.
+
+            **It is not the whole answer.** A page that sets the header still
+            gets through the preflight if the sidecar ever answers one. The
+            real fix is a secret the shell knows and a framed page does not,
+            and that is a larger change (see this issue's second candidate).
+            """
+            raw = self.headers.get("Content-Type") or ""
+            kind = raw.split(";", 1)[0].strip().lower()
+            if kind == "application/json":
+                return True
+            self._respond_json(
+                {"ok": False,
+                 "error": ("a write must say Content-Type: application/json; "
+                           "this one said %r" % (raw or "nothing"))},
+                status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            )
+            return False
+
         def _read_json_body(self, max_bytes: int | None = None) -> dict[str, Any] | None:
             """The request body as JSON, or ``None`` (already responded).
 
@@ -1905,7 +1948,12 @@ def _make_handler(
             reach, which is worse than a small limit honestly stated.
             (That number was 25 MB when this was written and is 250 MB
             now; the figure lived in two places and only one moved.)
+
+            The `Content-Type` refusal lives here because this is the one place
+            every guarded write reads its body (ISS-0301).
             """
+            if not self._require_json_content_type():
+                return None
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
@@ -3248,16 +3296,11 @@ def _make_handler(
             """
             if not self._require_loopback():
                 return
-            try:
-                length = int(self.headers.get("Content-Length") or 0)
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length) if length else b""
-            try:
-                body = json.loads(raw.decode("utf-8")) if raw else {}
-            except (ValueError, UnicodeDecodeError):
-                self._respond_json({"ok": False, "error": "invalid JSON"},
-                                   status=HTTPStatus.BAD_REQUEST)
+            #: Through the shared reader, so the `Content-Type` refusal is in
+            #: one place rather than repeated four times (ISS-0301). What this
+            #: gains besides the guard is the size cap the copy never had.
+            body = self._read_json_body()
+            if body is None:
                 return
             rel = (body.get("path") or "").strip()
             try:
@@ -3510,16 +3553,11 @@ def _make_handler(
             cockpit tabs that have "follow agent" enabled jump to the
             resolved URL. TASK-0048.
             """
-            try:
-                length = int(self.headers.get("Content-Length") or 0)
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length) if length else b""
-            try:
-                body = json.loads(raw.decode("utf-8")) if raw else {}
-            except (ValueError, UnicodeDecodeError):
-                self._respond_json({"ok": False, "error": "invalid JSON"},
-                                   status=HTTPStatus.BAD_REQUEST)
+            #: Through the shared reader, so the `Content-Type` refusal is in
+            #: one place rather than repeated four times (ISS-0301). What this
+            #: gains besides the guard is the size cap the copy never had.
+            body = self._read_json_body()
+            if body is None:
                 return
             target = (body.get("target") or "").strip()
             if not target:
@@ -3545,16 +3583,11 @@ def _make_handler(
             (``GET /api/cockpit/state``) prunes tabs that haven't
             pinged in ``_TAB_STALE_SECONDS``.
             """
-            try:
-                length = int(self.headers.get("Content-Length") or 0)
-            except ValueError:
-                length = 0
-            raw = self.rfile.read(length) if length else b""
-            try:
-                body = json.loads(raw.decode("utf-8")) if raw else {}
-            except (ValueError, UnicodeDecodeError):
-                self._respond_json({"ok": False, "error": "invalid JSON"},
-                                   status=HTTPStatus.BAD_REQUEST)
+            #: Through the shared reader, so the `Content-Type` refusal is in
+            #: one place rather than repeated four times (ISS-0301). What this
+            #: gains besides the guard is the size cap the copy never had.
+            body = self._read_json_body()
+            if body is None:
                 return
             tab_id = (body.get("tab_id") or "").strip()
             url = (body.get("url") or "").strip()
