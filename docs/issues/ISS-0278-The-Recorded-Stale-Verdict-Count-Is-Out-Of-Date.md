@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0278
 title: "CLAUDE.md says 49 notes carry a stale changes-requested verdict; today there are 89"
 status: fixed
-phase: "[[PHASE-999-Future]]"
+phase: ""
 owner: unassigned
 reported_by: agent
 created: 2026-09-05
@@ -83,3 +83,5 @@ The issue's own "Checked 2026-09-19" line says 89 and 76; that was the `grep -rl
 **No test.** Docs only, as [[ISS-0313]] states. The rule this paragraph supports is unchanged and correct; only its supporting measurement was wrong.
 
 **Not done: making the validator print the total.** `REVIEW-STALE` emits one warning per note and the count comes from `grep -c`. A one-line summary would be friendlier and is a change to a template-owned file, so it is not made here.
+
+**Out of the parking lot.** `phase:` was `[[PHASE-999-Future]]` and is now empty, for the reason given in [[ISS-0184]]'s closing section: a terminal note left in the parking lot renders as unplanned shipped work.

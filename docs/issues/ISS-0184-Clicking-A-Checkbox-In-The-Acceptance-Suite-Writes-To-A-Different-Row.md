@@ -4,7 +4,7 @@ id: ISS-0184
 aliases: ["ISS-0184"]
 title: "Clicking a checkbox in a Markdown document can tick a different line if the page shows fewer checkboxes than the file holds"
 status: "fixed"
-phase: "[[PHASE-999-Future]]"
+phase: ""
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-09-20"
@@ -138,3 +138,5 @@ Checked as part of project-os-dev FEAT-0036 (TASK-0141).
 **Run both ways.** With the fix: `13 passed`. With `server.py`, `renderer.py` and `renderer.ts` reverted: `3 failed, 10 passed`. `npx tsc --noEmit` is clean and the node suite passes.
 
 **What is not done.** Expected #1 above wanted a checkbox addressed by something that survives an edit, and this is not that; it is the refusal Expected #2 asked for, which is what makes the endpoint safe. Expected #3 — naming the rows that render no checkbox so the repo that owns them can add the blank line — is now in the refusal message rather than in a report. A document-wide address scheme stays a design question and is not reopened here.
+
+**Out of the parking lot.** `phase:` was `[[PHASE-999-Future]]` and is now empty. PHASE-999 is where work is parked, and a fixed issue sitting there makes the phase strip draw shipped work as unplanned (`tests/test_coverage_registers.py::test_no_terminal_note_sits_in_the_parking_lot`). No phase delivered this; it was worked under [[ISS-0313]]'s work order, which has none, and an empty `phase:` is what the other six issues in that order carry.
