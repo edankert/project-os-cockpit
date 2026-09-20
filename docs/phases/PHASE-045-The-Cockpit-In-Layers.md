@@ -7,7 +7,7 @@ status: planned
 order: 45
 owner: user:edwin
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-20
 goal: "A person opening a project sees what needs them, what is in flight and how far the work has travelled on one screen of a few kilobytes, and reaches the design, build, verification and issue flows one layer at a time, with the record behind a fold. Opened as a place to refine that idea, not as a commitment to build it."
 features:
   - "[[FEAT-0152-Home-First]]"
@@ -18,6 +18,8 @@ tasks: []
 issues: []
 related:
   - "[[DES-0015-The-Cockpit-In-Layers]]"
+  - "[[DES-0016-Levels-Of-Abstraction]]"
+  - "[[REFERENCE-ABSTRACTION-LEVELS-SCAN]]"
   - "[[REFERENCE-FUTURE-COCKPIT-ENHANCEMENTS]]"
   - "[[DES-0001-Overview-Redesign]]"
   - "[[DES-0008-The-Returning-Human]]"
@@ -53,7 +55,9 @@ Three features, one per option in the design, in the order the design recommends
 - [[FEAT-0153-Flows-As-Views]] (option A): L2. The navigator's modes become Home, Design, Build, Verify and Issues, each ordered by state with terminal groups folded and fetched on demand. Reopens part of [[ADR-0028-Work-Has-Three-Phases]] (see D2 below), so it opens on a decision.
 - [[FEAT-0154-Subject-Threads]] (option B): L3. A subject page with a header card, a timeline and folded agent sessions; the sidebar lists subjects by recency and need. The largest renderer change, and possibly Deck's to build rather than this repository's.
 
-Refining the design is in scope: a revision of [[DES-0015-The-Cockpit-In-Layers]] is a commit against the note and its plates, logged in its Revisions section and in the refinement log below.
+Refining the design is in scope: a revision of [[DES-0015-The-Cockpit-In-Layers]] or [[DES-0016-Levels-Of-Abstraction]] is a commit against the note and its plates, logged in its Revisions section and in the refinement log below.
+
+**A second design now sits beside the first.** [[DES-0016-Levels-Of-Abstraction]], offered 2026-09-20, cuts the same material by reader instead of by payload size: seven levels from the portfolio of thirteen projects down to the agent's tool calls, with A0 (portfolio), A4 (the ticket in full), A5 (evidence) and A6 (trace) added to DES-0015's five. It does not replace the three features; it adds a level above them and two below, plus a drill-down contract and an altitude control. Which of the two designs is the model is decision D6.
 
 ## Out of Scope
 
@@ -65,7 +69,7 @@ Refining the design is in scope: a revision of [[DES-0015-The-Cockpit-In-Layers]
 
 ## Open decisions
 
-These are the design's D1 to D5, kept here because the phase owns them until each is decided. A decided one gets a date, Edwin's words, and where the decision was recorded (the design's Review section, or an ADR when it reopens an earlier ruling).
+D1 to D5 come from [[DES-0015-The-Cockpit-In-Layers]] and D6 to D10 from [[DES-0016-Levels-Of-Abstraction]], kept here because the phase owns them until each is decided. A decided one gets a date, Edwin's words, and where the decision was recorded (the design's Review section, or an ADR when it reopens an earlier ruling).
 
 | id | question | the design recommends | status |
 | --- | --- | --- | --- |
@@ -74,6 +78,11 @@ These are the design's D1 to D5, kept here because the phase owns them until eac
 | D3 | What does the Dock badge count? | the fleet's needs-you total (89 on 2026-09-17), because the badge is the only glance a person gets while the window is hidden | open |
 | D4 | Is "Duplicate of" a triage disposition worth a button? | yes, as `declined` plus a `related:` link, no new status | open |
 | D5 | Do agent sessions fold by default on subject pages while the strip stays live? | yes; the strip answers "is an agent working", the fold answers "what did it do" | open |
+| D6 | Is the ladder cut by reader or by data, and does [[DES-0016-Levels-Of-Abstraction]] supersede [[DES-0015-The-Cockpit-In-Layers]] or stand beside it? | by reader, keeping DES-0015's budgets as consequences; supersede only on Edwin's word | open |
+| D7 | Which mechanic puts the ladder on screen, and in what order? | pages first, then the altitude control, then a saved starting level | open |
+| D8 | Does the portfolio level get its own screen, and what are its four facts? | yes: decisions owed, issues open, commits unpushed, risks open, with a movement dot taken from the focus item rather than from git | open |
+| D9 | How far below the working level does this cockpit go — evidence, trace, or neither? | both, folded and reached only from a subject; the alternative is that the trace belongs to Deck or the terminal | open |
+| D10 | Is the drill-down contract a rule with teeth (an ADR), so an unresolvable number is a defect? | yes; it fails the overview's Tests 1 / 90 tile immediately, which is the point | open |
 
 Edwin's stance on the whole, 2026-09-17: *"I am not fully convinced."* No decision above is presumed.
 
@@ -81,7 +90,7 @@ Edwin's stance on the whole, 2026-09-17: *"I am not fully convinced."* No decisi
 
 Written so the phase can close on a refusal as honestly as on a build.
 
-- [ ] [[DES-0015-The-Cockpit-In-Layers]] carries a verdict from Edwin in its frontmatter: `accepted`, or `changes-requested` followed by a revision that is then accepted, or `cancelled`. If cancelled, this phase closes as `superseded` by whatever note records the alternative, or `deferred` if there is none.
+- [ ] The design this phase settles on — [[DES-0015-The-Cockpit-In-Layers]] or [[DES-0016-Levels-Of-Abstraction]], which is decision D6 — carries a verdict from Edwin in its frontmatter: `accepted`, or `changes-requested` followed by a revision that is then accepted, or `cancelled`. If cancelled, this phase closes as `superseded` by whatever note records the alternative, or `deferred` if there is none.
 - [ ] D1 to D5 are each decided and recorded: in the design's Review section, or in an ADR where the decision narrows an accepted one (D2 narrows [[ADR-0028-Work-Has-Three-Phases]]).
 - [ ] The layer budgets in the design's Plate 1 are measured on every repository the shell discovers, not only on this one and your-trainer, and the design's table is corrected where the fleet disagrees.
 - [ ] Each of the three features is either built and walked, or declined with the reason in its own note. Declining one does not block the others.
@@ -97,6 +106,8 @@ Written so the phase can close on a refusal as honestly as on a build.
 - **To give up on it**, cancel the design and close this phase as `deferred` or `superseded`; the measurements in the design stay true either way.
 
 ## Refinement log
+
+- 2026-09-20 — Second design offered, [[DES-0016-Levels-Of-Abstraction]], after Edwin: *"the project-os-cockpit is now too complex, it shows way too much information … ideally you want to provide different levels of abstraction instead, where each level of abstraction gets you closer to the real content, the full ticket content."* It re-cuts DES-0015's material by reader rather than by payload size and extends it in both directions: a portfolio level above (thirteen projects as thirteen states) and evidence and trace levels below the one anyone needs to build with. Seven plates, measured across all thirteen repositories on 2026-09-20; the market scan behind it is [[REFERENCE-ABSTRACTION-LEVELS-SCAN]]. Five decisions added, D6 to D10. Nothing built; no feature moved; focus unchanged.
 
 - 2026-09-17 — Opened as `planned` on Edwin's instruction: *"Document this fully as a new phase. (I am not fully convinced, so document it in such a way that we can refine over time)."* The design was offered the same day with seven mockup plates and four as-built captures, measured against this repository and your-trainer. Three features scaffolded at `backlog`, one per option. Nothing built. Focus stays on TASK-0631, which belongs to another session.
 

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<title>DES-0016 — Levels of abstraction</title>
+<!--
+  Mockup plates for DES-0016. No network, no images, no script beyond the theme
+  toggle. The token block and the component classes are DES-0015's, which took
+  them verbatim from src/project_os_cockpit/static/base.css, so the plates
+  declare the shell's design system and add no colour of their own.
+  Every count drawn here was measured across the 13 project-os repositories on
+  2026-09-20, except the three marked 2026-09-17, which are DES-0015's.
+-->
+<style>
+:root {
+  --bg: hsl(0 0% 99%); --surface: hsl(0 0% 96%); --surface-2: hsl(0 0% 92%);
+  --border: hsl(0 0% 86%); --border-strong: hsl(0 0% 76%);
+  --text: hsl(0 0% 13%); --text-muted: hsl(0 0% 38%); --text-faint: hsl(0 0% 55%);
+  --accent-link: hsl(212 48% 42%); --accent-link-hover: hsl(212 55% 35%); --accent-focus: hsl(212 60% 50%);
+  --status-active: hsl(140 32% 38%); --status-pending: hsl(220 14% 48%); --status-done: hsl(160 28% 38%);
+  --status-archived: hsl(0 0% 48%); --status-blocked: hsl(5 48% 46%); --status-reference: hsl(180 24% 40%); --status-default: hsl(0 0% 45%);
+  --severity-critical: hsl(5 60% 46%); --severity-high: hsl(20 60% 46%); --severity-medium: hsl(45 55% 42%); --severity-low: hsl(0 0% 50%);
+  --error-fg: hsl(5 48% 38%); --error-bg: hsl(5 38% 96%); --warn-fg: hsl(36 50% 32%); --warn-bg: hsl(36 50% 95%);
+  --code-bg: hsl(0 0% 95%); --code-text: hsl(0 0% 18%);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
+  --radius: 4px; --radius-lg: 6px; --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.04);
+}
+[data-theme="dark"] {
+  --bg: hsl(0 0% 11%); --surface: hsl(0 0% 14%); --surface-2: hsl(0 0% 17%);
+  --border: hsl(0 0% 22%); --border-strong: hsl(0 0% 32%);
+  --text: hsl(0 0% 87%); --text-muted: hsl(0 0% 65%); --text-faint: hsl(0 0% 50%);
+  --accent-link: hsl(212 50% 65%); --accent-link-hover: hsl(212 55% 72%); --accent-focus: hsl(212 55% 60%);
+  --status-active: hsl(140 32% 60%); --status-pending: hsl(220 14% 65%); --status-done: hsl(160 28% 60%);
+  --status-archived: hsl(0 0% 58%); --status-blocked: hsl(5 50% 65%); --status-reference: hsl(180 24% 60%); --status-default: hsl(0 0% 60%);
+  --severity-critical: hsl(5 60% 65%); --severity-high: hsl(20 60% 65%); --severity-medium: hsl(45 55% 60%); --severity-low: hsl(0 0% 62%);
+  --error-fg: hsl(5 50% 70%); --error-bg: hsl(5 30% 18%); --warn-fg: hsl(36 48% 65%); --warn-bg: hsl(36 30% 18%);
+  --code-bg: hsl(0 0% 16%); --code-text: hsl(0 0% 88%); --shadow-soft: 0 1px 2px hsl(0 0% 0% / 0.4);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 var(--font-sans); }
+body { padding: 24px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+.lead { color: var(--text-muted); margin: 0 0 18px; max-width: 900px; }
+.toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; color: var(--text-muted); font-size: 12px; }
+button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); border-radius: var(--radius); cursor: pointer; }
+.plate { width: 1160px; margin: 0 0 40px; }
+.plate > .cap { font-size: 12px; color: var(--text-muted); margin: 6px 0 0; }
+.plate > .ttl { font-size: 13px; font-weight: 600; margin: 0 0 8px; color: var(--text); }
+.mono { font-family: var(--font-mono); }
+.id { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent-link); }
+.muted { color: var(--text-muted); } .faint { color: var(--text-faint); }
+.s11 { font-size: 11px; } .s12 { font-size: 12px; }
+/* window frame */
+.win { display: grid; grid-template-columns: 44px 240px 1fr; grid-template-rows: 36px 1fr 24px; height: 700px; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); box-shadow: var(--shadow-soft); }
+.win.no-nav { grid-template-columns: 44px 1fr; }
+.win.with-right { grid-template-columns: 44px 240px 1fr 280px; }
+.top { grid-column: 1 / -1; display: flex; align-items: center; gap: 4px; padding: 0 10px 0 84px; border-bottom: 1px solid var(--border); background: var(--surface); font-size: 12px; }
+.top .mode { padding: 4px 9px; border-radius: var(--radius); color: var(--text-muted); position: relative; }
+.top .mode.on { background: var(--surface-2); color: var(--text); }
+.top .mode b { position: absolute; top: -3px; right: -2px; background: var(--status-blocked); color: #fff; font-size: 9px; padding: 0 4px; border-radius: 8px; line-height: 13px; font-weight: 600; }
+.top .search { margin-left: auto; margin-right: auto; width: 360px; border: 1px solid var(--border); border-radius: var(--radius); padding: 3px 10px; color: var(--text-faint); background: var(--bg); }
+.rail { border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; align-items: center; padding-top: 8px; gap: 8px; }
+.sq { width: 28px; height: 28px; border-radius: 6px; background: var(--surface-2); position: relative; }
+.sq.on { outline: 2px solid var(--accent-focus); }
+.sq i { position: absolute; right: -4px; top: -4px; min-width: 14px; height: 14px; border-radius: 7px; font-style: normal; font-size: 9px; line-height: 14px; text-align: center; color: #fff; background: var(--status-blocked); padding: 0 3px; font-weight: 600; }
+.sq u { position: absolute; left: -3px; bottom: -3px; width: 8px; height: 8px; border-radius: 4px; background: var(--status-active); border: 1px solid var(--surface); }
+.nav { border-right: 1px solid var(--border); background: var(--surface); padding: 10px 10px; overflow: hidden; font-size: 12px; }
+.nav h4 { margin: 8px 0 4px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; }
+.nav .it { display: flex; gap: 6px; padding: 3px 4px; border-radius: var(--radius); white-space: nowrap; overflow: hidden; }
+.nav .it.on { background: var(--surface-2); }
+.nav .it .t { overflow: hidden; text-overflow: ellipsis; }
+.nav .fold { color: var(--text-faint); padding: 3px 4px; }
+.stage { padding: 20px 26px; overflow: hidden; }
+.right { border-left: 1px solid var(--border); background: var(--surface); padding: 12px; font-size: 12px; overflow: hidden; }
+.right h4 { margin: 6px 0 6px; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.foot { grid-column: 1 / -1; border-top: 1px solid var(--border); background: var(--surface); font-size: 11px; color: var(--text-muted); padding: 0 10px; display: flex; align-items: center; gap: 10px; }
+/* pieces */
+.badge { display: inline-block; font-size: 10.5px; padding: 0 7px; border-radius: 9px; border: 1px solid currentColor; line-height: 16px; vertical-align: middle; }
+.b-active { color: var(--status-active); } .b-pending { color: var(--status-pending); } .b-done { color: var(--status-done); }
+.b-blocked { color: var(--status-blocked); } .b-archived { color: var(--status-archived); } .b-ref { color: var(--status-reference); }
+.sev { display: inline-block; font-size: 10.5px; padding: 0 7px; border-radius: 3px; color: #fff; line-height: 16px; }
+.sev.critical { background: var(--severity-critical); } .sev.high { background: var(--severity-high); } .sev.medium { background: var(--severity-medium); color: #111; } .sev.low { background: var(--severity-low); }
+.bar { display: inline-block; height: 5px; width: 120px; background: var(--surface-2); border-radius: 3px; vertical-align: middle; position: relative; overflow: hidden; }
+.bar > i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--status-done); }
+.bar.active > i { background: var(--status-active); } .bar.blocked > i { background: var(--status-blocked); } .bar.warn > i { background: var(--severity-medium); }
+.btn { display: inline-block; font-size: 12px; padding: 3px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); white-space: nowrap; }
+.btn.primary { background: var(--accent-link); border-color: var(--accent-link); color: #fff; }
+.btn.quiet { border-color: transparent; color: var(--text-muted); }
+.card { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 12px 14px; margin-bottom: 12px; box-shadow: var(--shadow-soft); }
+.card h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.card h3 .n { color: var(--text); font-size: 13px; letter-spacing: 0; text-transform: none; font-weight: 600; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--border); }
+.row:first-of-type { border-top: 0; }
+.row .l { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.row .l .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .r { display: flex; gap: 10px; align-items: center; white-space: nowrap; font-size: 12px; color: var(--text-muted); }
+.hdr { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 12px; }
+.hdr h2 { margin: 0; font-size: 18px; }
+.hdr .sub { color: var(--text-muted); font-size: 12px; }
+.sec { margin: 14px 0 6px; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); display: flex; justify-content: space-between; }
+.pin { display: inline-block; width: 18px; height: 18px; border-radius: 9px; background: var(--severity-high); color: #fff; font-size: 11px; line-height: 18px; text-align: center; font-weight: 700; margin-left: 6px; vertical-align: middle; }
+.legend { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.legend b { color: var(--text); }
+/* layer diagram */
+.layers { display: grid; grid-template-columns: 90px 1.1fr 1.6fr 1.4fr 90px; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; font-size: 12.5px; }
+.layers > div { padding: 10px 12px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: var(--surface); }
+.layers > div:nth-child(5n) { border-right: 0; }
+.layers > .h { background: var(--surface-2); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.layers .L { font-weight: 700; font-size: 14px; }
+.layers .L small { display: block; font-weight: 400; color: var(--text-muted); font-size: 11px; }
+.layers .num { font-family: var(--font-mono); font-size: 12px; text-align: right; }
+.layers .num small { display: block; color: var(--text-faint); font-family: var(--font-sans); font-size: 10.5px; }
+/* thread */
+.tl { border-left: 2px solid var(--border-strong); margin: 6px 0 0 8px; padding-left: 16px; }
+.tl .ev { position: relative; padding: 4px 0; font-size: 12.5px; }
+.tl .ev::before { content: ""; position: absolute; left: -22px; top: 11px; width: 8px; height: 8px; border-radius: 4px; background: var(--status-pending); }
+.tl .ev.done::before { background: var(--status-done); } .tl .ev.agent::before { background: var(--status-active); } .tl .ev.ask::before { background: var(--severity-high); }
+.fold { border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: 6px 10px; color: var(--text-muted); font-size: 12px; }
+/* strip */
+.strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.strip .pane { border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 12px; min-height: 250px; }
+.strip .pane h5 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.kbd { font-family: var(--font-mono); font-size: 10.5px; border: 1px solid var(--border-strong); border-radius: 3px; padding: 0 4px; color: var(--text-muted); }
+.thumb { width: 150px; height: 96px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: repeating-linear-gradient(45deg, var(--surface-2) 0 6px, var(--surface) 6px 12px); display: inline-block; vertical-align: top; }
+
+.plate.wide { width: 1400px; }
+.ladder { display: grid; grid-template-columns: 116px 1.25fr 1.5fr 1.7fr 1.25fr 96px; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; font-size: 12.5px; }
+.ladder > div { padding: 9px 11px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: var(--surface); }
+.ladder > div:nth-child(6n) { border-right: 0; }
+.ladder > .h { background: var(--surface-2); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.ladder .L { font-weight: 700; font-size: 13.5px; }
+.ladder .L small { display: block; font-weight: 400; color: var(--text-muted); font-size: 11px; font-family: var(--font-mono); }
+.ladder .num { font-family: var(--font-mono); font-size: 11.5px; text-align: right; color: var(--text-muted); }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.tile { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); padding: 10px 11px; box-shadow: var(--shadow-soft); }
+.tile .nm { font-weight: 600; font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+.tile .nm u { width: 8px; height: 8px; border-radius: 4px; background: var(--status-active); display: inline-block; text-decoration: none; }
+.tile .nm u.idle { background: var(--text-faint); } .tile .nm u.warn { background: var(--severity-high); }
+.tile .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; }
+.tile .f { text-align: center; }
+.tile .f b { display: block; font-size: 16px; font-family: var(--font-mono); line-height: 1.15; }
+.tile .f span { font-size: 9.5px; color: var(--text-faint); letter-spacing: .03em; text-transform: uppercase; }
+.tile .f.zero b { color: var(--text-faint); font-weight: 400; }
+.tile .f.hot b { color: var(--status-blocked); }
+.tile .ln { margin-top: 7px; font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.totals { display: flex; gap: 22px; align-items: baseline; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface-2); padding: 10px 14px; margin-bottom: 12px; }
+.totals .t b { font-family: var(--font-mono); font-size: 18px; }
+.totals .t span { font-size: 10.5px; color: var(--text-muted); display: block; text-transform: uppercase; letter-spacing: .04em; }
+.alt { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; font-size: 11px; font-family: var(--font-mono); }
+.alt i { font-style: normal; padding: 2px 8px; color: var(--text-muted); border-right: 1px solid var(--border); background: var(--surface); }
+.alt i:last-child { border-right: 0; }
+.alt i.on { background: var(--accent-link); color: #fff; }
+.desc { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.desc .pane { border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 10px; min-height: 330px; font-size: 11.5px; }
+.desc .pane h5 { margin: 0 0 3px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text); }
+.desc .pane .who { font-size: 10.5px; color: var(--text-faint); margin: 0 0 8px; }
+.desc .pane .li { padding: 3px 0; border-top: 1px solid var(--border); }
+.desc .pane .li:first-of-type { border-top: 0; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.opt { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.opt .pane { border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 12px; }
+.opt .pane h5 { margin: 0 0 2px; font-size: 12.5px; }
+.opt .pane .who { font-size: 11px; color: var(--text-muted); margin: 0 0 10px; }
+.sketch { border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); padding: 10px; min-height: 132px; font-size: 11.5px; }
+.crumb { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
+.crumb b { color: var(--text); }
+.pre { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); white-space: pre; line-height: 1.5; }
+.flowgrid { display: grid; grid-template-columns: 96px repeat(4, 1fr); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); overflow: hidden; font-size: 12px; }
+.flowgrid > div { padding: 8px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); background: var(--surface); }
+.flowgrid > div:nth-child(5n) { border-right: 0; }
+.flowgrid > .h { background: var(--surface-2); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.flowgrid .L { font-weight: 700; font-size: 12px; }
+.chain { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: stretch; }
+.chain .step { border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 10px 12px; position: relative; }
+.chain .step h5 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.chain .step .big { font-family: var(--font-mono); font-size: 20px; }
+.rulebox { border-left: 3px solid var(--accent-link); background: var(--surface); padding: 8px 12px; margin-top: 12px; font-size: 12.5px; }
+.bad { border-left: 3px solid var(--status-blocked); background: var(--error-bg); color: var(--error-fg); padding: 8px 12px; margin-top: 10px; font-size: 12.5px; }
+</style>
+</head>
+<body>
+
+<h1>DES-0016 — Levels of abstraction</h1>
+<p class="lead">Plates for the design note beside this page. Seven levels, each addressed to a reader: the portfolio for whoever owns all thirteen projects, the project, the flow, the subject, the ticket, and two levels below the one anybody needs to build with — the evidence, and the machine trace.</p>
+<div class="toolbar"><button class="tg" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">Toggle theme</button><span>Drawn dark by default; the shell's light scheme is the same tokens.</span></div>
+<section class="plate" id="plate-1-ladder"><p class="ttl">Plate 1 — Seven levels, each one addressed to somebody</p><div class="ladder"><div class="h">Level</div><div class="h">Who reads it</div><div class="h">The question it answers</div><div class="h">What is on the screen</div><div class="h">Where it lives today</div><div class="h">Budget</div><div class="L">Portfolio<small>A0</small></div><div>The person who owns all of it (Edwin as CEO; a sponsor, a board)</div><div>Which of my projects needs me, and which one is stuck?</div><div>One tile per project: how many decisions it owes, whether anything moved, what is unshipped, how many risks are open. No titles, no IDs.</div><div class="muted">The rail squares and the fleet roll-up</div><div class="num">~2 KB each</div><div class="L">Project<small>A1</small></div><div>The person accountable for one project (product owner, sponsor)</div><div>What needs me here, what is in flight, how far is it from shipping?</div><div>Three cards — Needs you, In flight, Shipping — and one sentence about what happened while you were away.</div><div class="muted">The overview, 772 KB on 2026-09-17</div><div class="num">~30 KB</div><div class="L">Flow<small>A2</small></div><div>Whoever runs one flow: reviewer, delivery lead, test lead, triager</div><div>What is queued in this flow, in what order, and what is blocked?</div><div>One queue per flow (design and review, implementation, verification, issues), ordered by state, finished work folded to a count.</div><div class="muted">The navigator views</div><div class="num">~20 KB each</div><div class="L">Subject<small>A3</small></div><div>The person about to act on one thing</div><div>What is this, how far along is it, what is my next action?</div><div>A header card: goal in one sentence, badges, labelled bars, the one primary action. Then a timeline of what happened.</div><div class="muted">The note page, which opens on frontmatter</div><div class="num">as today</div><div class="L">Ticket<small>A4</small></div><div>The person or the agent doing the work</div><div>What exactly was asked, and what counts as done?</div><div>The note in full: goal, scope, acceptance criteria, tasks, the requirement it implements, the tests that gate it.</div><div class="muted">The note body, below the frontmatter table</div><div class="num">as today</div><div class="L">Evidence<small>A5</small></div><div>Whoever must not take anyone's word: a reviewer, an auditor, the person re-running a check</div><div>What actually happened, and what proves it?</div><div>Ledger events, verdicts with their captures, commits and diffs, validator output, test runs, raw frontmatter.</div><div class="muted">Scattered: the ledger, git, the validator, the terminal</div><div class="num">on demand</div><div class="L">Trace<small>A6</small></div><div>Someone debugging the machine, not the project</div><div>Which turn, which tool call, which payload produced this?</div><div>Agent sessions turn by turn, tool calls with arguments, cost, context and cache, and the JSON payload the page drew from.</div><div class="muted">Session pages and the terminal</div><div class="num">on demand</div></div><p class="cap">The ladder. A level is defined by the reader and the question, not by how much data it carries. A0 and A1 are one screen each; A2 to A4 are the work; A5 and A6 are below the level anyone needs to drive the project, and exist so a claim can be checked and a machine debugged.</p></section>
+<section class="plate" id="plate-2-portfolio"><p class="ttl">Plate 2 — A0, the portfolio screen: thirteen projects, four facts each</p><div class="totals"><div class="t"><b>13</b><span>projects</span></div><div class="t"><b>84</b><span>decisions owed</span></div><div class="t"><b>115</b><span>open issues</span></div><div class="t"><b>264</b><span>commits unpushed</span></div><div class="t"><b>54</b><span>open risks</span></div><div class="t"><b>6</b><span>actually moving</span></div><div class="t muted" style="margin-left:auto"><b>8,552</b><span>notes behind all of it</span></div></div><div class="tiles"><div class="tile"><div class="nm"><u class="idle"></u>articles</div><div class="facts"><div class="f zero"><b>0</b><span>decide</span></div><div class="f"><b>3</b><span>issues</span></div><div class="f"><b>—</b><span>push</span></div><div class="f zero"><b>0</b><span>risks</span></div></div><div class="ln">FEAT-0012 · TASK-0063 · no remote</div></div><div class="tile"><div class="nm"><u class="idle"></u>edankert.com</div><div class="facts"><div class="f hot"><b>1</b><span>decide</span></div><div class="f zero"><b>0</b><span>issues</span></div><div class="f"><b>—</b><span>push</span></div><div class="f zero"><b>0</b><span>risks</span></div></div><div class="ln">no focus item · no remote</div></div><div class="tile"><div class="nm"><u class="idle"></u>obsidian-supernote-sync</div><div class="facts"><div class="f hot"><b>3</b><span>decide</span></div><div class="f zero"><b>0</b><span>issues</span></div><div class="f"><b>26</b><span>push</span></div><div class="f"><b>3</b><span>risks</span></div></div><div class="ln">FEAT-0004 · 26 to push</div></div><div class="tile"><div class="nm"><u class="idle"></u>project-os</div><div class="facts"><div class="f zero"><b>0</b><span>decide</span></div><div class="f zero"><b>0</b><span>issues</span></div><div class="f zero"><b>0</b><span>push</span></div><div class="f zero"><b>0</b><span>risks</span></div></div><div class="ln">no focus item · pushed</div></div><div class="tile"><div class="nm"><u class="idle"></u>project-os-bench</div><div class="facts"><div class="f hot"><b>5</b><span>decide</span></div><div class="f zero"><b>0</b><span>issues</span></div><div class="f"><b>—</b><span>push</span></div><div class="f zero"><b>0</b><span>risks</span></div></div><div class="ln">FEAT-0002 · TASK-0001 · no remote</div></div><div class="tile"><div class="nm"><u class="on"></u>project-os-cockpit</div><div class="facts"><div class="f hot"><b>7</b><span>decide</span></div><div class="f"><b>19</b><span>issues</span></div><div class="f zero"><b>0</b><span>push</span></div><div class="f"><b>8</b><span>risks</span></div></div><div class="ln">FEAT-0151 · TASK-0631 · 18 commits today</div></div><div class="tile"><div class="nm"><u class="on"></u>project-os-deck</div><div class="facts"><div class="f hot"><b>3</b><span>decide</span></div><div class="f"><b>6</b><span>issues</span></div><div class="f"><b>35</b><span>push</span></div><div class="f zero"><b>0</b><span>risks</span></div></div><div class="ln">FEAT-0018 · 35 to push</div></div><div class="tile"><div class="nm"><u class="on"></u>project-os-dev</div><div class="facts"><div class="f hot"><b>2</b><span>decide</span></div><div class="f"><b>10</b><span>issues</span></div><div class="f zero"><b>0</b><span>push</span></div><div class="f"><b>1</b><span>risks</span></div></div><div class="ln">no focus item · 27 commits today</div></div><div class="tile"><div class="nm"><u class="warn"></u>your-applications.com</div><div class="facts"><div class="f hot"><b>5</b><span>decide</span></div><div class="f zero"><b>0</b><span>issues</span></div><div class="f"><b>31</b><span>push</span></div><div class="f"><b>9</b><span>risks</span></div></div><div class="ln">FEAT-0032 · push deploys the site</div></div><div class="tile"><div class="nm"><u class="on"></u>your-health</div><div class="facts"><div class="f hot"><b>19</b><span>decide</span></div><div class="f"><b>23</b><span>issues</span></div><div class="f"><b>110</b><span>push</span></div><div class="f"><b>16</b><span>risks</span></div></div><div class="ln">FEAT-0116 · TASK-0431 · 110 to push</div></div><div class="tile"><div class="nm"><u class="on"></u>your-sudoku</div><div class="facts"><div class="f hot"><b>8</b><span>decide</span></div><div class="f"><b>9</b><span>issues</span></div><div class="f"><b>35</b><span>push</span></div><div class="f"><b>2</b><span>risks</span></div></div><div class="ln">FEAT-0022 · TASK-0206 · 35 to push</div></div><div class="tile"><div class="nm"><u class="on"></u>your-trainer</div><div class="facts"><div class="f hot"><b>31</b><span>decide</span></div><div class="f"><b>45</b><span>issues</span></div><div class="f zero"><b>0</b><span>push</span></div><div class="f"><b>11</b><span>risks</span></div></div><div class="ln">TASK-0941 · 26 commits today</div></div><div class="tile"><div class="nm"><u class="idle"></u>yourtrainer-mcp</div><div class="facts"><div class="f zero"><b>0</b><span>decide</span></div><div class="f zero"><b>0</b><span>issues</span></div><div class="f"><b>27</b><span>push</span></div><div class="f"><b>4</b><span>risks</span></div></div><div class="ln">FEAT-0002 · 27 to push</div></div></div><p class="legend"><b>Decide</b> = designs and ADRs proposed plus requirements still at draft: 84 across the fleet, 31 of them in your-trainer alone. <b>Push</b> shows an em dash where the repository has no remote (three of thirteen), and your-applications.com is amber because its only remote deploys a live website. <b>The dot is not git.</b> All thirteen repositories committed in the last 24 hours, because a template sync commits to every one of them; six did work of their own, and only those six are lit.</p><p class="cap">A0 drawn from the fleet as measured on 2026-09-20. Every number is a count of things a person must do, not a count of things that exist: decisions owed, open issues, commits not pushed, risks open. The dot says whether anything moved. A tile carries no titles and no IDs — the name of the thing is one level down.</p></section>
+<section class="plate" id="plate-3-project"><p class="ttl">Plate 3 — A1, one project on one screen, with the altitude control in the top bar</p>
+<div class="win" style="height:770px">
+  <div class="top">
+    <span class="mode on">Home</span><span class="mode">Design</span><span class="mode">Build</span>
+    <span class="mode">Verify</span><span class="mode">Issues<b>19</b></span>
+    <span class="search">Search this project</span>
+    <span class="alt"><i>A0</i><i class="on">A1</i><i>A2</i><i>A3</i><i>A4</i><i>A5</i><i>A6</i></span>
+  </div>
+  <div class="rail">
+    <div class="sq on"><i>7</i><u></u></div><div class="sq"><i>31</i></div><div class="sq"><i>19</i></div>
+    <div class="sq"><i>8</i></div><div class="sq"><i>5</i></div><div class="sq"></div><div class="sq"></div>
+  </div>
+  <div class="nav">
+    <h4>This project</h4>
+    <div class="it on"><span class="t">Home</span></div>
+    <div class="it"><span class="t">Design and review <span class="faint">7</span></span></div>
+    <div class="it"><span class="t">Build <span class="faint">1 in flight</span></span></div>
+    <div class="it"><span class="t">Verify <span class="faint">gate</span></span></div>
+    <div class="it"><span class="t">Issues <span class="faint">19</span></span></div>
+    <h4>Record</h4>
+    <div class="fold">All phases · Counts · History · Library</div>
+  </div>
+  <div class="stage">
+    <div class="hdr"><h2>project-os-cockpit</h2><span class="sub">Renders project-os notes as a three-pane cockpit · 1,712 notes</span></div>
+    <div class="card">
+      <h3>Needs you <span class="n">7 decisions</span><span class="pin">1</span></h3>
+      <div class="row"><div class="l"><span class="badge b-pending">design</span><span class="t">DES-0016 — levels of abstraction, and DES-0015 beneath it</span></div>
+        <div class="r"><span class="faint">proposed today</span><span class="btn primary">Decide</span></div></div>
+      <div class="row"><div class="l"><span class="badge b-pending">decision</span><span class="t">ADR-0043 — one proposed decision waiting</span></div>
+        <div class="r"><span class="faint">1 of 43</span><span class="btn">Decide</span></div></div>
+      <div class="row"><div class="l"><span class="badge b-pending">requirement</span><span class="t">4 requirements still at draft</span></div>
+        <div class="r"><span class="faint">oldest 2026-08</span><span class="btn">Approve</span></div></div>
+      <div class="row"><div class="l"><span class="sev high">open</span><span class="t">19 issues open · none waiting to be triaged</span></div>
+        <div class="r"><span class="btn quiet">Open Issues</span></div></div>
+    </div>
+    <div class="card">
+      <h3>In flight <span class="n">FEAT-0151 — the release walk has one clear next action</span><span class="pin">2</span></h3>
+      <div class="row"><div class="l"><span class="t">Tasks <span class="bar active"><i style="width:0%"></i></span> <span class="faint">0 of 3 done — all three are open at once</span></span></div>
+        <div class="r"><span class="btn">Open</span></div></div>
+      <div class="row"><div class="l"><span class="t">Acceptance criteria <span class="bar"><i style="width:0%"></i></span> <span class="faint">0 of 7 ticked</span></span></div>
+        <div class="r"><span class="faint">REQ-0066</span></div></div>
+      <div class="row"><div class="l"><span class="t">Agent <span class="badge b-active">working</span> <span class="faint">Claude · Bash · started 14 min ago</span></span></div>
+        <div class="r"><span class="btn quiet">Session</span></div></div>
+    </div>
+    <div class="card">
+      <h3>Shipping <span class="n">nothing waiting to be pushed</span><span class="pin">3</span></h3>
+      <div class="row"><div class="l"><span class="t">Commits <span class="faint">0 unpushed · last push today</span></span></div><div class="r"><span class="btn quiet">History</span></div></div>
+      <div class="row"><div class="l"><span class="t">Release REL-0001 <span class="badge b-blocked">gate blocked</span> <span class="faint">3 checks owed (2026-09-17)</span></span></div>
+        <div class="r"><span class="btn primary">Walk</span></div></div>
+      <div class="row"><div class="l"><span class="t">Risks <span class="faint">8 open</span></span></div><div class="r"><span class="btn quiet">Open</span></div></div>
+    </div>
+    <p class="legend">Since you last looked: <b>18 notes changed today</b>, <b>39 change notes this week</b>. <span class="btn quiet">Show</span> <span class="btn quiet">Caught up</span></p>
+  </div>
+  <div class="foot"><span>A1 · Project</span><span class="faint">↑ A0 portfolio</span><span class="faint">↓ A2 flows</span><span style="margin-left:auto" class="faint">29 KB</span></div>
+</div>
+<p class="cap">A1. The same three cards DES-0015 proposed, with two things added: the altitude control at the top right, which says where you are on the ladder and takes you up or down without changing the subject, and the footer, which names the level and its two neighbours. Every bar names what it counts, so 0 of 3 tasks done reads as it should rather than as an empty bar.</p></section>
+<section class="plate wide" id="plate-4-descent"><p class="ttl">Plate 4 — One subject, FEAT-0151, drawn at five levels</p><div class="desc"><div class="pane"><h5>Flow <span class="faint mono">A2</span></h5><p class="who">delivery lead</p><div class="li"><b>Build</b></div><div class="li"><span class="faint">Now</span></div><div class="li"><b>FEAT-0151</b> · walk <span class="badge b-active">doing</span></div><div class="li"><span class="faint">3 tasks open</span></div><div class="li">FEAT-0149 <span class="badge b-done">done</span></div><div class="li"><span class="faint">Next — PHASE-045</span></div><div class="li">FEAT-0152 · Home first</div><div class="li">FEAT-0153 · Flows as views</div><div class="li">FEAT-0154 · Subject threads</div><div class="li"><span class="fold">Done since the last release · folded</span></div></div><div class="pane"><h5>Subject <span class="faint mono">A3</span></h5><p class="who">the person acting</p><div class="li"><b>FEAT-0151</b></div><div class="li"><span class="faint">The release walk has one clear next action</span></div><div class="li">Tasks <span class="bar active"><i style="width:0%"></i></span> 0/3</div><div class="li">Criteria <span class="bar"><i style="width:0%"></i></span> 0/7</div><div class="li">Checks <span class="bar warn"><i style="width:60%"></i></span> 3 owed</div><div class="li"><span class="btn primary">Open TASK-0631</span></div><div class="li"><span class="faint">— what happened —</span></div><div class="li">today · agent working</div><div class="li">09-17 · TASK-0630 recorded</div><div class="li">09-16 · opened from YT FEAT-0122</div></div><div class="pane"><h5>Ticket <span class="faint mono">A4</span></h5><p class="who">whoever does the work</p><div class="li"><b>Goal</b></div><div class="li"><span class="faint">A person can perform, record and resume each owed release observation from one focused page.</span></div><div class="li"><b>Scope</b></div><div class="li"><span class="faint">Uses the shared walk generator's survey, preparation, setup and owed-check data…</span></div><div class="li"><b>Acceptance</b></div><div class="li"><span class="faint">□ A fresh walk begins with the changed-screen review…</span></div><div class="li"><span class="faint">□ The current step shows its screen, action and one primary control…</span></div><div class="li"><span class="faint">□ Fail, Partial, Question do not bulk-clear checks…</span></div><div class="li"><span class="faint">+ 4 more · REQ-0066 · SUR-0004</span></div></div><div class="pane"><h5>Evidence <span class="faint mono">A5</span></h5><p class="who">reviewer, auditor</p><div class="li"><b>Ledger</b> <span class="faint">walk verdicts</span></div><div class="li"><span class="mono s11">09-17 CHK-0031 pass</span></div><div class="li"><span class="mono s11">09-17 CHK-0032 partial</span></div><div class="li"><span class="mono s11">└ note + capture.png</span></div><div class="li"><b>Commits</b></div><div class="li"><span class="mono s11">199c0fd walk page</span></div><div class="li"><span class="mono s11">4e5b150 metrics count…</span></div><div class="li"><b>Checks</b></div><div class="li"><span class="mono s11">validate-docs: OK</span></div><div class="li"><span class="mono s11">pytest: 2195 passed</span></div></div><div class="pane"><h5>Trace <span class="faint mono">A6</span></h5><p class="who">debugging the machine</p><div class="li"><b>Session</b> <span class="faint">claude · 14 min</span></div><div class="li"><span class="mono s11">turn 11 · Bash</span></div><div class="li"><span class="mono s11">  pytest -q tests/…</span></div><div class="li"><span class="mono s11">  → 2195 passed (38 s)</span></div><div class="li"><span class="mono s11">turn 12 · Edit walk.ts</span></div><div class="li"><span class="faint">cost $0.41 · ctx 62% · cache warm</span></div><div class="li"><b>Payload</b></div><div class="li"><span class="mono s11">GET /api/cockpit/nav</span></div><div class="li"><span class="mono s11">{"groups":[…43…]}</span></div><div class="li"><span class="mono s11">297 KB</span></div></div></div><p class="cap">The descent. The subject never changes; only how close you stand to it. A2 is the queue it sits in, A3 the card that says how far it is, A4 the ticket itself — the goal, the scope and the seven acceptance criteria — A5 the evidence that any of it is true, and A6 the agent turns and the payload that produced the screen. A person driving the work lives at A3 and A4; A5 and A6 exist for the reader who will not take the record's word for it.</p></section>
+<section class="plate" id="plate-5-below"><p class="ttl">Plate 5 — A5 and A6, the two levels below the one you work at</p>
+<div class="two">
+  <div class="card">
+    <h3>A5 · Evidence <span class="n">the release walk of REL-0001</span></h3>
+    <div class="row"><div class="l"><span class="badge b-done">pass</span><span class="t">CHK-0031 — the walk resumes on the saved step</span></div><div class="r"><span class="faint">2026-09-17 · Edwin · macOS</span></div></div>
+    <div class="row"><div class="l"><span class="badge b-blocked">partial</span><span class="t">CHK-0032 — steps 1–7 walked, step 8 not</span></div><div class="r"><span class="faint">note + 1 capture</span><span class="btn quiet">Open capture</span></div></div>
+    <div class="row"><div class="l"><span class="badge b-pending">owed</span><span class="t">CHK-0033, CHK-0034, CHK-0035 — never walked on this release</span></div><div class="r"><span class="btn primary">Walk</span></div></div>
+    <div class="row"><div class="l"><span class="t mono s11">git 199c0fd · 4e5b150 · 9ba47fe — 3 commits cite this feature</span></div><div class="r"><span class="btn quiet">Diff</span></div></div>
+    <div class="row"><div class="l"><span class="t mono s11">validate-docs.sh — OK · pytest — 2195 passed, 6 skipped</span></div><div class="r"><span class="faint">today 09:41</span></div></div>
+    <div class="row"><div class="l"><span class="t">Raw frontmatter <span class="faint">16 fields, including the verdict fields nothing refreshes</span></span></div><div class="r"><span class="btn quiet">Show</span></div></div>
+    <p class="legend">Every row here is a fact somebody can re-check by hand. Nothing on this level is a summary.</p>
+  </div>
+  <div class="card">
+    <h3>A6 · Trace <span class="n">the machine that produced the screen</span></h3>
+    <div class="row"><div class="l"><span class="badge b-active">working</span><span class="t">claude · opus · started 14 min ago · turn 12</span></div><div class="r"><span class="faint">$0.41 · ctx 62%</span></div></div>
+    <div class="tl">
+      <div class="ev agent">turn 10 · <span class="mono">Read</span> docs/designs/DES-0015… <span class="faint">246 lines</span></div>
+      <div class="ev agent">turn 11 · <span class="mono">Bash</span> <span class="mono s11">python3 -m pytest -q</span> <span class="faint">→ 2195 passed, 38 s</span></div>
+      <div class="ev ask">turn 12 · <span class="mono">Edit</span> desktop/src/renderer/walk.ts <span class="faint">waiting for approval</span></div>
+    </div>
+    <div class="row" style="margin-top:8px"><div class="l"><span class="t">Hook events <span class="faint">UserPromptSubmit, PreToolUse ×12, Stop</span></span></div><div class="r"><span class="btn quiet">Show</span></div></div>
+    <div class="row"><div class="l"><span class="t">Payload this page drew from <span class="faint">GET /api/cockpit/nav?mode=overview — 297 KB, 43 groups</span></span></div><div class="r"><span class="btn quiet">Raw JSON</span></div></div>
+    <p class="legend">Nobody needs this level to run the project. It exists so that a wrong number on A1 can be chased to the
+    request that produced it, the way an exemplar links a latency spike to one trace.</p>
+  </div>
+</div>
+<p class="cap">Evidence and trace. A5 answers "prove it": ledger verdicts with their captures, the commits that cite the feature, the validator and suite results, the raw frontmatter. A6 answers "which turn produced this": the agent's tool calls, the hook events, and the JSON payload the page was drawn from. Both are reached on purpose and neither is ever on screen by default.</p></section>
+<section class="plate" id="plate-6-mechanics"><p class="ttl">Plate 6 — Three ways to put the ladder on the screen</p>
+<div class="opt">
+  <div class="pane">
+    <h5>Option 1 — The ladder is the navigation</h5>
+    <p class="who">Each level is a page. Down is a click, up is the breadcrumb.</p>
+    <div class="sketch">
+      <p class="crumb">Fleet › <b>project-os-cockpit</b> › Build › FEAT-0151 › ticket</p>
+      <div class="row"><div class="l"><span class="t">FEAT-0151 — the release walk…</span></div><div class="r"><span class="btn">Open</span></div></div>
+      <div class="row"><div class="l"><span class="t faint">TASK-0631 — verify the guided walk</span></div><div class="r"><span class="btn quiet">Open</span></div></div>
+      <p class="legend s11">Cheapest. Reuses every page as built. The level is implied by where you are, so nobody can say
+      "show me this at A1".</p>
+    </div>
+  </div>
+  <div class="pane">
+    <h5>Option 2 — The altitude is a control</h5>
+    <p class="who">The subject stays put; a control redraws it closer or further away.</p>
+    <div class="sketch">
+      <p><span class="alt"><i>A0</i><i>A1</i><i class="on">A2</i><i>A3</i><i>A4</i><i>A5</i><i>A6</i></span>
+        <span class="kbd">⌘ ↓</span> <span class="faint s11">closer</span> <span class="kbd">⌘ ↑</span> <span class="faint s11">further</span></p>
+      <div class="row"><div class="l"><span class="t">FEAT-0151 <span class="badge b-active">doing</span></span></div>
+        <div class="r"><span class="bar active"><i style="width:0%"></i></span><span class="faint">0/3</span></div></div>
+      <p class="legend s11">Most true to "levels of abstraction": one gesture changes detail without changing subject, the way a
+      map zooms. Needs every view to answer at every level, which is the work.</p>
+    </div>
+  </div>
+  <div class="pane">
+    <h5>Option 3 — The level is a saved default</h5>
+    <p class="who">You choose where you usually stand; the cockpit opens there.</p>
+    <div class="sketch">
+      <p class="s12"><span class="badge b-ref">Owner</span> opens at A0 · <span class="badge b-ref">Lead</span> at A1
+        · <span class="badge b-ref">Builder</span> at A3 · <span class="badge b-ref">Auditor</span> at A5</p>
+      <div class="row"><div class="l"><span class="t">Open this project at <b>A1 Project</b></span></div><div class="r"><span class="btn">Change</span></div></div>
+      <p class="legend s11">Cheapest way to serve several readers. The trap: one person is all four readers in one afternoon, so
+      a role must be a remembered default, never an identity that hides levels.</p>
+    </div>
+  </div>
+</div>
+<p class="cap">The three mechanics, drawn small because the choice is about behaviour rather than layout. They are not exclusive: the recommendation is option 1's pages first, because they exist, then option 2's control across them, then option 3 as a remembered starting level.</p></section>
+<section class="plate" id="plate-7-contract"><p class="ttl">Plate 7 — The rule that keeps the levels honest</p>
+<div class="chain">
+  <div class="step"><h5>A0 · portfolio</h5><p class="big">84</p><p class="s12 muted">decisions owed across 13 projects</p>
+    <p class="legend s11">One number. Clicking it must land on the rows that produced it.</p></div>
+  <div class="step"><h5>A1 · project</h5><p class="big">31</p><p class="s12 muted">of them in your-trainer: 27 requirements at draft, 3 ADRs, 1 design</p>
+    <p class="legend s11">The same number, split by the verb that clears it.</p></div>
+  <div class="step"><h5>A2 · flow</h5><p class="big">27</p><p class="s12 muted">requirements at draft, oldest first, in the design and review queue</p>
+    <p class="legend s11">Rows, each one a subject with a name.</p></div>
+  <div class="step"><h5>A3 · subject</h5><p class="big">1</p><p class="s12 muted">your-trainer REQ-0069, bike icon selection — with the button that approves it</p>
+    <p class="legend s11">The act that makes the number at A0 go down by one.</p></div>
+</div>
+<div class="rulebox"><b>The contract:</b> a number shown at any level is the count of rows the next level down can list, and selecting
+it lands on exactly those rows. A level may summarise; it may not compute anything the level below cannot enumerate.</div>
+<div class="bad"><b>What the contract would have caught:</b> the fleet holds <b>263 features at an active status</b> against
+<b>13 focus items</b> — one project in flight each, and four projects with no focus feature at all. A portfolio tile reading
+"263 in flight" would be true of the record and false about the world. The overview's <b>Tests 1 / 90</b> tile is the same
+defect already shipped: it counts a <span class="mono">passing</span> status that 34 of those 90 notes cannot carry.</div>
+<p class="cap">The drill-down contract. Each number resolves downwards into the rows that produced it, until the bottom row is a thing a person can act on. The red panel is the failure this rule prevents, measured on 2026-09-20: counting the record's states instead of the world's work gives a portfolio number that is arithmetically correct and practically a lie.</p></section>
+</body></html>
