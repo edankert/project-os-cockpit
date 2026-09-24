@@ -6,7 +6,7 @@ status: "doing"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: "user:edwin"
 created: "2026-09-23"
-updated: "2026-09-23"
+updated: "2026-09-24"
 source: ["User request, 2026-09-23", "docs/reference/codex-parity-review-2026-09-23.md"]
 parent: "[[FEAT-0019]]"
 effort: "S"
@@ -50,3 +50,7 @@ The implementation and repeat live evidence are recorded in [the verification re
 TST-0011 remains active. Its complete mixed-Claude/Codex run is not established because the disposable Claude profile reports Not logged in. Keep this task doing until its linked manual gate is satisfied. Before feature close-out, run fresh independent review; the July waiver and review certify only the earlier scope. No user sessions or real configuration were changed.
 
 Final fresh-shell kill-switch check passed: `codex: command`, `KILL_SWITCH=1`. Temporary credentials and isolated runtime processes were removed after collecting evidence. The next required input is access to a logged-in Claude test session for the mixed live row; all other unverified checklist rows remain explicitly unclaimed.
+
+## Handoff, 2026-09-24
+
+This task did not move on 2026-09-24, and its state is exactly as described above. That session committed the Codex work unchanged (9ecdeb6), then finished the guided walk's TASK-0629 and TASK-0630 under FEAT-0151. It returned the focus here because this is the Codex work still in flight. The next step is unchanged: a logged-in Claude test session for the mixed Claude and Codex run in TST-0011, then a fresh independent review before FEAT-0019 closes.
