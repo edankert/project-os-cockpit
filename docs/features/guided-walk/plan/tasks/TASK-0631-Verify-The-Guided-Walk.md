@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0631
 title: "Verify the guided release walk against the text sheet and ledger"
 status: doing
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
 updated: 2026-09-23

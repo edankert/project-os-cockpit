@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0629
 title: "Show one walk action and its readiness"
 status: done
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
 updated: 2026-09-24

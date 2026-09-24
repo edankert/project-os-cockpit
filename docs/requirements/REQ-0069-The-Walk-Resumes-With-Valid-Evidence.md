@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0069
 title: "The walk resumes with valid evidence and the required state"
 status: approved
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-24
 updated: 2026-09-24

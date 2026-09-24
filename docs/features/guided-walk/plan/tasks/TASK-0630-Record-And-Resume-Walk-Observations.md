@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0630
 title: "Record and resume walk observations with evidence"
 status: done
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
 updated: 2026-09-24

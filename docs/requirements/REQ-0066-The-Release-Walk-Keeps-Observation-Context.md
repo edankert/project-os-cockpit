@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0066
 title: "The release walk keeps the action and context for each observation"
 status: approved
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
 updated: 2026-09-16

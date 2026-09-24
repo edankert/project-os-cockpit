@@ -3,20 +3,28 @@ type: "[[phase]]"
 id: PHASE-043
 aliases: ["PHASE-043"]
 title: "The walk page — the publication view hands the owed checks over as a procedure"
-status: done
+status: active
 order: 43
 owner: user:edwin
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-24
 goal: "When a release is in preparation, the publication view gives the person walking it one page that says what to do and in what order: the surfaces the release changed first, then every owed check inside the sitting it belongs to, with its setup, steps and expected result on the page, and a tick that writes the ledger."
 features:
   - "[[FEAT-0149-The-Walk-Page]]"
-requirements: []
+  - "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
+requirements:
+  - "[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]"
+  - "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]"
+  - "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]"
+  - "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"
 tasks:
   - "[[TASK-0618-The-Walk-Payload]]"
   - "[[TASK-0619-The-Walk-Page]]"
   - "[[TASK-0620-The-Survey]]"
   - "[[TASK-0621-The-Release-Rung-Points-At-The-Walk]]"
+  - "[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]"
+  - "[[TASK-0630-Record-And-Resume-Walk-Observations]]"
+  - "[[TASK-0631-Verify-The-Guided-Walk]]"
 issues: []
 related:
   - "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
@@ -94,3 +102,9 @@ Four tasks `done`, one acceptance check walked, one change note ([[CHG-20260913-
 **The justification this note offered to reverse was not taken up.** It said: if the payload turns out to be a filter over `view_payload` and the page a variant of `buildChecksPage`, fold the work into PHASE-037 and supersede this phase. Neither happened. The payload is a join of three sources — `ledger.owed`, the note bodies and an authored `WALK.md` — and shares only `_row` with `view_payload`; the page reuses `buildCheckRow` and none of `buildChecksPage`, which is filters and facets the walk deliberately has neither of.
 
 **Two upstream defects came out of the work** and are parked under [[PHASE-999-Future]] because they belong in another repository: [[ISS-0303-The-Walk-Sheet-Lists-Retired-Checks]] and [[ISS-0304-The-Walk-Order-Reader-Splits-Inside-A-Quoted-String]]. Both were found by running the template's generator beside this page on one corpus, which is the check the bundling decision was taken to make possible.
+
+## Reopened 2026-09-24 for FEAT-0151
+
+Edwin chose this phase as the walk page's standing home on 2026-09-24. [[FEAT-0151-The-Release-Walk-Has-One-Next-Action]] had no phase since it opened on 2026-09-16. It turns this page into a guided walk: one step at a time, with saved progress, evidence and resume. That is follow-up work on the surface this phase built, so it joins here rather than opening a phase of its own. The phase closes again when the criterion below is met, and reopens for the next piece of walk-page work.
+
+- [ ] FEAT-0151 is `done`: its detailed criteria are met, apart from those that belong to Your Trainer. TASK-0629 and TASK-0630 were done on 2026-09-24. [[TASK-0631-Verify-The-Guided-Walk]] (D2, D3) waits for Your Trainer TASK-0960.

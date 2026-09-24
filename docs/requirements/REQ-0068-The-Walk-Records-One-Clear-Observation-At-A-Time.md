@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0068
 title: "The walk records one clear observation at a time"
 status: approved
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-24
 updated: 2026-09-24

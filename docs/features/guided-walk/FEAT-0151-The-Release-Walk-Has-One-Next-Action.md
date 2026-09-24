@@ -4,7 +4,7 @@ id: FEAT-0151
 aliases: ["FEAT-0151"]
 title: "The release walk has one clear next action"
 status: doing
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
 updated: 2026-09-24

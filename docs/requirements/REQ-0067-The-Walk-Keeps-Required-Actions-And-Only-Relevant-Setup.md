@@ -3,7 +3,7 @@ type: "[[requirement]]"
 id: REQ-0067
 title: "The walk keeps required actions and asks for only relevant setup"
 status: approved
-phase: ""
+phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-24
 updated: 2026-09-24
