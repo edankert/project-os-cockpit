@@ -19,8 +19,6 @@
 //   instrument/<ws>/statusline.sh      statusline JSON → POST (debounced)
 //                                      + echoes a short status string.
 //   instrument/<ws>/codex-hook-forward.sh  Codex hook stdin JSON → POST.
-//   instrument/<ws>/codex-notify.sh    Codex notify argv[1] JSON → POST
-//                                      with ?event= mapping as a fallback.
 //   instrument/<ws>/codex-launch.sh    per-launch Codex flags; regenerated
 //                                      when the app attaches to the workspace.
 //   instrument/<ws>/hook-env           COCKPIT_HOOK_URL=<sidecar url>;
@@ -48,12 +46,15 @@ const CLAUDE_HOOK_EVENTS = [
   'SessionEnd',
 ] as const;
 
-const CODEX_HOOK_EVENTS = [
+export const CODEX_HOOK_EVENTS = [
   'SessionStart',
   'UserPromptSubmit',
   'PreToolUse',
   'PostToolUse',
   'PermissionRequest',
+  'SubagentStart',
+  'SubagentStop',
+  'Interrupt',
   'Stop',
   'SessionEnd',
 ] as const;
@@ -119,28 +120,6 @@ printf '%s' "$out"
 `;
 }
 
-function codexNotifyScript(): string {
-  return `#!/bin/sh
-# project-os-cockpit (TASK-0116): Codex CLI notify forwarder. Codex
-# invokes this with the notification JSON as argv[1]; map its event
-# types onto the cockpit hook vocabulary and forward.
-DIR="$(cd "$(dirname "$0")" && pwd)"
-[ -f "$DIR/hook-env" ] && . "$DIR/hook-env"
-if [ -z "$COCKPIT_HOOK_URL" ] || [ -n "$COCKPIT_NO_INSTRUMENT" ]; then
-  exit 0
-fi
-payload="$1"
-case "$payload" in
-  *agent-turn-complete*) event="Stop" ;;
-  *approval-requested*) event="PermissionRequest" ;;
-  *) event="Notification" ;;
-esac
-printf '%s' "$payload" | curl -s -m 2 -X POST -H 'Content-Type: application/json' \\
-  --data-binary @- "$COCKPIT_HOOK_URL/api/agent-hook?event=$event&agent=codex" >/dev/null 2>&1
-exit 0
-`;
-}
-
 // Hook commands run through a shell — the userData path contains a
 // space ("Application Support"), so unquoted paths execute
 // `/Users/…/Library/Application` and every hook fails silently
@@ -197,7 +176,7 @@ function codexLaunchScript(dir: string): string {
   return `#!/bin/sh
 # The parent zsh can outlive a cockpit rebuild in tmux. Keep its function
 # stable and load fresh Codex flags from this regenerated file each launch.
-exec codex --no-alt-screen ${codexHookArgs(dir)} -c ${shellQuotePath(`notify=[${JSON.stringify(path.join(dir, 'codex-notify.sh'))}]`)} "$@"
+exec codex --no-alt-screen ${codexHookArgs(dir)} "$@"
 `;
 }
 
@@ -240,7 +219,6 @@ export function ensureInstrumentation(
     writeExecutable(path.join(dir, 'hook-forward.sh'), hookForwardScript());
     writeExecutable(path.join(dir, 'codex-hook-forward.sh'), hookForwardScript('codex'));
     writeExecutable(path.join(dir, 'statusline.sh'), statuslineScript());
-    writeExecutable(path.join(dir, 'codex-notify.sh'), codexNotifyScript());
     writeExecutable(path.join(dir, 'codex-launch.sh'), codexLaunchScript(dir));
     fs.writeFileSync(
       path.join(dir, 'claude-settings.json'), claudeSettings(dir), 'utf-8',

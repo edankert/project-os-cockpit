@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-040
 aliases: ["PHASE-040"]
 title: "An agent session is not a terminal — a purpose-built control plane owns the process, and the cockpit reads it instead of hosting it"
-status: planned
+status: deferred
 order: 40
 owner: user:edwin
 created: 2026-08-20
-updated: "2026-08-20"
+updated: 2026-09-23
 goal: "Move ownership of agent sessions off a terminal multiplexer and onto a control plane designed for them, so a session survives the app that started it, is reachable from a device that is not this Mac, and reports its state from one place rather than three."
 features: []
 requirements: []
@@ -102,3 +102,7 @@ Answering these means reading `apps/server` and `packages/client-runtime` **sour
 ## A correction already on the record
 
 An earlier summary in this session said T3 has **native iOS and Android apps**. It does not — that came from marketing copy and was repeated without checking. It is a **web app in a mobile browser**, reached over Tailscale or a tunnel. This matters because "we get mobile apps for free" would be a false premise for the phase.
+
+## Deferral recorded — 2026-09-23
+
+[[ISS-0312]] and the snapshot already record Edwin's September 16 decision to defer this phase. The status now matches that decision. The Codex parity follow-up reopens PHASE-007 only. No features or tasks belong to this phase, so no child scope needs to move. A usage investigation that requires a new session owner returns here with evidence for Edwin.

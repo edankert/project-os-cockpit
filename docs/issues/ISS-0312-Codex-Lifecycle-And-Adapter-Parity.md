@@ -6,7 +6,7 @@ title: "A Codex session in the cockpit has never been walked end to end, and its
 status: open
 owner: user:edwin
 created: 2026-09-16
-updated: "2026-09-19"
+updated: 2026-09-23
 reported_by: user:edwin
 source: ["Review requested by Edwin, 2026-09-16", "https://learn.chatgpt.com/docs/hooks", "https://learn.chatgpt.com/docs/build-skills", "https://learn.chatgpt.com/docs/agent-configuration/subagents"]
 severity: high
@@ -22,6 +22,13 @@ tests: ["[[TST-0011]]"]
 Codex now reports its prompts, approvals and finished turns to the cockpit, but nobody has yet watched one full Codex session go through every state on screen. The session strip also shows 'cache unknown' for Codex, because the cockpit has no source for Codex's cache data.
 
 ## Problem
+
+> [!quote] As reported
+> Review the current codex integration efforts and suggest what to do next to create claude code parity.
+>
+> Continue as suggested.
+
+The September 23 continuation authorizes the recommendations in [the parity review](../reference/codex-parity-review-2026-09-23.md). It enables the live lifecycle walk, small event gaps, external opt-in, bounded usage investigation and guidance reconciliation. The following original problem and baseline describe September 16, before the native adapter sync and telemetry repairs.
 
 The cockpit launches Codex and receives its `notify` callback, but it does not receive the prompt and tool events that keep a Claude session's state and activity strip current. The repository also gives Claude generated hooks, skills, and subagents while its Codex adapter still describes repository scripts as substitutes for native hooks. Native Codex hooks are now available, so the delivered behavior and the recorded plan need a new implementation and a live check.
 
@@ -42,7 +49,7 @@ A Codex session should report prompt start, work, permission requests, turn comp
 
 The project icon and Needs you card read one stored agent state per workspace. A post-restart sidecar snapshot on 2026-09-16 showed a live Codex session while the workspace state still named Claude as waiting. The renderer treats a waiting state older than one hour as cold, paints the icon grey, and removes that agent event from Needs you. This age rule assumes Claude's prompt-cache lifetime and its tooltip claims that resuming rewrites cached tokens. It is not evidence of Codex cache temperature. The detailed cache badge is absent because `session_cache.py` reads Claude transcript fields and the Codex notify payload has no transcript path or cache usage.
 
-## Baseline evidence and comparison
+## Historical baseline evidence and comparison — 2026-09-16
 
 | Area | Claude implementation | Codex implementation | Effect |
 | --- | --- | --- | --- |
@@ -57,7 +64,7 @@ OpenAI's [Hooks documentation](https://learn.chatgpt.com/docs/hooks) describes p
 
 ## Integration plan and progress
 
-The project-os template now contains the native adapter described in step 1 at local commit `336d5f9`. Its generator emits Codex skills and agent profiles, installs project hooks when the target is absent, and has 12 passing fixture checks. The change is tracked as project-os-dev PHASE-0006 / FEAT-0032 / TASK-0124 at local commit `f2b9059`. Neither commit has been pushed or synced into this cockpit, so the comparison above still describes the cockpit's current files.
+The project-os template now contains the native adapter described in step 1 at local commit `336d5f9`. Its generator emits Codex skills and agent profiles, installs project hooks when the target is absent, and has 12 passing fixture checks. The change is tracked as project-os-dev PHASE-0006 / FEAT-0032 / TASK-0124 at local commit `f2b9059`. At that point neither commit had been pushed or synced into this cockpit. The native adapter later reached this repo in `b546625` on 2026-09-18; the comparison above is historical.
 
 Edwin chose to finish the PHASE-004 terminal work first and defer cockpit PHASE-040. The upstream adapter work did not change cockpit telemetry or user configuration. The cockpit follow-up below is separate.
 
@@ -98,7 +105,7 @@ This change instruments new Codex sessions launched in the cockpit and updates t
 ## Next Actions
 
 - [x] Plan and implement the native project-os adapter upstream as project-os-dev PHASE-0006 / TASK-0124.
-- [ ] Complete the upstream review and CI, then sync its generated Codex files into this cockpit without overwriting local adapter guidance.
+- [x] Sync the generated Codex files into this cockpit without overwriting local adapter guidance — delivered by `b546625` on 2026-09-18. This local evidence does not attest upstream CI or publication.
 - [x] Use per-launch hook flags without changing user authentication, project hooks, or home configuration.
 - [x] Implement lifecycle mapping, mixed-session project state, Codex patch-path activity, and an explicit unknown cache badge.
 - [ ] Run and record the real embedded-terminal Codex walkthrough in [[TST-0011]], including hook trust and a shell started before this change.
@@ -119,3 +126,27 @@ Bigger: the live walk is a manual sitting, and warm/cold for Codex needs a new u
 **Belongs to:** PHASE-007 (Agent Instrumentation, marked done) and the deferred PHASE-040. **Next:** walk the TST-0011 Codex row live; split the cache estimate into its own issue if it is still wanted.
 
 Checked as part of project-os-dev FEAT-0036 (TASK-0141).
+
+## Authorized follow-up — 2026-09-23
+
+Spec-ambiguity check: “Continue” refers to the five recommendations immediately preceding it. Each has an observable result and a bounded task below. The investigation is allowed to conclude unsupported; the request does not authorize a new session host or speculative cache claims. No unresolved interpretation prevents this scope.
+
+1. [[TASK-0633]] starts the live lifecycle walk in [[TST-0011]]. Complete each observed row and retain gaps explicitly.
+2. [[TASK-0634]] verifies and forwards supported subagent and interruption events without disturbing the parent or dispatch queue.
+3. [[TASK-0635]] adds a separate external Codex opt-in under [[FEAT-0027]], preserving configuration and normal hook trust.
+4. [[TASK-0636]] investigates a supported read-only usage source for the exact terminal thread. It does not build a meter or resume a thread.
+5. [[TASK-0637]] reconciles guidance and assesses the remaining enforcement differences with evidence.
+
+[[PHASE-007]] reopens for this work. [[PHASE-040]] stays deferred by Edwin's existing decision. The implementation order is a priority, not a requirement to stop all work if one live acceptance row cannot yet be observed. Historical waivers and fixtures do not certify a fresh live run.
+
+### Impact analysis and risk scan
+
+Checked [[FEAT-0019]], [[FEAT-0020]], [[FEAT-0027]], [[FEAT-0081]], [[REQ-0005]], [[REQ-0026]], [[REQ-0027]], and the PHASE-007/PHASE-040 boundaries. No requirement acceptance criteria change. The terminal and telemetry remain local; no new note-mutation surface is planned. FEAT-0027's former Codex exclusion is expressly widened by this request while retaining its consent rule. FEAT-0081's no-API/no-warming contract remains intact because usage research belongs to FEAT-0019 and does not alter the Claude reader. Native CLI schema and user configuration risks are already covered by [[RISK-0004]], now linked to the mitigation tasks. No new risk note or requirement is needed.
+
+Sibling lookup: searched `docs/issues/` for `codex`, `Codex`, `hook`, and `session usage`. This is continuation of ISS-0312, not a second defect filing. ISS-0310 and ISS-0311 remain completed terminal fixes. The unsupported usage source and reviewer identity are bounded uncertainties in this existing issue, not an excuse to invent a session host.
+
+## Implementation result — 2026-09-23
+
+Native child/interrupt reporting, queue submission and the external Codex opt-in are implemented. The live walk found and repaired notify-only ghost sessions, unsubmitted queued prompts and late tool completion overriding interruption. Full automated suites pass. See [the verification report](../reference/codex-parity-verification-2026-09-23.md).
+
+Still open: the complete mixed-agent TST-0011 walk (disposable Claude is Not logged in), fresh independent feature reviews. TASK-0637 corrected shared quoted-status parsing upstream and synced the parser and regression here. TASK-0636 concludes that the tested read-only observer cannot obtain live usage from an independently owned CLI thread. HC-010 budgets remain instruction-only. These last two are documented limits, not implemented parity. PHASE-040 stays deferred.

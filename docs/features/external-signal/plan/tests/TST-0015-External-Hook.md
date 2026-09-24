@@ -9,7 +9,7 @@ command: ".venv/bin/pytest tests/test_external_hook.py -q"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-08-13
+updated: 2026-09-23
 scope: feature
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_external_hook.py"
@@ -28,3 +28,7 @@ last_verified: 2026-07-06
 
 - 2026-07-06: `4 passed`; full suite `189 passed, 1 skipped`.
 - 2026-07-06: live manual run against this repo — stale 8899 discovery file fell back to a clean `agent-state.json` write; SessionEnd reset to idle.
+
+## September 23 Codex extension
+
+`test_codex_external_forwarding_and_fallback` runs the generated script in Codex mode, checks agent/session identity, offline state, interruption through late events, new-prompt recovery and deduplication against an embedded event. `cd desktop && npm run build && node --test tests/codex-external-hooks.test.mjs` checks surgical enable/refresh/disable, one-time backup, mixed user groups, spaces and apostrophes, untouched config.toml, and malformed-input refusal. Full-suite counts are recorded on FEAT-0027. TST-0011 separates real external CLI evidence from these fixtures.

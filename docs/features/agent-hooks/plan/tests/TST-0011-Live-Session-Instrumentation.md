@@ -8,13 +8,13 @@ covers: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0020-Agent-Activity-Surfa
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: "2026-09-16"
+updated: "2026-09-23"
 scope: feature
 level: e2e
 entrypoint: ""
 tasks: ["[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0121]]", "[[TASK-0124]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0132]]", "[[TASK-0133]]", "[[TASK-0134]]", "[[TASK-0138]]", "[[TASK-0142]]"]
 last_verified: "2026-07-27"
-last_run: "2026-09-16"
+last_run: "2026-09-23"
 ---
 
 # TST-0011 — Live-session instrumentation (manual)
@@ -81,3 +81,16 @@ Edwin confirmed after that reload that the project-os-cockpit card reads “Code
 - **pass** · Dispatch runtime (FEAT-0025/0026). Queue two dispatches in workspace A while its agent is busy, switch to workspace B: A's queued prompts still deliver on A's Stop/SessionEnd (check A's terminal after). Restart the app with items queued: the queue survives. The strip chip opens a popover with per-item ✕. A done task's Agent menu hides Implement; ⌘P "refine TASK-0115" dispatches; `cockpit dispatch TASK-0116 --verb refine` from an external terminal under the repo lands in the cockpit queue. A dispatched note shows its provenance line; the originating session row shows "← refine TASK-0115".
 - **pass** · External-session signal (FEAT-0027). Settings gear → enable the external-terminal toggle: `~/.claude/settings.json` gains the cockpit's hook entries (backup file appears beside it). Run `claude` in a normal terminal under any project-os repo: the repo's rail dot tracks the session (full session record when the workspace's cockpit runs). Disable the toggle: the entries are gone, everything else in the file untouched. Kill a session mid-work: the dot decays to idle within ~10 minutes.
 - **pass** · Kill switch. Relaunch the app with `COCKPITNOINSTRUMENT=1`: no wrapper functions, `cockpit signal` works as before.
+
+## September 23 partial live run
+
+See [Codex parity implementation and verification](../../../../reference/codex-parity-verification-2026-09-23.md) for the exact isolated build, CLI, workspaces and observations. Approval, completed turn, child lifecycle, background-workspace queue submission, interruption through late tool completion, recovery, same-shell exit and History were observed. The external Codex setting was enabled through Settings, persisted through restart, captured a real external CLI and was disabled again. The production user configuration was untouched.
+
+A complete passing verdict is not recorded: the disposable Claude profile reported Not logged in, so the real waiting-Claude/busy-Codex check remains open. The full historical checklist has not been replayed. Task handoffs retain that gate; the July waiver does not certify this run.
+
+### Added Codex procedures
+
+- Run a parent with a child. Observe distinct parent/child identity on both child lifecycle events; child completion must not finish the parent or release its queue.
+- Queue a task during a long Bash command, switch workspace and return; after normal Stop, verify the queued prompt produces its own UserPromptSubmit and reply.
+- Interrupt a long command while a task is queued. Wait beyond the command's completion; Needs You must still say interrupted and the queue must stay held. Submit a new prompt deliberately and verify recovery.
+- Enable the separate Codex setting in disposable configuration with pre-existing user hooks. Review hooks normally, run an external CLI and compare the correct workspace. Repeat while embedded telemetry is active; activity must not duplicate. Restart, then disable and confirm unrelated entries remain. Exercise the generated-hook fallback with no sidecar separately; this fixture does not claim a live CLI run.

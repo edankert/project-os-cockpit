@@ -50,6 +50,54 @@ def run_hook(script: Path, payload: dict) -> int:
     return proc.returncode
 
 
+def test_codex_external_forwarding_and_fallback(hook_script: Path, tmp_path: Path):
+    root = tmp_path / "codex workspace"
+    docs = root / "docs"
+    docs.mkdir(parents=True)
+    (docs / "README.md").write_text("# Fixture\n")
+    (root / "SNAPSHOT.yaml").write_text("version: 1\n")
+    payload = {"hook_event_name": "UserPromptSubmit", "session_id": "codex-external",
+               "cwd": str(root), "prompt": "test external Codex"}
+    def run():
+        result = subprocess.run([sys.executable, str(hook_script), "codex"],
+                                input=json.dumps(payload), text=True, capture_output=True, timeout=10)
+        assert result.returncode == 0, result.stderr
+    run()
+    state_path = root / ".cockpit/agent-state.json"
+    state = json.loads(state_path.read_text())
+    assert (state["agent"], state["state"], state["session_id"]) == ("codex", "busy", "codex-external")
+    payload["hook_event_name"] = "Interrupt"
+    run()
+    assert json.loads(state_path.read_text())["state"] == "needs-input"
+    for event in ("PostToolUse", "Stop"):
+        payload["hook_event_name"] = event
+        run()
+        assert json.loads(state_path.read_text())["state"] == "needs-input"
+    payload["hook_event_name"] = "UserPromptSubmit"
+    run()
+    assert json.loads(state_path.read_text())["state"] == "busy"
+    server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
+    httpd = _NoDNSThreadingHTTPServer(("127.0.0.1", 0), _make_handler(
+        server.docs_root, server.index, server.bus,
+        cockpit_state=server.cockpit_state, agent_tracker=server.agent_tracker))
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    try:
+        (root / ".cockpit/url").write_text(f"http://127.0.0.1:{httpd.server_address[1]}")
+        payload["hook_event_name"] = "UserPromptSubmit"
+        run()
+        # The embedded forwarder produces the same normalized event.
+        result = server.agent_tracker.ingest({**payload, "agent": "codex"})
+        assert result["duplicate"] is True
+        session = server.agent_tracker.snapshot()["session"]
+        assert session["agent"] == "codex"
+        assert session["session_id"] == "codex-external"
+        assert len(server.agent_tracker.sessions_payload()[0]["prompts"]) == 1
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+
 def test_noop_outside_project_os(hook_script: Path, tmp_path: Path):
     plain = tmp_path / "plain-repo"
     plain.mkdir()

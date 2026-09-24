@@ -185,8 +185,9 @@ async function deliver(
   if (mode === 'repl' && session.agent && session.agent !== item.agent) {
     warning = `live session is ${session.agent} — delivered there instead of ${item.agent}`;
   }
+  const codexRepl = mode === 'repl' && session.agent === 'codex';
   const data = mode === 'repl'
-    ? item.prompt + '\r'
+    ? codexRepl ? `\x1b[200~${item.prompt}\x1b[201~` : item.prompt + '\r'
     : `${item.agent} ${shellEscapeSingle(item.prompt)}\r`;
   if (!writeToPty(workspaceId, data)) {
     // No terminal for this workspace yet — hold in the queue; the next
@@ -197,6 +198,14 @@ async function deliver(
     persistSoon();
     broadcastQueue(workspaceId);
     return { queued: true, warning: 'no terminal open — queued' };
+  }
+  if (codexRepl) {
+    // Codex treats a burst containing text and Return as pasted input.
+    // Finish the paste, let its input loop consume it, then submit separately.
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    if (!writeToPty(workspaceId, '\r')) {
+      return { queued: false, warning: 'terminal closed before Codex submission' };
+    }
   }
   recordLedger(workspaceId, item);
   broadcast('dispatch:delivered', { workspaceId, item, mode, warning });

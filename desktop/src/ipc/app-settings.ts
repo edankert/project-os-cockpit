@@ -1,7 +1,8 @@
 // App settings + the external agent-state hook (FEAT-0027).
 //
 // One persisted settings object (userData/app-settings.json) behind
-// `settings:get` / `settings:set` IPC. The only setting so far:
+// `settings:get` / `settings:set` IPC. Separate opt-ins install Claude
+// or Codex hooks; neither edits login settings or enables the other.
 // `externalHook` — when the user flips it on, the cockpit installs a
 // hook into ~/.claude/settings.json so Claude sessions in ANY terminal
 // signal agent state; flipping it off removes exactly our entries.
@@ -22,12 +23,14 @@ import { app, ipcMain } from 'electron';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { configureCodexExternalHooks } from './codex-external-hooks';
 
 export interface AppSettings {
   externalHook: boolean;
+  externalCodexHook: boolean;
 }
 
-const DEFAULTS: AppSettings = { externalHook: false };
+const DEFAULTS: AppSettings = { externalHook: false, externalCodexHook: false };
 
 const HOOK_EVENTS = [
   'UserPromptSubmit', 'PostToolUse', 'PermissionRequest',
@@ -73,9 +76,8 @@ function hookScript(): string {
   return `#!/usr/bin/env python3
 """project-os-cockpit external agent-state hook (FEAT-0027).
 
-Installed into ~/.claude/settings.json by the cockpit's settings
-toggle; remove it there (or flip the toggle off) to disable. Reads one
-Claude Code hook payload from stdin. In project-os repos only:
+Installed through the Claude or Codex settings toggle; disable it with
+the same toggle. Reads one native hook payload from stdin. In project-os repos only:
 forwards to the workspace's running cockpit when one is discoverable,
 else writes .cockpit/agent-state.json so the desktop rail dot updates.
 Never blocks, never fails the hook.
@@ -85,6 +87,9 @@ import json
 import os
 import sys
 import urllib.request
+import tempfile
+
+AGENT = "codex" if len(sys.argv) > 1 and sys.argv[1] == "codex" else "claude"
 
 STATE_BY_EVENT = {
     "UserPromptSubmit": "busy",
@@ -104,6 +109,8 @@ WAITING_NOTIFICATIONS = ("idle_prompt",)
 
 def state_for(payload):
     event = payload.get("hook_event_name") or ""
+    if event == "Interrupt" and AGENT == "codex":
+        return "needs-input"
     if event == "Notification":
         ntype = payload.get("notification_type")
         if ntype in NEEDS_INPUT_NOTIFICATIONS:
@@ -133,6 +140,9 @@ def main():
         return 0
     if not isinstance(payload, dict):
         return 0
+    if os.environ.get("COCKPIT_NO_INSTRUMENT"):
+        return 0
+    payload["agent"] = AGENT
     root = find_root(payload.get("cwd") or os.getcwd())
     if not root:
         return 0
@@ -156,13 +166,33 @@ def main():
         return 0
     try:
         os.makedirs(ck, exist_ok=True)
+        target = os.path.join(ck, "agent-state.json")
+        interrupted = False
+        if AGENT == "codex":
+            try:
+                with open(target, encoding="utf-8") as previous_file:
+                    previous = json.load(previous_file)
+                interrupted = (previous.get("agent") == AGENT
+                               and previous.get("session_id") == payload.get("session_id")
+                               and previous.get("interrupted", False))
+            except Exception:
+                pass
+            event = payload.get("hook_event_name")
+            if event in ("UserPromptSubmit", "SessionEnd"):
+                interrupted = False
+            elif event == "Interrupt":
+                interrupted = True
+            if interrupted:
+                state = "needs-input"
         ts = datetime.datetime.now(datetime.timezone.utc).isoformat(
             timespec="milliseconds")
-        tmp = os.path.join(ck, "agent-state.json.tmp")
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({"state": state, "ts": ts, "agent": "claude",
-                       "source": "external-hook"}, f)
-        os.replace(tmp, os.path.join(ck, "agent-state.json"))
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=ck,
+                                         prefix="agent-state-", delete=False) as f:
+            tmp = f.name
+            json.dump({"state": state, "ts": ts, "agent": AGENT,
+                       "session_id": payload.get("session_id"),
+                       "source": "external-hook", "interrupted": interrupted}, f)
+        os.replace(tmp, target)
     except Exception:
         pass
     return 0
@@ -254,6 +284,16 @@ export function getSettings(): AppSettings {
   return { ...settings };
 }
 
+function setCodexHook(enabled: boolean): { ok: boolean; error?: string } {
+  if (enabled) {
+    try {
+      fs.mkdirSync(hookDir(), { recursive: true });
+      fs.writeFileSync(hookScriptPath(), hookScript(), { encoding: 'utf8', mode: 0o755 });
+    } catch (error) { return { ok: false, error: String(error) }; }
+  }
+  return configureCodexExternalHooks(enabled, hookScriptPath());
+}
+
 export function registerSettingsIpc(): void {
   loadSettings();
   // Refresh the hook script on launch when enabled — the script's
@@ -261,6 +301,10 @@ export function registerSettingsIpc(): void {
   if (settings.externalHook) {
     const res = installExternalHook();
     if (!res.ok) console.error('[app-settings] hook refresh failed:', res.error);
+  }
+  if (settings.externalCodexHook) {
+    const res = setCodexHook(true);
+    if (!res.ok) console.error('[app-settings] Codex hook refresh failed:', res.error);
   }
 
   ipcMain.handle('settings:get', () => getSettings());
@@ -274,6 +318,15 @@ export function registerSettingsIpc(): void {
           const res = want ? installExternalHook() : uninstallExternalHook();
           if (!res.ok) return { ok: false, error: res.error, settings: getSettings() };
           settings.externalHook = want;
+          persistSettings();
+        }
+      }
+      if (patch && typeof patch === 'object' && 'externalCodexHook' in patch) {
+        const want = patch.externalCodexHook === true;
+        if (want !== settings.externalCodexHook) {
+          const res = setCodexHook(want);
+          if (!res.ok) return { ok: false, error: res.error, settings: getSettings() };
+          settings.externalCodexHook = want;
           persistSettings();
         }
       }

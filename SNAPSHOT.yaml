@@ -76,9 +76,9 @@ counters:
   REQ: 66
   RISK: 10
   # A place in the product a check's area: names (TASK-0514).
-  SUR: 4
+  SUR: 6
   REL: 1
-  TASK: 632
+  TASK: 637
   TST: 91
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -90,7 +90,7 @@ focus:
   # TASK-0631 corrected the no-prior-release survey message. Your Trainer REL-0001 now declares Android; the isolated iOS page has zero Android survey cards, explains why comparison is unavailable, and retains 327 owed checks. A real iOS release and human walk remain open.
   # 2026-09-20: TASK-0632 is done and the focus returns to where it was before
   # this work order arrived. TASK-0631 has not moved.
-  task: "TASK-0631"
+  task: "TASK-0633"
   # TASK-0631 ran the actual walk in isolated Electron on copied Your Trainer docs and ledgers: Android survey, step advance, reload, blocked action, interrupted timer and uploaded PNG comparison worked. Review results now lists all 39 owed Android checks instead of hiding ten expired prior-release excuses. The iOS route loads 327 owed rows but has no open release id. Eighty focused renderer tests, the full desktop suite, 47 Python walk tests and docs gates pass; human and full iOS walks remain open.
   # TASK-0629 is correcting a full Electron walk finding: the session-wide readiness list stays expanded and repeats the current warning, and Walk options lacks a direct step picker. The isolated browser uses copied Your Trainer docs and ledgers.
   # TASK-0629 moved occasional walk navigation under Walk options and sitting state/equipment into required setup. The focused renderer suite passes 77 cases, and standalone Chrome rendered the current Android payload at desktop and narrow widths. Full Electron and Edwin walks remain open.
@@ -102,14 +102,21 @@ focus:
   # TASK-0631: Chrome rendered the current Android payload's evidence comparison and decision exception. One missing observation blocked Pass; saving it enabled Pass. The standalone harness stubbed server writes, so the full cockpit and human walks remain open.
   # FEAT-0151 is now implementing correction after a completed check leaves the owed walk. The completed-check index is browser local and the server still computes owed rows from the ledger.
   # TASK-0630 is also adding build identity and an optional PNG attachment at authored evidence prompts. The existing note attachment endpoint stores the PNG under the affected check.
-  feature: "FEAT-0151"
-  phase: ""
-  issue: ""
-  note: "2026-09-20, later: DES-0016 (levels of abstraction) is PROPOSED beside DES-0015 and awaits Edwin. Seven levels cut by reader: portfolio, project, flow, subject, ticket, evidence, trace — a portfolio screen above DES-0015's five layers and two levels below the one anyone builds at. Seven plates, measured across all 13 repositories; research in docs/reference/abstraction-levels-market-scan-2026-09-20.md. PHASE-045 gains D6-D10. Nothing built; focus unchanged. ---- 2026-09-20: ISS-0313's seven fixes are done under TASK-0632, one commit each plus a close-out (2c6059a, 8ac3c76, c5256c9, 1f6ba29, 56ab147, 9445a09, 4416d29). SIX ARE FIXED. ISS-0301 IS MADE AND LEFT OPEN: the Content-Type refusal on writes is committed and tested, and the ticket says to show Edwin before closing it — that is the one thing this work waits on. New capability: GET /api/cockpit/vocabulary, registered as api.read.vocabulary, which lets project-os-deck drop its copied status bands. Not pushed: this repo is 31 commits ahead of origin. ---- 2026-09-17, later: PHASE-045 opened as PLANNED to hold DES-0015 and its refinement (D1-D5, log, exit criteria that can close on a refusal); FEAT-0152/0153/0154 scaffolded at backlog, one per option. Edwin: 'I am not fully convinced, so document it in such a way that we can refine over time.' Nothing built; focus unchanged. ---- 2026-09-17: DES-0015 (the cockpit in layers) is PROPOSED and awaits Edwin's Accept in Intent: five data layers, the minimum for screen one, the four flows at each layer, three options C -> A -> B, five decisions D1-D5. Nothing built; focus stays on TASK-0631. ---- 2026-09-16: FEAT-0151 is implementing Your Trainer FEAT-0122 in the cockpit. TASK-0629 owns the focused page and shared walk payload; TASK-0630 owns reliable observation storage and evidence; TASK-0631 owns agreement and ledger-copy verification. Existing ISS-0312 work remains open and unchanged. ---- 2026-09-16: Completed OpenAI weekly Usage under TASK-0628: eight focused tests and a live Electron layout check passed, and the desktop shell was restarted. ISS-0312 remains open for wider parity. ---- 2026-09-16: Recorded the cockpit review in docs/reference/future-enhancements/README.md, retaining Edwin's preference for percentages, progress bars, colours and status badges. This is reference documentation only; ISS-0312 remains the development focus. ---- 2026-09-16: Edwin confirmed the reloaded Needs You card now reads Codex · working during a live Codex turn. The fallback wording failure is closed; TST-0011 remains open for the full mixed-session, approval, and exit walk, and ISS-0312 remains open for upstream adapter parity. ---- 2026-09-16: Edwin observed that the Needs You project card says only working during a busy Codex turn after the older Claude request aged out. CHG-20260916-Name-active-agent-in-Needs-You-project-cards now makes the shared record/publication status line say Codex · working; 8 focused checks passed and Electron was reloaded. TST-0011 remains failing until the live card is checked. ---- 2026-09-16: A completed Codex turn now shows the right Needs You icon and text. While Codex works, the card instead says Claude is waiting because it uses an older waiting session as its headline; CHG-20260916-Show-live-agent-in-Needs-You-headline now puts Codex work first and keeps the Claude request below; the focused checks passed and Electron was reloaded. TST-0011 remains failing pending a live mixed-session screen check. ---- 2026-09-16: Edwin confirmed the project icon shows Busy / working, but a Codex Bash approval did not appear in Needs You. The sidecar recorded needs-input, including a 55 ms transition the five-second file poll can miss. Live sidecar-to-renderer delivery is active under CHG-20260916-Deliver-live-Codex-approval-to-Needs-You; TST-0011 still owes a visible Needs You check. ---- 2026-09-16: Edwin refreshed the cockpit shell and approved the seven Codex hooks. The live sidecar recorded the current Codex session as needs-input during a Bash approval and busy after work resumed; the renderer decision maps it to a busy project icon. Needs You still awaits a visible check after this turn reaches Stop. ISS-0312 and TST-0011 stay open for that screen walk. The hook path and regenerated launcher passed focused tests; Electron was restarted independently. ---- 2026-09-16: ISS-0312 is open for the cockpit Codex session feed, project status, Needs you, and temperature correction. PHASE-040 stays deferred. ---- 2026-09-16: PHASE-004 terminal work is verified and closed (TASK-0627, ISS-0310, ISS-0311). Next: move the project-owned Codex adapter work to upstream project-os; cockpit ISS-0312 tracks the wider parity gap. ---- 2026-09-14: PHASE-044 IS DONE and FEAT-0150 with it; all five tasks done. Edwin settled the scope when TASK-0626 stood open against another repo: \"Finish the project-os-cockpit phase only, the your-trainer functionality will be handled in the your-trainer repo.\" So TASK-0626 closes on this repo's half - the page/sheet comparison is written and passes on your-trainer's live corpus for android AND ios - and running it against that repo's real v2.2.0 procedures is your-trainer TASK-0907, which already names it. your-trainer PHASE-024 has not started; its first step TASK-0900 is a screen-mapping table that needs EDWIN'S APPROVAL before any area: is rewritten. The walk page now reads as a script: the survey is one card per changed screen with the last release's capture beside the candidate's at one width, a child screen drawn inside its parent, and no test id; a sitting with a procedure draws the setup once and its owed steps, each expectation line showing the check text it quotes beside its ASCII tags, a passed tag struck through; a tick goes on a STEP and one ledger event per check is written when every citing step has a mark, worst mark winning (fail > partial > pass, question over all). Step ticks live in localStorage `cockpit:walk-steps:<ws>` keyed release|platform|sitting|step and are pruned when a step stops printing. The ledger format is UNCHANGED and both tick paths now build the POST in one function, postCheckVerdict. ~checks groups by screen with dialogs indented under their parent and an unresolved area marked; the design view counts top-level screens. WALKED IN A BROWSER on a fixture repo (live-harness + one-origin proxy + real sidecar + real ledger) and that found TWO defects the node suite could not: step lines printed raw `**bold**` markers (fixed, stripped where drawn and in the dialog title), and the walk route resolved the platform but never the release, so every payload had release:\"\" and step-tick keys had an empty release segment (fixed in server.py, test in test_walk_route.py). TST-0089 recorded `partial` in WORKING-macos.json: steps 1-7 walked, step 8 not (the ledger equivalence is asserted by the node test instead). ISS-0306 filed: this repo has ONE surface note for ~14 screens, so its own change notes cannot write an Impact line and its own survey will always be empty. Suite 2143 passed 6 skipped; node 172 passed; tsc clean; validate-docs OK. NOT PUSHED. ---- EARLIER ---- 2026-09-12: PHASE-042 is DONE and reviewed. A note shows what it is about: a design is Markdown with pictures in __attachments__ beside it, and one viewer (~view/<rel>, served by /framed/<rel>) frames any file inside a workspace docs/ for a note of any type. The bench is removed (nine routes gone, FEAT-0042 superseded) and with it FEAT-0146/REQ-0062 — a design ID opens its NOTE, which also answers the old wikilink question. INDEPENDENT REVIEW returned changes-requested; all ten findings acted on and the verdict left standing (see review_response on FEAT-0147/FEAT-0148). The serious one: stamp_decision had no settled guard and wrote plan-accepted onto designs, so the desk could have cancelled a shipped design — fixed and tested. The corpus figures cited for the retirement were wrong and are corrected here and upstream (bb2802d): 23 design notes in 8 repos, 21 with an artifact, 7 artifacts with regions. ISS-0302, found by Edwin: the viewer left a page class set, so every page after it stopped scrolling — fixed, one named set cleared by one helper, and its guard found history-page with the same defect. ISS-0301 is filed at triage: a framed page can POST to loopback write endpoints (the sandbox denies reads, not writes) — pre-existing, not fixed. RISK-0009 (a verdict no longer names what it judged) is open by Edwin decision on PHASE-999. Deferred: side-by-side comparison, which must serve .md too. Never walked: anything in Obsidian. Suite 2063 passed, 6 skipped, 1 failed (the known test_release_evidence case). The window is shared with other agent sessions; restart by pid only. 2026-09-13: PHASE-043 (the walk page) is DONE and committed (199c0fd); independent review was running at the end of the session and its verdict goes on FEAT-0149. ~walk/<platform> renders the owed checks as a procedure: the survey (surfaces whose owed checks carry an invalidation as their latest ledger event, with the invalidating change ids) first, then the sittings docs/tests/acceptance/WALK.md authors, each row carrying the check's Setup/Steps/Expect, and a tick through the existing mark dialog and /api/notes/mark-check. No second store and no second write path. The ordering and survey rules are upstream's: tools/scripts/walk-sheet.py is bundled verbatim as src/project_os_cockpit/walk_sheet_bundled.py, guarded by a byte-identity test; the one adaptation (its validator loader looks for validate-docs.py beside itself) is a seeded global at the call site. Reached from the publication ladder's release rung, the release page's gate section and the checks page header, each only while there is a walk to do. This repo authored its own WALK.md (five sittings). Running the generator beside the page found two UPSTREAM defects, parked under PHASE-999: ISS-0303 (the sheet lists retired checks) and ISS-0304 (a comma inside a quoted bench entry splits it). Walking TST-0088 found two defects in the page and both were fixed with tests: a check that states its Setup was told \"Setup: not stated\", and a row just ticked kept the [ ] glyph because a clearing verdict removes it from the payload. TST-0088 is `partial`, not `pass`: its step 13 walks the capability register's own detection commands and those rows landed in the same commit. Suite 2121 passed, 6 skipped (foreground, -p no:randomly); node suite 20 passed; validate-docs --as-committed passes. NOT PUSHED. One flake to watch: test_runtime_freshness.py::test_a_fresh_process_is_not_stale failed once in a randomized-order run and passes alone and ordered; nothing in this change reads what it reads."
+  feature: "FEAT-0019"
+  phase: "PHASE-007"
+  issue: "ISS-0312"
+  note: "2026-09-23: Codex lifecycle and external opt-in implemented; full suites pass. TASK-0636/0637 complete. Focus TASK-0633: finish mixed Claude/Codex live acceptance (disposable Claude not logged in), then independent feature reviews. TASK-0634/0635 retain the manual gate. PHASE-007 reopens; PHASE-040 stays deferred. TASK-0631 remains doing with its existing handoff. ---- 2026-09-20, later: DES-0016 (levels of abstraction) is PROPOSED beside DES-0015 and awaits Edwin. Seven levels cut by reader: portfolio, project, flow, subject, ticket, evidence, trace — a portfolio screen above DES-0015's five layers and two levels below the one anyone builds at. Seven plates, measured across all 13 repositories; research in docs/reference/abstraction-levels-market-scan-2026-09-20.md. PHASE-045 gains D6-D10. Nothing built; focus unchanged. ---- 2026-09-20: ISS-0313's seven fixes are done under TASK-0632, one commit each plus a close-out (2c6059a, 8ac3c76, c5256c9, 1f6ba29, 56ab147, 9445a09, 4416d29). SIX ARE FIXED. ISS-0301 IS MADE AND LEFT OPEN: the Content-Type refusal on writes is committed and tested, and the ticket says to show Edwin before closing it — that is the one thing this work waits on. New capability: GET /api/cockpit/vocabulary, registered as api.read.vocabulary, which lets project-os-deck drop its copied status bands. Not pushed: this repo is 31 commits ahead of origin. ---- 2026-09-17, later: PHASE-045 opened as PLANNED to hold DES-0015 and its refinement (D1-D5, log, exit criteria that can close on a refusal); FEAT-0152/0153/0154 scaffolded at backlog, one per option. Edwin: 'I am not fully convinced, so document it in such a way that we can refine over time.' Nothing built; focus unchanged. ---- 2026-09-17: DES-0015 (the cockpit in layers) is PROPOSED and awaits Edwin's Accept in Intent: five data layers, the minimum for screen one, the four flows at each layer, three options C -> A -> B, five decisions D1-D5. Nothing built; focus stays on TASK-0631. ---- 2026-09-16: FEAT-0151 is implementing Your Trainer FEAT-0122 in the cockpit. TASK-0629 owns the focused page and shared walk payload; TASK-0630 owns reliable observation storage and evidence; TASK-0631 owns agreement and ledger-copy verification. Existing ISS-0312 work remains open and unchanged. ---- 2026-09-16: Completed OpenAI weekly Usage under TASK-0628: eight focused tests and a live Electron layout check passed, and the desktop shell was restarted. ISS-0312 remains open for wider parity. ---- 2026-09-16: Recorded the cockpit review in docs/reference/future-enhancements/README.md, retaining Edwin's preference for percentages, progress bars, colours and status badges. This is reference documentation only; ISS-0312 remains the development focus. ---- 2026-09-16: Edwin confirmed the reloaded Needs You card now reads Codex · working during a live Codex turn. The fallback wording failure is closed; TST-0011 remains open for the full mixed-session, approval, and exit walk, and ISS-0312 remains open for upstream adapter parity. ---- 2026-09-16: Edwin observed that the Needs You project card says only working during a busy Codex turn after the older Claude request aged out. CHG-20260916-Name-active-agent-in-Needs-You-project-cards now makes the shared record/publication status line say Codex · working; 8 focused checks passed and Electron was reloaded. TST-0011 remains failing until the live card is checked. ---- 2026-09-16: A completed Codex turn now shows the right Needs You icon and text. While Codex works, the card instead says Claude is waiting because it uses an older waiting session as its headline; CHG-20260916-Show-live-agent-in-Needs-You-headline now puts Codex work first and keeps the Claude request below; the focused checks passed and Electron was reloaded. TST-0011 remains failing pending a live mixed-session screen check. ---- 2026-09-16: Edwin confirmed the project icon shows Busy / working, but a Codex Bash approval did not appear in Needs You. The sidecar recorded needs-input, including a 55 ms transition the five-second file poll can miss. Live sidecar-to-renderer delivery is active under CHG-20260916-Deliver-live-Codex-approval-to-Needs-You; TST-0011 still owes a visible Needs You check. ---- 2026-09-16: Edwin refreshed the cockpit shell and approved the seven Codex hooks. The live sidecar recorded the current Codex session as needs-input during a Bash approval and busy after work resumed; the renderer decision maps it to a busy project icon. Needs You still awaits a visible check after this turn reaches Stop. ISS-0312 and TST-0011 stay open for that screen walk. The hook path and regenerated launcher passed focused tests; Electron was restarted independently. ---- 2026-09-16: ISS-0312 is open for the cockpit Codex session feed, project status, Needs you, and temperature correction. PHASE-040 stays deferred. ---- 2026-09-16: PHASE-004 terminal work is verified and closed (TASK-0627, ISS-0310, ISS-0311). Next: move the project-owned Codex adapter work to upstream project-os; cockpit ISS-0312 tracks the wider parity gap. ---- 2026-09-14: PHASE-044 IS DONE and FEAT-0150 with it; all five tasks done. Edwin settled the scope when TASK-0626 stood open against another repo: \"Finish the project-os-cockpit phase only, the your-trainer functionality will be handled in the your-trainer repo.\" So TASK-0626 closes on this repo's half - the page/sheet comparison is written and passes on your-trainer's live corpus for android AND ios - and running it against that repo's real v2.2.0 procedures is your-trainer TASK-0907, which already names it. your-trainer PHASE-024 has not started; its first step TASK-0900 is a screen-mapping table that needs EDWIN'S APPROVAL before any area: is rewritten. The walk page now reads as a script: the survey is one card per changed screen with the last release's capture beside the candidate's at one width, a child screen drawn inside its parent, and no test id; a sitting with a procedure draws the setup once and its owed steps, each expectation line showing the check text it quotes beside its ASCII tags, a passed tag struck through; a tick goes on a STEP and one ledger event per check is written when every citing step has a mark, worst mark winning (fail > partial > pass, question over all). Step ticks live in localStorage `cockpit:walk-steps:<ws>` keyed release|platform|sitting|step and are pruned when a step stops printing. The ledger format is UNCHANGED and both tick paths now build the POST in one function, postCheckVerdict. ~checks groups by screen with dialogs indented under their parent and an unresolved area marked; the design view counts top-level screens. WALKED IN A BROWSER on a fixture repo (live-harness + one-origin proxy + real sidecar + real ledger) and that found TWO defects the node suite could not: step lines printed raw `**bold**` markers (fixed, stripped where drawn and in the dialog title), and the walk route resolved the platform but never the release, so every payload had release:\"\" and step-tick keys had an empty release segment (fixed in server.py, test in test_walk_route.py). TST-0089 recorded `partial` in WORKING-macos.json: steps 1-7 walked, step 8 not (the ledger equivalence is asserted by the node test instead). ISS-0306 filed: this repo has ONE surface note for ~14 screens, so its own change notes cannot write an Impact line and its own survey will always be empty. Suite 2143 passed 6 skipped; node 172 passed; tsc clean; validate-docs OK. NOT PUSHED. ---- EARLIER ---- 2026-09-12: PHASE-042 is DONE and reviewed. A note shows what it is about: a design is Markdown with pictures in __attachments__ beside it, and one viewer (~view/<rel>, served by /framed/<rel>) frames any file inside a workspace docs/ for a note of any type. The bench is removed (nine routes gone, FEAT-0042 superseded) and with it FEAT-0146/REQ-0062 — a design ID opens its NOTE, which also answers the old wikilink question. INDEPENDENT REVIEW returned changes-requested; all ten findings acted on and the verdict left standing (see review_response on FEAT-0147/FEAT-0148). The serious one: stamp_decision had no settled guard and wrote plan-accepted onto designs, so the desk could have cancelled a shipped design — fixed and tested. The corpus figures cited for the retirement were wrong and are corrected here and upstream (bb2802d): 23 design notes in 8 repos, 21 with an artifact, 7 artifacts with regions. ISS-0302, found by Edwin: the viewer left a page class set, so every page after it stopped scrolling — fixed, one named set cleared by one helper, and its guard found history-page with the same defect. ISS-0301 is filed at triage: a framed page can POST to loopback write endpoints (the sandbox denies reads, not writes) — pre-existing, not fixed. RISK-0009 (a verdict no longer names what it judged) is open by Edwin decision on PHASE-999. Deferred: side-by-side comparison, which must serve .md too. Never walked: anything in Obsidian. Suite 2063 passed, 6 skipped, 1 failed (the known test_release_evidence case). The window is shared with other agent sessions; restart by pid only. 2026-09-13: PHASE-043 (the walk page) is DONE and committed (199c0fd); independent review was running at the end of the session and its verdict goes on FEAT-0149. ~walk/<platform> renders the owed checks as a procedure: the survey (surfaces whose owed checks carry an invalidation as their latest ledger event, with the invalidating change ids) first, then the sittings docs/tests/acceptance/WALK.md authors, each row carrying the check's Setup/Steps/Expect, and a tick through the existing mark dialog and /api/notes/mark-check. No second store and no second write path. The ordering and survey rules are upstream's: tools/scripts/walk-sheet.py is bundled verbatim as src/project_os_cockpit/walk_sheet_bundled.py, guarded by a byte-identity test; the one adaptation (its validator loader looks for validate-docs.py beside itself) is a seeded global at the call site. Reached from the publication ladder's release rung, the release page's gate section and the checks page header, each only while there is a walk to do. This repo authored its own WALK.md (five sittings). Running the generator beside the page found two UPSTREAM defects, parked under PHASE-999: ISS-0303 (the sheet lists retired checks) and ISS-0304 (a comma inside a quoted bench entry splits it). Walking TST-0088 found two defects in the page and both were fixed with tests: a check that states its Setup was told \"Setup: not stated\", and a row just ticked kept the [ ] glyph because a clearing verdict removes it from the payload. TST-0088 is `partial`, not `pass`: its step 13 walks the capability register's own detection commands and those rows landed in the same commit. Suite 2121 passed, 6 skipped (foreground, -p no:randomly); node suite 20 passed; validate-docs --as-committed passes. NOT PUSHED. One flake to watch: test_runtime_freshness.py::test_a_fresh_process_is_not_stale failed once in a randomized-order run and passes alone and ordered; nothing in this change reads what it reads."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0151:
+      file: "docs/features/guided-walk/FEAT-0151-The-Release-Walk-Has-One-Next-Action.md"
+      title: "The release walk has one clear next action"
+      status: "doing"
+      phase: ""
+      tasks: ["[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]"]
+      requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]"]
     FEAT-0152:
       file: "docs/features/home-first/FEAT-0152-Home-First.md"
       title: "Home first — the four facts on the rail and a Dock badge, and a Home screen of three cards replaces the overview's first screen"
@@ -856,11 +863,12 @@ items:
       tasks: [TASK-0020]
     FEAT-0019:
       title: "Agent hook ingestion — auto-instrumented terminal sessions"
-      status: done
+      status: doing
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-hooks/FEAT-0019-Agent-Hook-Ingestion.md"
-      tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0183"]
+      tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0183", "TASK-0633", "TASK-0634", "TASK-0636", "TASK-0637"]
       issues: ["ISS-0312"]
+      note: "2026-09-23: Codex parity follow-up authorised by \"Continue as suggested.\" Historical reviews cover the previous scope; new work needs fresh evidence."
     FEAT-0020:
       title: "Agent activity surfaces — activity strip, needs-input inbox, live nav trail"
       status: done
@@ -905,11 +913,11 @@ items:
       tasks: ["TASK-0137", "TASK-0138", "TASK-0139", "TASK-0140"]
     FEAT-0027:
       title: "External session signal — opt-in user hook, settings panel, desktop discovery files"
-      status: done
+      status: doing
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/external-signal/FEAT-0027-External-Session-Signal.md"
-      tasks: ["TASK-0141", "TASK-0142", "TASK-0143"]
-
+      tasks: ["TASK-0141", "TASK-0142", "TASK-0143", "TASK-0635"]
+      note: "2026-09-23: Codex parity follow-up authorised by \"Continue as suggested.\" Historical reviews cover the previous scope; new work needs fresh evidence."
     FEAT-0028:
       title: "Fleet health surface — per-workspace validator badges across all discovered repos"
       status: done
@@ -924,6 +932,52 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0631:
+      file: "docs/features/guided-walk/plan/tasks/TASK-0631-Verify-The-Guided-Walk.md"
+      title: "Verify the guided release walk against the text sheet and ledger"
+      status: "doing"
+      phase: ""
+      parent: "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
+    TASK-0637:
+      file: "docs/features/agent-hooks/plan/tasks/TASK-0637-Reconcile-Codex-Adapter-Guidance.md"
+      title: "Reconcile Codex adapter guidance and enforcement limits"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: "FEAT-0019"
+      depends: []
+      related: ["ISS-0312", "RISK-0004"]
+    TASK-0636:
+      file: "docs/features/agent-hooks/plan/tasks/TASK-0636-Identify-A-Codex-Session-Usage-Source.md"
+      title: "Identify a supported Codex session usage source"
+      status: done
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: "FEAT-0019"
+      depends: []
+      related: ["ISS-0312", "RISK-0004"]
+    TASK-0635:
+      file: "docs/features/external-signal/plan/tasks/TASK-0635-Opt-In-To-External-Codex-Signals.md"
+      title: "Opt in to Codex signals from external terminals"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: "FEAT-0027"
+      depends: ["TASK-0634"]
+      related: ["ISS-0312", "RISK-0004"]
+    TASK-0634:
+      file: "docs/features/agent-hooks/plan/tasks/TASK-0634-Complete-Codex-Lifecycle-Events.md"
+      title: "Complete Codex subagent and interruption reporting"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: "FEAT-0019"
+      depends: []
+      related: ["ISS-0312", "RISK-0004"]
+    TASK-0633:
+      file: "docs/features/agent-hooks/plan/tasks/TASK-0633-Walk-The-Codex-Lifecycle.md"
+      title: "Walk the complete Codex lifecycle in Electron"
+      status: "doing"
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: "FEAT-0019"
+      depends: []
+      related: ["ISS-0312", "RISK-0004"]
     TASK-0632:
       file: "docs/tasks/TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review.md"
       title: "Fix the seven small defects the 2026-09-19 issue review left in the cockpit"
@@ -1090,13 +1144,6 @@ items:
       status: done
       owner: user:edwin
       parent: FEAT-0146
-      phase: "[[PHASE-005-Desktop-Shell]]"
-    TASK-0605:
-      file: "docs/features/desktop-shell/plan/tasks/TASK-0605-A-Cockpit-Link-Opens-The-Page-It-Names.md"
-      title: "A cockpit:// link opens the page it names, in the project it names, and a script can send one to the window running from source"
-      status: done
-      owner: user:edwin
-      parent: FEAT-0007
       phase: "[[PHASE-005-Desktop-Shell]]"
     TASK-0580:
       file: "docs/features/fleet-validator-sync/plan/tasks/TASK-0580-The-Migration-Is-A-Tool-Not-A-Session.md"
@@ -1860,13 +1907,14 @@ items:
     ISS-0312:
       file: "docs/issues/ISS-0312-Codex-Lifecycle-And-Adapter-Parity.md"
       title: "A Codex session in the cockpit has never been walked end to end, and its cache badge says 'cache unknown' where a Claude session shows warm or cold"
-      status: open
-      owner: user:edwin
+      status: "open"
+      owner: "user:edwin"
       phase: "[[PHASE-007-Agent-Instrumentation]]"
-      severity: high
-      component: agent-instrumentation
-      features: ["FEAT-0019", "FEAT-0020", "FEAT-0081"]
-      note: "Edwin confirmed the reloaded Needs You project card reads Codex · working while Codex runs, closing the fallback-wording failure. Eight focused renderer checks passed, the project sidecar is healthy, and the tmux-owned Codex process survived the Electron reload. TST-0011 remains open for the full mixed-session, approval, and exit walk; upstream adapter parity remains open. PHASE-040 remains deferred."
+      severity: "high"
+      component: "agent-instrumentation"
+      features: ["FEAT-0019", "FEAT-0020", "FEAT-0081", "FEAT-0027"]
+      note: "2026-09-23: Continue with the review recommendations. Native adapter sync is delivered; TASK-0633 owns the outstanding live acceptance walk. TASK-0634..0637 cover lifecycle events, external opt-in, usage-source evidence, and guidance. PHASE-040 remains deferred."
+      tasks: ["TASK-0633", "TASK-0634", "TASK-0635", "TASK-0636", "TASK-0637"]
     ISS-0310:
       file: "docs/issues/ISS-0310-Codex-Terminal-Does-Not-Preserve-Previous-Output.md"
       title: "Codex output cannot be reached through the cockpit terminal's scrollback"
@@ -3587,7 +3635,7 @@ items:
     PHASE-040:
       file: "docs/phases/PHASE-040-The-Agent-Session-Is-Not-A-Terminal.md"
       title: "An agent session is not a terminal — a purpose-built control plane owns the process, and the cockpit reads it instead of hosting it"
-      status: planned
+      status: deferred
       order: 40
       features: []
       note: "2026-08-20, Edwin's option A. A running agent is a PROCESS WITH A LIFECYCLE and the cockpit models it as a terminal that happens to have something in it; every awkwardness follows from that substitution. tmux (`-L cockpit`, ISS-0008/TASK-0144) provides exactly ONE thing - the session survives the app closing - and nothing else: not orchestration, not state, not remote access. Adopts T3 Code's server (MIT) as the owner of agent sessions: event-sourced, drivers declaring driverKind/configSchema/create, adapters conforming to ProviderAdapter.ts, ProviderInstanceRegistry keying instances, and state persisted through the ORCHESTRATION LAYER rather than the driver - which is a stronger guarantee than a multiplexer because a session can be RECONSTRUCTED rather than merely kept alive. Five adapters ship (Claude Code, Codex, Cursor, Grok, OpenCode). THE FRAMING CORRECTION THAT MAKES THIS SMALL: the first analysis called it 'a Node service in a Python+Electron fleet' as though Node were foreign. Electron IS Node - desktop/src is 24,240 lines of TypeScript against 33,509 of Python, and terminals and PTYs ALREADY live in the Node half. This is not adopting a second language, it is replacing a multiplexer inside the process that already owns terminals. OUT OF SCOPE, deliberately: the record engine (index, acceptance, obligations, publication, note_writes, ledger - none of it is agent-session code); the fleet's template-owned Python, which is synced from upstream and used by all twelve repos and which the cockpit does not own; and remote shell access - ttyd stays loopback-only per REQ-0005, because folding shells into a remotely-reachable plane means a command prompt on the machine holding twelve repos, one of which has a live website as its only remote. WHAT IS GIVEN UP, stated plainly: the cockpit stops HOSTING agents and becomes the thing that REPORTS on them; agent-state, agent-hook, dispatch and focus either remap onto T3's event stream or retire - and those are EXACTLY the four routes that are not loopback-guarded, so this touches the authorisation surface; and TWO PANES OF GLASS is the main risk. THREE OPEN QUESTIONS MUST BE ANSWERED FROM SOURCE BEFORE ANY TASK IS MINTED - is T3 Connect self-hostable (Tailscale is a first-class alternative that sidesteps it), can their clients point at an arbitrary backend, and what exactly persists a session. Reading apps/server and packages/client-runtime is the first task. A CORRECTION ON THE RECORD: an earlier summary claimed T3 has native iOS and Android apps. It does not - web app in a mobile browser - and 'we get mobile apps for free' would have been a false premise."
@@ -3665,11 +3713,12 @@ items:
       path: "docs/phases/PHASE-006-Native-Cockpit-UI.md"
     PHASE-007:
       title: "Agent instrumentation (hooks-aware terminal)"
-      status: done
+      status: active
       path: "docs/phases/PHASE-007-Agent-Instrumentation.md"
       features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027", "FEAT-0081"]
-      issues: ["ISS-0104", "ISS-0105"]
-      note: "REOPENED 2026-08-06 for FEAT-0081/ISS-0104 rather than minting a phase (CLAUDE.md: do not open one for a single request). This phase already owns the surface — FEAT-0019's statusline cost/context forwarder and FEAT-0020's context-fill and cost meters are the things being extended. Reopening is the documented move: set active, add the work, close it again."
+      issues: ["ISS-0104", "ISS-0105", "ISS-0312"]
+      note: "2026-09-23: Reopened for bounded Codex parity work under FEAT-0019 and FEAT-0027. PHASE-040 remains deferred; session ownership is unchanged."
+      tasks: ["TASK-0633", "TASK-0634", "TASK-0635", "TASK-0636", "TASK-0637"]
     PHASE-008:
       title: "State & review surfaces"
       status: done
@@ -3722,9 +3771,9 @@ items:
       path: "docs/risks/RISK-0003-Python-Runtime-Floor.md"
     RISK-0004:
       title: "Hook injection modifies agent CLI configuration surfaces"
-      status: open
+      status: "open"
       path: "docs/risks/RISK-0004-Hook-Injection-Surface.md"
-
+      mitigation_tasks: ["TASK-0633", "TASK-0634", "TASK-0635", "TASK-0636", "TASK-0637"]
   tests:
     TST-0090:
       file: "docs/features/account-budget/plan/tests/TST-0090-OpenAI-Weekly-Usage.md"
@@ -3970,6 +4019,12 @@ items:
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
   changes:
+    CHG-20260923-Complete-Codex-lifecycle-and-external-terminal-signals:
+      file: "docs/changes/CHG-20260923-Complete-Codex-lifecycle-and-external-terminal-signals.md"
+      title: "Complete Codex lifecycle and external terminal signals"
+      status: merged
+      features: ["FEAT-0019", "FEAT-0027"]
+      issues: ["ISS-0312"]
     CHG-20260920-Seven-Small-Defects-From-The-Issue-Review:
       file: "docs/changes/CHG-20260920-Seven-Small-Defects-From-The-Issue-Review.md"
       title: "Seven small defects from the issue review: six fixed, the security one made and waiting for Edwin"
@@ -4742,9 +4797,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 153
-    features_done: 135
-    tasks_total: 626
-    tasks_done: 587
+    features_done: 133
+    tasks_total: 631
+    tasks_done: 589
     tests_total: 51
     tests_passing: 1
     test_cases_total: 182

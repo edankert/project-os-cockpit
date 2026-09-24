@@ -9,47 +9,46 @@ updated: 2026-09-16
 
 # Codex adapter
 
-## Overview
+## Native files
 
-Codex reads project instructions from `AGENTS.md` in the repository root. It can also read referenced files on demand, but `AGENTS.md` should remain self-contained enough to define the startup contract, docs-first gate, canonical state file, and close-out expectations.
+Codex reads the project contract from `AGENTS.md`. `python3 tools/scripts/generate-adapters.py --install-hooks` also creates:
 
-Note: `AGENTS.md` is a cross-tool convention, not Codex-specific — several agent tools read it. The root `AGENTS.md`/`LLM_BRIEF.md` pair is therefore the **generic instruction layer** (see `../generic/ADAPTER.md`); this adapter documents how Codex specifically consumes it plus the `tools/agents/*.sh` enforcement scripts.
+- `.agents/skills/<name>/SKILL.md` from every canonical `tools/skills/<name>/SKILL.md`, matching the Claude skill wrappers.
+- `.codex/agents/planner.toml` and `.codex/agents/independent-reviewer.toml` from the same agent instructions used by the Claude adapter. They inherit the session model; no Codex model is pinned. Call an agent only when the task warrants delegation or independent review.
+- `.codex/hooks.json` from `tools/adapters/codex/hooks.json`, pointing to `tools/adapters/codex/hooks/dispatch.py`.
 
-## Native instruction files
+The generated skills and agents are checked by `python3 tools/scripts/generate-adapters.py --check` at pre-commit and in CI. Edit their canonical sources, then regenerate. The hook installation leaves an existing `.codex/hooks.json` untouched; `--force-hooks` replaces it after a deliberate review. If a repository already has hooks, merge the project-os entries manually to retain both sets.
 
-- `AGENTS.md`: mandatory startup contract and docs-first gate.
-- `LLM_BRIEF.md`: compact project identity, important paths, and common commands.
-- `CONTEXT.md`: tool-agnostic project-os contract.
-- `SNAPSHOT.yaml`: canonical machine-readable work state.
+## Activation
 
-## Current repository integration
+Project-local hooks load only after Codex trusts the repository's `.codex` config layer. Each changed hook definition must also be reviewed and trusted through `/hooks`. A new session may be needed after installing or changing hooks. See the [Codex hooks guide](https://learn.chatgpt.com/docs/hooks), [skills guide](https://learn.chatgpt.com/docs/build-skills), and [subagent guide](https://learn.chatgpt.com/docs/agent-configuration/subagents).
 
-`AGENTS.md` states the startup and docs-first contract. The repository scripts below are the enforcement points that the current Codex adapter documents. This repository does not yet check in `.codex/hooks.json`, generate Codex-native skills or custom subagents, or load native hooks for the cockpit's Codex session feed. [[ISS-0312]] records that gap.
+The hook command resolves `tools/adapters/codex/hooks/dispatch.py` from the git root, so a session opened from a subdirectory still reaches the adapter. Python 3.9 or newer is sufficient for the hook runner. Run `bash tools/scripts/test-codex-adapter.sh` to exercise its fixtures, then `bash tools/scripts/validate-docs.sh` for the mechanical document gate.
 
-| Contract | Entrypoint | Purpose |
-|---|---|---|
-| Startup preflight | `bash tools/agents/bootstrap.sh` | Verify required files, snapshot focus, branch, and basic tooling. |
-| Docs-first intake | `bash tools/agents/start-change.sh "<short title>"` | Scaffold a change note when downstream projects require docs-first change records. |
-| Docs-first validation | `bash tools/agents/check-docs-first.sh` | Check that code changes have documentation coverage and snapshot updates. |
+## Hook contract coverage
 
-See `tools/instructions/HOOKS.md` for the shared hook contracts. The Claude adapter installs native hooks for several of them; Codex currently relies on instructions, these scripts, and the pre-commit and CI checks.
+| Contract | Native Codex behavior |
+|---|---|
+| HC-001 document-first | `PreToolUse` denies confidently identified code edits without a focused task or issue. Target repositories are evaluated independently; the untouched template placeholder is exempt. |
+| HC-002 startup | `SessionStart` reminds the agent of read order, bootstrap, branch, and work state. |
+| HC-003 verification | `PreToolUse` denies terminal status edits with failing linked manual tests or an open-ended waiver. Executable and acceptance tests use the same exemptions as the validator. Missing links produce a reminder because Codex does not currently support the `ask` decision for `PreToolUse`. |
+| HC-004 phase alignment | `PostToolUse` reminds the agent to compare a task newly set to `doing` with the focus phase. |
+| HC-005 risk scan | `PostToolUse` flags identifiable dependency, environment, and deployment configuration edits. The full risk trigger list still needs agent review. |
+| HC-006 close-out | `PostToolUse` records recognized edits per session. `Stop` checks active focus once after a write and asks for completion or a handoff. |
+| HC-007 validation | `Stop` runs `validate-docs.sh`; pre-commit and CI remain the hard backstop. |
+| HC-008 delegation | `UserPromptSubmit` states the focus and recommends planner or independent reviewer only where useful. |
+| HC-009 test execution | The shared pre-push hook and CI runner execute declared tests. |
 
-## Native Codex integration to add
+Codex hook tool coverage includes `apply_patch` and Bash, but an arbitrary shell script may write files without an identifiable target. The adapter detects patch file headers and simple shell redirects; it does not pretend to parse all shell programs. Some specialized tools also bypass tool hooks. The git hook and CI validator therefore remain required, and `/hooks` should be checked when an expected reminder does not appear. This is tracked as project-os-dev RISK-0003.
 
-The upstream `project-os` repository now contains a native adapter at local commit `336d5f9` with generated `.agents/skills/`, `.codex/agents/`, `.codex/hooks.json`, and a Codex payload hook runner. It is tracked in `project-os-dev` PHASE-0006 and has not been synced into this cockpit. The list below records the integration design and the cockpit-specific telemetry that remains in [[ISS-0312]].
+## Synchronizing
 
-OpenAI's [Hooks documentation](https://learn.chatgpt.com/docs/hooks) describes lifecycle hooks in a trusted project `.codex/hooks.json` or `.codex/config.toml`. It includes `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `Stop`, and `SessionEnd`. Project hooks need the user's trust review before they run. The installed `codex-cli 0.154.0` reports the hooks feature as stable and enabled; this is an availability check, not a claim that hooks are installed in this repo.
+Follow `tools/skills/adapter-sync/SKILL.md` whenever canonical lifecycle rules or skills change. `sync-project-os.py` regenerates the native files after a template sync and installs the Codex hook file only when that target is absent. Existing downstream Codex hooks need a manual merge.
 
-Generate Codex's native adapter from the same canonical `tools/skills/` and `tools/instructions/` sources used by the Claude adapter:
+## Cockpit integration, 2026-09-23
 
-- `.codex/hooks.json` should register project-os lifecycle checks after each HC contract is adapted to Codex's payload, tool names, path lookup, and decision format. A Claude hook command cannot be copied unchanged because it assumes `CLAUDE_PROJECT_DIR` and Claude's edit payload.
-- [Repository skills](https://learn.chatgpt.com/docs/build-skills) under `.agents/skills/` can point to the canonical playbooks, as `.claude/skills/` does today.
-- [Custom subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents) under `.codex/agents/` can provide clean-context planning and independent review where the task warrants them. The model choice and delegation rule must be explicit rather than inherited from Claude's pins.
+The shared guide above is synced from `project-os`. The cockpit additionally injects ten native telemetry hooks per embedded Codex launch (`desktop/src/ipc/agent-instrument.ts`), including child lifecycle and interruption. New launchers no longer inject the legacy notify callback, which could create an approval-reviewer ghost session. Existing running CLIs retain their launch configuration until exit.
 
-Register generated Codex paths in `tools/sync/MANIFEST.yaml` so downstream repos receive them, and update the HC-001 path exclusions in `tools/instructions/HOOKS.md` for generated `.codex/` and `.agents/` files.
+The separate default-off Codex setting installs only cockpit-owned entries in `$CODEX_HOME/hooks.json`, or `~/.codex/hooks.json` when unset. It preserves normal `/hooks` review. This is telemetry, separate from the project-os enforcement adapter.
 
-The cockpit's per-session telemetry is a separate installation problem. `desktop/src/ipc/agent-instrument.ts` currently passes only `notify` to Codex, while Claude gets lifecycle hooks and a statusline feed. The hook forwarder proposed in [[ISS-0312]] must preserve Codex login state, send `agent: codex` into the existing sidecar endpoint, and avoid changing the user's `~/.codex` without explicit opt-in. Native tool events need a Codex-specific file-path mapping before the activity strip can claim touched-file parity.
-
-## Synchronizing the adapter
-
-Run `tools/skills/adapter-sync/SKILL.md` when shared lifecycle, status, quality, snapshot, or skill rules change. The sync should update Codex-facing guidance without introducing tool-specific files for unsupported agents.
+HC-010 reviewer budgets remain instruction-only in Codex: the supported tool-hook payload does not provide a reliable child-agent identity to correlate every tool call. SubagentStart/Stop identity alone cannot enforce that budget. TASK-0637 records fixture gate evidence; TST-0011 retains the remaining live checks.

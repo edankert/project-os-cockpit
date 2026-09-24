@@ -6,7 +6,7 @@ status: doing
 phase: ""
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-17
+updated: 2026-09-23
 source: ["Your Trainer FEAT-0122, 2026-09-16"]
 parent: "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
 effort: "Medium"
@@ -51,3 +51,7 @@ The fallback renderer now holds a declared iOS decision card behind **I can't pe
 **This task did not move today and its state is exactly as the 2026-09-17 progress above describes it.** The browser walk of the full cockpit, the iOS release context and Edwin's own walk are still the three open items.
 
 The session that wrote this line worked on something else: Edwin asked for the cockpit to be re-cut by level of abstraction, and the answer is [[DES-0016-Levels-Of-Abstraction]], proposed under [[PHASE-045-The-Cockpit-In-Layers]] with five new decisions for him (D6 to D10) and nothing built. It touched no walk code and no ledger. The focus stays here because this task is still the work in flight.
+
+## Handoff, 2026-09-23
+
+This task remains `doing`; its outstanding guided-walk checks are unchanged. Edwin requested a review of Codex integration and next steps toward Claude Code parity. The findings are recorded in [the Codex parity review](../../../../reference/codex-parity-review-2026-09-23.md). The review ran focused agent-integration checks and changed no walk code or ledger. Resume this task from the progress and open checks above; the Codex review does not provide new guided-walk verification.

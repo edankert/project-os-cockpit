@@ -693,3 +693,35 @@ def test_work_ts_and_prompt_boundary(tmp_path: Path):
     assert isinstance(sess["prompt_started"], str) and sess["prompt_started"]
     assert "issues/ISS-0001-X.md" in sess["work_ts"]
     assert sess["work_ts"]["issues/ISS-0001-X.md"]  # non-empty ts
+
+
+def test_codex_children_preserve_parent_and_interrupt_holds_work(tmp_path: Path):
+    docs = _make_workspace(tmp_path)
+    _server, httpd, port = _spin_up(docs)
+    try:
+        def send(event, **fields):
+            return _hook(port, _ev(event, agent="codex", **fields))
+
+        send("UserPromptSubmit", prompt="parent work")
+        for event in ("SubagentStart", "SubagentStop"):
+            send(event, agent_id="child-one", agent_type="reviewer")
+            snap = _get(port, "/api/cockpit/state")
+            assert snap["agent_state"]["state"] == "busy"
+            assert snap["agent_state"]["session_id"] == SID
+            assert snap["activity"]["subagent_id"] == "child-one"
+            assert snap["session"]["live"] is True
+        send("Interrupt", turn_id="turn-one")
+        snap = _get(port, "/api/cockpit/state")
+        assert snap["agent_state"]["state"] == "needs-input"
+        assert snap["agent_state"]["message"] == "interrupted — waiting for your input"
+        assert snap["session"]["live"] is True
+        for event in ("PostToolUse", "Stop"):
+            send(event, turn_id="turn-one")
+            assert _get(port, "/api/cockpit/state")["agent_state"]["state"] == "needs-input"
+        send("UserPromptSubmit", prompt="continue")
+        assert _get(port, "/api/cockpit/state")["agent_state"]["state"] == "busy"
+        send("SessionEnd")
+        assert _get(port, "/api/cockpit/state")["agent_state"]["state"] == "idle"
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

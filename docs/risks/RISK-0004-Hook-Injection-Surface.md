@@ -8,10 +8,11 @@ severity: medium
 likelihood: medium
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-09-16
+updated: 2026-09-23
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
+mitigation_tasks: ["[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0635]]", "[[TASK-0636]]", "[[TASK-0637]]"]
 mitigation:
-  - "Per-spawn injection only for terminal instrumentation: generated settings/hooks files live under the app's own state dir and are passed via env/flags; ~/.claude is written ONLY by the explicit settings toggle (FEAT-0027) — marker-identified entries, one-time backup, surgical uninstall."
+  - "Per-spawn injection only for terminal instrumentation: generated settings/hooks files live under the app's own state dir and are passed via env/flags; user agent configuration is written ONLY by the explicit agent-specific settings toggle (FEAT-0027) — marker-identified entries, one-time backup, surgical uninstall."
   - "Treat /api/agent-hook payloads as untrusted: validate shape, cap size, never render content as HTML, rate-limit per source."
   - "Bind the ingestion endpoint loopback-only (same boundary as the terminal endpoint, see RISK-0001)."
   - "Version-pin against hook schema drift: tolerate unknown events/fields, log-and-drop rather than error."
@@ -44,3 +45,17 @@ The command path in a Codex hook is parsed twice: TOML reads the string, then a 
 ### Codex account quota contract (2026-09-16)
 
 [[TASK-0628]] also depends on the installed CLI's documented app-server account API. Schema drift, missing login, or a CLI absent from the GUI environment can prevent quota reads. The reader accepts only a numeric weekly percentage from the general Codex bucket, bounds stdout and process lifetime, discards raw account fields, and shows no invented zero on failure. It starts no thread, sends no prompt, requests no login, and writes no CLI configuration. Last-known values retain their original capture age; unavailable data never becomes a fresh measurement.
+
+### Codex parity mitigations — 2026-09-23
+
+- [[TASK-0633]] verifies real trust and state transitions in isolated application/workspace state. Preserve the user's active sessions and real configuration.
+- [[TASK-0634]] confirms installed payloads and parent/child identity before mapping subagent stop or interruption to state. Queue release must follow the parent lifecycle.
+- [[TASK-0635]] adds the Codex consent path. Test preservation of unrelated entries, malformed configuration refusal, backup, repeated enable, surgical removal, sidecar absence and duplicate suppression in disposable configuration.
+- [[TASK-0636]] observes usage only through a supported read-only path. Bound process/output lifetime, do not retain credentials in evidence, and never create or resume a thread or send a keep-warm request.
+- [[TASK-0637]] reports the actual enforcement boundary. Missing reviewer identity cannot become a claim of enforced tool budgets.
+
+The external hook exception applies only when the person deliberately enables that agent's settings toggle. Launching an embedded session must still leave both real user configuration directories unchanged.
+
+## September 23 mitigation evidence
+
+The Codex installer preserves unrelated handlers and refuses malformed configuration; tests use disposable homes. Normal hook trust was observed in real embedded and external Codex launches. Interruption stays held after a real late background tool completion, and child events preserve parent identity. Duplicate embedded/external forwarding is covered by the ingestion fixture. Production user configuration was not changed. The remaining live and shared-parser checks are recorded under ISS-0312.

@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-007
 aliases: ["PHASE-007"]
 title: "Agent instrumentation (hooks-aware terminal)"
-status: done
+status: active
 order: 7
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-08-06
+updated: 2026-09-23
 goal: "The embedded terminal understands the agent running inside it: lifecycle hooks feed agent state, activity, cost, and needs-input signals into the cockpit automatically, and the cockpit dispatches project-os tasks back to the agent."
 features:
   - "[[FEAT-0019-Agent-Hook-Ingestion]]"
@@ -20,7 +20,9 @@ features:
   - "[[FEAT-0026-Verb-Polish]]"
   - "[[FEAT-0027-External-Session-Signal]]"
   - "[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]"
+tasks: ["[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0635]]", "[[TASK-0636]]", "[[TASK-0637]]"]
 issues:
+  - "[[ISS-0312]]"
   - "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]"
   - "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]"
 depends: ["[[PHASE-006-Native-Cockpit-UI]]"]
@@ -92,3 +94,17 @@ FEAT-0081 closed on an `approved` verdict from the fourth independent review, ea
 - **Round 4** — approved, with six caveats written in as follow-ups rather than waived.
 
 **The lesson is not "review more".** Every round after the first found the same defect — a claim written wider than the code — and it survived three attempts to fix it by being careful. What ended it was mechanical: `PARENT-BACKLINK`, then `SNAPSHOT-MEMBERSHIP`, and the discovery that the root cause was a string replace that silently no-opped because nothing asserted the match. A gate catches what diligence does not, and the review's own repetition was the evidence needed to justify building one.
+
+## Reopened 2026-09-23 — Codex parity
+
+The user's “Continue as suggested.” authorizes the bounded sequence in the [Codex parity review](../reference/codex-parity-review-2026-09-23.md). [[FEAT-0019]] and [[FEAT-0027]] reopen for [[TASK-0633]] through [[TASK-0637]]. The live Electron walk starts first. Existing terminal ownership remains unchanged, and [[PHASE-040]] stays deferred by the earlier decision. [[TASK-0631]] keeps its guided-walk handoff and status outside this phase.
+
+The older unchecked criteria and their 2026-07-20 waiver remain historical evidence. They must be reconciled explicitly at the next phase close-out; this reopening does not convert them into a pass.
+
+### Additional exit criteria for this follow-up
+
+- [ ] The complete live Codex lifecycle and dispatch walk is recorded, with any unrun rows still visible.
+- [ ] Supported subagent and interruption events preserve parent state and queue safety.
+- [ ] External Codex instrumentation is an explicit settings opt-in with configuration preservation and duplicate suppression verified.
+- [ ] The usage-source investigation records a supported read-only path or a bounded unsupported conclusion.
+- [ ] Guidance matches the delivered adapter, and enforcement differences are stated with evidence.

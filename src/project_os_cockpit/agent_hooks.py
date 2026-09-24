@@ -403,6 +403,7 @@ class AgentSessionTracker:
                 # Prompt boundary (TASK-0191): work-note touches at/after
                 # this stamp are "in flight for the current prompt".
                 sess["prompt_started"] = ts
+                sess.pop("interrupted", None)
                 state = "busy"
             elif event in ("PreToolUse", "PostToolUse"):
                 tool = body.get("tool_name")
@@ -445,6 +446,13 @@ class AgentSessionTracker:
                     else "needs permission"
                 )
                 state = "needs-input"
+            elif event == "Interrupt" and agent == "codex":
+                # Cancellation requires a new user decision. Using waiting
+                # would immediately release queued prompts after the user
+                # deliberately stopped the agent.
+                state = "needs-input"
+                sess["interrupted"] = True
+                message = "interrupted — waiting for your input"
             elif event == "Notification":
                 ntype = body.get("notification_type")
                 raw_msg = body.get("message")
@@ -510,12 +518,20 @@ class AgentSessionTracker:
                 agent_type = body.get("agent_type")
                 if isinstance(agent_type, str) and agent_type:
                     activity["subagent"] = agent_type
+                child_id = body.get("agent_id")
+                if isinstance(child_id, str) and child_id:
+                    activity["subagent_id"] = child_id
             else:
                 # Unknown / future event: log-and-drop (RISK-0004 —
                 # schema drift must never break ingestion).
                 log.debug("agent-hook: ignoring unknown event %r", event)
                 ignored = True
 
+            # Background tools can finish after Escape. Hold the interruption
+            # until a new prompt or session exit, including a late Stop event.
+            if agent == "codex" and sess.get("interrupted") and event != "SessionEnd":
+                state = "needs-input"
+                message = "interrupted — waiting for your input"
             self._refresh_undocumented_locked(sess)
             activity["undocumented"] = sess["undocumented"]
             if state is not None:
@@ -524,7 +540,7 @@ class AgentSessionTracker:
             if not ignored:
                 self._activity = activity
             self._persist_locked(
-                force=event in ("SessionStart", "SessionEnd")
+                force=event in ("SessionStart", "SessionEnd", "Interrupt")
             )
 
         return {

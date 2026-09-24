@@ -69,11 +69,14 @@ test('exiting Codex returns to the same cockpit shell', { skip: !fs.existsSync('
     assert.ok(args.includes('--no-alt-screen'));
     const configs = args.flatMap((arg, i) => arg === '-c' ? [args[i + 1]] : []);
     for (const event of ['SessionStart', 'UserPromptSubmit', 'PreToolUse',
-      'PostToolUse', 'PermissionRequest', 'Stop', 'SessionEnd']) {
+      'PostToolUse', 'PermissionRequest', 'SubagentStart', 'SubagentStop',
+      'Interrupt', 'Stop', 'SessionEnd']) {
       assert.equal(configs.filter((value) => value.startsWith(`hooks.${event}=`)).length, 1,
         `${event} should be forwarded once`);
     }
-    assert.equal(configs.filter((value) => value.startsWith('notify=')).length, 1);
+    // A legacy notify from the approval reviewer otherwise creates a second
+    // waiting session that outlives the native parent after /exit.
+    assert.equal(configs.filter((value) => value.startsWith('notify=')).length, 0);
     assert.ok(!args.includes('--dangerously-bypass-hook-trust'));
 
     fs.writeFileSync(path.join(instrumentDir, 'hook-env'), 'COCKPIT_HOOK_URL="http://127.0.0.1:8766"\n');

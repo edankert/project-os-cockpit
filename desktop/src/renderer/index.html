@@ -263,8 +263,15 @@
       <label class="settings-row" for="setting-external-hook">
         <input type="checkbox" id="setting-external-hook" />
         <span class="settings-row-main">
-          <span class="settings-row-label">Signal agent state from external terminals</span>
+          <span class="settings-row-label">Claude Code in external terminals</span>
           <span class="settings-row-desc">Installs a hook into <code>~/.claude/settings.json</code> (backup kept, removed on disable). Claude sessions in any terminal then light the workspace dots — via the running cockpit when one exists, else by writing <code>.cockpit/agent-state.json</code>. Only acts inside project-os repos.</span>
+        </span>
+      </label>
+      <label class="settings-row" for="setting-external-codex-hook">
+        <input type="checkbox" id="setting-external-codex-hook" />
+        <span class="settings-row-main">
+          <span class="settings-row-label">Codex in external terminals</span>
+          <span class="settings-row-desc">Show Codex activity from terminals outside the cockpit. Adds hooks to your Codex configuration (normally <code>~/.codex/hooks.json</code>), keeps a backup, and removes only cockpit hooks when disabled. Review new hooks with <code>/hooks</code> in Codex. Only acts inside project-os repos.</span>
         </span>
       </label>
       <p id="settings-status" class="settings-status" hidden></p>

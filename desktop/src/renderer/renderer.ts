@@ -159,8 +159,8 @@ interface CockpitApi {
     onUrl: (cb: (url: string) => void) => () => void;
   };
   settings: {
-    get: () => Promise<{ externalHook: boolean }>;
-    set: (patch: Record<string, unknown>) => Promise<{ ok: boolean; error?: string; settings: { externalHook: boolean } }>;
+    get: () => Promise<{ externalHook: boolean; externalCodexHook: boolean }>;
+    set: (patch: Record<string, unknown>) => Promise<{ ok: boolean; error?: string; settings: { externalHook: boolean; externalCodexHook: boolean } }>;
   };
   dispatch: {
     execute: (workspaceId: string, item: unknown) => Promise<{ queued: boolean; delivered?: string; warning?: string; error?: string }>;
@@ -22645,6 +22645,7 @@ window.setInterval(tickTemperatures, 30_000);
 const settingsBtn = $<HTMLButtonElement>('#settings-toggle');
 const settingsPopover = $<HTMLDivElement>('#settings-popover');
 const settingExternalHook = $<HTMLInputElement>('#setting-external-hook');
+const settingExternalCodexHook = $<HTMLInputElement>('#setting-external-codex-hook');
 const settingsStatus = $<HTMLParagraphElement>('#settings-status');
 
 function settingsFeedback(text: string, isError = false): void {
@@ -22657,6 +22658,7 @@ async function openSettingsPopover(): Promise<void> {
   try {
     const s = await cockpitApi.settings.get();
     settingExternalHook.checked = s.externalHook === true;
+    settingExternalCodexHook.checked = s.externalCodexHook === true;
   } catch { /* leave unchecked */ }
   settingsFeedback('');
   const rect = settingsBtn.getBoundingClientRect();
@@ -22698,6 +22700,21 @@ settingExternalHook.addEventListener('change', () => {
       ? 'Hook installed in ~/.claude/settings.json — new Claude sessions will signal state.'
       : 'Hook removed from ~/.claude/settings.json.');
   });
+});
+
+settingExternalCodexHook.addEventListener('change', () => {
+  const want = settingExternalCodexHook.checked;
+  settingExternalCodexHook.disabled = true;
+  void cockpitApi.settings.set({ externalCodexHook: want }).then((res) => {
+    settingExternalCodexHook.checked = res.settings.externalCodexHook;
+    settingsFeedback(res.ok
+      ? want ? 'Codex hooks installed. Review them with /hooks in a new Codex session.'
+        : 'Cockpit hooks removed from Codex configuration.'
+      : res.error || 'Failed to update Codex setting', !res.ok);
+  }).catch(() => {
+    settingExternalCodexHook.checked = !want;
+    settingsFeedback('Could not update Codex setting. Try again.', true);
+  }).finally(() => { settingExternalCodexHook.disabled = false; });
 });
 
 
