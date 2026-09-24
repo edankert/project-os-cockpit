@@ -31,9 +31,9 @@ The letters in the evidence column (A1, B5 and so on) are the detailed criteria 
 
 ## Acceptance Criteria
 
-- [ ] One action and its exact expectations are prominent — evidence: B1 to B5 are open. B2 is met.
-- [ ] Preparation and navigation never create a verdict — evidence: B5 and D2 are open.
-- [ ] Success, problems and inability to perform keep the affected checks honest — evidence: B6, B7 and B9 are open.
+- [x] One action and its exact expectations are prominent — evidence: B1 to B5 are met (B1, B3, B4 and B5 on 2026-09-24).
+- [ ] Preparation and navigation never create a verdict — evidence: B5 is met; D2 is open.
+- [x] Success, problems and inability to perform keep the affected checks honest — evidence: B6, B7 and B9 are met (2026-09-24).
 - [ ] Saved marks can be corrected without duplicate events — evidence: B8 is met; D2 is open.
 
 A criterion is ticked only when every letter it names is met.

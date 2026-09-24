@@ -2,11 +2,11 @@
 type: "[[task]]"
 id: TASK-0629
 title: "Show one walk action and its readiness"
-status: doing
+status: done
 phase: ""
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-16
+updated: 2026-09-24
 source: ["Your Trainer FEAT-0122, 2026-09-16"]
 parent: "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
 effort: "Large"
@@ -20,15 +20,15 @@ tests: []
 
 ## Definition of Done
 
-- [ ] The page begins with a compact changed-screen review and then presents one current action with screen, action and exact expected result.
-- [ ] Before a session, it shows only the setup its retained steps need and any known readiness problem. Required state updates with the authored step.
-- [ ] Preparation, platform-specific actions and invalid-procedure fallback match the shared generator. Source detail and nearby or full session views remain available on demand.
+- [x] The page begins with a compact changed-screen review and then presents one current action with screen, action and exact expected result.
+- [x] Before a session, it shows only the setup its retained steps need and any known readiness problem. Required state updates with the authored step.
+- [x] Preparation, platform-specific actions and invalid-procedure fallback match the shared generator. Source detail and nearby or full session views remain available on demand.
 
 ## Steps
 
-- [ ] Sync the upstream generator and expose its new fields in the walk payload.
-- [ ] Replace the long-scroll walk rendering with focused navigation and a clear main action.
-- [ ] Test the survey, preparation, platform and fallback views.
+- [x] Sync the upstream generator and expose its new fields in the walk payload.
+- [x] Replace the long-scroll walk rendering with focused navigation and a clear main action.
+- [x] Test the survey, preparation, platform and fallback views.
 
 ## Browser layout finding, 2026-09-16
 
@@ -45,3 +45,15 @@ The synced validator now reports a malformed backticked check tag, and the page 
 The current card receives `required_state` from the shared generator. The synced carry-forward rule keeps a declaration through omitted steps on its platform and resets it at the next declaration. Ten preparation fixtures, 36 cockpit payload tests and the focused renderer suite pass; the full Electron and human walk remain open.
 
 A narrow render of the current Android walk showed the screen name and raw `SUR` id again at the start of the visible action. The current card now drops that duplicate when its heading names the same screen; the authored source and exact check quote remain unchanged. The built renderer's 78 focused tests and a later narrow Chrome render confirm it.
+
+## Against the detailed criteria, 2026-09-24
+
+FEAT-0151 now carries the detailed criteria. This task owns the five presentation criteria below; TASK-0630 owns recording and resume. An audit of the current page on 2026-09-24 found these gaps. A criterion is ticked in FEAT-0151 only when a focused test proves it.
+
+- **B1 (survey first):** met in code. A fresh walk opens on one changed screen, Continue needs no ticks, and the survey position is saved. Needs its own test for returning to the survey.
+- **B3 (context and progress):** three gaps. Leaving the survey always jumps to step 1 of the first session, so Continue ignores the saved position. The session shows how many steps need attention but not how many are done. Waiting lines, readiness lines and evidence lines use source step numbers where the card heading uses display positions.
+- **B4 (flexible focus):** the survey round trip loses the reader's place, because of the B3 gap. Otherwise met.
+- **B5 (one action for success):** met, except that keyboard navigation does not exist yet. Arrow keys will move between screens and steps and record nothing.
+- **B7 (details on demand):** a step marked fail, partial or question is only a count in the main path. After the walker moves on, the step itself is hidden. The main path will list each such step with its reason and a way back to it.
+
+**Done, 2026-09-24.** All five criteria above are met and ticked in FEAT-0151, each with its own test in `desktop/tests/walk-page.test.mjs`. [[CHG-20260924-The-Walk-Keeps-Problems-In-View-And-Says-Where-You-Resume]] records the change. Verifying the whole walk against the sheet and ledger stays with TASK-0631.

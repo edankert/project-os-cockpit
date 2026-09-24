@@ -31,10 +31,10 @@ The letters in the evidence column (A1, B5 and so on) are the detailed criteria 
 
 ## Acceptance Criteria
 
-- [ ] Position, observations and evidence survive restart in their workspace — evidence: C1 and C7 are open.
-- [ ] Changed source content and platform cannot silently reuse old marks — evidence: C3 is open.
+- [x] Position, observations and evidence survive restart in their workspace — evidence: C1 and C7 are met (2026-09-24).
+- [x] Changed source content and platform cannot silently reuse old marks — evidence: C3 is met (2026-09-24).
 - [x] Persistence or ledger failures are visible and retryable — evidence: C4 is met.
-- [ ] Required live app state is named but never assumed confirmed — evidence: C2 is open.
+- [x] Required live app state is named but never assumed confirmed — evidence: C2 is met (2026-09-24).
 - [x] Evidence and timers stay separate from verdicts — evidence: C5 and C6 are met.
 
 A criterion is ticked only when every letter it names is met.

@@ -6360,6 +6360,26 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .walk-focus-nav > strong { margin-right: auto; font-size: 14px; }
 .walk-focus-progress { color: var(--text-muted); font-size: 12px; }
 .walk-focus-nav button { min-height: 32px; }
+/* A resumed walk, a moved position and the problems recorded so far each
+   take a full row under the controls: they are what the walker reads before
+   the step (FEAT-0151 B7, C2, C7). */
+.walk-focus-nav > .walk-resume,
+.walk-focus-nav > .walk-attention,
+.walk-focus-nav > .walk-focus-moved {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.walk-resume p, .walk-attention p { margin: 6px 0; }
+.walk-resume button, .walk-attention button { display: block; margin: 6px 0 0; text-align: left; }
+.walk-resume-unchecked { color: var(--text-muted); font-size: 12px; }
+.walk-focus-nav > .walk-attention { border-color: var(--warn, #d29922); }
+.walk-attention > strong { display: block; color: var(--warn, #d29922); }
+.walk-step-earlier, .walk-step-decision { margin: 8px 0 0; font-size: 12px; }
+.walk-step-earlier { color: var(--warn, #d29922); }
+.walk-review-state.is-attention { color: var(--warn, #d29922); font-weight: 600; }
 .walk-session-select { max-width: 15rem; min-height: 32px; }
 .walk-options { flex-basis: auto; }
 .walk-options > summary {

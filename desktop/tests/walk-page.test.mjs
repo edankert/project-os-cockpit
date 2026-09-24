@@ -174,6 +174,9 @@ const NAMES = [
   'walkInvalidationEpoch', 'archiveWalkMark',
   'walkReadyKey', 'loadWalkReady', 'saveWalkReady', 'walkUnready',
   'waitingSteps', 'walkProcedureId', 'walkStepId', 'walkVerdictsId',
+  'walkFocusAt', 'resolveWalkStep', 'walkStepPosition', 'walkKeyNavigation',
+  'buildWalkResume', 'buildWalkAttention', 'walkEvidenceChecks', 'walkEvidenceStale',
+  'walkEarlierObservation', 'walkProblemsSoFar',
 ];
 
 async function load({ document, navigateTo = () => {}, marks = [] } = {}) {
@@ -736,6 +739,9 @@ const PROC_NAMES = [
   'refreshWalkEvidenceComparisons',
   'walkInvalidationEpoch', 'archiveWalkMark',
   'walkReadyKey', 'loadWalkReady', 'saveWalkReady', 'walkUnready',
+  'walkFocusAt', 'resolveWalkStep', 'walkStepPosition', 'walkKeyNavigation',
+  'buildWalkResume', 'buildWalkAttention', 'walkEvidenceChecks', 'walkEvidenceStale',
+  'walkEarlierObservation', 'walkProblemsSoFar',
 ];
 
 /** A localStorage that behaves like one, including a JSON round trip. */
@@ -1614,7 +1620,7 @@ test('a fresh guided walk shows one survey card and then one current step', asyn
   const nav = all(page, 'walk-focus-nav')[0];
   nav.children.find((child) => child.textContent === 'Next screen').click();
   assert.deepEqual(cards.map((card) => card.hidden), [true, false]);
-  nav.children.find((child) => child.textContent === 'Continue to tests').click();
+  nav.children.find((child) => child.textContent === 'Start tests').click();
   assert.equal(survey.hidden, true);
   assert.equal(sittings.hidden, false);
   assert.deepEqual(all(page, 'walk-step').map((step) => step.hidden),
@@ -1638,7 +1644,7 @@ test('a retained preparation action continues without a check verdict', async ()
   ];
   const page = buildWalkPage(procedurePayload({ sittings: [sitting] }));
   all(page, 'walk-focus-nav')[0].children
-    .find((child) => child.textContent === 'Continue to tests').click();
+    .find((child) => child.textContent === 'Start tests').click();
   const first = all(page, 'walk-step')[0];
   assert.match(first.textContent, /Preparation for the next observation/);
   const control = all(first, 'walk-step-button')[0];
@@ -1657,7 +1663,7 @@ test('the current action keeps occasional navigation under Walk options', async 
   const { buildWalkPage } = await loadProc({ document, posts });
   const page = buildWalkPage(procedurePayload());
   const nav = all(page, 'walk-focus-nav')[0];
-  nav.children.find((child) => child.textContent === 'Continue to tests').click();
+  nav.children.find((child) => child.textContent === 'Start tests').click();
 
   assert.equal(nav.children.find((child) => child.tagName === 'STRONG').textContent,
     'Step 1 of 4');
@@ -1705,7 +1711,7 @@ test('session state and equipment move into setup and stay reachable on resume',
   assert.equal(section.children.some((child) => child.className === 'walk-bench'), false);
 
   const nav = all(page, 'walk-focus-nav')[0];
-  nav.children.find((child) => child.textContent === 'Continue to tests').click();
+  nav.children.find((child) => child.textContent === 'Start tests').click();
   const options = all(nav, 'walk-options')[0];
   options.children[1].children
     .find((child) => child.textContent === 'Next step').click();
@@ -1735,7 +1741,7 @@ test('a later comparison opens evidence saved at its preparation step after rest
   const { buildWalkPage } = api;
   const page = buildWalkPage(data);
   all(page, 'walk-focus-nav')[0].children
-    .find((child) => child.textContent === 'Continue to tests').click();
+    .find((child) => child.textContent === 'Start tests').click();
   const first = all(page, 'walk-step')[0];
   const laterStep = all(page, 'walk-step')[1];
   assert.equal(all(laterStep, 'walk-step-button')[0].disabled, true);
@@ -2014,7 +2020,7 @@ test('an authored timer reports interruption and never records a verdict', async
   const { buildWalkPage } = await loadProc({ document, localStorage: storage, posts });
   const page = buildWalkPage(data);
   all(page, 'walk-focus-nav')[0].children
-    .find((child) => child.textContent === 'Continue to tests').click();
+    .find((child) => child.textContent === 'Start tests').click();
   const timer = all(page, 'walk-step-timer')[0];
   assert.match(timer.textContent, /Optional 1-second timer/);
   timer.children.find((child) => child.textContent === 'Start timer').click();
@@ -2062,7 +2068,7 @@ test('the walk review keeps failed and questioned checks visible after navigatio
   } });
   const page = buildWalkPage(data);
   const nav = all(page, 'walk-focus-nav')[0];
-  nav.children.find((child) => child.textContent === 'Continue to tests').click();
+  nav.children.find((child) => child.textContent === 'Start tests').click();
   nav.children.find((child) => child.textContent === 'Review results').click();
   const summary = all(page, 'walk-review-summary')[0];
   assert.equal(summary.hidden, false);
@@ -2086,7 +2092,7 @@ test('the walk review counts an earlier excuse that expired when its ledger seal
       mark: 'excused', reason: 'Not a regression.', invalidated_by: '' }] } });
   const page = buildWalkPage(data);
   const nav = all(page, 'walk-focus-nav')[0];
-  nav.children.find((child) => child.textContent === 'Continue to tests').click();
+  nav.children.find((child) => child.textContent === 'Start tests').click();
   nav.children.find((child) => child.textContent === 'Review results').click();
   const summary = all(page, 'walk-review-summary')[0];
   assert.match(summary.textContent, /1 check still needs attention/);
@@ -2232,4 +2238,363 @@ test('an invalid completed procedure shows its check instructions and repair rea
   assert.match(page.textContent, /expectation no longer matches/);
   assert.match(page.textContent, /A signed-out app/);
   assert.match(page.textContent, /It opens/);
+});
+
+// ===========================================================================
+// FEAT-0151's detailed criteria, B1 to B9 and C1 to C7 (2026-09-24).
+//
+// One test per criterion that TASK-0629 or TASK-0630 had not yet proved. Each
+// drives the real builders through the page's own controls where it can, so
+// a criterion is ticked on behaviour and not on a function's return value.
+// ===========================================================================
+
+const settle = () => new Promise((resolve) => setImmediate(resolve));
+const navOf = (page) => all(page, 'walk-focus-nav')[0];
+const visibleSteps = (page) => all(page, 'walk-step')
+  .map((step, n) => (step.hidden ? null : n)).filter((n) => n !== null);
+const press = (page, label) => {
+  const nav = navOf(page);
+  const found = [...nav.children, ...all(nav, 'file-row'), ...all(nav, 'review-btn')]
+    .find((child) => child.textContent === label);
+  assert.ok(found, `no control labelled ${label}: ${nav.textContent}`);
+  found.click();
+};
+const optionsButton = (page, label) => {
+  const menu = all(navOf(page), 'walk-options-menu')[0];
+  const found = menu.children.find((child) => child.textContent === label);
+  assert.ok(found, `no option ${label}`);
+  found.click();
+};
+const twoScreens = () => [1, 2].map((n) => ({
+  surface: `Screen ${n}`, surface_note: `SUR-000${n}`, parent: null,
+  unresolved: false, captures: [],
+  changes: [{ id: `CHG-${n}`, title: null, sentence: `Change ${n}.` }],
+}));
+
+test('B1: returning to the survey shows the last screen viewed and Continue keeps the step', async () => {
+  const storage = makeStorage();
+  const posts = [];
+  const { buildWalkPage } = await loadProc({ document: makeDom(), localStorage: storage, posts });
+  const page = buildWalkPage(procedurePayload({ survey: twoScreens() }));
+  press(page, 'Next screen');
+  press(page, 'Start tests');
+  optionsButton(page, 'Next step');
+  assert.deepEqual(visibleSteps(page), [1]);
+  optionsButton(page, 'Changed screens');
+  const cards = all(all(page, 'walk-survey')[0], 'walk-survey-surface');
+  assert.deepEqual(cards.map((card) => card.hidden), [true, false],
+    'the survey reopens on the screen last viewed');
+  assert.ok(!navOf(page).textContent.includes('Start tests'));
+  press(page, 'Continue at step 2');
+  assert.deepEqual(visibleSteps(page), [1], 'Continue returns to the saved step');
+  assert.deepEqual(posts, []);
+});
+
+test('B3: the session counts done steps and attention, and names steps by display position', async () => {
+  const storage = makeStorage();
+  const posts = [];
+  const { buildWalkPage } = await loadProc({ document: makeDom(), localStorage: storage,
+    posts, verdicts: [{ verdict: 'fail', reason: 'the sheet stayed closed' }] });
+  const sitting = procedureSitting();
+  //: Source numbers 11 to 14 printed as steps 1 to 4, which is what an
+  //: owed walk with omitted steps looks like.
+  sitting.procedure.steps.forEach((step, n) => {
+    step.number = 11 + n;
+    step.display_number = n + 1;
+  });
+  const page = buildWalkPage(procedurePayload({ sittings: [sitting] }));
+  assert.match(page.children[0].textContent, /REL-0017, android/);
+  press(page, 'Start tests');
+  assert.match(navOf(page).textContent, /Step 1 of 4/);
+  assert.match(all(navOf(page), 'walk-focus-progress')[0].textContent, /^0 of 4 done$/);
+  all(all(page, 'walk-step')[0], 'walk-step-button')[0].click();
+  await settle();
+  assert.match(all(navOf(page), 'walk-focus-progress')[0].textContent, /^1 of 4 done$/);
+  const waiting = all(all(page, 'walk-step')[0], 'walk-step-waiting')[0].textContent;
+  assert.equal(waiting, 'TST-0001 waits on step 3', 'a display position, not source step 13');
+  all(all(page, 'walk-step')[1], 'walk-step-alternate')[0].click();
+  await settle();
+  assert.match(all(navOf(page), 'walk-focus-progress')[0].textContent,
+    /^2 of 4 done · 1 needs attention$/);
+  assert.match(all(page, 'walk-proc-verdicts')[0].textContent, /waiting on step 3/);
+  assert.ok(!all(page, 'walk-proc-verdicts')[0].textContent.includes('13'));
+});
+
+test('B4: the first step does not repeat the state its open setup already states', async () => {
+  const { buildWalkPage } = await loadProc({ document: makeDom() });
+  const sitting = procedureSitting();
+  sitting.procedure.steps[0].required_state = 'the app installed and never opened';
+  sitting.procedure.steps[2].required_state = 'the app installed and never opened';
+  const page = buildWalkPage(procedurePayload({ sittings: [sitting] }));
+  const section = all(page, 'walk-sitting')[0];
+  const said = section.textContent.split('the app installed and never opened').length - 1;
+  assert.equal(said, 2, 'once in the setup, once on step 3 where the setup is folded');
+  assert.equal(all(all(page, 'walk-step')[0], 'walk-step-state').length, 0);
+  assert.equal(all(all(page, 'walk-step')[2], 'walk-step-state').length, 1);
+});
+
+test('B5: arrow keys move between screens and steps and record nothing', async () => {
+  const storage = makeStorage();
+  const posts = [];
+  const document = makeDom();
+  let dialog = null;
+  document.querySelector = (selector) => (selector === '.ask-backdrop' ? dialog : null);
+  const api = await loadProc({ document, localStorage: storage, posts });
+  const page = api.buildWalkPage(procedurePayload({ survey: twoScreens() }));
+  const key = (name, tagName = 'BODY') => api.walkKeyNavigation({
+    key: name, target: { tagName }, preventDefault() {},
+  });
+  assert.equal(key('ArrowRight'), true);
+  const cards = all(all(page, 'walk-survey')[0], 'walk-survey-surface');
+  assert.deepEqual(cards.map((card) => card.hidden), [true, false]);
+  press(page, 'Start tests');
+  assert.equal(key('ArrowRight'), true);
+  assert.deepEqual(visibleSteps(page), [1]);
+  assert.equal(key('ArrowLeft'), true);
+  assert.deepEqual(visibleSteps(page), [0]);
+  assert.equal(key('ArrowLeft'), false, 'nothing before the first step');
+  assert.equal(key('ArrowRight', 'TEXTAREA'), false, 'typing in a field keeps its arrows');
+  dialog = {};
+  assert.equal(key('ArrowRight'), false, 'an open mark dialog keeps its arrows');
+  assert.deepEqual(visibleSteps(page), [0]);
+  assert.deepEqual(posts, []);
+  assert.equal(storage.getItem('cockpit:walk-steps:ws-1'), null, 'no step was marked');
+});
+
+test('B6, B7, C7: a problem stays on its step, stays listed after moving on, and a decision returns to the step', async () => {
+  const storage = makeStorage();
+  const posts = [];
+  const asks = [];
+  const statuses = [];
+  const api = await loadProc({ document: makeDom(), localStorage: storage, posts, asks,
+    statuses, verdicts: [
+      { verdict: 'fail', reason: 'the sheet stayed closed' },
+      { verdict: 'blocked', reason: 'no second phone today' },
+    ] });
+  const sitting = procedureSitting();
+  sitting.procedure.steps[3].readiness = { kind: 'decision', reason: 'Needs a second phone.' };
+  const page = api.buildWalkPage(procedurePayload({ sittings: [sitting] }));
+  press(page, 'Start tests');
+  optionsButton(page, 'Next step');
+  all(all(page, 'walk-step')[1], 'walk-step-alternate')[0].click();
+  await settle();
+  assert.deepEqual(posts.map((post) => [post.body.id, post.body.verdict]), [['TST-0002', 'fail']]);
+  assert.deepEqual(visibleSteps(page), [1], 'Something wrong does not move the reader');
+  const card = all(page, 'walk-step')[1];
+  assert.match(card.children[0].textContent, /^Step 2 — Settings$/, 'the active card is not renumbered');
+  assert.equal(all(card, 'walk-step-button')[0].textContent, 'Recorded — fail · next');
+
+  optionsButton(page, 'Next step');
+  assert.deepEqual(visibleSteps(page), [2]);
+  const attention = all(navOf(page), 'walk-attention')[0];
+  assert.ok(attention, 'the failed step is listed in the main path');
+  assert.match(attention.textContent, /Step 2 — fail: the sheet stayed closed/);
+  attention.children.find((child) => child.textContent.startsWith('Step 2')).click();
+  assert.deepEqual(visibleSteps(page), [1]);
+
+  optionsButton(page, 'Next step');
+  optionsButton(page, 'Next step');
+  assert.deepEqual(visibleSteps(page), [3]);
+  const unavailable = all(all(page, 'walk-step')[3], 'walk-step-unavailable')[0];
+  unavailable.children.find((child) => child.textContent.startsWith('TST-0003')).click();
+  await settle();
+  assert.match(asks[asks.length - 1].detail, /The procedure says: Needs a second phone\./);
+  assert.deepEqual(asks[asks.length - 1].only, ['blocked', 'excused', 'na']);
+  assert.deepEqual(posts.map((post) => [post.body.id, post.body.verdict]),
+    [['TST-0002', 'fail'], ['TST-0003', 'blocked']]);
+  assert.deepEqual(visibleSteps(page), [3], 'the decision returns to the same step');
+  assert.match(all(all(page, 'walk-step')[3], 'walk-step-decision')[0].textContent,
+    /TST-0003 — blocked, recorded as a release decision: no second phone today/);
+  assert.ok(statuses.some((status) => /still on step 4/.test(status.message)));
+  assert.match(all(navOf(page), 'walk-attention')[0].textContent, /TST-0003 — blocked/);
+});
+
+test('B9: finishing the walk with a question and a half-observed check says what is unresolved', async () => {
+  const storage = makeStorage();
+  const posts = [];
+  const api = await loadProc({ document: makeDom(), localStorage: storage, posts,
+    verdicts: [{ verdict: 'question', reason: 'the copy is ambiguous' }] });
+  const data = procedurePayload();
+  const page = api.buildWalkPage(data);
+  press(page, 'Start tests');
+  all(all(page, 'walk-step')[0], 'walk-step-button')[0].click();
+  await settle();
+  all(all(page, 'walk-step')[1], 'walk-step-button')[0].click();
+  await settle();
+  assert.deepEqual(posts.map((post) => [post.body.id, post.body.verdict]), [['TST-0002', 'pass']]);
+  optionsButton(page, 'Next step');
+  all(all(page, 'walk-step')[3], 'walk-step-alternate')[0].click();
+  await settle();
+  assert.deepEqual(posts.map((post) => [post.body.id, post.body.verdict]),
+    [['TST-0002', 'pass'], ['TST-0003', 'question']]);
+  press(page, 'Review results');
+  const summary = all(page, 'walk-review-summary')[0];
+  assert.match(summary.textContent, /2 checks still need attention/);
+  assert.match(summary.textContent, /given a clearing result during this walk: TST-0002 pass/);
+  assert.match(summary.textContent,
+    /TST-0001 — Check TST-0001: observed in part, waiting on step 3 of A fresh install/);
+  assert.match(summary.textContent,
+    /TST-0003 — Check TST-0003: question — Step 4: the copy is ambiguous/);
+  assert.ok(!all(summary, 'walk-review-state')[0].textContent.includes('Every check'));
+  press(page, 'Back to sessions');
+  optionsButton(page, 'Changed screens');
+  assert.equal(posts.length, 2, 'viewing the survey or the summary writes nothing');
+});
+
+test('C1: leaving midway through a two-step check and restarting keeps it open and in place', async () => {
+  const storage = makeStorage();
+  const posts = [];
+  const first = await loadProc({ document: makeDom(), localStorage: storage, posts });
+  const data = procedurePayload();
+  const page = first.buildWalkPage(data);
+  press(page, 'Start tests');
+  all(all(page, 'walk-step')[0], 'walk-step-button')[0].click();
+  await settle();
+  assert.deepEqual(posts, [], 'TST-0001 waits for its second step');
+  assert.deepEqual(visibleSteps(page), [1]);
+
+  const restarted = await loadProc({ document: makeDom(), localStorage: storage, posts });
+  const again = restarted.buildWalkPage(procedurePayload());
+  assert.deepEqual(visibleSteps(again), [1], 'the selected step survives the restart');
+  assert.match(navOf(again).textContent, /Step 2 of 4/);
+  assert.match(all(navOf(again), 'walk-focus-progress')[0].textContent, /^1 of 4 done$/);
+  assert.match(all(navOf(again), 'walk-resume')[0].textContent,
+    /You are resuming this walk at step 2/);
+  assert.match(all(again, 'walk-proc-verdicts')[0].textContent, /waiting on step 3/);
+  assert.deepEqual(posts, [], 'the restart did not pass the check');
+  const otherWorkspace = await loadProc({ document: makeDom(), localStorage: storage,
+    activeId: 'ws-2' });
+  const elsewhere = otherWorkspace.buildWalkPage(procedurePayload());
+  assert.equal(all(elsewhere, 'walk-survey')[0].hidden, false,
+    'another workspace does not inherit the position');
+});
+
+test('C2: a resumed step names the state to restore, the steps that set it up, and that nothing checked it', async () => {
+  const storage = makeStorage();
+  const posts = [];
+  const first = await loadProc({ document: makeDom(), localStorage: storage, posts });
+  const sitting = procedureSitting();
+  sitting.procedure.steps[0].preparation = true;
+  sitting.procedure.steps[0].lines = [{ text: '1. Open the app on the Profile screen.', tags: [] }];
+  sitting.procedure.steps[2].required_state = 'Signed in as the FREE rider, Sweet Spot Base running';
+  const data = procedurePayload({ sittings: [sitting] });
+  const page = first.buildWalkPage(data);
+  press(page, 'Start tests');
+  optionsButton(page, 'Next step');
+  optionsButton(page, 'Next step');
+  assert.equal(all(navOf(page), 'walk-resume').length, 0, 'moving within one visit is not a resume');
+
+  const restarted = await loadProc({ document: makeDom(), localStorage: storage, posts });
+  const again = restarted.buildWalkPage(data);
+  const resume = all(navOf(again), 'walk-resume')[0];
+  assert.match(resume.textContent, /You are resuming this walk at step 3/);
+  assert.match(resume.textContent,
+    /Put the app back in this state before you continue: Signed in as the FREE rider, Sweet Spot Base running/);
+  assert.match(resume.textContent, /has not checked this state/);
+  const routes = resume.children.filter((child) => child.tagName === 'BUTTON')
+    .map((child) => child.textContent);
+  assert.deepEqual(routes.slice(0, 2), ['Step 1 — Open the app on the Profile screen.',
+    'Step 2 — Tap Settings.']);
+  assert.ok(routes.includes('Show required setup'));
+  resume.children.find((child) => child.textContent === 'Show required setup').click();
+  assert.equal(all(again, 'walk-proc-block')[0].open, true);
+  resume.children.find((child) => child.textContent.startsWith('Step 1')).click();
+  assert.deepEqual(visibleSteps(again), [0]);
+  assert.equal(all(navOf(again), 'walk-resume').length, 0, 'the notice retires once the walker moves');
+  assert.deepEqual(posts, []);
+});
+
+test('C3: evidence saved before a candidate invalidation no longer answers the comparison', async () => {
+  const storage = makeStorage();
+  const api = await loadProc({ document: makeDom(), localStorage: storage });
+  const sitting = procedureSitting();
+  sitting.procedure.steps[0].capture_prompt = 'Record the avatar size.';
+  sitting.procedure.steps[2].use_capture = [1];
+  const before = procedurePayload({ sittings: [sitting] });
+  const view = api.readProcedure(sitting);
+  assert.ok(api.saveCurrentWalkEvidence(before, sitting, view, view.steps[0],
+    'Avatar 48 px.', 'android debug 41'));
+  assert.equal(api.hasRequiredWalkEvidence(before, sitting, view, view.steps[2]), true);
+
+  const after = procedurePayload({ sittings: [sitting], history: {
+    'TST-0001': [{ platform: 'android', release: 'REL-0017', mark: 'pass', reason: '',
+      invalidated_by: 'CHG-NEW' }] } });
+  assert.equal(api.hasRequiredWalkEvidence(after, sitting, view, view.steps[2]), false);
+  assert.match(api.buildWalkEvidence(after, sitting, view, view.steps[2]).textContent,
+    /Evidence from step 1 was saved before CHG-NEW made this check owed again/);
+  assert.match(api.buildWalkEvidence(after, sitting, view, view.steps[0]).textContent,
+    /saved before CHG-NEW made this check owed again\. Look again/);
+  assert.equal(api.buildStepTick(after, sitting, view, view.steps[2])
+    .children[0].disabled, true, 'a stale comparison cannot be passed');
+
+  assert.ok(api.saveCurrentWalkEvidence(after, sitting, view, view.steps[0],
+    'Avatar 56 px.', 'android debug 42'));
+  assert.equal(api.hasRequiredWalkEvidence(after, sitting, view, view.steps[2]), true);
+});
+
+test('C3: an edited step says an earlier mark no longer counts, and another platform inherits nothing', async () => {
+  const storage = makeStorage();
+  const api = await loadProc({ document: makeDom(), localStorage: storage,
+    verdicts: [{ verdict: 'fail', reason: 'the sheet stayed closed' }] });
+  const original = procedurePayload();
+  const view = api.readProcedure(original.sittings[0]);
+  await api.markWalkStep(original, original.sittings[0], view, view.steps[1]);
+
+  const edited = procedurePayload();
+  edited.sittings[0].procedure.steps[1].lines[1].quote = 'The sheet slides up from the bottom.';
+  assert.deepEqual(api.pruneStepMarks(edited), ['TST-0002']);
+  const now = api.readProcedure(edited.sittings[0]);
+  const tick = api.buildStepTick(edited, edited.sittings[0], now, now.steps[1]);
+  assert.equal(all(tick, 'walk-step-button')[0].textContent, 'Pass and next');
+  assert.match(all(tick, 'walk-step-earlier')[0].textContent,
+    /You recorded fail on earlier instructions for this step\. That mark does not count now/);
+
+  const ios = procedurePayload({ platform: 'ios' });
+  const iosView = api.readProcedure(ios.sittings[0]);
+  const iosTick = api.buildStepTick(ios, ios.sittings[0], iosView, iosView.steps[1]);
+  assert.equal(all(iosTick, 'walk-step-button')[0].textContent, 'Pass and next');
+  assert.equal(all(iosTick, 'walk-step-earlier').length, 0);
+});
+
+test('C7: a regenerated procedure lands on the nearest step and says why', async () => {
+  const storage = makeStorage();
+  const first = await loadProc({ document: makeDom(), localStorage: storage });
+  const page = first.buildWalkPage(procedurePayload());
+  press(page, 'Start tests');
+  optionsButton(page, 'Next step');
+  optionsButton(page, 'Next step');
+  assert.deepEqual(visibleSteps(page), [2]);
+
+  const rewritten = procedurePayload();
+  rewritten.sittings[0].procedure.steps[2].lines[0].quote = 'Go back to Profile.';
+  const same = (await loadProc({ document: makeDom(), localStorage: storage }))
+    .buildWalkPage(rewritten);
+  assert.deepEqual(visibleSteps(same), [2]);
+  assert.match(all(navOf(same), 'walk-focus-moved')[0].textContent,
+    /The instructions for “Go back\.” changed since you last saw them/);
+
+  const replaced = procedurePayload();
+  replaced.sittings[0].procedure.steps[2].head = 'Open Help.';
+  const moved = (await loadProc({ document: makeDom(), localStorage: storage }))
+    .buildWalkPage(replaced);
+  assert.deepEqual(visibleSteps(moved), [2], 'the same position, not the first unmarked step');
+  assert.match(all(navOf(moved), 'walk-focus-moved')[0].textContent,
+    /The procedure changed since you last saw it: “Go back\.” is no longer in this walk/);
+
+  const renamed = procedurePayload();
+  renamed.sittings[0].name = 'A fresh install, rewritten';
+  const elsewhere = (await loadProc({ document: makeDom(), localStorage: storage }))
+    .buildWalkPage(renamed);
+  assert.match(all(navOf(elsewhere), 'walk-focus-moved')[0].textContent,
+    /The session “A fresh install” has nothing left to walk on this release/);
+});
+
+test('B9: a half-observed check whose saved step failed says so in the summary', async () => {
+  const api = await loadProc({ document: makeDom(), localStorage: makeStorage(),
+    verdicts: [{ verdict: 'fail', reason: 'the avatar overlaps the name' }] });
+  const data = procedurePayload();
+  const view = api.readProcedure(data.sittings[0]);
+  await api.markWalkStep(data, data.sittings[0], view, view.steps[0]);
+  assert.match(api.buildWalkReview(data).textContent,
+    /TST-0001 — Check TST-0001: observed in part \(step 1 fail so far\), waiting on step 3 of A fresh install/);
 });

@@ -37,13 +37,15 @@ The detailed criteria moved here from Your Trainer FEAT-0122 on 2026-09-24; they
 
 ## Acceptance
 
-- [ ] A fresh walk begins with the changed-screen review, and Continue returns to the saved screen or step for the same workspace, release and platform.
-- [ ] The current step shows its screen, authored action, exact owed expectations, required state and one primary Pass and next control. A preparation action has Continue and produces no verdict.
-- [ ] The page exposes relevant setup and readiness before execution. A blocked action remains visible with its affected checks, while independent work stays reachable.
-- [ ] Fail, Partial, Question and inability to perform are available with their required reasons and do not bulk-clear checks. Failed local or ledger writes stay visible and can be retried.
-- [ ] Saved observations, corrections and attachments survive a same-workspace restart. Edited actions or expectations do not silently inherit a mark; another release or platform does not inherit position or evidence.
-- [ ] A later comparison can open evidence captured earlier with its platform and source state. A user-started timer assists an authored wait and never marks a result.
+- [x] A fresh walk begins with the changed-screen review, and Continue returns to the saved screen or step for the same workspace, release and platform.
+- [x] The current step shows its screen, authored action, exact owed expectations, required state and one primary Pass and next control. A preparation action has Continue and produces no verdict.
+- [x] The page exposes relevant setup and readiness before execution. A blocked action remains visible with its affected checks, while independent work stays reachable.
+- [x] Fail, Partial, Question and inability to perform are available with their required reasons and do not bulk-clear checks. Failed local or ledger writes stay visible and can be retried.
+- [x] Saved observations, corrections and attachments survive a same-workspace restart. Edited actions or expectations do not silently inherit a mark; another release or platform does not inherit position or evidence.
+- [x] A later comparison can open evidence captured earlier with its platform and source state. A user-started timer assists an authored wait and never marks a result.
 - [ ] The text sheet and page agree on both platforms, including the survey hierarchy, preparation, setup and owed set. Ledger-copy tests cover completion, interruption, correction and unresolved outcomes.
+
+The first six are met by the detailed criteria below (evidence, 2026-09-24). The seventh waits on D2, which TASK-0631 owns.
 
 ## Links
 
@@ -66,25 +68,25 @@ A1, A2 and A4 are delivered by the shared generator in project-os-dev FEAT-0033 
 
 ### Presentation and recording
 
-- [ ] **B1 — Survey first, without extra bookkeeping.** A fresh walk starts with changed screens and one selected comparison. Continue to tests requires no per-image reviewed ticks. Returning restores the last viewed screen when appropriate.
+- [x] **B1 — Survey first, without extra bookkeeping.** A fresh walk starts with changed screens and one selected comparison. Continue to tests requires no per-image reviewed ticks. Returning restores the last viewed screen when appropriate.
 - [x] **B2 — Correct comparison.** Child screens have the correct parent even when only the child changed. Distinct changes remain discoverable, before and after images are equally sized, and missing evidence is stated. Relevant images can also be opened beside the test step.
-- [ ] **B3 — Clear context and progress.** The page names release and platform. Start and Continue reflect saved position. The current session shows consecutive display positions, completed actions and the number needing attention, with source numbers and remaining check count secondary.
-- [ ] **B4 — Flexible focus.** One session step is expanded by default. Full setup, nearby steps and the full session are reachable without losing place or saved work. The main path contains no duplicate setup prose.
-- [ ] **B5 — One action for success.** Screen, action and exact owed expectations are visible beside Pass and next. One activation saves that step and advances. Next, Previous, preparation completion and keyboard navigation alone create no test verdict.
-- [ ] **B6 — Exceptions with context.** Something wrong reveals Fail, Partial and Question with required reasons. I can't perform this carries the affected checks and reason into the existing decision flow and returns to the same context. It cannot automatically pass, excuse or mark a check not applicable.
-- [ ] **B7 — Details remain accessible.** Check ids and titles, change note links, capture metadata, procedure paths, omitted-step explanations and per-check waiting information are available on demand. An actionable failure or unresolved question remains visible in the main path.
+- [x] **B3 — Clear context and progress.** The page names release and platform. Start and Continue reflect saved position. The current session shows consecutive display positions, completed actions and the number needing attention, with source numbers and remaining check count secondary.
+- [x] **B4 — Flexible focus.** One session step is expanded by default. Full setup, nearby steps and the full session are reachable without losing place or saved work. The main path contains no duplicate setup prose.
+- [x] **B5 — One action for success.** Screen, action and exact owed expectations are visible beside Pass and next. One activation saves that step and advances. Next, Previous, preparation completion and keyboard navigation alone create no test verdict.
+- [x] **B6 — Exceptions with context.** Something wrong reveals Fail, Partial and Question with required reasons. I can't perform this carries the affected checks and reason into the existing decision flow and returns to the same context. It cannot automatically pass, excuse or mark a check not applicable.
+- [x] **B7 — Details remain accessible.** Check ids and titles, change note links, capture metadata, procedure paths, omitted-step explanations and per-check waiting information are available on demand. An actionable failure or unresolved question remains visible in the main path.
 - [x] **B8 — Correctable recording.** A saved step can be corrected, including after it contributed to a ledger verdict. History is preserved, accidental repeated activation produces no duplicate verdict event, and an intentional new run remains available.
-- [ ] **B9 — Honest completion.** Recording all runnable observations while another check is failed, questioned or unavailable leaves a needs-attention state and a clear unresolved summary. Viewing the survey or finishing navigation never clears the release gate.
+- [x] **B9 — Honest completion.** Recording all runnable observations while another check is failed, questioned or unavailable leaves a needs-attention state and a clear unresolved summary. Viewing the survey or finishing navigation never clears the release gate.
 
 ### Resume and evidence
 
-- [ ] **C1 — Restart without repeating valid observations.** Leave midway through a check cited by several steps, restart the cockpit and return. Its saved observations, evidence and selected step survive in the same workspace and storage context; the check is not passed prematurely.
-- [ ] **C2 — Restore required app state.** After changing the app's rider, trainer or workout while away, resume shows the state needed for the selected step and how to restore it. It does not claim to have verified the live state automatically.
-- [ ] **C3 — Recognise changed work.** Editing a step's action or expectation without changing its tags flags affected saved observations for review. A different platform or release cannot inherit them. A candidate change follows the existing invalidation rules and does not silently reuse invalid evidence.
+- [x] **C1 — Restart without repeating valid observations.** Leave midway through a check cited by several steps, restart the cockpit and return. Its saved observations, evidence and selected step survive in the same workspace and storage context; the check is not passed prematurely.
+- [x] **C2 — Restore required app state.** After changing the app's rider, trainer or workout while away, resume shows the state needed for the selected step and how to restore it. It does not claim to have verified the live state automatically.
+- [x] **C3 — Recognise changed work.** Editing a step's action or expectation without changing its tags flags affected saved observations for review. A different platform or release cannot inherit them. A candidate change follows the existing invalidation rules and does not silently reuse invalid evidence.
 - [x] **C4 — Report persistence failures.** Refused local storage and a failed ledger write each produce a visible failure and retry path. The page distinguishes locally saved progress from a recorded verdict and does not advance past an unsaved observation as if successful.
 - [x] **C5 — Evidence at the point of observation.** A procedure that currently asks for a note or screenshot to be recalled later collects it at that step. The later comparison displays the evidence with its originating state, build and platform. Resume retains it; its presence does not automatically pass the comparison.
 - [x] **C6 — Timers assist observations.** A timed instruction offers a timer using the authored duration. Starting, finishing or interrupting it creates no verdict. The user can tell whether the required continuous observation needs restarting.
-- [ ] **C7 — Stable navigation.** Saving a mark does not unexpectedly move the reader, renumber the active card or hide a problem. When regenerated instructions alter the sequence, the page explains the change and restores the nearest valid position.
+- [x] **C7 — Stable navigation.** Saving a mark does not unexpectedly move the reader, renumber the active card or hide a problem. When regenerated instructions alter the sequence, the page explains the change and restores the nearest valid position.
 
 ### Agreement
 
@@ -119,3 +121,11 @@ The isolated iOS survey initially showed Android Developer Options copy and an A
 The renderer now reads current Your Trainer FREE ride procedure payloads for both platforms and emits pass requests from selected authored steps. Those requests equal marking the same checks directly, and both paths clear the checks on disposable copies of each platform's working ledger. The Android selection includes retained preparation with no verdict. The iOS selection includes TST-0370's two observation steps: the first does not settle it, the timed second refuses a mark without its saved note and build, and saving that evidence lets the final request match the direct check path. The full human route and broader unchanged-procedure audit remain open. [[CHG-20260917-Compare-a-real-walk-procedure-with-direct-check-verdicts]] and [[CHG-20260917-Verify-a-real-evidence-required-walk-verdict]] record the tests.
 
 Fallback cards now read declared readiness from unscripted acceptance checks. A decision card shows its reason and offers only Blocked, Excused or Not applicable; a preparation card asks for confirmation before exposing the normal mark. The live iOS payload still owes 327 checks and now names eight Android-only Settings or backup decisions. The focused renderer suite passes 82 cases, with one integration-only case skipped, and the ten generator agreement and bundle tests pass. [[CHG-20260917-Show-readiness-on-unscripted-walk-cards]] records the UI change. Edwin's human walk remains open.
+
+### Evidence, 2026-09-24: B1, B3 to B7, B9, C1 to C3, C7
+
+TASK-0629 and TASK-0630 were finished against the detailed criteria on 2026-09-24, and [[CHG-20260924-The-Walk-Keeps-Problems-In-View-And-Says-Where-You-Resume]] records the page changes. Each criterion ticked that day has its own test in `desktop/tests/walk-page.test.mjs`, named by its letter (`B1: …`, `C7: …`). B6, B7 and part of C7 share one test. Each test drives the built page through its own controls. Each of the eleven new behaviours was broken on purpose in the built bundle and failed its test. The desktop suite passes 236 of 237 tests with one integration-only skip.
+
+The page was also rendered in Chrome against a copy of Your Trainer's REL-0017 Android walk, which has 86 owed checks in 13 sessions. A pass, a fail through the real mark dialog, an arrow-key move and a full reload showed the resume notice, the "Needs attention" list, the "2 of 6 done · 1 needs attention" count and a summary line reading "observed in part (step 2 fail so far)". Only the copy's ledger was written.
+
+Still open here: D2 and D3, which TASK-0631 verifies once Your Trainer TASK-0960 is done. The walk as a whole also waits on the Your Trainer criteria named above.
