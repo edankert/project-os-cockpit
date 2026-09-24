@@ -73,7 +73,7 @@ counters:
   FEAT: 154
   ISS: 314
   PHASE: 45
-  REQ: 66
+  REQ: 69
   RISK: 10
   # A place in the product a check's area: names (TASK-0514).
   SUR: 6
@@ -116,7 +116,7 @@ items:
       status: "doing"
       phase: ""
       tasks: ["[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]"]
-      requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]"]
+      requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]", "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]", "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]", "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"]
     FEAT-0152:
       file: "docs/features/home-first/FEAT-0152-Home-First.md"
       title: "Home first — the four facts on the rail and a Dock badge, and a Home screen of three cards replaces the overview's first screen"

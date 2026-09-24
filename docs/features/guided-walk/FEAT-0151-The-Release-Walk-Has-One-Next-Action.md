@@ -7,10 +7,10 @@ status: doing
 phase: ""
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-17
+updated: 2026-09-24
 source: ["Your Trainer FEAT-0122, 2026-09-16: implement and test the guided release walk fully"]
 goal: "A person can perform, record and resume each owed release observation from one focused page with its necessary preparation."
-requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]"]
+requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]", "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]", "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]", "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"]
 tasks: ["[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]"]
 release: ""
 acceptance_exception: ""
@@ -33,7 +33,7 @@ The current action must show the most recent authored required state for its pla
 
 When the source action begins with the same screen name and `SUR` id already shown in the card heading, the visible action starts after that label. The authored line remains available in the source procedure, and exact expected results remain unchanged.
 
-The detailed product scenarios and acceptance criteria are in Your Trainer FEAT-0122. This feature owns the cockpit implementation of those criteria for any project-os workspace.
+The detailed criteria moved here from Your Trainer FEAT-0122 on 2026-09-24; they are listed under "Detailed criteria" below. This feature owns the page that meets them, for any project-os workspace.
 
 ## Acceptance
 
@@ -47,8 +47,50 @@ The detailed product scenarios and acceptance criteria are in Your Trainer FEAT-
 
 ## Links
 
-- Requirement: [[REQ-0066-The-Release-Walk-Keeps-Observation-Context]].
+- Requirements: [[REQ-0066-The-Release-Walk-Keeps-Observation-Context]], [[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]], [[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]], [[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]. REQ-0067 to REQ-0069 were Your Trainer REQ-0209 to REQ-0211 until 2026-09-24.
 - Tasks: [[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]], [[TASK-0630-Record-And-Resume-Walk-Observations]], [[TASK-0631-Verify-The-Guided-Walk]].
+
+## Detailed criteria (moved from Your Trainer FEAT-0122, 2026-09-24)
+
+Your Trainer FEAT-0122 wrote these criteria on 2026-09-16 and tracked them there until 2026-09-24. They describe the page and the generator, not Your Trainer, so they are checked here now. The letters are unchanged, so earlier evidence and change notes still point at the right criterion. The ticks are copied as they stood. The evidence for each met criterion is in Your Trainer FEAT-0122 under "Implementation evidence", and in this note's own evidence section below.
+
+Some criteria stayed in Your Trainer because only its procedure notes can meet them. A3, A5, A6 and A8 are the procedure audits in Your Trainer TASK-0960, and A7 is already met there. D4, Edwin's walk of Your Trainer's checks, is Your Trainer TASK-0923. This page is finished when every criterion below is met. The walk as a whole is finished when those Your Trainer criteria are met too.
+
+A1, A2 and A4 are delivered by the shared generator in project-os-dev FEAT-0033 (TASK-0125). This page only shows what the generator produces.
+
+### Instructions and readiness
+
+- [x] **A1 — Complete route to each observation.** With only the FREE-rides procedure's current steps 3 and 6 owed, the generated walk includes starting Sweet Spot Base and reaching its end. Those preparation actions write no verdict for settled checks.
+- [x] **A2 — Relevant setup.** With only the final language sweep owed, its setup contains no AI key, translation fixture, mail account or hosted-redirect requirement solely needed by omitted tests. Every remaining prerequisite can be traced to retained work.
+- [x] **A4 — Declared prerequisites.** Missing or cyclic dependencies are detected. The walk retains valid preparation in authored order and cannot silently drop an owed observation when its preparation is invalid.
+
+### Presentation and recording
+
+- [ ] **B1 — Survey first, without extra bookkeeping.** A fresh walk starts with changed screens and one selected comparison. Continue to tests requires no per-image reviewed ticks. Returning restores the last viewed screen when appropriate.
+- [x] **B2 — Correct comparison.** Child screens have the correct parent even when only the child changed. Distinct changes remain discoverable, before and after images are equally sized, and missing evidence is stated. Relevant images can also be opened beside the test step.
+- [ ] **B3 — Clear context and progress.** The page names release and platform. Start and Continue reflect saved position. The current session shows consecutive display positions, completed actions and the number needing attention, with source numbers and remaining check count secondary.
+- [ ] **B4 — Flexible focus.** One session step is expanded by default. Full setup, nearby steps and the full session are reachable without losing place or saved work. The main path contains no duplicate setup prose.
+- [ ] **B5 — One action for success.** Screen, action and exact owed expectations are visible beside Pass and next. One activation saves that step and advances. Next, Previous, preparation completion and keyboard navigation alone create no test verdict.
+- [ ] **B6 — Exceptions with context.** Something wrong reveals Fail, Partial and Question with required reasons. I can't perform this carries the affected checks and reason into the existing decision flow and returns to the same context. It cannot automatically pass, excuse or mark a check not applicable.
+- [ ] **B7 — Details remain accessible.** Check ids and titles, change note links, capture metadata, procedure paths, omitted-step explanations and per-check waiting information are available on demand. An actionable failure or unresolved question remains visible in the main path.
+- [x] **B8 — Correctable recording.** A saved step can be corrected, including after it contributed to a ledger verdict. History is preserved, accidental repeated activation produces no duplicate verdict event, and an intentional new run remains available.
+- [ ] **B9 — Honest completion.** Recording all runnable observations while another check is failed, questioned or unavailable leaves a needs-attention state and a clear unresolved summary. Viewing the survey or finishing navigation never clears the release gate.
+
+### Resume and evidence
+
+- [ ] **C1 — Restart without repeating valid observations.** Leave midway through a check cited by several steps, restart the cockpit and return. Its saved observations, evidence and selected step survive in the same workspace and storage context; the check is not passed prematurely.
+- [ ] **C2 — Restore required app state.** After changing the app's rider, trainer or workout while away, resume shows the state needed for the selected step and how to restore it. It does not claim to have verified the live state automatically.
+- [ ] **C3 — Recognise changed work.** Editing a step's action or expectation without changing its tags flags affected saved observations for review. A different platform or release cannot inherit them. A candidate change follows the existing invalidation rules and does not silently reuse invalid evidence.
+- [x] **C4 — Report persistence failures.** Refused local storage and a failed ledger write each produce a visible failure and retry path. The page distinguishes locally saved progress from a recorded verdict and does not advance past an unsaved observation as if successful.
+- [x] **C5 — Evidence at the point of observation.** A procedure that currently asks for a note or screenshot to be recalled later collects it at that step. The later comparison displays the evidence with its originating state, build and platform. Resume retains it; its presence does not automatically pass the comparison.
+- [x] **C6 — Timers assist observations.** A timed instruction offers a timer using the authored duration. Starting, finishing or interrupting it creates no verdict. The user can tell whether the required continuous observation needs restarting.
+- [ ] **C7 — Stable navigation.** Saving a mark does not unexpectedly move the reader, renumber the active card or hide a problem. When regenerated instructions alter the sequence, the page explains the change and restores the nearest valid position.
+
+### Agreement
+
+- [x] **D1 — One computed walk.** The cockpit and generated sheet agree on the survey hierarchy, session order, required preparation, observation steps, platform variants and owed checks for both platforms. Retained preparation does not enlarge the ledger's owed set.
+- [ ] **D2 — Verdict equivalence.** On ledger copies, run pass, partial, fail, question, correction and interrupted-check scenarios. Each yields the expected events under the existing combination rule; no incomplete multi-step check passes. Unchanged procedures produce the same verdicts as the previous flow.
+- [ ] **D3 — Existing boundaries.** No runtime prose inference, per-release authored worklist, new ledger schema, session time estimate or bulk pass is introduced. Required expectation wording remains validated against the source notes after corrections.
 
 ## Implementation evidence and remaining work
 
