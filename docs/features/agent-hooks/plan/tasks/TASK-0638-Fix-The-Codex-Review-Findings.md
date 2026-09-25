@@ -41,3 +41,9 @@ Each new test was checked by removing the code it guards and seeing it fail: six
 
 The interruption test reviewer A saw fail four times in a row passed 23 of 23 runs on a clean tree, alone and in random order with its sibling files.
 
+## Handoff, 2026-09-25, round 2 running
+
+**Done.** Every box is ticked and committed (2448690).
+
+**Next.** One round-2 reviewer is verifying the fixes from `review-packet.py FEAT-0019 --round 2 --since b5577ea`. If it answers *fixed*: set this task `done`, record round 2 on FEAT-0019 and FEAT-0027 and set both `done`, close PHASE-007, and clear the focus. If not, there is no round 3; the disagreement is adjudicated (QUALITY.md).
+
