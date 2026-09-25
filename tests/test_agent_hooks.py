@@ -725,3 +725,72 @@ def test_codex_children_preserve_parent_and_interrupt_holds_work(tmp_path: Path)
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def test_live_session_is_needs_input_then_busy_then_waiting(tmp_path: Path):
+    """FEAT-0019 review, 2026-09-25: the tracker's ordering had no test;
+    choosing the most recent session instead left every suite green."""
+    tracker = AgentSessionTracker(docs_root=_make_workspace(tmp_path))
+    tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "codex-1",
+                    "agent": "codex", "prompt": "fix"})
+    tracker.ingest({"hook_event_name": "PermissionRequest", "session_id": "codex-1",
+                    "agent": "codex", "tool_name": "Bash"})
+    tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "claude-1",
+                    "agent": "claude", "prompt": "review"})
+    tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "claude-2",
+                    "agent": "claude", "prompt": "plan"})
+    tracker.ingest({"hook_event_name": "Stop", "session_id": "claude-2", "agent": "claude"})
+    assert tracker.snapshot()["session"]["session_id"] == "codex-1"
+    tracker.ingest({"hook_event_name": "SessionEnd", "session_id": "codex-1", "agent": "codex"})
+    assert tracker.snapshot()["session"]["session_id"] == "claude-1"
+
+
+def test_a_codex_session_is_never_given_a_claude_cache_reading(tmp_path: Path, monkeypatch):
+    """FEAT-0019 review, 2026-09-25: the strip says `cache unknown` for Codex
+    because no supported source exists (TASK-0636). Removing the agent gate
+    left every suite green."""
+    from project_os_cockpit import agent_hooks
+
+    class Reading:
+        def as_dict(self):
+            return {"state": "warm"}
+
+    monkeypatch.setattr(agent_hooks.session_cache, "live_state", lambda _path: Reading())
+    transcript = str(tmp_path / "transcript.jsonl")
+    tracker = AgentSessionTracker(docs_root=_make_workspace(tmp_path))
+    tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "codex-1",
+                    "agent": "codex", "prompt": "fix", "transcript_path": transcript})
+    assert "cache" not in tracker.snapshot()
+    tracker.ingest({"hook_event_name": "SessionEnd", "session_id": "codex-1", "agent": "codex"})
+    tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "claude-1",
+                    "agent": "claude", "prompt": "review", "transcript_path": transcript})
+    assert tracker.snapshot()["cache"] == {"state": "warm"}
+
+
+
+def test_a_multi_file_codex_patch_reports_one_file_in_file_and_rel(tmp_path: Path):
+    """FEAT-0019 review, 2026-09-25: a later path outside docs/ used to keep
+    an earlier path's `rel`, so `file` and `rel` named different files."""
+    docs = _make_workspace(tmp_path)
+    (tmp_path / "src").mkdir()
+    tracker = AgentSessionTracker(docs_root=docs)
+    tracker.ingest({
+        "hook_event_name": "PostToolUse", "session_id": "codex-1", "agent": "codex",
+        "cwd": str(tmp_path), "tool_name": "apply_patch",
+        "tool_input": {"command": "*** Begin Patch\n*** Update File: docs/README.md\n@@\n"
+                                  "*** Update File: src/app.py\n@@\n*** End Patch"},
+    })
+    activity = tracker.snapshot()["activity"]
+    assert activity["file"].endswith("src/app.py")
+    assert "rel" not in activity
+
+
+def test_a_child_agent_id_is_capped(tmp_path: Path):
+    """FEAT-0019 review, 2026-09-25: `subagent_id` was stored uncapped while
+    `session_id` is cut to 128 characters."""
+    tracker = AgentSessionTracker(docs_root=_make_workspace(tmp_path))
+    tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "codex-1",
+                    "agent": "codex", "prompt": "fix"})
+    tracker.ingest({"hook_event_name": "SubagentStart", "session_id": "codex-1",
+                    "agent": "codex", "agent_id": "x" * 500, "agent_type": "worker"})
+    assert len(tracker.snapshot()["activity"]["subagent_id"]) == 128

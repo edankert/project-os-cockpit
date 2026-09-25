@@ -7,10 +7,11 @@ status: doing
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-09-23
-reviewed_by: "model:claude-opus"
-review_date: 2026-07-20
-review_verdict: approved
+updated: 2026-09-25
+reviewed_by: "model:claude-opus-5 (two independent-reviewer subagents, clean context; the 2026-07-20 review was model:claude-opus)"
+review_date: 2026-09-25
+review_round: 1
+review_verdict: changes-requested
 verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Claude sessions in ANY terminal light the rail dots: a cockpit-managed hook installed into the user's ~/.claude/settings.json — gated by an explicit enable/disable toggle in the new cockpit settings panel — POSTs to the workspace sidecar when one runs (full pipeline) and writes .cockpit/agent-state.json directly otherwise; desktop sidecars now write discovery files (fixing cockpit CLI against the desktop app), and the poller decays stale external state."
 requirements: []
@@ -60,3 +61,7 @@ The feature remains doing because TST-0011's complete live checklist is open, in
 A separate default-off setting installs native entries in `$CODEX_HOME/hooks.json` (otherwise `~/.codex/hooks.json`). Enabling writes a one-time backup; refresh is idempotent; disabling removes only the exact cockpit command, preserving other handlers even within the same group. Invalid JSON or hook groups are refused. The existing shared Python forwarder labels Codex events, prefers the workspace sidecar, and uses an atomic state-file fallback. Interruption remains held across late tool completion in both paths. Normal hook trust and COCKPIT_NO_INSTRUMENT apply.
 
 Acceptance for this extension: enable, refresh and disable preserve user configuration; the real external CLI signals the correct workspace; duplicate embedded/user forwarding produces one activity; fallback reports state without a sidecar. TST-0015 and the desktop Codex hook tests cover the automated parts; TST-0011 records live coverage separately.
+
+## Review
+
+Round 1, 2026-09-25: one review shared with FEAT-0019, covering the Codex work since 2026-07-20. **Combined verdict: changes-requested.** The full table is in [[FEAT-0019]]'s `## Review` section. For this feature: the external Codex toggle's install, refresh, removal, backup and malformed-file refusal hold, and external forwarding with the no-sidecar fallback holds. The capability register has no row for the new toggle, which is refuted and fixed under [[TASK-0638]].

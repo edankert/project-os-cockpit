@@ -204,7 +204,15 @@ async function deliver(
     // Finish the paste, let its input loop consume it, then submit separately.
     await new Promise((resolve) => setTimeout(resolve, 200));
     if (!writeToPty(workspaceId, '\r')) {
-      return { queued: false, warning: 'terminal closed before Codex submission' };
+      // The terminal closed between the paste and its Return, so nothing
+      // was submitted. Put the item back rather than drop it (FEAT-0019
+      // review, 2026-09-25), exactly as when no terminal is open.
+      const q = queueOf(workspaceId);
+      q.unshift(item);
+      q.splice(QUEUE_MAX);
+      persistSoon();
+      broadcastQueue(workspaceId);
+      return { queued: true, warning: 'terminal closed before Codex submission — queued again' };
     }
   }
   recordLedger(workspaceId, item);

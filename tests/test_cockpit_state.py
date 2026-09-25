@@ -338,3 +338,39 @@ def test_unknown_post_drains_body_to_keep_connection_synced(tmp_path):
     finally:
         httpd.shutdown()
         httpd.server_close()
+
+
+def _ticking_clock(monkeypatch):
+    """Hook rows one second apart, so an ordering by time alone is visible."""
+    import datetime as dt
+    start = dt.datetime.now(dt.timezone.utc)
+    ticks = iter(range(1000))
+    monkeypatch.setattr(
+        server_module, "_utc_now_iso",
+        lambda: (start + dt.timedelta(seconds=next(ticks))).isoformat().replace("+00:00", "Z"))
+
+
+def test_manual_signal_clears_the_hook_sessions(monkeypatch):
+    """FEAT-0019 review, 2026-09-25: without the clear, a waiting row from
+    before the manual signal came back in the next hook event's attention."""
+    _ticking_clock(monkeypatch)
+    state = CockpitState()
+    state.record_agent_hook_state("waiting", session_id="claude-1", agent="claude")
+    state.record_agent_state("busy")
+    payload = state.record_agent_hook_state("busy", session_id="codex-1", agent="codex")
+    assert payload["attention"] == []
+    assert list(payload["hook_sessions"]) == ["codex-1"]
+
+
+def test_hook_headline_is_needs_input_then_busy_then_waiting(monkeypatch):
+    """FEAT-0019 review, 2026-09-25: the ordering had no test; choosing the
+    most recent session instead left every suite green."""
+    _ticking_clock(monkeypatch)
+    state = CockpitState()
+    state.record_agent_hook_state("needs-input", session_id="a", agent="claude")
+    state.record_agent_hook_state("busy", session_id="b", agent="codex")
+    payload = state.record_agent_hook_state("waiting", session_id="c", agent="claude")
+    assert (payload["state"], payload["session_id"]) == ("needs-input", "a")
+    payload = state.record_agent_hook_state("waiting", session_id="a", agent="claude")
+    assert (payload["state"], payload["session_id"]) == ("busy", "b")
+

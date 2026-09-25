@@ -160,6 +160,19 @@ test('attentionIds: a waiting Claude session remains visible while Codex works',
   assert.deepEqual(Array.from(attentionIds([['mixed', state]], at(2 * HOUR))), []);
 });
 
+test('attentionIds: a decayed busy headline keeps another session\'s waiting row until it goes cold', () => {
+  // FEAT-0019 review, 2026-09-25. Only `busy` decays (after 10 minutes). A
+  // waiting or needs-input row leaves Needs you when it goes cold at 60
+  // minutes, as a single session's did before mixed sessions existed.
+  const decayed = (attention) => ({
+    ts: '2026-08-06T12:10:00Z', state: 'idle', decayed_from: 'busy', agent: 'codex', attention,
+  });
+  const waiting = [{ ts: '2026-08-06T12:00:00Z', state: 'waiting', agent: 'claude' }];
+  assert.deepEqual(Array.from(attentionIds([['ws', decayed(waiting)]], at(30 * 60 * 1000))), ['ws']);
+  assert.deepEqual(Array.from(attentionIds([['ws', decayed(waiting)]], at(61 * 60 * 1000))), []);
+  assert.deepEqual(Array.from(attentionIds([['ws', decayed([])]], at(30 * 60 * 1000))), []);
+});
+
 test('attentionIds: the 211-hour entries from ISS-0105 are gone', () => {
   const states = [
     ['recent', { ts: '2026-08-06T12:00:00Z', state: 'waiting' }],

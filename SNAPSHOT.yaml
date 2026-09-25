@@ -78,7 +78,7 @@ counters:
   # A place in the product a check's area: names (TASK-0514).
   SUR: 6
   REL: 1
-  TASK: 637
+  TASK: 638
   TST: 91
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -97,7 +97,8 @@ focus:
   # 2026-09-25, later still: FEAT-0151 review round 1 returned changes-requested (a hold that arrives after a mark does not stop the write). TASK-0631 reopens for the five fixes; TASK-0633 waits.
   # 2026-09-25, close: FEAT-0151 is done after an approved round-2 review; REQ-0066..0069 implemented; PHASE-043 closed again. Focus returns to TASK-0633 (Codex live walk).
   # 2026-09-25, later: Edwin re-ran TST-0011 live and all 13 rows passed. TASK-0633/0634/0635 are done, ISS-0312 is fixed, and every PHASE-007 exit criterion is ticked. FEAT-0019 and FEAT-0027 are in their shared independent review; the handoff is in the FEAT-0019 note. No task is in flight.
-  task: ""
+  # 2026-09-25, review: the FEAT-0019/FEAT-0027 shared review returned changes-requested; TASK-0638 fixes the findings.
+  task: "TASK-0638"
   # TASK-0631 ran the actual walk in isolated Electron on copied Your Trainer docs and ledgers: Android survey, step advance, reload, blocked action, interrupted timer and uploaded PNG comparison worked. Review results now lists all 39 owed Android checks instead of hiding ten expired prior-release excuses. The iOS route loads 327 owed rows but has no open release id. Eighty focused renderer tests, the full desktop suite, 47 Python walk tests and docs gates pass; human and full iOS walks remain open.
   # TASK-0629 is correcting a full Electron walk finding: the session-wide readiness list stays expanded and repeats the current warning, and Walk options lacks a direct step picker. The isolated browser uses copied Your Trainer docs and ledgers.
   # TASK-0629 moved occasional walk navigation under Walk options and sitting state/equipment into required setup. The focused renderer suite passes 77 cases, and standalone Chrome rendered the current Android payload at desktop and narrow widths. Full Electron and Edwin walks remain open.
@@ -872,7 +873,7 @@ items:
       status: doing
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/agent-hooks/FEAT-0019-Agent-Hook-Ingestion.md"
-      tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0183", "TASK-0633", "TASK-0634", "TASK-0636", "TASK-0637"]
+      tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0183", "TASK-0633", "TASK-0634", "TASK-0636", "TASK-0637", "TASK-0638"]
       issues: ["ISS-0312"]
       note: "2026-09-23: Codex parity follow-up authorised by \"Continue as suggested.\" Historical reviews cover the previous scope; new work needs fresh evidence."
     FEAT-0027:
@@ -922,6 +923,13 @@ items:
       parent: "FEAT-0019"
       depends: []
       related: ["ISS-0312", "RISK-0004"]
+    TASK-0638:
+      file: "docs/features/agent-hooks/plan/tasks/TASK-0638-Fix-The-Codex-Review-Findings.md"
+      title: "Fix what the FEAT-0019 and FEAT-0027 review found in the Codex work"
+      status: doing
+      phase: "[[PHASE-007-Agent-Instrumentation]]"
+      parent: "FEAT-0019"
+      depends: []
     TASK-0636:
       file: "docs/features/agent-hooks/plan/tasks/TASK-0636-Identify-A-Codex-Session-Usage-Source.md"
       title: "Identify a supported Codex session usage source"
@@ -3919,7 +3927,7 @@ items:
       validates: ["TASK-0076", "TASK-0077", "TASK-0078", "FEAT-0013"]
     TST-0010:
       title: "Agent-hook ingestion — endpoint, state mapping, sessions, provenance"
-      status: passing
+      status: active
       path: "docs/features/agent-hooks/plan/tests/TST-0010-Agent-Hook-Ingestion.md"
     TST-0011:
       title: "Live-session instrumentation + activity surfaces — manual checklist"
@@ -3939,7 +3947,7 @@ items:
       path: "docs/features/dispatch-runtime/plan/tests/TST-0014-Dispatch-Ledger.md"
     TST-0015:
       title: "External agent-state hook — no-op scoping, state mapping, sidecar POST, fallback"
-      status: passing
+      status: active
       path: "docs/features/external-signal/plan/tests/TST-0015-External-Hook.md"
     TST-0016:
       title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
@@ -3948,7 +3956,7 @@ items:
       validates: ["TASK-0111", "TASK-0113", "FEAT-0018"]
     TST-0017:
       title: "Sidecar identity guard — foreign-cwd rejection, identity endpoint, external-hook fallback"
-      status: passing
+      status: active
       path: "docs/features/external-signal/plan/tests/TST-0017-Sidecar-Identity-Guard.md"
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
@@ -4732,10 +4740,10 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 153
     features_done: 134
-    tasks_total: 631
+    tasks_total: 632
     tasks_done: 595
     tests_total: 51
-    tests_passing: 5
+    tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0

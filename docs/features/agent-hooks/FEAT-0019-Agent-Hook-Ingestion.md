@@ -7,14 +7,15 @@ status: doing
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-09-23
-reviewed_by: "model:claude-opus"
-review_date: 2026-07-20
-review_verdict: approved
+updated: 2026-09-25
+reviewed_by: "model:claude-opus-5 (two independent-reviewer subagents, clean context; the 2026-07-20 review was model:claude-opus)"
+review_date: 2026-09-25
+review_round: 1
+review_verdict: changes-requested
 verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Agent lifecycle signals (busy/waiting/needs-input, current prompt, files touched, cost/context) flow into the cockpit automatically when Claude Code or Codex runs inside the embedded terminal — no voluntary cockpit-signal calls needed."
 requirements: []
-tasks: ["[[TASK-0114]]", "[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0117]]", "TASK-0183", "[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0636]]", "[[TASK-0637]]"]
+tasks: ["[[TASK-0114]]", "[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0117]]", "TASK-0183", "[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0636]]", "[[TASK-0637]]", "[[TASK-0638]]"]
 related: ["[[FEAT-0013-Agent-State-Signal]]", "[[RISK-0004-Hook-Injection-Surface]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0312]]", "[[CHG-20260916-Document-Codex-integration-gap-and-path-to-Claude-parity]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
 waiver_expires: 2026-10-23
 
@@ -49,7 +50,7 @@ Launching `claude` or `codex` inside the embedded terminal instruments the sessi
 
 - Starting `claude` in the embedded terminal and submitting a prompt flips the rail dot to busy without any `cockpit signal` call; a permission prompt flips it to needs-input and raises the existing OS notification path; `Stop` flips it to waiting.
 - Codex native events report busy, approval, waiting and exit; child events preserve parent state, interruption holds queued work, and queued prompts actually submit. Complete live verification remains in [[TST-0011]].
-- The user's `~/.claude` and `~/.codex` configurations are not modified; running `claude` outside the cockpit terminal behaves exactly as before.
+- The embedded terminal never modifies the user's `~/.claude` or `~/.codex` configuration, and running `claude` or `codex` outside the cockpit behaves exactly as before. The exception is opt-in and belongs to [[FEAT-0027]]: its external-terminal toggles write the cockpit's own entries into `~/.claude/settings.json` and `~/.codex/hooks.json` while they are on. *(Reworded 2026-09-25 after the review found the old wording false once either toggle is on.)*
 - Malformed or oversized POSTs to `/api/agent-hook` are rejected without disturbing state; payload content is never rendered as HTML.
 - `cockpit signal busy` from an external terminal still works and still decays per the existing rules.
 
@@ -65,7 +66,7 @@ The snapshot retains this feature's July `done` status and its recorded verifica
 
 ## Codex follow-up — 2026-09-16
 
-The cockpit wrapper now passes seven native Codex hook definitions for this launch only. Their command reads the original hook JSON on stdin and posts it to the workspace sidecar with `agent=codex`. The existing `notify` command remains a fallback. Codex's normal hook trust review still applies. The wrapper does not write to `~/.codex` or replace project hooks.
+The cockpit wrapper now passes seven native Codex hook definitions for this launch only. Their command reads the original hook JSON on stdin and posts it to the workspace sidecar with `agent=codex`. The existing `notify` command remains a fallback. *(Superseded 2026-09-23: new launchers pass ten native hooks and no `notify` command; see TASK-0634.)* Codex's normal hook trust review still applies. The wrapper does not write to `~/.codex` or replace project hooks.
 
 The sidecar keeps state per session before choosing one project headline. A waiting Claude session no longer masks an active Codex turn. Codex `apply_patch` file paths are read only from patch headers after the tool completes. [[TST-0011]] still needs a live Codex walk in the embedded terminal.
 
@@ -89,3 +90,27 @@ The feature remains doing because TST-0011's complete live checklist is open, in
 
 **Next.** Combine the two reports into a `## Review` section here and on FEAT-0027, and fix every finding about code these features changed. Then set both features `done`, record the verdict on TST-0010, TST-0011, TST-0015 and TST-0017, and close PHASE-007.
 
+## Review
+
+Round 1, 2026-09-25: one shared review of FEAT-0019 and FEAT-0027, with two reviewers on the same packet. It covers the Codex work since the 2026-07-20 review: `1d16f08` and `9ecdeb6`. **Combined verdict: changes-requested.**
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Codex native events report busy, approval, waiting and exit | holds | Both reviewers: `test_claude_waiting_does_not_hide_busy_codex_session` and the ten `hooks.<Event>=` flags asserted in `codex-shell-exit.test.mjs`. |
+| 2 | Child events preserve parent state; interruption holds queued work; queued prompts submit | holds | Both broke the interrupt hold (Python and generated script) and a test failed each time. Reviewer A deleted the Return write in `dispatch-queue.ts` and `codex-dispatch.test.mjs` failed. |
+| 3 | `~/.claude` and `~/.codex` are not modified | holds for the embedded path; the wording is wrong | Codex hooks are per-launch `-c` flags. FEAT-0027's opt-in toggle does write `~/.codex/hooks.json`, and this criterion does not say so. |
+| 4 | Malformed or oversized POSTs are rejected; payloads are never rendered as HTML | holds | The validation tests pass; the diff adds no `innerHTML`. |
+| 5 | `cockpit signal busy` still decays per the existing rules | holds; reviewer A's refutation is not accepted | Reviewer A showed a decayed payload keeps a workspace in Needs you for up to 60 minutes when it carries a waiting row. Only `busy` decays (`DECAYABLE` and `_AGENT_DECAYABLE_STATES` are both `{busy}`). A `waiting` or `needs-input` state has always left Needs you when it goes cold at 60 minutes, including before `1d16f08`. The row that stays is another session's waiting row, which is the rule applied to mixed sessions. Reviewer B read it the same way. A test now pins it (TASK-0638). |
+| 6 | Hook state wins over manual `cockpit signal` while a session is live | **refuted as tested** | Reviewer B: removing `if source == "manual": self._hook_states.clear()` leaves 46 tests green. |
+| 7 | The headline session is chosen needs-input over busy over waiting | **refuted as tested** | Reviewer A: replacing the ordering with "most recent" leaves 52 tests green; the ordering exists twice. |
+| 8 | Codex sessions show "cache unknown" rather than a Claude cache reading | **refuted as tested** | Reviewer B: removing the `agent == "claude"` gate on the cache reading leaves the suites green. |
+| 9 | The external Codex toggle installs and removes only cockpit entries, with a backup, refusing malformed files | holds | Reviewer A broke the handler-group filter and `codex-external-hooks.test.mjs` failed; reviewer B confirmed the malformed-input and regrouped-handler cases. |
+| 10 | Every capability change updates the capability register | **refuted** | Reviewer B: `9ecdeb6` adds a settings toggle and native-hook instrumentation, and the register has no row for either. |
+
+Reviewer A also reported the interruption test failing four times in a row and then passing fifteen. On a clean tree it passed 23 of 23 runs, alone and in random order with its sibling files. The failures match the window in which reviewer B had deleted that same guard in the shared working tree, so this is not a defect.
+
+Other observations, and what happens to each:
+
+- **Fixed in TASK-0638.** A child agent's id is not length-capped. A multi-file Codex patch can report a `file` and a `rel` naming different files. A failed Return after a pasted prompt drops the queued item. FEAT-0019 still says `notify` remains a fallback.
+- **Checked, no change needed.** The interrupt hold also runs on ignored events. `interrupted` is only set together with `needs-input`, so it rewrites a state that is already `needs-input`. `_codex_patch_paths` stops at `FILES_MAX`, and the session list is trimmed to `FILES_MAX` as well.
+- **Recorded, not changed.** Uninstall matches entries by the script path, so moving the app's data folder would orphan them. That is the July design for Claude too, not this work. The 200 ms pause between paste and Return is a fixed wait that a faked terminal cannot test; the live run passed it. The launcher-flag test skips on hosts without `/bin/zsh`, and the cockpit only runs on macOS.

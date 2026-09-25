@@ -434,8 +434,13 @@ class AgentSessionTracker:
                         ):
                             rel = self._record_file_locked(sess, patch_path)
                             activity["file"] = patch_path
+                            #: `file` and `rel` name the same file. A later
+                            #: path outside docs/ used to leave an earlier
+                            #: path's `rel` behind (FEAT-0019 review, 2026-09-25).
                             if rel is not None:
                                 activity["rel"] = rel
+                            else:
+                                activity.pop("rel", None)
                 # A tool event means the agent is actively working —
                 # refresh busy so long tasks don't decay mid-flight.
                 state = "busy"
@@ -520,7 +525,8 @@ class AgentSessionTracker:
                     activity["subagent"] = agent_type
                 child_id = body.get("agent_id")
                 if isinstance(child_id, str) and child_id:
-                    activity["subagent_id"] = child_id
+                    #: Capped like `session_id` (FEAT-0019 review, 2026-09-25).
+                    activity["subagent_id"] = child_id[:128]
             else:
                 # Unknown / future event: log-and-drop (RISK-0004 —
                 # schema drift must never break ingestion).
