@@ -84,3 +84,11 @@ It also found one thing left as it is. 176 quoted expectations (76 Android, 100 
 
 FEAT-0151's round-1 review returned changes-requested. The five findings listed in the feature's `## Review` section are fixed under this task, because they are about the verification and the code it checked. The task closes again when they are fixed and round 2 has verified them.
 
+## Handoff, 2026-09-25, round 2 running
+
+**Done.** All five round-1 findings are fixed and committed (868e7ef, notes in de76ae3 and 321a027). The desktop suite passes 241 of 243 with 2 corpus skips, and the Python suite 2,199 with 6 skipped.
+
+**Next.** One round-2 reviewer is verifying the fixes from `review-packet.py FEAT-0151 --round 2 --since 0a2fcab`. If it answers *fixed* for the refuted claim: set this task `done`, write `review_round: 2` and its verdict on FEAT-0151, set FEAT-0151 `done` and REQ-0066 to REQ-0069 `implemented`, close PHASE-043 if nothing under it is open, and return focus to TASK-0633. If it answers *not fixed*, there is no round 3: the disagreement is adjudicated (QUALITY.md).
+
+**Set aside.** Showing quoted expectations without their `**` markers waits for Edwin (see FEAT-0151's handoff).
+
