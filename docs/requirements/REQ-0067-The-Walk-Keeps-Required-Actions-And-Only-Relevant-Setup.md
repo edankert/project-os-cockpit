@@ -6,7 +6,7 @@ status: approved
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-09-25
 source: ["Your Trainer REQ-0209, moved here 2026-09-24. Edwin: 'Make the changes as suggested. move them to the cockpit as suggested.'"]
 priority: high
 scope: "Release walk page in any project-os workspace, reading the shared walk generator (project-os-dev FEAT-0033)"
@@ -32,9 +32,9 @@ The letters in the evidence column (A1, B5 and so on) are the detailed criteria 
 ## Acceptance Criteria
 
 - [x] Required preparation is retained without a verdict for settled checks — evidence: FEAT-0151 detailed criteria A1 and A4 are met. The generator retains the actions, and the page shows them with Continue and no verdict. The tests are listed under "Implementation evidence, 2026-09-16" in Your Trainer FEAT-0122.
-- [ ] Only setup needed by owed observations and their prerequisites is shown — evidence: A2 is met. A3 waits on the Your Trainer procedure audit (Your Trainer TASK-0960).
-- [ ] Invalid dependencies and contradictory state remain visible without losing owed checks — evidence: A4 is met. A5 and A6 are open: the page shows declared readiness, and the procedures still need declarations (Your Trainer TASK-0960).
-- [ ] Platform instructions and fallback remain complete — evidence: D1 is met. A8 is open until the Your Trainer platform audit is done.
+- [x] Only setup needed by owed observations and their prerequisites is shown — evidence: A2 is met here. A3 is met by Your Trainer TASK-0960, done 2026-09-24 and ticked in Your Trainer FEAT-0122.
+- [x] Invalid dependencies and contradictory state remain visible without losing owed checks — evidence: A4 is met here. A5 and A6 are met by Your Trainer TASK-0960 (2026-09-24). On 2026-09-25 every owed check on both platforms sat in a procedure, and the 53 held by a declared readiness problem stayed owed (TASK-0631, D2).
+- [x] Platform instructions and fallback remain complete — evidence: D1 is met here. A8 is met by Your Trainer TASK-0960 (2026-09-24).
 
 A criterion is ticked only when every letter it names is met.
 
