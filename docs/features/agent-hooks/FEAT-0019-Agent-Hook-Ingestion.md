@@ -80,3 +80,12 @@ The user authorized the September 23 review recommendations with “Continue as 
 The historical review and waiver do not certify this extension. Implementation evidence is in [the parity verification report](../../reference/codex-parity-verification-2026-09-23.md). The full Python suite passed 2,197 tests with six skips; the desktop suite passed 224 with one skip on 2026-09-23. Focused interruption tests also pass. Commands: `.venv/bin/python -m pytest -q`; `cd desktop && npm run build && node --test tests/*.test.mjs`.
 
 The feature remains doing because TST-0011's complete live checklist is open, including a real mixed Claude/Codex screen. Fresh independent review remains owed before feature completion. No new verification waiver was granted.
+
+## Handoff, 2026-09-25
+
+**Done.** Edwin re-ran [[TST-0011]] live on 2026-09-25 and all 13 rows passed. Every task under this feature and FEAT-0027 is done, ISS-0312 is fixed, TST-0010, TST-0015 and TST-0017 pass on their own commands, and PHASE-007's exit criteria are all ticked (cfb53b0).
+
+**In flight.** One shared independent review of this feature and FEAT-0027, with two reviewers on the same packet. It covers the Codex work since the 2026-07-20 review: `1d16f08` and `9ecdeb6`, 2,646 diff lines. The packet leaves out template syncs, bundled copies and notes that the packet tool picked up by commit subject.
+
+**Next.** Combine the two reports into a `## Review` section here and on FEAT-0027, and fix every finding about code these features changed. Then set both features `done`, record the verdict on TST-0010, TST-0011, TST-0015 and TST-0017, and close PHASE-007.
+
