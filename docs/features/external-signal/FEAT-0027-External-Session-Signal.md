@@ -3,22 +3,23 @@ type: "[[feature]]"
 id: FEAT-0027
 aliases: ["FEAT-0027"]
 title: "External session signal — opt-in user hook, settings panel, desktop discovery files"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
 updated: 2026-09-25
 reviewed_by: "model:claude-opus-5 (two independent-reviewer subagents, clean context; the 2026-07-20 review was model:claude-opus)"
 review_date: 2026-09-25
-review_round: 1
+review_round: 2
 review_verdict: changes-requested
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
+review_response: "Round 2 (2026-09-25) found eight of nine fixes verified. The ninth, the tracker's needs-input > busy > waiting ordering, still passed under a most-recent mutant because the new test recorded all four events in one millisecond. The test now ticks one second per event, and both the reviewer's mutant and candidates[-1] fail it. The shipped ordering code was already correct."
+review_response_date: 2026-09-25
 goal: "Claude sessions in ANY terminal light the rail dots: a cockpit-managed hook installed into the user's ~/.claude/settings.json — gated by an explicit enable/disable toggle in the new cockpit settings panel — POSTs to the workspace sidecar when one runs (full pipeline) and writes .cockpit/agent-state.json directly otherwise; desktop sidecars now write discovery files (fixing cockpit CLI against the desktop app), and the poller decays stale external state."
 requirements: []
 tasks: ["[[TASK-0141]]", "[[TASK-0142]]", "[[TASK-0143]]", "[[TASK-0635]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[RISK-0004-Hook-Injection-Surface]]", "[[ISS-0003-Hook-Path-Space]]"]
-waiver_expires: 2026-10-23
 
+acceptance_exception: "Its acceptance is TST-0011 row 12, the external-terminal toggle, which Edwin walked live on 2026-09-25 and which passed. The toggle writes to the user's own configuration files, so it is walked by a person rather than kept as a standing acceptance check."
 ---
 
 # External session signal
@@ -65,3 +66,9 @@ Acceptance for this extension: enable, refresh and disable preserve user configu
 ## Review
 
 Round 1, 2026-09-25: one review shared with FEAT-0019, covering the Codex work since 2026-07-20. **Combined verdict: changes-requested.** The full table is in [[FEAT-0019]]'s `## Review` section. For this feature: the external Codex toggle's install, refresh, removal, backup and malformed-file refusal hold, and external forwarding with the no-sidecar fallback holds. The capability register has no row for the new toggle, which is refuted and fixed under [[TASK-0638]].
+
+Round 2, 2026-09-25: this feature's finding, the capability register, is fixed. The round's one open item is FEAT-0019's tracker ordering test, answered there.
+
+## Waiver retired, 2026-09-25
+
+This feature carried the 2026-07-20 waiver of [[TST-0011]]. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

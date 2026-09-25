@@ -727,9 +727,19 @@ def test_codex_children_preserve_parent_and_interrupt_holds_work(tmp_path: Path)
         httpd.server_close()
 
 
-def test_live_session_is_needs_input_then_busy_then_waiting(tmp_path: Path):
+def test_live_session_is_needs_input_then_busy_then_waiting(tmp_path: Path, monkeypatch):
     """FEAT-0019 review, 2026-09-25: the tracker's ordering had no test;
-    choosing the most recent session instead left every suite green."""
+    choosing the most recent session instead left every suite green.
+
+    Events one second apart, so "most recent" gives a different answer.
+    Round 2 found the first version recorded all four in one millisecond,
+    where a most-recent mutant tied and fell back to insertion order."""
+    import datetime as dt
+    from project_os_cockpit import agent_hooks
+    start = dt.datetime.now(dt.timezone.utc)
+    ticks = iter(range(1000))
+    monkeypatch.setattr(agent_hooks, "_utc_now_iso", lambda: (
+        start + dt.timedelta(seconds=next(ticks))).isoformat(timespec="milliseconds"))
     tracker = AgentSessionTracker(docs_root=_make_workspace(tmp_path))
     tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "codex-1",
                     "agent": "codex", "prompt": "fix"})

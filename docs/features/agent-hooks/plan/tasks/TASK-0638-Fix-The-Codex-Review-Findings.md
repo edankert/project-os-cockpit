@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: "TASK-0638"
 title: "Fix what the FEAT-0019 and FEAT-0027 review found in the Codex work"
-status: "doing"
+status: "done"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: "user:edwin"
 created: "2026-09-25"
@@ -46,4 +46,8 @@ The interruption test reviewer A saw fail four times in a row passed 23 of 23 ru
 **Done.** Every box is ticked and committed (2448690).
 
 **Next.** One round-2 reviewer is verifying the fixes from `review-packet.py FEAT-0019 --round 2 --since b5577ea`. If it answers *fixed*: set this task `done`, record round 2 on FEAT-0019 and FEAT-0027 and set both `done`, close PHASE-007, and clear the focus. If not, there is no round 3; the disagreement is adjudicated (QUALITY.md).
+
+## Closed, 2026-09-25
+
+Round 2 verified eight of the nine fixes. The ninth was this task's own test: `test_live_session_is_needs_input_then_busy_then_waiting` recorded four events in one millisecond, so a most-recent mutant tied and passed. It now ticks the clock one second per event, and fails under both the reviewer's mutant and `candidates[-1]`.
 

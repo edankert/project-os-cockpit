@@ -3,21 +3,21 @@ type: "[[feature]]"
 id: FEAT-0019
 aliases: ["FEAT-0019"]
 title: "Agent hook ingestion — auto-instrumented terminal sessions"
-status: doing
+status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
 updated: 2026-09-25
 reviewed_by: "model:claude-opus-5 (two independent-reviewer subagents, clean context; the 2026-07-20 review was model:claude-opus)"
 review_date: 2026-09-25
-review_round: 1
+review_round: 2
 review_verdict: changes-requested
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
+review_response: "Round 2 (2026-09-25) found eight of nine fixes verified. The ninth, the tracker's needs-input > busy > waiting ordering, still passed under a most-recent mutant because the new test recorded all four events in one millisecond. The test now ticks one second per event, and both the reviewer's mutant and candidates[-1] fail it. The shipped ordering code was already correct."
+review_response_date: 2026-09-25
 goal: "Agent lifecycle signals (busy/waiting/needs-input, current prompt, files touched, cost/context) flow into the cockpit automatically when Claude Code or Codex runs inside the embedded terminal — no voluntary cockpit-signal calls needed."
 requirements: []
 tasks: ["[[TASK-0114]]", "[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0117]]", "TASK-0183", "[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0636]]", "[[TASK-0637]]", "[[TASK-0638]]"]
 related: ["[[FEAT-0013-Agent-State-Signal]]", "[[RISK-0004-Hook-Injection-Surface]]", "[[FEAT-0020-Agent-Activity-Surfaces]]", "[[ISS-0312]]", "[[CHG-20260916-Document-Codex-integration-gap-and-path-to-Claude-parity]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -114,3 +114,23 @@ Other observations, and what happens to each:
 - **Fixed in TASK-0638.** A child agent's id is not length-capped. A multi-file Codex patch can report a `file` and a `rel` naming different files. A failed Return after a pasted prompt drops the queued item. FEAT-0019 still says `notify` remains a fallback.
 - **Checked, no change needed.** The interrupt hold also runs on ignored events. `interrupted` is only set together with `needs-input`, so it rewrites a state that is already `needs-input`. `_codex_patch_paths` stops at `FILES_MAX`, and the session list is trimmed to `FILES_MAX` as well.
 - **Recorded, not changed.** Uninstall matches entries by the script path, so moving the app's data folder would orphan them. That is the July design for Claude too, not this work. The 200 ms pause between paste and Return is a fixed wait that a faked terminal cannot test; the live run passed it. The launcher-flag test skips on hosts without `/bin/zsh`, and the cockpit only runs on macOS.
+
+### Round 2
+
+2026-09-25, one reviewer, 13 of 15 calls. **Verdict: changes-requested**, on one part of one finding.
+
+| # | Round-1 finding | Verdict | Evidence |
+|---|---|---|---|
+| 6 | A manual signal clears the hook sessions | fixed | Deleting the clear fails `test_manual_signal_clears_the_hook_sessions`. |
+| 7a | Headline ordering, `server.py` | fixed | `priority = {}` fails `test_hook_headline_is_needs_input_then_busy_then_waiting` and two others. |
+| 7b | Headline ordering, the tracker | **not fixed** | A most-recent `max` still passed: the test's four events landed in one millisecond, so the mutant tied and fell back to insertion order. |
+| 8 | Codex gets no Claude cache reading | fixed | Removing the gate fails `test_a_codex_session_is_never_given_a_claude_cache_reading`. |
+| 10 | Capability register | fixed | `shell.agents.codex`, the toggle on `shell.settings`, and a dated drift line. |
+| 3 | Criterion wording about `~/.codex` | fixed | Line 53 states the opt-in exception. |
+| — | Re-queue after a failed Return; `subagent_id` cap; `file`/`rel` | fixed | Reverting each fails its test. |
+
+**Response.** 7b was a test defect, not a code defect, and there is no round 3 (QUALITY.md). The test now ticks the tracker's clock one second per event. Both the reviewer's mutant (`max` by `last_event`) and `candidates[-1]` fail it, and `tests/test_agent_hooks.py` passes 27. The verdict above stays as the reviewer wrote it; `review_response` records the answer.
+
+## Waiver retired, 2026-09-25
+
+This feature carried the 2026-07-20 waiver of [[TST-0011]]. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

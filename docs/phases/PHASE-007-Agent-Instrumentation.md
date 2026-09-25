@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-007
 aliases: ["PHASE-007"]
 title: "Agent instrumentation (hooks-aware terminal)"
-status: active
+status: done
 order: 7
 owner: user:edwin
 created: 2026-07-05
@@ -112,3 +112,8 @@ The older unchecked criteria and their 2026-07-20 waiver remain historical evide
 ## Exit criteria reconciled, 2026-09-25
 
 The six July criteria were left unticked on 2026-07-20 because Edwin waived the live walk then; the 2026-09-23 reopening said that waiver would not count again. Edwin's live TST-0011 run on 2026-09-25 passed all 13 rows, and each criterion above now names the rows that meet it. The phase closes when FEAT-0019 and FEAT-0027 pass their fresh independent review.
+
+## Closed again 2026-09-25
+
+FEAT-0019 and FEAT-0027 are done after a shared review in two rounds. Round 2's one open item, a test that could not tell recency from priority, was answered and recorded on FEAT-0019. Every exit criterion above is ticked with its evidence, TST-0011 passed live on 2026-09-25, and nothing under this phase is open.
+
