@@ -31,7 +31,7 @@ The other changes:
 - **A check waits while any of its steps is held (FEAT-0151 review).** A step's hold used to be checked only when that step itself was marked. A mark saved before a procedure edit made the step depend on missing equipment still counted, and marking the check's last step wrote it. The check now waits until every step citing it can be walked. A step whose whole action is its screen label also keeps the label instead of showing nothing.
 - **Surface notes no longer get a Library group.** This repository reached six surface notes, one over the threshold for a "by type" Library group, and a Surfaces group appeared. `surface` joins the types kept out of Library because they have a page of their own (the design view, the walk survey). The library guard test caught it.
 
-Nothing changes in what the walk records. The ledger format, the step signatures that saved observations are keyed on, and the quoted expectation text are all as they were.
+The one change to what the walk records is that a check with a held step waits. The ledger format, the step signatures that saved observations are keyed on, and the quoted expectation text are all as they were.
 
 ## Impact
 
