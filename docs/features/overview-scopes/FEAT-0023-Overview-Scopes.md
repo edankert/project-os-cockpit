@@ -7,16 +7,14 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-20
+updated: 2026-09-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Overview mode keeps the app-wide pane contract: the left pane lists scopes (project + phases), selecting one renders that scope's dashboard in the centre (scoped hero, feature squares, exit criteria, scoped activity), and the right pane shows the scope's context plus a live agent Now column — with the mode's lifecycle bugs (history dead-end, re-render churn, fetch fan-out, stale right pane, static live numbers, uncached stats) fixed."
 requirements: []
 tasks: ["[[TASK-0128]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0173]]", "TASK-0182"]
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0022-Session-Insight-And-Traceability]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -46,3 +44,7 @@ Review of the Overview mode (2026-07-06, mockup option D chosen over A/B/C) foun
 - One hook event causes at most one `/api/cockpit/state` fetch across strip + Now card + sessions surfaces.
 - `stats_payload` is served from cache when the index generation is unchanged (verified by test).
 - Exit criteria from the phase note render with checked/unchecked state matching the note.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

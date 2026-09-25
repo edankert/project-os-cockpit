@@ -2,11 +2,11 @@
 type: "[[task]]"
 id: "TASK-0635"
 title: "Opt in to Codex signals from external terminals"
-status: "doing"
+status: "done"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: "user:edwin"
 created: "2026-09-23"
-updated: "2026-09-23"
+updated: 2026-09-25
 source: ["User request, 2026-09-23", "docs/reference/codex-parity-review-2026-09-23.md"]
 parent: "[[FEAT-0027]]"
 effort: "M"
@@ -43,3 +43,7 @@ The source request and scope decision are recorded verbatim in [[ISS-0312]]. [[R
 The separate setting is implemented. Disposable configuration tests cover enable, refresh, removal, user handlers, malformed input and quoted paths; Python tests cover fallback, interruption and duplicate delivery. The real external Codex CLI completed EXTERNAL_CODEX_OK through the isolated setting. An isolated app restart preserved the enabled setting; disabling it through Settings removed the entries. Production opt-in remains untouched.
 
 See [the verification report](../../../../reference/codex-parity-verification-2026-09-23.md). Keep this task doing because its linked TST-0011 manual gate remains open. Fresh independent review is owed before FEAT-0027 closes.
+
+## Close-out, 2026-09-25
+
+Edwin re-ran [[TST-0011]] on 2026-09-25 in the relaunched cockpit and recorded all 13 checklist rows as pass. Row 12 covers the external-terminal toggle. The separate Codex setting was observed live on 2026-09-23 with a real external CLI. TST-0015's automated suite passes (6 tests), and so does TST-0017's (7).

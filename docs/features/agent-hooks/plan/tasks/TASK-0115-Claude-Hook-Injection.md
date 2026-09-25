@@ -7,15 +7,13 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-20
-verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
+updated: 2026-09-25
 parent: "[[FEAT-0019-Agent-Hook-Ingestion]]"
 effort: "M"
 depends: ["[[TASK-0114]]"]
 blocks: []
 related: ["[[RISK-0004-Hook-Injection-Surface]]"]
 tests: ["[[TST-0011]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -38,3 +36,7 @@ Claude Code supports `--settings <json-or-path>` and settings-file layering; the
 ## Verification
 
 Automated smoke: the generated `claude-settings.json` registers all 10 lifecycle hooks + statusline; the ZDOTDIR `.zshrc` resolves `claude` to the instrumented wrapper (and reverts to the user's alias under `COCKPIT_NO_INSTRUMENT=1`); piping a real `UserPromptSubmit` payload through the generated `hook-forward.sh` created the session in the sidecar tracker and captured the prompt. Wired at PTY spawn in `terminal.ts`; `~/.claude` untouched.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

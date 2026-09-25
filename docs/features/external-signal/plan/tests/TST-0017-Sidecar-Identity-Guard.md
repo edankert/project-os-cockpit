@@ -3,14 +3,14 @@ type: "[[test]]"
 id: TST-0017
 aliases: ["TST-0017"]
 title: "Sidecar identity guard — foreign-cwd rejection, identity endpoint, external-hook fallback"
-status: active
+status: passing
 covers: ["[[TASK-0146-Sidecar-Identity-Guard]]", "[[ISS-0007-Stale-Url-Cross-Workspace-Poisoning]]", "[[FEAT-0027-External-Session-Signal]]"]
 command: ".venv/bin/pytest tests/test_identity_guard.py -q"
 owner: user:edwin
 created: 2026-07-19
-updated: 2026-08-13
+updated: 2026-09-25
 related: ["[[TST-0015]]"]
-last_verified: 2026-07-19
+last_verified: "2026-09-25"
 
 ---
 
@@ -24,3 +24,7 @@ Automated pytest coverage (`tests/test_identity_guard.py`) against a live `_NoDN
 4. Payload without `cwd` → accepted (statusline/forwarder compatibility).
 5. `GET /api/cockpit/identity` → `{root, docs_root, pid}` matching the served tree.
 6. End-to-end ISS-0007 replay: the embedded external-hook script (extracted from `app-settings.ts`, as in TST-0015) posts to a *wrong* repo's sidecar via a stale url file → server rejects → hook falls back to writing `agent-state.json` in the correct repo; the wrong sidecar's tracker stays clean.
+
+## Run, 2026-09-25
+
+`.venv/bin/pytest tests/test_identity_guard.py -q -p no:randomly`: 7 passed. Run at FEAT-0019 and FEAT-0027's close-out, after Edwin's live TST-0011 run the same day.

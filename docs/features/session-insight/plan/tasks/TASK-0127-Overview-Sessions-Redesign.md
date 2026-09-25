@@ -7,15 +7,13 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-20
-verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
+updated: 2026-09-25
 parent: "[[FEAT-0022-Session-Insight-And-Traceability]]"
 effort: "M"
 depends: ["[[TASK-0124]]"]
 blocks: []
 related: ["[[TASK-0118]]"]
 tests: ["[[TST-0011]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -44,3 +42,7 @@ Chosen over alternatives (fold-into-recent-feed, dedicated nav mode) in review o
 ## Verification
 
 CDP: Overview renders `.ov-feeds` (two-column feeds grid) and `.ov-sessions-body` (sessions column); `buildLiveSessionBanner`/`renderSessionDetailPage` and the `~session/` nav branch are present. Redesign shipped; the live-banner + detail states are exercised by the manual live-session checklist.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

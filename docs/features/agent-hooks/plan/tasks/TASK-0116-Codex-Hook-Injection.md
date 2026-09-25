@@ -7,15 +7,13 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-09-16
-verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
+updated: 2026-09-25
 parent: "[[FEAT-0019-Agent-Hook-Ingestion]]"
 effort: "S"
 depends: ["[[TASK-0114]]"]
 blocks: []
 related: ["[[RISK-0004-Hook-Injection-Surface]]", "[[ISS-0312]]", "[[CHG-20260916-Document-Codex-integration-gap-and-path-to-Claude-parity]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
 tests: ["[[TST-0011]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -43,3 +41,7 @@ The automated smoke checks the ZDOTDIR `.zshrc` wrapper and sends synthetic `age
 ## Follow-up delivery — 2026-09-16
 
 [[ISS-0312]] now supplies native per-launch Codex hooks for prompt, tool, approval, stop, and session boundaries. This does not change the July scope or its recorded verification waiver. The new wrapper and sidecar paths have automated checks; the real CLI and UI walkthrough in [[TST-0011]] is still outstanding.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

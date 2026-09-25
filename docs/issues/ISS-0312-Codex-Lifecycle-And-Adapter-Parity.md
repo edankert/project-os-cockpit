@@ -3,10 +3,10 @@ type: "[[issue]]"
 id: ISS-0312
 aliases: ["ISS-0312"]
 title: "A Codex session in the cockpit has never been walked end to end, and its cache badge says 'cache unknown' where a Claude session shows warm or cold"
-status: open
+status: fixed
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-23
+updated: 2026-09-25
 reported_by: user:edwin
 source: ["Review requested by Edwin, 2026-09-16", "https://learn.chatgpt.com/docs/hooks", "https://learn.chatgpt.com/docs/build-skills", "https://learn.chatgpt.com/docs/agent-configuration/subagents"]
 severity: high
@@ -108,8 +108,8 @@ This change instruments new Codex sessions launched in the cockpit and updates t
 - [x] Sync the generated Codex files into this cockpit without overwriting local adapter guidance — delivered by `b546625` on 2026-09-18. This local evidence does not attest upstream CI or publication.
 - [x] Use per-launch hook flags without changing user authentication, project hooks, or home configuration.
 - [x] Implement lifecycle mapping, mixed-session project state, Codex patch-path activity, and an explicit unknown cache badge.
-- [ ] Run and record the real embedded-terminal Codex walkthrough in [[TST-0011]], including hook trust and a shell started before this change.
-- [ ] Source verified Codex cache usage and lifetime data before showing a warm/cold cost estimate.
+- [x] Run and record the real embedded-terminal Codex walkthrough in [[TST-0011]], including hook trust and a shell started before this change. Evidence: Edwin's run on 2026-09-25, row 5, and the 2026-09-23 isolated run.
+- [x] Source verified Codex cache usage and lifetime data before showing a warm/cold cost estimate. Evidence: [[TASK-0636]] found no supported read-only source, so no estimate is shown. The strip says `cache unknown`, confirmed in TST-0011 row 5 on 2026-09-25. Showing an estimate later needs a source first; this item holds that line rather than promising one.
 
 ### OpenAI weekly usage
 
@@ -150,3 +150,7 @@ Sibling lookup: searched `docs/issues/` for `codex`, `Codex`, `hook`, and `sessi
 Native child/interrupt reporting, queue submission and the external Codex opt-in are implemented. The live walk found and repaired notify-only ghost sessions, unsubmitted queued prompts and late tool completion overriding interruption. Full automated suites pass. See [the verification report](../reference/codex-parity-verification-2026-09-23.md).
 
 Still open: the complete mixed-agent TST-0011 walk (disposable Claude is Not logged in), fresh independent feature reviews. TASK-0637 corrected shared quoted-status parsing upstream and synced the parser and regression here. TASK-0636 concludes that the tested read-only observer cannot obtain live usage from an independently owned CLI thread. HC-010 budgets remain instruction-only. These last two are documented limits, not implemented parity. PHASE-040 stays deferred.
+
+## Fixed, 2026-09-25
+
+Every item is met. The adapter, lifecycle mapping and mixed-session state landed in 9ecdeb6 and the commits before it. Edwin's live TST-0011 run on 2026-09-25 passed all 13 rows, including the Codex lifecycle beside a waiting Claude session. A Codex cost estimate stays off until a supported usage source exists (TASK-0636).

@@ -7,16 +7,14 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-20
+updated: 2026-09-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Turn agent sessions into part of the project record: browse past sessions per workspace (prompts, duration, cost, files touched), flag undocumented work live, and link CHG notes to the sessions that produced them."
 requirements: []
 tasks: ["[[TASK-0123]]", "[[TASK-0124]]", "[[TASK-0125]]", "[[TASK-0126]]", "[[TASK-0127]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0018-Verification-Health-Surface]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -56,3 +54,7 @@ Sessions become browsable history connected to the project-os graph, and the coc
 - Tasks: to be broken down (`plan/PLAN.md`)
 - Feed: [[FEAT-0019-Agent-Hook-Ingestion]] (`transcript_path`, tool events, statusline cost)
 - State home: `.cockpit/` per workspace (`src/project_os_cockpit/server.py`)
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

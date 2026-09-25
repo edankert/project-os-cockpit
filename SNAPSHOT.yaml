@@ -875,48 +875,6 @@ items:
       tasks: ["TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0183", "TASK-0633", "TASK-0634", "TASK-0636", "TASK-0637"]
       issues: ["ISS-0312"]
       note: "2026-09-23: Codex parity follow-up authorised by \"Continue as suggested.\" Historical reviews cover the previous scope; new work needs fresh evidence."
-    FEAT-0020:
-      title: "Agent activity surfaces — activity strip, needs-input inbox, live nav trail"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-activity/FEAT-0020-Agent-Activity-Surfaces.md"
-      tasks: ["TASK-0118", "TASK-0119", "TASK-0120"]
-    FEAT-0021:
-      title: "Task dispatch — start agent work from the task board"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/task-dispatch/FEAT-0021-Task-Dispatch.md"
-      tasks: ["TASK-0121", "TASK-0122"]
-    FEAT-0022:
-      title: "Session insight — history browser, doc-traceability guardrail, CHG linking"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/session-insight/FEAT-0022-Session-Insight-And-Traceability.md"
-      tasks: ["TASK-0123", "TASK-0124", "TASK-0125", "TASK-0126", "TASK-0127"]
-    FEAT-0023:
-      title: "Overview scopes — drill-down dashboard with pane contract restored"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/overview-scopes/FEAT-0023-Overview-Scopes.md"
-      tasks: ["TASK-0128", "TASK-0129", "TASK-0130", "TASK-0173", "TASK-0182"]
-    FEAT-0024:
-      title: "Agent verbs — drive the docs system from any note"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-verbs/FEAT-0024-Agent-Verbs.md"
-      tasks: ["TASK-0131", "TASK-0132", "TASK-0133"]
-    FEAT-0025:
-      title: "Dispatch runtime — main-process queue, dispatch ledger, CLI"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/dispatch-runtime/FEAT-0025-Dispatch-Runtime.md"
-      tasks: ["TASK-0134", "TASK-0135", "TASK-0136"]
-    FEAT-0026:
-      title: "Verb polish — status-aware menus, palette verbs, type-from-data"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/verb-polish/FEAT-0026-Verb-Polish.md"
-      tasks: ["TASK-0137", "TASK-0138", "TASK-0139", "TASK-0140"]
     FEAT-0027:
       title: "External session signal — opt-in user hook, settings panel, desktop discovery files"
       status: doing
@@ -975,7 +933,7 @@ items:
     TASK-0635:
       file: "docs/features/external-signal/plan/tasks/TASK-0635-Opt-In-To-External-Codex-Signals.md"
       title: "Opt in to Codex signals from external terminals"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       parent: "FEAT-0027"
       depends: ["TASK-0634"]
@@ -983,7 +941,7 @@ items:
     TASK-0634:
       file: "docs/features/agent-hooks/plan/tasks/TASK-0634-Complete-Codex-Lifecycle-Events.md"
       title: "Complete Codex subagent and interruption reporting"
-      status: doing
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       parent: "FEAT-0019"
       depends: []
@@ -991,7 +949,7 @@ items:
     TASK-0633:
       file: "docs/features/agent-hooks/plan/tasks/TASK-0633-Walk-The-Codex-Lifecycle.md"
       title: "Walk the complete Codex lifecycle in Electron"
-      status: "doing"
+      status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       parent: "FEAT-0019"
       depends: []
@@ -1839,12 +1797,6 @@ items:
       phase: "[[PHASE-004-Embedded-Terminal]]"
       path: "docs/features/embedded-terminal/plan/tasks/TASK-0185-Terminal-Refit-On-Visibility.md"
       parent: "FEAT-0003"
-    TASK-0184:
-      title: "Fix: agent strip leaks the previous workspace's last prompt across a workspace switch"
-      status: done
-      phase: "[[PHASE-005-Desktop-Shell]]"
-      path: "docs/features/agent-inbox/plan/tasks/TASK-0184-Strip-Prompt-Bleed-On-Switch.md"
-      parent: "FEAT-0030"
     TASK-0042:
       title: "Cockpit: interactive markdown checkboxes (click to toggle, file write-back)"
       status: cancelled
@@ -1870,42 +1822,6 @@ items:
       path: "docs/features/desktop-shell/plan/tasks/TASK-0065-Build-Sign-Distribute.md"
       origin: "FEAT-0007"
       blocked_reason: "Parked 2026-05-25 — defer until the app needs to be handed to someone other than the developer. Dev loop (npm start) covers current use."
-    TASK-0115:
-      title: "Claude Code hook injection at PTY spawn"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-hooks/plan/tasks/TASK-0115-Claude-Hook-Injection.md"
-      parent: "FEAT-0019"
-    TASK-0116:
-      title: "Codex CLI notify injection"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/agent-hooks/plan/tasks/TASK-0116-Codex-Hook-Injection.md"
-      parent: "FEAT-0019"
-    TASK-0127:
-      title: "Overview sessions redesign — live banner, feeds column, virtual detail page"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/session-insight/plan/tasks/TASK-0127-Overview-Sessions-Redesign.md"
-      parent: "FEAT-0022"
-    TASK-0134:
-      title: "Main-process dispatch queue — persisted, workspace-independent delivery"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/dispatch-runtime/plan/tasks/TASK-0134-Main-Process-Queue.md"
-      parent: "FEAT-0025"
-    TASK-0140:
-      title: "Doc header bar — note identity, path, verb buttons on every note"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/verb-polish/plan/tasks/TASK-0140-Doc-Header-Bar.md"
-      parent: "FEAT-0026"
-    TASK-0142:
-      title: "Settings panel — enable the rail button, external-hook toggle"
-      status: done
-      phase: "[[PHASE-007-Agent-Instrumentation]]"
-      path: "docs/features/external-signal/plan/tasks/TASK-0142-Settings-Panel.md"
-      parent: "FEAT-0027"
   releases:
     REL-0001:
       file: "docs/releases/REL-0001-The-Human-Has-Levers.md"
@@ -1925,7 +1841,7 @@ items:
     ISS-0312:
       file: "docs/issues/ISS-0312-Codex-Lifecycle-And-Adapter-Parity.md"
       title: "A Codex session in the cockpit has never been walked end to end, and its cache badge says 'cache unknown' where a Claude session shows warm or cold"
-      status: "open"
+      status: fixed
       owner: "user:edwin"
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       severity: "high"
@@ -4003,11 +3919,11 @@ items:
       validates: ["TASK-0076", "TASK-0077", "TASK-0078", "FEAT-0013"]
     TST-0010:
       title: "Agent-hook ingestion — endpoint, state mapping, sessions, provenance"
-      status: active
+      status: passing
       path: "docs/features/agent-hooks/plan/tests/TST-0010-Agent-Hook-Ingestion.md"
     TST-0011:
       title: "Live-session instrumentation + activity surfaces — manual checklist"
-      status: active
+      status: passing
       path: "docs/features/agent-hooks/plan/tests/TST-0011-Live-Session-Instrumentation.md"
     TST-0012:
       title: "Scoped stats payload + cache"
@@ -4023,7 +3939,7 @@ items:
       path: "docs/features/dispatch-runtime/plan/tests/TST-0014-Dispatch-Ledger.md"
     TST-0015:
       title: "External agent-state hook — no-op scoping, state mapping, sidecar POST, fallback"
-      status: active
+      status: passing
       path: "docs/features/external-signal/plan/tests/TST-0015-External-Hook.md"
     TST-0016:
       title: "Validation health — endpoint states, drift deep-links, SSE fan-out, badge flags"
@@ -4032,7 +3948,7 @@ items:
       validates: ["TASK-0111", "TASK-0113", "FEAT-0018"]
     TST-0017:
       title: "Sidecar identity guard — foreign-cwd rejection, identity endpoint, external-hook fallback"
-      status: active
+      status: passing
       path: "docs/features/external-signal/plan/tests/TST-0017-Sidecar-Identity-Guard.md"
       validates: ["TASK-0146", "ISS-0007"]
   workflows: {}
@@ -4817,13 +4733,13 @@ metrics:
     features_total: 153
     features_done: 134
     tasks_total: 631
-    tasks_done: 592
+    tasks_done: 595
     tests_total: 51
-    tests_passing: 1
+    tests_passing: 5
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 19
+    issues_open: 18
     issues_triage: 0
     risks_open: 8
     releases_total: 1

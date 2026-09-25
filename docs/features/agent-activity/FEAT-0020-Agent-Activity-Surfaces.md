@@ -7,16 +7,14 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-09-16
+updated: 2026-09-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Make the instrumented agent visible: a live activity strip above the terminal (current prompt, tool, file, cost/context meters), a cross-workspace needs-input inbox, and live attribution badges in the nav for notes the agent just touched."
 requirements: []
 tasks: ["[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0120]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0013-Agent-State-Signal]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]", "[[CHG-20260916-Deliver-live-Codex-approval-to-Needs-You]]", "[[CHG-20260916-Show-live-agent-in-Needs-You-headline]]", "[[CHG-20260916-Name-active-agent-in-Needs-You-project-cards]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -66,3 +64,7 @@ When one session is working while another waits in the same project, the Needs y
 Record and publication cards also name the active agent in their status line, so a busy Codex project reads “Codex · working…” after any older waiting request ages out. Existing hook messages that already start with the agent name are not prefixed again.
 
 Those surfaces require a real Codex event stream. Edwin's next live check found that the current Codex process still runs with the old `notify` wrapper and cannot report a new prompt or tool use. A fresh launch from a refreshed shell can send those events after the hook command is quoted correctly ([[CHG-20260916-Fix-Codex-status-and-Needs-You-feed]]). The manual screen walk remains open in [[TST-0011]].
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

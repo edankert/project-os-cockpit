@@ -2,11 +2,11 @@
 type: "[[task]]"
 id: "TASK-0633"
 title: "Walk the complete Codex lifecycle in Electron"
-status: "doing"
+status: "done"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: "user:edwin"
 created: "2026-09-23"
-updated: "2026-09-24"
+updated: 2026-09-25
 source: ["User request, 2026-09-23", "docs/reference/codex-parity-review-2026-09-23.md"]
 parent: "[[FEAT-0019]]"
 effort: "S"
@@ -22,7 +22,7 @@ tests: ["[[TST-0011]]"]
 
 - [x] Record the installed CLI version, Electron build, hook trust path, isolated workspace and userData paths, and exact observations in TST-0011.
 - [x] Observe a real Codex prompt, working state, approval, completed turn, second prompt and exit to the same shell. Compare each visible state with its sidecar event.
-- [ ] Exercise a waiting Claude session beside busy Codex, queued prompts across workspace switches, app restart and reattachment, an older tmux shell, History and the instrumentation kill switch.
+- [x] Exercise a waiting Claude session beside busy Codex, queued prompts across workspace switches, app restart and reattachment, an older tmux shell, History and the instrumentation kill switch.
 - [x] Keep unobserved or fixture-only rows explicitly pending. A complete live pass requires the real CLI; replay tests cannot attest its hook timing or trust behavior.
 
 ## Steps
@@ -54,3 +54,7 @@ Final fresh-shell kill-switch check passed: `codex: command`, `KILL_SWITCH=1`. T
 ## Handoff, 2026-09-24
 
 This task did not move on 2026-09-24, and its state is exactly as described above. That session committed the Codex work unchanged (9ecdeb6), then finished the guided walk's TASK-0629 and TASK-0630 under FEAT-0151. It returned the focus here because this is the Codex work still in flight. The next step is unchanged: a logged-in Claude test session for the mixed Claude and Codex run in TST-0011, then a fresh independent review before FEAT-0019 closes.
+
+## Close-out, 2026-09-25
+
+Edwin re-ran [[TST-0011]] on 2026-09-25 in the relaunched cockpit and recorded all 13 checklist rows as pass. That finishes this task's last box. A Claude session waiting beside busy Codex is row 5's repeat. Queued prompts across workspace switches, and a queue surviving an app restart, are row 11. The kill switch is row 13. A shell started before the change is row 5's first instruction, which loads the new wrapper into an existing shell. History and same-shell exit were observed live on 2026-09-23. Terminal reattachment was seen when the cockpit restarted on 2026-09-25: the six tmux sessions kept running and reattached, and Edwin's run happened in that relaunched app.

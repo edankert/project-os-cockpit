@@ -2,11 +2,11 @@
 type: "[[task]]"
 id: "TASK-0634"
 title: "Complete Codex subagent and interruption reporting"
-status: "doing"
+status: "done"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: "user:edwin"
 created: "2026-09-23"
-updated: "2026-09-23"
+updated: 2026-09-25
 source: ["User request, 2026-09-23", "docs/reference/codex-parity-review-2026-09-23.md"]
 parent: "[[FEAT-0019]]"
 effort: "M"
@@ -46,3 +46,7 @@ A second live finding affects dispatch: while workspace A was selected, the queu
 The implementation and repeat live evidence are recorded in [the verification report](../../../../reference/codex-parity-verification-2026-09-23.md). Approval, child events, background workspace dispatch, interruption with late tool completion, recovery, external Codex and shell return have been observed. Automated suites pass. The final native session ended and no longer appears live; History opens the retained tmux screen and q returns to the shell.
 
 TST-0011 remains active. Its complete mixed-Claude/Codex run is not established because the disposable Claude profile reports Not logged in. Keep this task doing until its linked manual gate is satisfied. Before feature close-out, run fresh independent review; the July waiver and review certify only the earlier scope. No user sessions or real configuration were changed.
+
+## Close-out, 2026-09-25
+
+Edwin re-ran [[TST-0011]] on 2026-09-25 in the relaunched cockpit and recorded all 13 checklist rows as pass. Its linked manual gate was the only thing holding this task open. The subagent and interruption behaviour was observed live on 2026-09-23 (the "Added Codex procedures" in TST-0011), and TST-0010's automated suite passes (23 tests).

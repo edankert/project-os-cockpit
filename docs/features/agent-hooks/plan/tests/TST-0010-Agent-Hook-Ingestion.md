@@ -3,18 +3,18 @@ type: "[[test]]"
 id: TST-0010
 aliases: ["TST-0010"]
 title: "Agent-hook ingestion — endpoint, state mapping, sessions, provenance"
-status: active
+status: passing
 covers: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
 command: ".venv/bin/pytest tests/test_agent_hooks.py -q"
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-09-23
+updated: 2026-09-25
 scope: feature
 level: integration
 entrypoint: ".venv/bin/python -m pytest tests/test_agent_hooks.py"
 tasks: ["[[TASK-0114]]", "[[TASK-0123]]", "[[TASK-0125]]", "[[TASK-0126]]"]
-last_verified: 2026-07-05
+last_verified: "2026-09-25"
 
 ---
 
@@ -32,3 +32,7 @@ last_verified: 2026-07-05
 ## September 23 regression coverage
 
 `tests/test_agent_hooks.py` now checks parent state and child identity through SubagentStart/Stop, Interrupt holding needs-input through late PostToolUse and Stop, new-prompt recovery and SessionEnd. The combined agent/external tests pass 29 cases. Desktop generator and dispatch checks run with `cd desktop && npm run build && node --test tests/codex-shell-exit.test.mjs tests/codex-dispatch.test.mjs`; they cover native event registration, same-shell return and actual paste/Return submission ordering. Full-suite counts are recorded on FEAT-0019.
+
+## Run, 2026-09-25
+
+`.venv/bin/pytest tests/test_agent_hooks.py -q -p no:randomly`: 23 passed. Run at FEAT-0019 and FEAT-0027's close-out, after Edwin's live TST-0011 run the same day.

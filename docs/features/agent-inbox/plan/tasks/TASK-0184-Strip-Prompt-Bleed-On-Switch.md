@@ -7,7 +7,7 @@ status: done
 phase: "[[PHASE-005-Desktop-Shell]]"
 owner: user:edwin
 created: 2026-07-21
-updated: 2026-07-21
+updated: 2026-09-25
 source: ["[[ISS-0015]]"]
 parent: "FEAT-0030"
 effort: ""
@@ -16,8 +16,6 @@ depends: []
 blocks: []
 related: ["[[TASK-0183]]"]
 tests: ["[[TST-0011]]"]
-verification_waiver: "Renderer-only two-line state reset in the existing switch-reset block; verified by tsc build + code trace (independent review CLOSE on the code). The linked TST-0011 is FEAT-0019's manual live-agent e2e checklist (status: ready), carried under the same waiver as the other FEAT-0019/0030 tasks; the automated harness has no renderer unit-test surface."
-waiver_expires: 2026-10-23
 
 ---
 
@@ -32,3 +30,7 @@ Verification: build the renderer; switch from a workspace with an active-prompt 
 ## Verification
 
 Renderer `tsc` build clean; independent Opus review returned CLOSE on the code (correct location in the switch-reset path, no temporal-dead-zone hazard, sticky-within-workspace behaviour preserved, `workTransitions.clear()` NPE-safe, no other cross-workspace strip leak). No automated renderer unit-test surface exists, so this rides FEAT-0019/FEAT-0030's manual-checklist waiver (TST-0011, `status: ready`) rather than a passing automated test — recorded in `verification_waiver`.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

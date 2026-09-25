@@ -7,16 +7,14 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-20
+updated: 2026-09-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Dispatch becomes a tracked, workspace-independent unit of work: the queue lives in the Electron main process (persisted, delivering into any workspace's PTY on that workspace's own state transitions), every dispatch is recorded in a sidecar ledger and stamped onto the session it starts, and `cockpit dispatch` lets agents and scripts enqueue work from any terminal."
 requirements: []
 tasks: ["[[TASK-0134]]", "[[TASK-0135]]", "[[TASK-0136]]"]
 related: ["[[FEAT-0024-Agent-Verbs]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -43,3 +41,7 @@ The FEAT-0024 review found the queue architecturally misplaced: it lived in the 
 - The queue popover lists pending dispatches with per-item remove.
 - A dispatched note's page shows "dispatched <verb> → session … ($…)"; the session detail names its originating dispatch; re-dispatching a live-dispatched note warns first.
 - `cockpit dispatch TASK-0115 --verb refine` from any terminal under the workspace lands in the queue/PTY like a menu dispatch (ledger-recorded, TST-0014).
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

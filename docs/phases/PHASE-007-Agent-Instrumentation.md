@@ -7,7 +7,7 @@ status: active
 order: 7
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-09-23
+updated: 2026-09-25
 goal: "The embedded terminal understands the agent running inside it: lifecycle hooks feed agent state, activity, cost, and needs-input signals into the cockpit automatically, and the cockpit dispatches project-os tasks back to the agent."
 features:
   - "[[FEAT-0019-Agent-Hook-Ingestion]]"
@@ -53,12 +53,12 @@ On top of that push feed, this phase builds the surfaces that make the cockpit a
 - Support beyond Claude Code + Codex in v1 (opencode/Gemini/aider adapters can follow the same endpoint contract later).
 
 ## Exit Criteria
-- [ ] Launching `claude` inside the embedded terminal flips the workspace rail dot busy/waiting/needs-input with zero manual `cockpit signal` calls, and a permission prompt raises an OS notification within a second.
-- [ ] The activity strip shows the agent's current prompt, the file it is editing, and live cost/context meters during a real session.
-- [ ] The needs-input inbox aggregates blocked agents across at least two workspaces and jumps to the right terminal on click.
-- [ ] A TASK note can be dispatched to the agent from the nav context menu and the resulting work is observable via follow mode.
-- [ ] A session that edits `src/**` without touching any TASK/ISS/CHG note shows the undocumented-work badge.
-- [ ] `cockpit signal` / external-terminal behaviour unchanged (mode 1 and non-instrumented agents keep working).
+- [x] Launching `claude` inside the embedded terminal flips the workspace rail dot busy/waiting/needs-input with zero manual `cockpit signal` calls, and a permission prompt raises an OS notification within a second. Evidence: TST-0011 rows 1 and 2, 2026-09-25.
+- [x] The activity strip shows the agent's current prompt, the file it is editing, and live cost/context meters during a real session. Evidence: TST-0011 rows 1, 3 and 7, 2026-09-25.
+- [x] The needs-input inbox aggregates blocked agents across at least two workspaces and jumps to the right terminal on click. Evidence: TST-0011 rows 2 and 11, 2026-09-25.
+- [x] A TASK note can be dispatched to the agent from the nav context menu and the resulting work is observable via follow mode. Evidence: TST-0011 rows 6 and 10, 2026-09-25.
+- [x] A session that edits `src/**` without touching any TASK/ISS/CHG note shows the undocumented-work badge. Evidence: TST-0011 row 8, 2026-09-25.
+- [x] `cockpit signal` / external-terminal behaviour unchanged (mode 1 and non-instrumented agents keep working). Evidence: TST-0011 rows 12 and 13, 2026-09-25.
 
 ## Notes
 - **Sequencing.** FEAT-0019 first — it is the data pipe everything else consumes (same pattern as FEAT-0013 before FEAT-0010 in PHASE-006). Then FEAT-0020 (visible payoff), then FEAT-0021 and FEAT-0022 in either order.
@@ -103,8 +103,12 @@ The older unchecked criteria and their 2026-07-20 waiver remain historical evide
 
 ### Additional exit criteria for this follow-up
 
-- [ ] The complete live Codex lifecycle and dispatch walk is recorded, with any unrun rows still visible.
-- [ ] Supported subagent and interruption events preserve parent state and queue safety.
-- [ ] External Codex instrumentation is an explicit settings opt-in with configuration preservation and duplicate suppression verified.
-- [ ] The usage-source investigation records a supported read-only path or a bounded unsupported conclusion.
-- [ ] Guidance matches the delivered adapter, and enforcement differences are stated with evidence.
+- [x] The complete live Codex lifecycle and dispatch walk is recorded, with any unrun rows still visible. Evidence: TST-0011 row 5 (2026-09-25) and the 2026-09-23 verification report.
+- [x] Supported subagent and interruption events preserve parent state and queue safety. Evidence: [[TASK-0634]]; observed live 2026-09-23; TST-0010 passes.
+- [x] External Codex instrumentation is an explicit settings opt-in with configuration preservation and duplicate suppression verified. Evidence: [[TASK-0635]]; observed live 2026-09-23; TST-0015 passes.
+- [x] The usage-source investigation records a supported read-only path or a bounded unsupported conclusion. Evidence: [[TASK-0636]].
+- [x] Guidance matches the delivered adapter, and enforcement differences are stated with evidence. Evidence: [[TASK-0637]].
+
+## Exit criteria reconciled, 2026-09-25
+
+The six July criteria were left unticked on 2026-07-20 because Edwin waived the live walk then; the 2026-09-23 reopening said that waiver would not count again. Edwin's live TST-0011 run on 2026-09-25 passed all 13 rows, and each criterion above now names the rows that meet it. The phase closes when FEAT-0019 and FEAT-0027 pass their fresh independent review.

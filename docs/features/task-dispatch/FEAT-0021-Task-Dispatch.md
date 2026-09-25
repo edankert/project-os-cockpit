@@ -7,16 +7,14 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-07-20
+updated: 2026-09-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Dispatch a TASK or ISS note to the agent directly from the nav: a context-menu action types a templated, note-aware prompt into the workspace terminal, and follow mode makes the resulting work observable end-to-end."
 requirements: []
 tasks: ["[[TASK-0121]]", "[[TASK-0122]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0013-Agent-State-Signal]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -55,3 +53,7 @@ From any TASK/ISS row (nav, library, right pane), one action starts the agent on
 - Tasks: to be broken down (`plan/PLAN.md`)
 - Context-menu surface: `desktop/src/main.ts` (`buildContextTemplate`), `desktop/src/renderer/renderer.ts` (nav row menus)
 - PTY input: `desktop/src/ipc/terminal.ts`
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

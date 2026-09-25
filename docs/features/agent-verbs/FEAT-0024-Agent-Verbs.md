@@ -7,16 +7,14 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-20
+updated: 2026-09-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist; user accepted automated verification in lieu of the manual pass (see 2026-07-20 sweep). Independent review verdict CLOSE."
 goal: "Any project-os note becomes a command surface: select a phase/feature/requirement/task/issue/risk, pick a verb (implement, fix, refine, break down, groom, mitigate, …), and the agent starts that work in the terminal — with the verbs defined by the project-os skill playbooks, and dispatches queued automatically when the agent is busy."
 requirements: []
 tasks: ["[[TASK-0131]]", "[[TASK-0132]]", "[[TASK-0133]]"]
 related: ["[[FEAT-0021-Task-Dispatch]]", "[[FEAT-0019-Agent-Hook-Ingestion]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -44,3 +42,7 @@ FEAT-0021 shipped the primitive: right-click a TASK/ISS → templated prompt int
 - The registry endpoint serves built-ins and honours a `tools/adapters/cockpit/actions.yaml` override (verified by test).
 - Dispatching while the agent is busy queues; when the session hits Stop the queued prompt is typed into the live REPL; after SessionEnd it runs as a fresh `claude`/`codex` command; the strip shows the queue count.
 - The ▶ button appears on TASK/ISS/FEAT/REQ/PHASE/RISK notes and fires the default verb.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

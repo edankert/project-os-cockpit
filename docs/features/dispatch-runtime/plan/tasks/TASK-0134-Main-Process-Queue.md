@@ -7,15 +7,13 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-20
-verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
+updated: 2026-09-25
 parent: "[[FEAT-0025-Dispatch-Runtime]]"
 effort: "M"
 depends: []
 blocks: []
 related: []
 tests: ["[[TST-0011]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -29,3 +27,7 @@ waiver_expires: 2026-10-23
 ## Verification
 
 Structural: `dispatch:execute`/`dispatch:queue-changed` IPC in main + persisted queue (`dispatch-queue.ts`); renderer queue popover element present. All DoD items were already checked by the author.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

@@ -7,16 +7,14 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-20
+updated: 2026-09-25
 reviewed_by: "model:claude-opus"
 review_date: 2026-07-20
 review_verdict: approved
-verification_waiver: "TST-0011 is a manual live-agent e2e checklist (real claude/codex launch, permission prompt, OS notification). User accepted the automated verification in lieu of the manual pass on 2026-07-20: instrumentation-pipeline smoke test (generated scripts → sidecar tracker), CDP UI checks, 409 sidecar-identity guard, 217 passing unit tests, and an independent review verdict of CLOSE for all five."
 goal: "Verbs respect the lifecycle (menus filtered by the note's status via `when:` lists in the registry), are keyboard-reachable (⌘P understands 'refine TASK-0115'), and resolve the note type from row data instead of hardcoded ID prefixes so downstream verb types work."
 requirements: []
 tasks: ["[[TASK-0137]]", "[[TASK-0138]]", "[[TASK-0139]]", "[[TASK-0140]]"]
 related: ["[[FEAT-0024-Agent-Verbs]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -37,3 +35,7 @@ FEAT-0024 review: the menu offers "Close out" on done tasks and "Implement" on c
 - A `done` task's menu shows Review/Close out but not Implement; a `backlog` task shows Implement/Refine but not Close out.
 - Typing "refine TASK-01" in ⌘P lists dispatch actions; Enter types the refine prompt into the terminal.
 - A custom type registered only in `actions.yaml` gets its menu on rows whose `data-type` matches.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.

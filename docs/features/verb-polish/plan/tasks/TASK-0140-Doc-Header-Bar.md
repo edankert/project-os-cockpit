@@ -7,15 +7,13 @@ status: done
 phase: "[[PHASE-007-Agent-Instrumentation]]"
 owner: user:edwin
 created: 2026-07-06
-updated: 2026-07-20
-verification_waiver: "Implementation verified automatically (see Verification); the linked TST-0011 is a manual live-agent e2e checklist that remains for a human to run."
+updated: 2026-09-25
 parent: "[[FEAT-0026-Verb-Polish]]"
 effort: "M"
 depends: []
 blocks: []
 related: ["[[TASK-0132]]"]
 tests: ["[[TST-0011]]"]
-waiver_expires: 2026-10-23
 
 ---
 
@@ -37,3 +35,7 @@ User request 2026-07-06 (items 2+3): "current active page name type and location
 ## Verification
 
 CDP: `.doc-header` renders with the docs-relative path and the old `#top-bar-dispatch` button is removed; `.doc-header-id`/`.doc-header-verb` are built by `buildDocHeader`; header is correctly absent on virtual pages.
+
+## Waiver retired, 2026-09-25
+
+This note was closed on 2026-07-20 under a waiver of [[TST-0011]], the manual live-agent checklist. Edwin ran that checklist live on 2026-09-25 and all 13 rows passed, so the waiver is retired and the gate is met by the test itself.
