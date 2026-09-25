@@ -1250,7 +1250,9 @@ test('real procedure verdicts equal direct check verdicts',
  *
  *  Which steps are held is worked out here from the payload, not with
  *  `walkUnready`: asking the code under test which checks it holds could not
- *  catch a wrong hold rule (FEAT-0151 review, 2026-09-25). */
+ *  catch a wrong hold rule (FEAT-0151 review, 2026-09-25). It counts a
+ *  `preparation` readiness as not held only because the loop below confirms
+ *  every one first; drop that confirmation and this must change with it. */
 function heldStepsFromPayload(procedure) {
   const byNumber = new Map(procedure.steps.map((step) => [step.number, step]));
   const held = new Set();
@@ -1350,7 +1352,7 @@ test('a step held by a decision records nothing, here or in the ledger', async (
 test('a hold declared after a step was marked still holds its check', async () => {
   // Reviewer B's reproduction, FEAT-0151 review round 1. TST-0001 is cited by
   // steps 1 and 3. Step 3 is marked while nothing is held; the procedure then
-  // makes step 3 depend on step 4, which needs equipment. Step 3's own words
+  // makes step 3 depend on step 4, which needs unconfirmed preparation. Step 3's own words
   // do not change, so its saved mark survives, and marking step 1 wrote the check.
   const storage = makeStorage();
   const posts = [];

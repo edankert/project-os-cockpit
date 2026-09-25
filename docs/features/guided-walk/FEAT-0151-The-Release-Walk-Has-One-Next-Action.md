@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0151
 aliases: ["FEAT-0151"]
 title: "The release walk has one clear next action"
-status: doing
+status: done
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
@@ -13,11 +13,11 @@ goal: "A person can perform, record and resume each owed release observation fro
 requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]", "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]", "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]", "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"]
 tasks: ["[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]"]
 release: ""
-acceptance_exception: ""
+acceptance_exception: "The walk that accepts this page is Edwin walking Your Trainer's owed checks through it: criterion D4, Your Trainer TASK-0923. This repository has no release walk of its own to host that check. The browser walk of Your Trainer's corpus on 2026-09-25 is recorded in TASK-0631."
 reviewed_by: "model:claude-opus-5 (two independent-reviewer subagents, clean context)"
 review_date: 2026-09-25
-review_round: 1
-review_verdict: changes-requested
+review_round: 2
+review_verdict: approved
 related: ["[[FEAT-0150-The-Walk-Page-Reads-As-A-Script]]", "[[RISK-0010-Saved-Walk-Observations-Can-Outlive-Their-Source]]", "[[SUR-0004-The-Release-Walk]]"]
 ---
 
@@ -198,3 +198,16 @@ All five findings are fixed in `desktop/src/renderer/renderer.ts` and `desktop/t
 4. `walkVisibleAction` keeps the label when trimming would leave nothing ("a step whose whole action is its screen label keeps the label").
 5. The corpus test's comment names only the two readiness kinds the type has.
 
+### Round 2
+
+2026-09-25, one reviewer, clean context, 14 of 15 calls. **Verdict: approved.**
+
+| # | Round-1 finding | Verdict | Evidence |
+|---|---|---|---|
+| 1 | A hold arriving after a mark does not stop the check being written | fixed | Making `walkCheckHeld` return false fails "a hold declared after a step was marked still holds its check" and nothing else; the test also asserts `walkStepNeedsLedgerRetry` is false. |
+| 2 | Only the corpus test guards the readiness gate | fixed | "a step held by a decision records nothing…" runs with both corpus tests skipped, and deleting the gate fails it alone. |
+| 3 | The corpus test decides held checks with the function under test | fixed by inspection | `heldStepsFromPayload` derives them from `readiness` and `requires`. The reviewer had no Your Trainer payload to run it; the author's own break of the decision hold failed it on both platforms before round 2. |
+| 4 | A label-only action shows empty | fixed | Changing `return rest \|\| text` to `return rest` fails its test alone. |
+| 5 | A readiness kind the type does not have | fixed | The corpus docblock names only `preparation` and `decision`. |
+
+Both wording notes were applied: the reproduction test no longer says "needs equipment", and the corpus test's docblock says it depends on the loop confirming every `preparation` readiness. The reviewer also noted that the node tests read the built bundle, so a source edit without `npm run build` is tested against the old bundle. That is how this suite has always worked; it is recorded here, not changed.

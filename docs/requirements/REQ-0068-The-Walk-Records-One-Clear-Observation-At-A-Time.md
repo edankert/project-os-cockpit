@@ -2,7 +2,7 @@
 type: "[[requirement]]"
 id: REQ-0068
 title: "The walk records one clear observation at a time"
-status: approved
+status: implemented
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-24
@@ -11,6 +11,10 @@ source: ["Your Trainer REQ-0210, moved here 2026-09-24. Edwin: 'Make the changes
 priority: high
 scope: "Release walk page and the existing ledger write path"
 acceptance: ["One action and its exact expectations are prominent", "Preparation and navigation never create a verdict", "Success, problems and inability to perform keep the affected checks honest", "Saved marks can be corrected without duplicate events"]
+reviewed_by: "model:claude-opus-5 (FEAT-0151 review, two reviewers then one)"
+review_date: 2026-09-25
+review_round: 2
+review_verdict: approved
 implements: "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
 verifies: []
 related: ["[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]"]

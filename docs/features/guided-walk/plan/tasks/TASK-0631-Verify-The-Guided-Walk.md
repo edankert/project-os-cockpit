@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0631
 title: "Verify the guided release walk against the text sheet and ledger"
-status: doing
+status: done
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
@@ -92,3 +92,6 @@ FEAT-0151's round-1 review returned changes-requested. The five findings listed 
 
 **Set aside.** Showing quoted expectations without their `**` markers waits for Edwin (see FEAT-0151's handoff).
 
+## Closed again, 2026-09-25
+
+Round 2 of FEAT-0151's review answered *fixed* for all five round-1 findings, so this task is done. Two wording notes from round 2 were applied: the reproduction test's comment says "needs unconfirmed preparation", and the corpus test's docblock says why it counts a `preparation` readiness as not held.

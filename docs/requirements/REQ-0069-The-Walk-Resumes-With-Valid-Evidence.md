@@ -2,15 +2,19 @@
 type: "[[requirement]]"
 id: REQ-0069
 title: "The walk resumes with valid evidence and the required state"
-status: approved
+status: implemented
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-09-25
 source: ["Your Trainer REQ-0211, moved here 2026-09-24. Edwin: 'Make the changes as suggested. move them to the cockpit as suggested.'"]
 priority: high
 scope: "Release walk page: local progress, evidence and resume"
 acceptance: ["Position, observations and evidence survive restart in their workspace", "Changed source content and platform cannot silently reuse old marks", "Persistence or ledger failures are visible and retryable", "Required live app state is named but never assumed confirmed", "Evidence and timers stay separate from verdicts"]
+reviewed_by: "model:claude-opus-5 (FEAT-0151 review, two reviewers then one)"
+review_date: 2026-09-25
+review_round: 2
+review_verdict: approved
 implements: "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
 verifies: []
 related: ["[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]", "[[RISK-0010-Saved-Walk-Observations-Can-Outlive-Their-Source]]"]

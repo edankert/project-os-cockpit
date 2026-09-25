@@ -3,11 +3,11 @@ type: "[[phase]]"
 id: PHASE-043
 aliases: ["PHASE-043"]
 title: "The walk page — the publication view hands the owed checks over as a procedure"
-status: active
+status: done
 order: 43
 owner: user:edwin
 created: 2026-09-13
-updated: 2026-09-24
+updated: 2026-09-25
 goal: "When a release is in preparation, the publication view gives the person walking it one page that says what to do and in what order: the surfaces the release changed first, then every owed check inside the sitting it belongs to, with its setup, steps and expected result on the page, and a tick that writes the ledger."
 features:
   - "[[FEAT-0149-The-Walk-Page]]"
@@ -107,4 +107,8 @@ Four tasks `done`, one acceptance check walked, one change note ([[CHG-20260913-
 
 Edwin chose this phase as the walk page's standing home on 2026-09-24. [[FEAT-0151-The-Release-Walk-Has-One-Next-Action]] had no phase since it opened on 2026-09-16. It turns this page into a guided walk: one step at a time, with saved progress, evidence and resume. That is follow-up work on the surface this phase built, so it joins here rather than opening a phase of its own. The phase closes again when the criterion below is met, and reopens for the next piece of walk-page work.
 
-- [ ] FEAT-0151 is `done`: its detailed criteria are met, apart from those that belong to Your Trainer. TASK-0629 and TASK-0630 were done on 2026-09-24. [[TASK-0631-Verify-The-Guided-Walk]] (D2, D3) waits for Your Trainer TASK-0960.
+- [x] FEAT-0151 is `done`: its detailed criteria are met, apart from those that belong to Your Trainer. TASK-0629 and TASK-0630 were done on 2026-09-24. [[TASK-0631-Verify-The-Guided-Walk]] (D2, D3) was done on 2026-09-25, and the feature's review was approved in round 2.
+
+## Closed again 2026-09-25
+
+FEAT-0151 is done, so this phase goes back to `done`, as a standing phase does when idle. Its record is [[CHG-20260925-Walk-Setup-Reads-As-A-List]] and the feature's `## Review` section. The next walk-page work reopens it.
