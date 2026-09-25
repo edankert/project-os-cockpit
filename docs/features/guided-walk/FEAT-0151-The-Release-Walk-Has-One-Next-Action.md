@@ -150,3 +150,11 @@ Full runs on 2026-09-25, after the last change:
 - `.venv/bin/python -m pytest -q -p no:randomly` (the whole Python suite): 2,199 passed, 6 skipped. The first run failed two guard tests, and both were fixed in [[CHG-20260925-Walk-Setup-Reads-As-A-List]].
 - `.venv/bin/python -m pytest -q -p no:randomly tests/test_guided_walk_ledger_copy.py tests/test_walk_agreement.py tests/test_walk_bundle.py tests/test_walk_links.py tests/test_walk_payload.py tests/test_walk_route.py tests/test_walk_step_verdicts.py tests/test_walk_survey.py`: 83 passed.
 
+## Handoff, 2026-09-25
+
+**What was done.** TASK-0631 is done, and every criterion in this note and in REQ-0066 to REQ-0069 is ticked (0a2fcab, 42558af). The feature stays `doing` and the requirements stay `approved` until the independent review returns.
+
+**What is next.** Two independent reviewers were started on a packet built from this feature's four source commits (476ee97, 9a8c73a, cda73d7, 0a2fcab). The packet leaves out the template syncs and the Codex commit that the packet tool picked up by subject, and the walk generator, which is reviewed upstream. Its diff is 5,834 lines, over the 1,500-line guideline. The author chose one review at that size rather than a split. Combine the two reports into a `## Review` section here, fix every finding about code this feature changed, then set this note `done` and the four requirements `implemented`. Close PHASE-043 again once nothing under it is open.
+
+**Set aside.** Showing quoted expectations without their `**` bold markers was built and then reverted. The 2026-09-14 review decided the card shows the quote exactly as validated, and a test enforces it. The question is Edwin's: 176 quotes on Your Trainer's walk show the markers.
+
