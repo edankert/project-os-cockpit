@@ -150,8 +150,8 @@ Every criterion in this note is now met. The walk as a whole is finished when Yo
 
 Full runs on 2026-09-25, after the last change:
 
-- `node --test desktop/tests/*.test.mjs` (from `desktop/`, after `npm run build`): 240 tests, 238 pass, 0 fail, 2 skipped. The two skips are the corpus tests that only run when the Python side hands them a payload.
-- `.venv/bin/python -m pytest -q -p no:randomly` (the whole Python suite): 2,199 passed, 6 skipped. The first run failed two guard tests, and both were fixed in [[CHG-20260925-Walk-Setup-Reads-As-A-List]].
+- `node --test desktop/tests/*.test.mjs` (from `desktop/`, after `npm run build`, run after the round-1 fixes): 243 tests, 241 pass, 0 fail, 2 skipped. The two skips are the corpus tests that only run when the Python side hands them a payload.
+- `.venv/bin/python -m pytest -q -p no:randomly` (the whole Python suite, run after the round-1 fixes): 2,199 passed, 6 skipped. The first run failed two guard tests, and both were fixed in [[CHG-20260925-Walk-Setup-Reads-As-A-List]].
 - `.venv/bin/python -m pytest -q -p no:randomly tests/test_guided_walk_ledger_copy.py tests/test_walk_agreement.py tests/test_walk_bundle.py tests/test_walk_links.py tests/test_walk_payload.py tests/test_walk_route.py tests/test_walk_step_verdicts.py tests/test_walk_survey.py`: 83 passed.
 
 ## Handoff, 2026-09-25
@@ -187,4 +187,14 @@ Findings to act on, all in code this feature changed:
 5. **The corpus test's comment speaks of an `equipment` readiness**; the type has only `preparation` and `decision` (reviewer A).
 
 Noted and left as they are: the readiness panel names the waiting steps, and the checks they affect are named under **I can't perform this** (reviewer B). `stepSignature` does not cover `requires` (reviewer B); fix 1 makes that harmless, because a held step blocks the write whether or not its old mark survives. Reviewer A saw the built bundle change during its run; that was reviewer B rebuilding, and nothing in the test path builds `dist/`.
+
+### Round 1 fixes
+
+All five findings are fixed in `desktop/src/renderer/renderer.ts` and `desktop/tests/walk-page.test.mjs` (868e7ef). Each new or changed test was checked by breaking its code in a copy of the built bundle; each break failed it.
+
+1. A new `walkCheckHeld` says whether any step citing a check is held now. The settle loop in `markWalkStep` skips such a check, and so do the correction route's completed list and `walkStepNeedsLedgerRetry`. The test "a hold declared after a step was marked still holds its check" is reviewer B's reproduction.
+2. "a step held by a decision records nothing, here or in the ledger" drives `markWalkStep` on a synthetic procedure. It fails when the readiness gate is removed, with or without Your Trainer present.
+3. The corpus test works out the held steps from the payload's own `readiness` and `requires`. Making `walkUnready` stop holding decisions now fails it on both platforms.
+4. `walkVisibleAction` keeps the label when trimming would leave nothing ("a step whose whole action is its screen label keeps the label").
+5. The corpus test's comment names only the two readiness kinds the type has.
 

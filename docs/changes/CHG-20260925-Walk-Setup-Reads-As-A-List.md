@@ -28,13 +28,14 @@ The other changes:
 
 - **The mark dialog's title leaves off the screen label (same walk).** The title read "Settings (SUR-0044). In Developer Settings… — Settings". The card already drops that repeated label, and the dialog now does too.
 - **A recorded release decision names its mark in words.** The step card said "TST-0003 — na, recorded as a release decision", and the review summary listed "TST-0002 pass". Both now go through `markWord`, so `na` reads "not applicable". The full suite's guard against printing a stored mark raw caught both lines. FEAT-0151 added them on 2026-09-24.
+- **A check waits while any of its steps is held (FEAT-0151 review).** A step's hold used to be checked only when that step itself was marked. A mark saved before a procedure edit made the step depend on missing equipment still counted, and marking the check's last step wrote it. The check now waits until every step citing it can be walked. A step whose whole action is its screen label also keeps the label instead of showing nothing.
 - **Surface notes no longer get a Library group.** This repository reached six surface notes, one over the threshold for a "by type" Library group, and a Surfaces group appeared. `surface` joins the types kept out of Library because they have a page of their own (the design view, the walk survey). The library guard test caught it.
 
 Nothing changes in what the walk records. The ledger format, the step signatures that saved observations are keyed on, and the quoted expectation text are all as they were.
 
 ## Impact
 
-- [[SUR-0004-The-Release-Walk]]: The required setup is a bulleted list; the mark dialog's title starts with the action; a recorded release decision reads "not applicable" rather than "na".
+- [[SUR-0004-The-Release-Walk]]: A check is not recorded while any step citing it is held; the required setup is a bulleted list; the mark dialog's title starts with the action; a recorded release decision reads "not applicable" rather than "na".
 
 ## Evidence
 
