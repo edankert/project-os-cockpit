@@ -176,3 +176,65 @@ def test_real_free_ride_procedure_matches_direct_check_verdicts(
         assert all(ledger.verdicts(copied_docs, platform)[check].mark == "pass"
                    for check in check_ids)
     assert source.read_bytes() == original
+
+
+@pytest.mark.parametrize("platform", ["android", "ios"])
+def test_every_real_sitting_walked_by_steps_matches_direct_check_verdicts(
+        tmp_path: Path, platform: str) -> None:
+    """D2's last clause: unchanged procedures produce the previous flow's verdicts.
+
+    Every sitting in Your Trainer's current walk, on both platforms, is walked
+    step by step through the built renderer. The node test compares each
+    sitting's requests with a direct Pass on each check. Here both request
+    sets go onto their own copy of the working ledger, and the owed set left
+    over must be exactly the checks a declared readiness problem holds.
+    """
+    docs_root = YOUR_TRAINER / "docs"
+    source = docs_root / "releases" / "ledgers" / f"WORKING-{platform}.json"
+    if not source.is_file():
+        pytest.skip(f"Your Trainer ledger is absent: {source}")
+    original = source.read_bytes()
+    payload = acceptance.walk_payload(
+        docs_root, Index.build(docs_root), platform=platform,
+        release="REL-0017" if platform == "android" else "",
+    )
+    scripted = [s for s in payload["sittings"] if s.get("procedure")]
+    assert scripted, "the real walk has no scripted sitting"
+    assert payload["counts"]["unplaced"] == 0
+    fixture = tmp_path / "walk.json"
+    fixture.write_text(json.dumps(payload), encoding="utf-8")
+    emitted = tmp_path / "report.json"
+    env = {**os.environ, "WALK_ALL_PROCEDURES_IN": str(fixture),
+           "WALK_ALL_PROCEDURES_OUT": str(emitted)}
+    subprocess.run(
+        ["node", "--test", "--test-name-pattern=every real sitting walked by steps",
+         "desktop/tests/walk-page.test.mjs"],
+        cwd=COCKPIT, env=env, check=True, capture_output=True, text=True,
+    )
+    report = json.loads(emitted.read_text(encoding="utf-8"))
+    assert [s["name"] for s in report["sittings"]] == [s["name"] for s in scripted]
+
+    owed_ids = [row["id"] for s in scripted for row in s["rows"]]
+    held = {check for s in report["sittings"] for check in s["held"]}
+    posted = {check for s in report["sittings"] for check in s["posted"]}
+    assert not held & posted
+    # Every scripted check is either recorded by its steps or held by a
+    # declared readiness problem; none silently drops out of the walk.
+    assert posted | held == set(owed_ids)
+
+    copied_docs = tmp_path / "docs"
+    target = copied_docs / "releases" / "ledgers" / source.name
+    target.parent.mkdir(parents=True)
+    shutil.copyfile(source, target)
+    for sitting in report["sittings"]:
+        for request in sitting["requests"]:
+            assert request["verdict"] == "pass"
+            assert request["platform"] == platform
+            assert request["method"] == "manual"
+            ledger.append(
+                copied_docs, platform, check=request["id"],
+                mark=request["verdict"], reason=request["reason"],
+                by=request["by"], method=request["method"], when="2026-09-25",
+            )
+    assert set(ledger.owed(copied_docs, platform, owed_ids)) == held
+    assert source.read_bytes() == original

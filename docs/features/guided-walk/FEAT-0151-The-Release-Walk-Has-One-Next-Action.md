@@ -7,7 +7,7 @@ status: doing
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-24
+updated: 2026-09-25
 source: ["Your Trainer FEAT-0122, 2026-09-16: implement and test the guided release walk fully"]
 goal: "A person can perform, record and resume each owed release observation from one focused page with its necessary preparation."
 requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]", "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]", "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]", "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"]
@@ -43,9 +43,9 @@ The detailed criteria moved here from Your Trainer FEAT-0122 on 2026-09-24; they
 - [x] Fail, Partial, Question and inability to perform are available with their required reasons and do not bulk-clear checks. Failed local or ledger writes stay visible and can be retried.
 - [x] Saved observations, corrections and attachments survive a same-workspace restart. Edited actions or expectations do not silently inherit a mark; another release or platform does not inherit position or evidence.
 - [x] A later comparison can open evidence captured earlier with its platform and source state. A user-started timer assists an authored wait and never marks a result.
-- [ ] The text sheet and page agree on both platforms, including the survey hierarchy, preparation, setup and owed set. Ledger-copy tests cover completion, interruption, correction and unresolved outcomes.
+- [x] The text sheet and page agree on both platforms, including the survey hierarchy, preparation, setup and owed set. Ledger-copy tests cover completion, interruption, correction and unresolved outcomes.
 
-The first six are met by the detailed criteria below (evidence, 2026-09-24). The seventh waits on D2, which TASK-0631 owns.
+The first six are met by the detailed criteria below (evidence, 2026-09-24). The seventh is met by D1 and D2 (evidence, 2026-09-25).
 
 ## Links
 
@@ -91,8 +91,8 @@ A1, A2 and A4 are delivered by the shared generator in project-os-dev FEAT-0033 
 ### Agreement
 
 - [x] **D1 — One computed walk.** The cockpit and generated sheet agree on the survey hierarchy, session order, required preparation, observation steps, platform variants and owed checks for both platforms. Retained preparation does not enlarge the ledger's owed set.
-- [ ] **D2 — Verdict equivalence.** On ledger copies, run pass, partial, fail, question, correction and interrupted-check scenarios. Each yields the expected events under the existing combination rule; no incomplete multi-step check passes. Unchanged procedures produce the same verdicts as the previous flow.
-- [ ] **D3 — Existing boundaries.** No runtime prose inference, per-release authored worklist, new ledger schema, session time estimate or bulk pass is introduced. Required expectation wording remains validated against the source notes after corrections.
+- [x] **D2 — Verdict equivalence.** On ledger copies, run pass, partial, fail, question, correction and interrupted-check scenarios. Each yields the expected events under the existing combination rule; no incomplete multi-step check passes. Unchanged procedures produce the same verdicts as the previous flow.
+- [x] **D3 — Existing boundaries.** No runtime prose inference, per-release authored worklist, new ledger schema, session time estimate or bulk pass is introduced. Required expectation wording remains validated against the source notes after corrections.
 
 ## Implementation evidence and remaining work
 
@@ -128,4 +128,25 @@ TASK-0629 and TASK-0630 were finished against the detailed criteria on 2026-09-2
 
 The page was also rendered in Chrome against a copy of Your Trainer's REL-0017 Android walk, which has 86 owed checks in 13 sessions. A pass, a fail through the real mark dialog, an arrow-key move and a full reload showed the resume notice, the "Needs attention" list, the "2 of 6 done · 1 needs attention" count and a summary line reading "observed in part (step 2 fail so far)". Only the copy's ledger was written.
 
-Still open here: D2 and D3, which TASK-0631 verifies once Your Trainer TASK-0960 is done. The walk as a whole also waits on the Your Trainer criteria named above.
+D2 and D3 were still open that day; they are met below.
+
+### Evidence, 2026-09-25: D2, D3
+
+TASK-0631 met both on 2026-09-25, after Your Trainer TASK-0960 finished its procedure audits. The full account is in [[TASK-0631-Verify-The-Guided-Walk]] under "Result, 2026-09-25".
+
+D2's last clause was that unchanged procedures produce the verdicts the previous flow did. A new test now walks every sitting on both platforms step by step through the built renderer: 1,223 steps in 27 sittings. It compares each sitting's requests with a direct Pass on each check. The two agree for all 366 checks the steps can record. The other 53 checks are held by a declared readiness problem, get no verdict from their steps, and stay owed on a ledger copy. Removing the readiness gate or the holding rule in the built renderer fails the test.
+
+D3 was checked by audit. `walk-sheet.py --check` passes on Your Trainer for both platforms. The ledger module and its event format have not changed since this feature began. Every walk write is one check through `postCheckVerdict`. The walk has no time estimate and reads no rule from prose.
+
+A browser walk against a copy of Your Trainer's current corpus showed the next action, the setup folding away after the first step, a decision-held step with **I can't perform this**, a resume after reload, and an evidence comparison. None of it needed a check note to be opened. A Fail through the real dialog wrote one event to the copy's ledger. The walk found two display defects, fixed in [[CHG-20260925-Walk-Setup-Reads-As-A-List]].
+
+Every criterion in this note is now met. The walk as a whole is finished when Your Trainer's own criteria are met too: A3, A5, A6 and A8 in TASK-0960 are done, and D4, Edwin's walk, is Your Trainer TASK-0923.
+
+## Verification
+
+Full runs on 2026-09-25, after the last change:
+
+- `node --test desktop/tests/*.test.mjs` (from `desktop/`, after `npm run build`): 240 tests, 238 pass, 0 fail, 2 skipped. The two skips are the corpus tests that only run when the Python side hands them a payload.
+- `.venv/bin/python -m pytest -q -p no:randomly` (the whole Python suite): 2,199 passed, 6 skipped. The first run failed two guard tests, and both were fixed in [[CHG-20260925-Walk-Setup-Reads-As-A-List]].
+- `.venv/bin/python -m pytest -q -p no:randomly tests/test_guided_walk_ledger_copy.py tests/test_walk_agreement.py tests/test_walk_bundle.py tests/test_walk_links.py tests/test_walk_payload.py tests/test_walk_route.py tests/test_walk_step_verdicts.py tests/test_walk_survey.py`: 83 passed.
+

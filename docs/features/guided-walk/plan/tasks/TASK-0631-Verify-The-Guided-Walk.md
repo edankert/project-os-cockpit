@@ -2,11 +2,11 @@
 type: "[[task]]"
 id: TASK-0631
 title: "Verify the guided release walk against the text sheet and ledger"
-status: doing
+status: done
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-23
+updated: 2026-09-25
 source: ["Your Trainer FEAT-0122, 2026-09-16"]
 parent: "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
 effort: "Medium"
@@ -22,13 +22,13 @@ tests: []
 
 - [x] Android and iOS payloads match the generated text sheet on survey, session order, setup, preparation, observations and owed checks.
 - [x] Ledger-copy tests cover pass, partial, fail, question, correction and a check interrupted between observations.
-- [ ] A browser walk shows the next action, setup transition, exception, pause and evidence comparison without opening a check note.
+- [x] A browser walk shows the next action, setup transition, exception, pause and evidence comparison without opening a check note.
 
 ## Steps
 
 - [x] Expand agreement and write-path fixtures.
-- [ ] Walk the page in a real browser against a fixture workspace.
-- [ ] Record remaining human and hardware exceptions in the feature note.
+- [x] Walk the page in a real browser against a fixture workspace.
+- [x] Record remaining human and hardware exceptions in the feature note.
 
 ## Progress, 2026-09-17
 
@@ -55,3 +55,28 @@ The session that wrote this line worked on something else: Edwin asked for the c
 ## Handoff, 2026-09-23
 
 This task remains `doing`; its outstanding guided-walk checks are unchanged. Edwin requested a review of Codex integration and next steps toward Claude Code parity. The findings are recorded in [the Codex parity review](../../../../reference/codex-parity-review-2026-09-23.md). The review ran focused agent-integration checks and changed no walk code or ledger. Resume this task from the progress and open checks above; the Codex review does not provide new guided-walk verification.
+
+## Plan, 2026-09-25
+
+Your Trainer TASK-0960 is done, so this task resumes. Its procedure audits (A3, A5, A6, A8) were the reason D2 and D3 waited.
+
+D2 still owes one clause: unchanged procedures produce the same verdicts as the previous flow. So far only selected FREE ride steps have been compared. The next test walks every sitting on both platforms, every step, through the built renderer's own step control. It confirms preparation readiness and saves a note and build wherever a step asks for evidence, as a walker would. It then compares the ledger requests with a direct Pass on each check, and applies both to copies of the working ledgers. A check held by a declared decision or missing equipment must get no verdict from the steps and must stay owed.
+
+D3 is an audit of boundaries rather than new behaviour. It is checked by running `walk-sheet.py --check` on Your Trainer for both platforms, and by reading the walk code for prose inference, a stored per-release worklist, a new ledger field, a time estimate or a bulk pass.
+
+## Result, 2026-09-25
+
+**D2 and D3 are met, and this task is done.** Your Trainer TASK-0960 finished its procedure audits on 2026-09-24. Every owed check on both platforms now sits in a procedure: 86 of 86 on Android and 333 of 333 on iOS, with no procedure problem reported.
+
+**D2, unchanged procedures.** A new test walks every sitting on both platforms through the built renderer's own step control: 13 sittings and 351 steps on Android, 14 sittings and 872 steps on iOS. It confirms each `preparation` readiness and saves a note and build at each evidence prompt first, as a walker would. It then compares the requests with a direct Pass on each check. They are identical for every check the steps can record: 84 on Android and 282 on iOS. The other 2 Android and 51 iOS checks sit behind a declared decision or missing equipment. Their steps wrote nothing, and they stay owed. Both request sets were applied to a copy of each working ledger, and the owed set left over is exactly those held checks. Two deliberate breaks in the built renderer each failed the test: removing the readiness gate, and writing a check before all its citing steps had a mark. The test is `test_every_real_sitting_walked_by_steps_matches_direct_check_verdicts` in `tests/test_guided_walk_ledger_copy.py`, with its node half in `desktop/tests/walk-page.test.mjs`.
+
+**D3, existing boundaries.** `walk-sheet.py --check` exits 0 for both platforms on Your Trainer, using this repository's generator and Your Trainer's own, which are byte-identical. It prints 528 remarks about old change notes with no `## Impact` list, and no problems. The ledger module has not changed since FEAT-0151 began, and its `evidence` field dates from 2026-08-19. Every verdict the walk writes goes through `postCheckVerdict`, one check at a time. A step writes only the checks whose citing steps all have a mark. Nothing in the walk estimates a duration. The payload builder reads declared frontmatter such as `after:`, and does not infer an order from prose.
+
+**Browser walk.** The walk page ran in a separate headless Chrome against a copy of Your Trainer's current docs, git tags and ledgers, through a sidecar started for the purpose. Edwin's app was not touched. On Android it showed the 14-screen survey first, then step 1 with its required state and **Pass and next**. After one pass the setup folded and the page moved to step 2. A reload resumed at the saved step and named the app state to restore. At sitting 2, step 18, the page showed "Needs a decision" with the authored reason and disabled Pass. **I can't perform this** offered TST-0652 and recorded nothing. A note and build saved at sitting 3's step 32 appeared at step 46 with platform, release, build, state and time. **Something wrong…** offered only Partial, Fail and Question, and a Fail wrote one event in the existing format to the copy's ledger. The page stayed on the step and read "2 of 7 done · 1 needs attention". The iOS page said there is no earlier iOS release to compare against, and used iOS wording in its setup and actions. Your Trainer's own ledgers were not written.
+
+The walk found two display defects, both fixed here ([[CHG-20260925-Walk-Setup-Reads-As-A-List]]). The full suite then found two more, also fixed in that change: FEAT-0151's own lines printed a stored mark raw ("na"), and six surface notes had earned this repository a Surfaces group in Library. The setup printed its Markdown list as text, so 12 of 13 Android sittings showed items starting with "- ". The mark dialog's title repeated the screen label the card already leaves off.
+
+It also found one thing left as it is. 176 quoted expectations (76 Android, 100 iOS) show their `**` bold markers on the card. The review of 2026-09-14 decided the card shows the generator's quote exactly as validated, and a test says so. Changing that is Edwin's call.
+
+**Human and hardware exceptions.** Edwin's own walk of the checks is Your Trainer D4 (TASK-0923). The 53 held checks need a product decision, dual-sided pedals, a real cadence sensor or iOS parity work before anyone can walk them, as Your Trainer's procedures declare. None of them is this page's to resolve.
+

@@ -603,10 +603,14 @@ DOC_TREE_INLINE_TYPES: tuple[str, ...] = ("reference", "workflow")
 # contributed 579. Its surface is the acceptance view (FEAT-0114) — exactly the
 # condition this set exists to record, arriving for the first time on a type
 # that was not hypothetical.
+# `surface` joined on 2026-09-25 for the same reason. This repo's surface notes
+# reached six, one over _BY_TYPE_MIN_COUNT, and a Surfaces group appeared in
+# Library; the full suite's library guard caught it. Surfaces already have the
+# design view (TASK-0516) and the walk survey.
 _BY_TYPE_SKIP_IN_LIBRARY: frozenset[str] = frozenset({
     "feature", "issue", "requirement", "phase", "task",
     "change", "adr", "decision", "release", "risk", "test", "workflow",
-    "plan", "design", "check",
+    "plan", "design", "check", "surface",
 }) | frozenset(LIBRARY_RARE_TYPES) | frozenset(DOC_TREE_INLINE_TYPES)
 
 # Minimum count for a discovered type to merit its own Library "By type"

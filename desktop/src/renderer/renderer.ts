@@ -11529,7 +11529,7 @@ function buildWalkReview(v: WalkPayload): HTMLElement {
     cleared.className = 'walk-review-recorded';
     cleared.textContent = `${recorded.length} check${recorded.length === 1 ? ' was' : 's were'} `
       + `given a clearing result during this walk: ${recorded.map((row) =>
-        `${row.id || row.number} ${currentEvent(row.id || row.number)?.mark}`).join(', ')}.`;
+        `${row.id || row.number} ${markWord(currentEvent(row.id || row.number)?.mark || '')}`).join(', ')}.`;
     wrap.appendChild(cleared);
   }
   if (unresolved.length) {
@@ -11592,8 +11592,9 @@ function buildWalkReview(v: WalkPayload): HTMLElement {
       group.appendChild(label);
       if (proc.setup) {
         const setup = document.createElement('p');
-        setup.textContent = `Required setup: ${proc.setup}`;
+        setup.textContent = 'Required setup:';
         group.appendChild(setup);
+        group.appendChild(walkSetupBody(proc.setup));
       }
       for (const step of proc.steps) {
         const card = buildWalkStep(v, sitting, proc, step);
@@ -12386,6 +12387,40 @@ function walkLineText(text: string, tags: WalkTag[]): string {
   return out.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, '').trim();
 }
 
+/** A procedure's `## Setup`, drawn as the list it is written as.
+ *
+ *  The generator hands the setup over as Markdown, one `- ` bullet per item
+ *  with a blank line between items. Set as text, every item after the bench
+ *  list read as a paragraph starting with a hyphen — seen on 12 of Your
+ *  Trainer's 13 Android sittings in a browser walk, 2026-09-25 (TASK-0631).
+ *  A line under a bullet stays in that item, with its own line break. */
+function walkSetupBody(text: string): HTMLElement {
+  const body = document.createElement('div');
+  body.className = 'walk-proc-text walk-proc-setup';
+  let list: HTMLElement | null = null;
+  let open: HTMLElement | null = null;
+  for (const line of text.split('\n')) {
+    if (!line.trim()) { open = null; continue; }
+    if (/^\s{0,3}[-*+]\s+/.test(line)) {
+      if (!list) {
+        list = document.createElement('ul');
+        body.appendChild(list);
+      }
+      open = document.createElement('li');
+      open.textContent = walkLineText(line, []);
+      list.appendChild(open);
+    } else if (open) {
+      open.textContent += `\n${walkLineText(line.trim(), [])}`;
+    } else {
+      list = null;
+      open = document.createElement('p');
+      open.textContent = walkLineText(line, []);
+      body.appendChild(open);
+    }
+  }
+  return body;
+}
+
 /** The current card heading already names this screen. Keep the full source
  * line in the procedure and its signature; trim only the repeated heading
  * from the visible action when the resolved screen and id both agree. */
@@ -12455,11 +12490,12 @@ function buildProcedureSection(
     }
     setup.appendChild(bench);
   }
-  const body = document.createElement('div');
-  body.className = 'walk-proc-text';
+  let body: HTMLElement;
   if (proc.setup) {
-    body.textContent = proc.setup;
+    body = walkSetupBody(proc.setup);
   } else {
+    body = document.createElement('div');
+    body.className = 'walk-proc-text';
     body.textContent = 'Not stated. The procedure has no Setup heading, so '
       + 'every step below assumes a state nobody wrote down.';
     setup.classList.add('is-missing');
@@ -13099,7 +13135,7 @@ function buildStepTick(
         || !['blocked', 'excused', 'na'].includes(latest.mark)) continue;
     const said = document.createElement('p');
     said.className = 'walk-step-decision';
-    said.textContent = `${id} — ${latest.mark}, recorded as a release decision${
+    said.textContent = `${id} — ${markWord(latest.mark)}, recorded as a release decision${
       latest.reason ? `: ${latest.reason}` : '.'}`;
     foot.appendChild(said);
   }
@@ -13311,9 +13347,11 @@ async function markWalkStep(
     number: `Step ${step.displayNumber}`,
     //: The step's words, not its Markdown — the same cleaning the page's own
     //: lines get. The dialog read `Step 1 **Ride cockpit.** Pedal for…` until
-    //: this was rendered in a browser.
+    //: this was rendered in a browser. The screen label the heading already
+    //: names is left off too, as on the card: the title read `Settings
+    //: (SUR-0044). In Developer Settings… — Settings` (browser walk, 2026-09-25).
     name: step.surface
-      ? `${walkLineText(step.head, [])} — ${step.surface}`
+      ? `${walkVisibleAction(walkLineText(step.head, []), step)} — ${step.surface}`
       : walkLineText(step.head, []),
     current: held?.verdict || ' ',
     //: **Four marks, not seven** ([[ADR-0041]]; Edwin, 2026-09-14). The three

@@ -6520,6 +6520,9 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.walk-proc-setup ul { margin: 0 0 0 1.1rem; padding: 0; }
+.walk-proc-setup li,
+.walk-proc-setup p { margin: 0 0 4px; }
 .walk-proc-block.is-missing .walk-proc-text,
 .walk-proc-block.is-partial .walk-proc-text { color: var(--text-muted); }
 .walk-proc-why {

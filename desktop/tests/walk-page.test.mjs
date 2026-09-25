@@ -41,6 +41,20 @@ function extract(src, name) {
   return src.slice(start, i + 1);
 }
 
+/** One top-level `const NAME = {…};`, so a function under test reads the real
+ *  table rather than a copy of it (`markWord` reads `MARK_TITLE`). */
+function extractConst(src, name) {
+  const start = src.indexOf(`const ${name} =`);
+  assert.notEqual(start, -1, `${name} not found in the built renderer`);
+  let depth = 0;
+  let i = src.indexOf('{', start);
+  for (; i < src.length; i += 1) {
+    if (src[i] === '{') depth += 1;
+    else if (src[i] === '}') { depth -= 1; if (depth === 0) break; }
+  }
+  return src.slice(start, src.indexOf(';', i) + 1);
+}
+
 // --------------------------------------------------------------- a tiny DOM
 
 function makeDom() {
@@ -162,7 +176,7 @@ const NAMES = [
   // call into these, so the page cannot be built without them.
   'buildSurveyCard', 'buildSurveyCaptures', 'walkCaptureSrc', 'walkDocsRel',
   'readProcedure', 'buildProcedureSection', 'buildWalkStep', 'buildStepTick',
-  'buildProcedureVerdicts', 'walkLineText', 'walkTagLabel', 'combineStepMarks',
+  'buildProcedureVerdicts', 'walkLineText', 'walkSetupBody', 'walkTagLabel', 'combineStepMarks',
   'stepMarkKey', 'stepSignature', 'walkStepsKey', 'loadStepMarks',
   'saveStepMarks', 'walkFocusKey', 'loadWalkFocus', 'saveWalkFocus',
   'decideUnavailableWalkCheck',
@@ -176,12 +190,12 @@ const NAMES = [
   'waitingSteps', 'walkProcedureId', 'walkStepId', 'walkVerdictsId',
   'walkFocusAt', 'resolveWalkStep', 'walkStepPosition', 'walkKeyNavigation',
   'buildWalkResume', 'buildWalkAttention', 'walkEvidenceChecks', 'walkEvidenceStale',
-  'walkEarlierObservation', 'walkProblemsSoFar',
+  'walkEarlierObservation', 'walkProblemsSoFar', 'markWord',
 ];
 
 async function load({ document, navigateTo = () => {}, marks = [] } = {}) {
   const src = await source();
-  const bodies = NAMES.map((n) => extract(src, n)).join('\n');
+  const bodies = [...NAMES.map((n) => extract(src, n)), extractConst(src, 'MARK_TITLE')].join('\n');
   // `buildCheckRow` is the checks page's row and is exercised by its own
   // tests; here it is a stub that records which check it was asked to draw,
   // so the assertions are about the WALK's ordering and not about the row.
@@ -535,8 +549,8 @@ test('a refused walk renders the reason and the platforms that exist',
 
 async function loadRepaint({ document, fresh, walkData }) {
   const src = await source();
-  const bodies = [...NAMES, 'repaintWalkRow'].map((n) => extract(src, n))
-    .join('\n');
+  const bodies = [...[...NAMES, 'repaintWalkRow'].map((n) => extract(src, n)),
+    extractConst(src, 'MARK_TITLE')].join('\n');
   const stub = `
 function buildCheckRow(item, manual, controls, onMark) {
   const row = document.createElement('div');
@@ -725,7 +739,7 @@ const PROC_NAMES = [
   'buildWalkReview',
   'walkNotice', 'walkBlock', 'walkRowId', 'readProcedure', 'combineStepMarks',
   'stepMarkKey', 'stepSignature', 'walkStepsKey', 'loadStepMarks',
-  'saveStepMarks', 'pruneStepMarks', 'waitingSteps', 'walkLineText', 'walkVisibleAction',
+  'saveStepMarks', 'pruneStepMarks', 'waitingSteps', 'walkLineText', 'walkSetupBody', 'walkVisibleAction',
   'walkCompletedKey', 'loadWalkCompleted', 'rememberWalkCompleted', 'walkQuery',
   'walkTagLabel',
   'walkDocsRel', 'walkCaptureSrc', 'walkProcedureId', 'walkStepId',
@@ -741,7 +755,7 @@ const PROC_NAMES = [
   'walkReadyKey', 'loadWalkReady', 'saveWalkReady', 'walkUnready',
   'walkFocusAt', 'resolveWalkStep', 'walkStepPosition', 'walkKeyNavigation',
   'buildWalkResume', 'buildWalkAttention', 'walkEvidenceChecks', 'walkEvidenceStale',
-  'walkEarlierObservation', 'walkProblemsSoFar',
+  'walkEarlierObservation', 'walkProblemsSoFar', 'markWord',
 ];
 
 /** A localStorage that behaves like one, including a JSON round trip. */
@@ -763,7 +777,7 @@ async function loadProc({
   initialWalkData = null,
 } = {}) {
   const src = await source();
-  const bodies = PROC_NAMES.map((n) => extract(src, n)).join('\n');
+  const bodies = [...PROC_NAMES.map((n) => extract(src, n)), extractConst(src, 'MARK_TITLE')].join('\n');
   const stub = `
 function buildCheckRow(item, manual, controls, onMark) {
   const row = document.createElement('div');
@@ -894,6 +908,29 @@ test('a sitting with a procedure states its setup once, not once per check',
     assert.equal(all(page, 'checks-row').length, 0,
       'a scripted sitting draws the script, not the per-check rows');
   });
+
+test('a procedure setup written as a list is drawn as one', async () => {
+  // Your Trainer's generator output, 2026-09-25: one bullet per item, a blank
+  // line between items, and a line that continues the item above it.
+  const sitting = procedureSitting();
+  sitting.procedure.setup = '- The debug build with **no rider**.\n\n'
+    + '- A tablet and a phone,\n  both on the same build.\n\n'
+    + 'A closing sentence that is not an item.';
+  const document = makeDom();
+  const { buildWalkPage } = await loadProc({ document });
+  const page = buildWalkPage(procedurePayload({ sittings: [sitting] }));
+  const setup = all(page, 'walk-proc-setup');
+  assert.equal(setup.length, 1);
+  const [list, closing] = setup[0].children;
+  assert.equal(list.tagName.toLowerCase(), 'ul');
+  assert.deepEqual(list.children.map((li) => li.textContent), [
+    'The debug build with no rider.',
+    'A tablet and a phone,\nboth on the same build.',
+  ]);
+  assert.equal(closing.tagName.toLowerCase(), 'p');
+  assert.equal(closing.textContent, 'A closing sentence that is not an item.');
+  assert.ok(!/^- /m.test(setup[0].textContent), 'a list marker was drawn as text');
+});
 
 test('every printed step is drawn, with the screen it happens on', async () => {
   const document = makeDom();
@@ -1203,6 +1240,77 @@ test('real procedure verdicts equal direct check verdicts',
     }
   });
 
+/** Every sitting of a real platform walk, walked step by step with Pass
+ *  (TASK-0631, criterion D2: "unchanged procedures produce the same verdicts
+ *  as the previous flow"). The walker's own preparation is done first: a
+ *  `preparation` readiness is confirmed and every evidence prompt gets a note
+ *  and build. A `decision` or `equipment` readiness cannot be confirmed, so a
+ *  check behind one must get no verdict from its steps. Every other check
+ *  must get exactly the request a direct Pass on its row would send. */
+test('every real sitting walked by steps equals direct check verdicts',
+  { skip: !process.env.WALK_ALL_PROCEDURES_IN }, async () => {
+    const v = JSON.parse(await fs.readFile(process.env.WALK_ALL_PROCEDURES_IN, 'utf8'));
+    const report = { platform: v.platform, sittings: [] };
+    for (const sitting of v.sittings) {
+      if (!sitting.procedure) continue;
+      const storage = makeStorage();
+      const stepPosts = [];
+      const byStep = await loadProc({ document: makeDom(), posts: stepPosts,
+        localStorage: storage });
+      const view = byStep.readProcedure(sitting);
+      const ready = {};
+      for (const step of view.steps) {
+        if (step.readiness?.kind === 'preparation')
+          ready[byStep.evidenceKey(v, sitting, view, step.number)] = true;
+      }
+      assert.ok(byStep.saveWalkReady(ready));
+      const held = new Set();
+      for (const step of view.steps) {
+        if (step.capturePrompt) {
+          assert.ok(byStep.saveCurrentWalkEvidence(v, sitting, view, step,
+            'Synthetic audit observation.', 'audit-build'));
+        }
+        const blocked = byStep.walkUnready(v, sitting, view, step).length > 0;
+        const before = stepPosts.length;
+        await byStep.markWalkStep(v, sitting, view, step, true);
+        if (blocked) {
+          assert.equal(stepPosts.length, before,
+            `${sitting.name} step ${step.number} wrote while held`);
+          for (const id of Object.keys(view.citing))
+            if (view.citing[id].includes(step.number)) held.add(id);
+        }
+      }
+      const posted = new Set(stepPosts.map((post) => post.body.id));
+      for (const id of held) {
+        assert.ok(!posted.has(id),
+          `${sitting.name}: ${id} got a verdict although a citing step is held`);
+      }
+
+      const rowPosts = [];
+      const passing = sitting.rows.filter((row) => !held.has(row.id || row.number));
+      const byRow = await loadProc({ document: makeDom(), posts: rowPosts,
+        verdicts: passing.map(() => ({ verdict: 'pass', reason: '' })) });
+      for (const row of passing) {
+        await byRow.walkOneCheck(row, v.platform, async () => true);
+      }
+      const byId = (a, b) => a.body.id.localeCompare(b.body.id);
+      assert.deepEqual(stepPosts.slice().sort(byId), rowPosts.slice().sort(byId),
+        `${sitting.name}: step and direct verdicts differ`);
+      report.sittings.push({
+        name: sitting.name,
+        steps: view.steps.length,
+        rows: sitting.rows.length,
+        posted: [...posted].sort(),
+        held: [...held].sort(),
+        requests: stepPosts.map((post) => post.body),
+      });
+    }
+    if (process.env.WALK_ALL_PROCEDURES_OUT) {
+      await fs.writeFile(process.env.WALK_ALL_PROCEDURES_OUT,
+        JSON.stringify(report), 'utf8');
+    }
+  });
+
 test('ledger replay scenarios use the real step marker', async () => {
   const results = {};
   const cases = [
@@ -1500,6 +1608,20 @@ test('a step line shows its words, not its markdown', async () => {
     walkLineText('   - The cadence rises. `TST-0001.1`',
                  [{ check: 'TST-0001', step: '1', owed: true }]),
     'The cadence rises.');
+});
+
+test('the mark dialog leaves off the screen label its title already names', async () => {
+  // Your Trainer's Fresh install step 10, 2026-09-25: the title read
+  // `Settings (SUR-0044). In Developer Settings… — Settings`.
+  const document = makeDom();
+  const asks = [];
+  const proc = await loadProc({ document, asks });
+  const sitting = procedureSitting();
+  sitting.procedure.steps[0].head = '**Profile (SUR-0001).** Open the app on the Profile screen.';
+  const v = procedurePayload({ sittings: [sitting] });
+  const view = proc.readProcedure(sitting);
+  await proc.markWalkStep(v, sitting, view, view.steps[0]);
+  assert.equal(asks[0].name, 'Open the app on the Profile screen. — Profile');
 });
 
 test('the mark dialog names the step in words, not markdown', async () => {
