@@ -12427,7 +12427,10 @@ function walkSetupBody(text: string): HTMLElement {
 function walkVisibleAction(text: string, step: { surface: string | null; surfaceNote: string | null }): string {
   if (!step.surface || !step.surfaceNote) return text;
   const repeated = `${step.surface} (${step.surfaceNote}).`;
-  return text.startsWith(repeated) ? text.slice(repeated.length).trimStart() : text;
+  const rest = text.startsWith(repeated) ? text.slice(repeated.length).trimStart() : text;
+  //: A step whose whole action is its screen label keeps the label; an empty
+  //: action told the walker nothing (FEAT-0151 review, 2026-09-25).
+  return rest || text;
 }
 
 /** `TST-0648.4`, the way the procedure writes it. ASCII, by Edwin's decision
@@ -12756,6 +12759,22 @@ function hasRequiredWalkEvidence(
   });
 }
 
+/** Whether any step citing this check is held by a readiness problem now.
+ *
+ *  **A mark saved before a hold does not outlive it.** A step's own hold is
+ *  checked when that step is marked, but a check cited by several steps was
+ *  written as soon as each had a mark. So a mark saved on step 3, followed by
+ *  a procedure edit that made step 3 depend on a step needing equipment, let
+ *  marking step 1 write the check (FEAT-0151 review, 2026-09-25). */
+function walkCheckHeld(
+  v: WalkPayload, sitting: WalkSitting, proc: ProcedureView, check: string,
+): boolean {
+  return (proc.citing[check] || []).some((number) => {
+    const step = proc.steps.find((candidate) => candidate.number === number);
+    return Boolean(step && walkUnready(v, sitting, proc, step).length);
+  });
+}
+
 function walkStepNeedsLedgerRetry(
   v: WalkPayload, sitting: WalkSitting, proc: ProcedureView,
   step: ProcedureView['steps'][number],
@@ -12766,7 +12785,7 @@ function walkStepNeedsLedgerRetry(
     const sources = proc.citing[id];
     const given = sources.map((number) => marks[stepMarkKey(
       v.release, v.platform, sitting.name, proc.sigs[number] || '')]);
-    if (given.some((mark) => !mark)) continue;
+    if (given.some((mark) => !mark) || walkCheckHeld(v, sitting, proc, id)) continue;
     const verdict = combineStepMarks(given.map((mark) => mark.verdict));
     const reason = sources.map((number, index) => [number, given[index].reason] as const)
       .filter(([, said]) => said)
@@ -13382,9 +13401,10 @@ async function markWalkStep(
     return;
   }
 
-  const completed = settles.filter((id) => (proc.citing[id] || []).every((n) =>
-    Boolean(marks[stepMarkKey(v.release, v.platform, sitting.name,
-                              proc.sigs[n] || '')])));
+  const completed = settles.filter((id) => !walkCheckHeld(v, sitting, proc, id)
+    && (proc.citing[id] || []).every((n) =>
+      Boolean(marks[stepMarkKey(v.release, v.platform, sitting.name,
+                                proc.sigs[n] || '')])));
   if (!rememberWalkCompleted(v, completed)) {
     showStatus('The observation was saved, but its correction route could not be saved. Allow site data and retry the ledger write.', 'error');
     return;
@@ -13404,6 +13424,7 @@ async function markWalkStep(
     //: the whole holding rule: a verdict written from half a walk would say
     //: the check passed on evidence nobody gathered.
     if (given.some((m) => !m)) continue;
+    if (walkCheckHeld(v, sitting, proc, id)) continue;
     const verdict = combineStepMarks(given.map((m) => m.verdict));
     if (!verdict) continue;
     const row = sitting.rows.find((r) => (r.id || r.number) === id);

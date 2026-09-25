@@ -186,7 +186,7 @@ const NAMES = [
   'buildWalkEvidence', 'hasRequiredWalkEvidence', 'walkStepNeedsLedgerRetry', 'buildWalkTimer',
   'refreshWalkEvidenceComparisons',
   'walkInvalidationEpoch', 'archiveWalkMark',
-  'walkReadyKey', 'loadWalkReady', 'saveWalkReady', 'walkUnready',
+  'walkReadyKey', 'loadWalkReady', 'saveWalkReady', 'walkUnready', 'walkCheckHeld',
   'waitingSteps', 'walkProcedureId', 'walkStepId', 'walkVerdictsId',
   'walkFocusAt', 'resolveWalkStep', 'walkStepPosition', 'walkKeyNavigation',
   'buildWalkResume', 'buildWalkAttention', 'walkEvidenceChecks', 'walkEvidenceStale',
@@ -752,7 +752,7 @@ const PROC_NAMES = [
   'buildWalkEvidence', 'hasRequiredWalkEvidence', 'walkStepNeedsLedgerRetry', 'buildWalkTimer',
   'refreshWalkEvidenceComparisons',
   'walkInvalidationEpoch', 'archiveWalkMark',
-  'walkReadyKey', 'loadWalkReady', 'saveWalkReady', 'walkUnready',
+  'walkReadyKey', 'loadWalkReady', 'saveWalkReady', 'walkUnready', 'walkCheckHeld',
   'walkFocusAt', 'resolveWalkStep', 'walkStepPosition', 'walkKeyNavigation',
   'buildWalkResume', 'buildWalkAttention', 'walkEvidenceChecks', 'walkEvidenceStale',
   'walkEarlierObservation', 'walkProblemsSoFar', 'markWord',
@@ -1244,9 +1244,27 @@ test('real procedure verdicts equal direct check verdicts',
  *  (TASK-0631, criterion D2: "unchanged procedures produce the same verdicts
  *  as the previous flow"). The walker's own preparation is done first: a
  *  `preparation` readiness is confirmed and every evidence prompt gets a note
- *  and build. A `decision` or `equipment` readiness cannot be confirmed, so a
- *  check behind one must get no verdict from its steps. Every other check
- *  must get exactly the request a direct Pass on its row would send. */
+ *  and build. A `decision` readiness cannot be confirmed, so a check behind
+ *  one must get no verdict from its steps. Every other check must get exactly
+ *  the request a direct Pass on its row would send.
+ *
+ *  Which steps are held is worked out here from the payload, not with
+ *  `walkUnready`: asking the code under test which checks it holds could not
+ *  catch a wrong hold rule (FEAT-0151 review, 2026-09-25). */
+function heldStepsFromPayload(procedure) {
+  const byNumber = new Map(procedure.steps.map((step) => [step.number, step]));
+  const held = new Set();
+  const heldAt = (number, seen = new Set()) => {
+    if (seen.has(number)) return false;
+    seen.add(number);
+    const step = byNumber.get(number);
+    if (step?.readiness && step.readiness.kind !== 'preparation') return true;
+    return (procedure.requires?.[String(number)] || []).some((n) => heldAt(n, seen));
+  };
+  for (const step of procedure.steps) if (heldAt(step.number)) held.add(step.number);
+  return held;
+}
+
 test('every real sitting walked by steps equals direct check verdicts',
   { skip: !process.env.WALK_ALL_PROCEDURES_IN }, async () => {
     const v = JSON.parse(await fs.readFile(process.env.WALK_ALL_PROCEDURES_IN, 'utf8'));
@@ -1264,13 +1282,14 @@ test('every real sitting walked by steps equals direct check verdicts',
           ready[byStep.evidenceKey(v, sitting, view, step.number)] = true;
       }
       assert.ok(byStep.saveWalkReady(ready));
+      const heldSteps = heldStepsFromPayload(sitting.procedure);
       const held = new Set();
       for (const step of view.steps) {
         if (step.capturePrompt) {
           assert.ok(byStep.saveCurrentWalkEvidence(v, sitting, view, step,
             'Synthetic audit observation.', 'audit-build'));
         }
-        const blocked = byStep.walkUnready(v, sitting, view, step).length > 0;
+        const blocked = heldSteps.has(step.number);
         const before = stepPosts.length;
         await byStep.markWalkStep(v, sitting, view, step, true);
         if (blocked) {
@@ -1310,6 +1329,58 @@ test('every real sitting walked by steps equals direct check verdicts',
         JSON.stringify(report), 'utf8');
     }
   });
+
+test('a step held by a decision records nothing, here or in the ledger', async () => {
+  // The readiness gate in `markWalkStep`, guarded without Your Trainer's corpus
+  // (FEAT-0151 review, 2026-09-25: only the corpus test caught its removal).
+  const sitting = procedureSitting();
+  sitting.procedure.steps[1].readiness = { kind: 'decision', reason: 'Choose first.' };
+  const storage = makeStorage();
+  const posts = [];
+  const statuses = [];
+  const proc = await loadProc({ document: makeDom(), posts, statuses, localStorage: storage });
+  const v = procedurePayload({ sittings: [sitting] });
+  const view = proc.readProcedure(sitting);
+  await proc.markWalkStep(v, sitting, view, view.steps[1], true);
+  assert.deepEqual(posts, []);
+  assert.deepEqual(proc.loadStepMarks(), {}, 'a held step saved a mark');
+  assert.match(statuses.at(-1).message, /Resolve the preparation or decision/);
+});
+
+test('a hold declared after a step was marked still holds its check', async () => {
+  // Reviewer B's reproduction, FEAT-0151 review round 1. TST-0001 is cited by
+  // steps 1 and 3. Step 3 is marked while nothing is held; the procedure then
+  // makes step 3 depend on step 4, which needs equipment. Step 3's own words
+  // do not change, so its saved mark survives, and marking step 1 wrote the check.
+  const storage = makeStorage();
+  const posts = [];
+  const first = await loadProc({ document: makeDom(), posts, localStorage: storage });
+  const before = procedureSitting();
+  const v1 = procedurePayload({ sittings: [before] });
+  const view1 = first.readProcedure(before);
+  await first.markWalkStep(v1, before, view1, view1.steps[2], true);
+  assert.deepEqual(posts, []);
+
+  const after = procedureSitting();
+  after.procedure.requires = { 3: [4] };
+  after.procedure.steps[3].readiness = { kind: 'preparation', reason: 'Bring the meter.' };
+  const second = await loadProc({ document: makeDom(), posts, localStorage: storage });
+  const v2 = procedurePayload({ sittings: [after] });
+  const view2 = second.readProcedure(after);
+  assert.equal(second.walkUnready(v2, after, view2, view2.steps[2]).length, 1);
+  await second.markWalkStep(v2, after, view2, view2.steps[0], true);
+  assert.deepEqual(posts.map((post) => post.body.id), [],
+    'TST-0001 was written while step 3 was held');
+  assert.equal(second.walkStepNeedsLedgerRetry(v2, after, view2, view2.steps[0]), false,
+    'a held check was offered as a retry');
+});
+
+test('a step whose whole action is its screen label keeps the label', async () => {
+  const proc = await loadProc({ document: makeDom() });
+  const step = { surface: 'Profile', surfaceNote: 'SUR-0001' };
+  assert.equal(proc.walkVisibleAction('Profile (SUR-0001).', step), 'Profile (SUR-0001).');
+  assert.equal(proc.walkVisibleAction('Profile (SUR-0001). Tap Edit.', step), 'Tap Edit.');
+});
 
 test('ledger replay scenarios use the real step marker', async () => {
   const results = {};

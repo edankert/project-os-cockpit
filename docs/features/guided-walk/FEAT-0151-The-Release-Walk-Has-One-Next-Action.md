@@ -14,6 +14,10 @@ requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]", "[[REQ
 tasks: ["[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]"]
 release: ""
 acceptance_exception: ""
+reviewed_by: "model:claude-opus-5 (two independent-reviewer subagents, clean context)"
+review_date: 2026-09-25
+review_round: 1
+review_verdict: changes-requested
 related: ["[[FEAT-0150-The-Walk-Page-Reads-As-A-Script]]", "[[RISK-0010-Saved-Walk-Observations-Can-Outlive-Their-Source]]", "[[SUR-0004-The-Release-Walk]]"]
 ---
 
@@ -157,4 +161,30 @@ Full runs on 2026-09-25, after the last change:
 **What is next.** Two independent reviewers were started on a packet built from this feature's four source commits (476ee97, 9a8c73a, cda73d7, 0a2fcab). The packet leaves out the template syncs and the Codex commit that the packet tool picked up by subject, and the walk generator, which is reviewed upstream. Its diff is 5,834 lines, over the 1,500-line guideline. The author chose one review at that size rather than a split. Combine the two reports into a `## Review` section here, fix every finding about code this feature changed, then set this note `done` and the four requirements `implemented`. Close PHASE-043 again once nothing under it is open.
 
 **Set aside.** Showing quoted expectations without their `**` bold markers was built and then reverted. The 2026-09-14 review decided the card shows the quote exactly as validated, and a test enforces it. The question is Edwin's: 176 quotes on Your Trainer's walk show the markers.
+
+## Review
+
+Round 1, 2026-09-25. Two independent reviewers worked from the same packet: this feature's four source commits, 5,834 diff lines. Both said the budget left most per-letter criteria *not checked*. Neither found fault with those criteria; they were not probed.
+
+**Combined verdict: changes-requested.** One author claim is refuted.
+
+| # | Claim | Verdict | Evidence |
+|---|---|---|---|
+| 1 | A step held by a declared readiness never writes a verdict for any check it cites, even when that check's other citing steps are all marked. | **refuted** | Reviewer B marked step 3 of a check cited by steps 1 and 3 while nothing was held. The procedure then gained `requires: {3: [4]}` and a readiness on step 4, so step 3 was held. Marking step 1 posted `pass` for the check. `markWalkStep` asks `walkUnready` only about the step being marked, and the settle loop asks only whether each citing step has a mark. `stepSignature` does not include `requires`, so the earlier mark survives the edit. Reviewer A's *holds* came from the corpus test, which never marks a step before its hold appears. |
+| 2 | Walking a real sitting step by step with Pass sends exactly the same mark-check bodies as marking each check Pass directly. | holds | Both reviewers: the corpus test's `deepEqual` passes on both platforms, and `tests/test_guided_walk_ledger_copy.py` passes (8). |
+| 3 | The text sheet and page agree on both platforms; ledger-copy tests cover completion, interruption, correction and unresolved outcomes. | holds | Reviewer B: `_compare` runs on both platforms for the fixture and the Your Trainer corpus; the scenario set is required on both. 18 tests pass. |
+| 4 | The page exposes setup and readiness; a blocked action stays visible while independent work stays reachable. | holds | Reviewer B: `walk-page.test.mjs` "readiness holds dependent actions…" and `renderer.ts` keep the blocked card drawn. |
+| 5 | Failed local or ledger writes stay visible and can be retried. | holds | Reviewer B: the two early returns in `markWalkStep` with their retry messages. |
+| 6 | An edited action or expectation does not inherit a mark. | holds | Reviewer B: `stepSignature` keys the mark on the head, state, evidence prompts, timer, readiness and every expectation line. |
+| 7 | Guards: the holding rule and the evidence gate each have a failing test when removed. | holds | Both reviewers broke them in the built bundle; the node suite failed (11 tests for the holding rule). |
+
+Findings to act on, all in code this feature changed:
+
+1. **A hold arriving after a mark does not stop the check being written** (claim 1). Fix: the settle loop skips a check while any of its citing steps is held.
+2. **Only the corpus test guards the readiness gate, and it skips without Your Trainer** (both reviewers). A synthetic test that runs anywhere should fail when the gate is removed.
+3. **The corpus test decides which checks are held with `walkUnready`, the function under test** (reviewer B). It should work that out from the payload itself.
+4. **A step whose whole action is its screen label shows an empty action** (reviewer B). `walkVisibleAction` should keep the text when trimming would leave nothing; the mark dialog's title uses it since this feature's last commit.
+5. **The corpus test's comment speaks of an `equipment` readiness**; the type has only `preparation` and `decision` (reviewer A).
+
+Noted and left as they are: the readiness panel names the waiting steps, and the checks they affect are named under **I can't perform this** (reviewer B). `stepSignature` does not cover `requires` (reviewer B); fix 1 makes that harmless, because a held step blocks the write whether or not its old mark survives. Reviewer A saw the built bundle change during its run; that was reviewer B rebuilding, and nothing in the test path builds `dist/`.
 

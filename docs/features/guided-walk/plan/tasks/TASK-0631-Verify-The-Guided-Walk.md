@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0631
 title: "Verify the guided release walk against the text sheet and ledger"
-status: done
+status: doing
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
@@ -79,4 +79,8 @@ The walk found two display defects, both fixed here ([[CHG-20260925-Walk-Setup-R
 It also found one thing left as it is. 176 quoted expectations (76 Android, 100 iOS) show their `**` bold markers on the card. The review of 2026-09-14 decided the card shows the generator's quote exactly as validated, and a test says so. Changing that is Edwin's call.
 
 **Human and hardware exceptions.** Edwin's own walk of the checks is Your Trainer D4 (TASK-0923). The 53 held checks need a product decision, dual-sided pedals, a real cadence sensor or iOS parity work before anyone can walk them, as Your Trainer's procedures declare. None of them is this page's to resolve.
+
+## Reopened, 2026-09-25: review fixes
+
+FEAT-0151's round-1 review returned changes-requested. The five findings listed in the feature's `## Review` section are fixed under this task, because they are about the verification and the code it checked. The task closes again when they are fixed and round 2 has verified them.
 
