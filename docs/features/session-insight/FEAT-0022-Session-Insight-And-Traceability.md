@@ -13,7 +13,7 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "Turn agent sessions into part of the project record: browse past sessions per workspace (prompts, duration, cost, files touched), flag undocumented work live, and link CHG notes to the sessions that produced them."
 requirements: []
-tasks: ["[[TASK-0123]]", "[[TASK-0124]]", "[[TASK-0125]]", "[[TASK-0126]]", "[[TASK-0127]]"]
+tasks: ["[[TASK-0123]]", "[[TASK-0124]]", "[[TASK-0125]]", "[[TASK-0126]]", "[[TASK-0127]]", "[[TASK-0178]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[FEAT-0018-Verification-Health-Surface]]"]
 
 ---

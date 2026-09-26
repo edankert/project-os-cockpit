@@ -20,6 +20,8 @@ requirements:
 issues:
   - "[[ISS-0062-Most-Plans-Are-Invisible]]"
   - "[[ISS-0063-Dead-Stat-Tiles]]"
+  - "[[ISS-0064-Two-Reviewed-Sections]]"
+  - "[[ISS-0065-Record-Column-Lost-Its-Source]]"
 depends: ["[[PHASE-009-Design-Surfaces]]"]
 related: ["[[FEAT-0040-Overview-Rework]]", "[[FEAT-0041-Review-Desk]]", "[[FEAT-0043-Design-Top-Level-Surface]]"]
 tags: [ia, library]

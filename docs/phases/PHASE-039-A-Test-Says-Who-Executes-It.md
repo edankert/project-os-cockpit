@@ -11,7 +11,7 @@ updated: "2026-08-20"
 goal: "A test note records who executes it and what it covers. Nothing records whether an automated test passed, and no section a reader sees is filed by hand."
 features: ["[[FEAT-0139-The-Suite-Is-The-Verdict]]", "[[FEAT-0140-Sections-Are-Derived-Not-Filed]]", "[[FEAT-0141-The-Contract-Says-It-Upstream]]"]
 requirements: ["[[REQ-0058-An-Automated-Test-Carries-No-Verdict]]", "[[REQ-0059-A-Section-Is-Derived-Never-Filed]]", "[[REQ-0060-A-One-Time-Check-Names-Its-Issue]]"]
-tasks: []
+tasks: ["[[TASK-0559]]", "[[TASK-0560]]", "[[TASK-0561]]", "[[TASK-0562]]", "[[TASK-0563]]", "[[TASK-0564]]", "[[TASK-0565]]", "[[TASK-0566]]", "[[TASK-0567]]", "[[TASK-0568]]", "[[TASK-0569]]", "[[TASK-0570]]", "[[TASK-0571]]", "[[TASK-0572]]", "[[TASK-0573]]", "[[TASK-0574]]", "[[TASK-0575]]"]
 issues: ["[[ISS-0237-An-Automated-Check-Still-Blocks-The-Manual-Walk]]", "[[ISS-0238-There-Is-Nowhere-To-Put-An-Automated-Check]]", "[[ISS-0239-The-Runner-Stamps-Failing-On-A-Missing-Device]]"]
 related: ["[[ADR-0038-The-Suite-Is-The-Verdict]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0037-A-Verdict-Is-An-Event]]", "[[ADR-0034-Three-Axes-Not-One-Word]]", "[[DES-0012-Tests-In-Two-Flows]]"]
 reviewed_by: model:claude-opus-5

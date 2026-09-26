@@ -16,7 +16,7 @@ review_response: "Round 2 (2026-09-25) found eight of nine fixes verified. The n
 review_response_date: 2026-09-25
 goal: "Claude sessions in ANY terminal light the rail dots: a cockpit-managed hook installed into the user's ~/.claude/settings.json — gated by an explicit enable/disable toggle in the new cockpit settings panel — POSTs to the workspace sidecar when one runs (full pipeline) and writes .cockpit/agent-state.json directly otherwise; desktop sidecars now write discovery files (fixing cockpit CLI against the desktop app), and the poller decays stale external state."
 requirements: []
-tasks: ["[[TASK-0141]]", "[[TASK-0142]]", "[[TASK-0143]]", "[[TASK-0635]]"]
+tasks: ["[[TASK-0141]]", "[[TASK-0142]]", "[[TASK-0143]]", "[[TASK-0635]]", "[[TASK-0146]]"]
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[RISK-0004-Hook-Injection-Surface]]", "[[ISS-0003-Hook-Path-Space]]"]
 
 acceptance_exception: "Its acceptance is TST-0011 row 12, the external-terminal toggle, which Edwin walked live on 2026-09-25 and which passed. The toggle writes to the user's own configuration files, so it is walked by a person rather than kept as a standing acceptance check."

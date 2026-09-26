@@ -14,10 +14,11 @@ features:
   - "[[FEAT-0060-Transitions-And-Ticks-On-The-Note]]"
   - "[[FEAT-0061-Quick-Capture-And-Triage]]"
   - "[[FEAT-0062-Desk-Resolution-Flows]]"
+  - "[[FEAT-0082-The-Desk-Shows-What-It-Owes]]"
 requirements:
   - "[[REQ-0026-Only-Human-Owned-Transitions]]"
   - "[[REQ-0027-Every-Write-Guarded]]"
-issues: []
+issues: ["[[ISS-0126]]", "[[ISS-0129]]", "[[ISS-0137]]"]
 depends: ["[[PHASE-022-Completed-Work-Gets-Quieter]]"]
 related: ["[[DES-0005-The-Actuator-Grammar]]", "[[RISK-0005-The-Write-Surface]]"]
 tags: [write-back, governance]

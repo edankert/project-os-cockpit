@@ -17,6 +17,8 @@ requirements: []
 issues:
   - "[[ISS-0142-The-Release-Note-Cannot-Be-Found-By-Name]]"
   - "[[ISS-0164-Phases-Are-The-Second-Type-The-Palette-Cannot-Find]]"
+  - "[[ISS-0134-Caught-Up-Cannot-Clear-The-Digest]]"
+  - "[[ISS-0140-The-Shell-Goes-Stale-Silently]]"
 depends: []
 related: ["[[DES-0008-The-Returning-Human]]"]
 tags: [continuity, overview, release]

@@ -20,11 +20,36 @@ features:
   - "[[FEAT-0026-Verb-Polish]]"
   - "[[FEAT-0027-External-Session-Signal]]"
   - "[[FEAT-0081-What-A-Session-Costs-To-Keep-Alive]]"
-tasks: ["[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0635]]", "[[TASK-0636]]", "[[TASK-0637]]"]
+  - "[[FEAT-0030-Agent-Inbox]]"
+  - "[[FEAT-0031-Ambient-Status-Consolidation]]"
+  - "[[FEAT-0032-Agents-Screen]]"
+  - "[[FEAT-0033-Agent-Signal-Hygiene]]"
+  - "[[FEAT-0034-Agents-Tab-And-Follow-Control]]"
+  - "[[FEAT-0035-Account-Budget-Surface]]"
+  - "[[FEAT-0036-Live-Work-Views]]"
+  - "[[FEAT-0037-Context-Menus-And-Clipboard]]"
+  - "[[FEAT-0038-Console-Progress-Rail]]"
+  - "[[FEAT-0039-Model-Routing-Subagents]]"
+tasks: ["[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0635]]", "[[TASK-0636]]", "[[TASK-0637]]", "[[TASK-0114]]", "[[TASK-0115]]", "[[TASK-0116]]", "[[TASK-0117]]", "[[TASK-0118]]", "[[TASK-0119]]", "[[TASK-0120]]", "[[TASK-0121]]", "[[TASK-0122]]", "[[TASK-0123]]", "[[TASK-0124]]", "[[TASK-0125]]", "[[TASK-0126]]", "[[TASK-0127]]", "[[TASK-0128]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0131]]", "[[TASK-0132]]", "[[TASK-0133]]", "[[TASK-0134]]", "[[TASK-0135]]", "[[TASK-0136]]", "[[TASK-0137]]", "[[TASK-0138]]", "[[TASK-0139]]", "[[TASK-0140]]", "[[TASK-0141]]", "[[TASK-0142]]", "[[TASK-0143]]", "[[TASK-0144]]", "[[TASK-0145]]", "[[TASK-0146]]", "[[TASK-0147]]", "[[TASK-0148]]", "[[TASK-0149]]", "[[TASK-0150]]", "[[TASK-0151]]", "[[TASK-0152]]", "[[TASK-0153]]", "[[TASK-0154]]", "[[TASK-0155]]", "[[TASK-0156]]", "[[TASK-0157]]", "[[TASK-0158]]", "[[TASK-0159]]", "[[TASK-0160]]", "[[TASK-0161]]", "[[TASK-0162]]", "[[TASK-0163]]", "[[TASK-0164]]", "[[TASK-0165]]", "[[TASK-0166]]", "[[TASK-0167]]", "[[TASK-0168]]", "[[TASK-0169]]", "[[TASK-0170]]", "[[TASK-0171]]", "[[TASK-0172]]", "[[TASK-0173]]", "[[TASK-0175]]", "[[TASK-0176]]", "[[TASK-0177]]", "[[TASK-0178]]", "[[TASK-0179]]", "[[TASK-0180]]", "[[TASK-0181]]", "[[TASK-0188]]", "[[TASK-0189]]", "[[TASK-0190]]", "[[TASK-0191]]", "[[TASK-0192]]", "[[TASK-0193]]", "[[TASK-0194]]", "[[TASK-0195]]", "[[TASK-0196]]", "[[TASK-0197]]", "[[TASK-0198]]", "[[TASK-0213]]", "[[TASK-0343]]", "[[TASK-0344]]", "[[TASK-0345]]", "[[TASK-0346]]", "[[TASK-0347]]", "[[TASK-0348]]", "[[TASK-0349]]", "[[TASK-0350]]", "[[TASK-0351]]", "[[TASK-0352]]", "[[TASK-0353]]", "[[TASK-0354]]", "[[TASK-0355]]", "[[TASK-0356]]", "[[TASK-0628]]", "[[TASK-0638]]"]
 issues:
   - "[[ISS-0312]]"
   - "[[ISS-0104-Model-Switch-Discards-The-Warm-Cache]]"
   - "[[ISS-0105-The-Rail-Pulses-The-Same-For-Two-Minutes-And-Two-Hundred-Hours]]"
+  - "[[ISS-0002]]"
+  - "[[ISS-0003]]"
+  - "[[ISS-0004]]"
+  - "[[ISS-0005]]"
+  - "[[ISS-0006]]"
+  - "[[ISS-0007]]"
+  - "[[ISS-0008]]"
+  - "[[ISS-0009]]"
+  - "[[ISS-0010]]"
+  - "[[ISS-0011]]"
+  - "[[ISS-0012]]"
+  - "[[ISS-0013]]"
+  - "[[ISS-0022]]"
+  - "[[ISS-0023]]"
+  - "[[ISS-0032]]"
 depends: ["[[PHASE-006-Native-Cockpit-UI]]"]
 related: ["[[RISK-0004-Hook-Injection-Surface]]", "[[FEAT-0013-Agent-State-Signal]]"]
 ---

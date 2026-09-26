@@ -19,6 +19,9 @@ issues:
   - "[[ISS-0130-Nine-Automated-Tests-Cannot-Be-Re-Run-By-The-Machine]]"
   - "[[ISS-0163-The-Entrypoint-Rule-Is-One-Repos-Test-Not-The-Templates]]"
   - "[[ISS-0143-The-Tier-3-Block-Is-Owed-A-Retirement]]"
+  - "[[ISS-0069-Review-Verdict-Vocabulary-Is-Unguarded]]"
+  - "[[ISS-0070-Unanchored-Gitignore-Hid-A-Feature]]"
+  - "[[ISS-0071-Review-Findings-PHASE-011-012]]"
 depends: []
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[DES-0003-Intent-Page-And-Claims-Board]]", "[[ADR-0010]]", "[[project-os-dev#ADR-0011]]", "[[PHASE-012-Attention-In-The-Strip]]"]
 tags: [verification, quality]

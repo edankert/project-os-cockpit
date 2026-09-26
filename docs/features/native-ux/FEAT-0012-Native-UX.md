@@ -12,7 +12,7 @@ source: []
 goal: "The five things only-possible-after-rewrite: Cmd+P quick-switch, Cmd+F find-in-doc, native context menus, drag-and-drop file → note, window state per workspace + multi-window."
 related: ["[[FEAT-0009-Native-Shell-Layout]]", "[[FEAT-0010-Native-Nav-Right-Pane]]", "[[FEAT-0011-Native-Center-Pane]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 requirements: []
-tasks: []
+tasks: ["[[TASK-0087]]", "[[TASK-0088]]", "[[TASK-0089]]", "[[TASK-0090]]", "[[TASK-0091]]", "[[TASK-0092]]"]
 release: ""
 
 ---

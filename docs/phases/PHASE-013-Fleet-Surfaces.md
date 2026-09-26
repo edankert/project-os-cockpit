@@ -15,6 +15,9 @@ features:
 requirements: []
 issues:
   - "[[ISS-0055-Deferred-Findings-From-The-Design-Bench-Reviews]]"
+  - "[[ISS-0059-Native-Apps-Declare-Colour-Outside-CSS]]"
+  - "[[ISS-0072-Snapshot-Edits-Do-Not-Retrigger-Validation]]"
+  - "[[ISS-0073-Swift-Unit-Interval-Colours-Read-As-Unresolved]]"
 depends: ["[[PHASE-009-Design-Surfaces]]"]
 related: ["[[DES-0002-Cockpit-Design-System]]", "[[FEAT-0032-Agents-Screen]]", "[[PHASE-011-Unproven-Claims]]"]
 tags: [fleet, design]

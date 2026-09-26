@@ -11,8 +11,8 @@ updated: 2026-08-29
 goal: "Put the acceptance gate in the repos that hold the checks — migrating each fleet repo onto the upstream validator one at a time, cheapest first — and leave behind a drift check that fails the build when the next divergence opens, so this is the last time the fleet has to catch up."
 features: ["[[FEAT-0143-The-Fleet-Runs-One-Validator]]"]
 requirements: []
-tasks: ["[[TASK-0579-Count-The-Flood-By-Rule]]", "[[TASK-0580-The-Migration-Is-A-Tool-Not-A-Session]]", "[[TASK-0581-Migrate-Obsidian-Supernote-Sync]]", "[[TASK-0582-Migrate-Your-Health]]", "[[TASK-0583-Migrate-Your-Sudoku]]", "[[TASK-0584-Migrate-Your-Trainer]]", "[[TASK-0585-Drift-Is-Measured-Not-Noticed]]", "[[TASK-0586-Your-Trainer-Scopes-Its-Release]]"]
-issues: ["[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]"]
+tasks: ["[[TASK-0579-Count-The-Flood-By-Rule]]", "[[TASK-0580-The-Migration-Is-A-Tool-Not-A-Session]]", "[[TASK-0581-Migrate-Obsidian-Supernote-Sync]]", "[[TASK-0582-Migrate-Your-Health]]", "[[TASK-0583-Migrate-Your-Sudoku]]", "[[TASK-0584-Migrate-Your-Trainer]]", "[[TASK-0585-Drift-Is-Measured-Not-Noticed]]", "[[TASK-0586-Your-Trainer-Scopes-Its-Release]]", "[[TASK-0587-The-Derived-Set-Is-This-Releases-Platforms]]", "[[TASK-0588-A-Write-Is-Not-A-Navigation]]", "[[TASK-0589-A-View-Knows-Which-Pages-It-Owns]]", "[[TASK-0590-A-Write-Is-Readable-When-It-Answers]]", "[[TASK-0591-Retiring-Removes-The-Obligation]]"]
+issues: ["[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]", "[[ISS-0261-A-Release-Is-Offered-Features-Its-Platform-Cannot-Ship]]", "[[ISS-0262-Marking-A-Check-Clears-The-Filter-You-Are-Walking]]", "[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]", "[[ISS-0264-A-Write-Is-Not-Readable-By-The-Next-Request]]", "[[ISS-0265-A-Retired-Check-Still-Gates-The-Release]]"]
 related:
   - "[[ADR-0040-A-Release-Selects-Its-Features-Not-Its-Excuses]]"
   - "[[FEAT-0142-A-Release-Says-What-Is-In-It]]"

@@ -19,6 +19,7 @@ requirements:
 issues:
   - "[[ISS-0299-An-HTML-Page-Cannot-Show-An-Image-Beside-It]]"
   - "[[ISS-0300-A-Design-With-No-HTML-Page-Is-Told-It-Has-Nothing-To-Show]]"
+  - "[[ISS-0302-Every-Page-Stops-Scrolling-After-The-Viewer-Is-Opened]]"
 related:
   - "[[PHASE-009-Design-Surfaces]]"
   - "[[PHASE-005-Desktop-Shell]]"

@@ -26,6 +26,7 @@ tasks:
   - "[[TASK-0227-Expose-Shell-Stylesheet]]"
   - "[[TASK-0228-Living-Style-Guide]]"
   - "[[TASK-0229-Offer-A-Design-For-Review]]"
+  - "[[TASK-0226-App-Shell-Design-Layout]]"
 release: ""
 superseded_by: "[[FEAT-0148-One-HTML-Viewer]]"
 design: ["[[DES-0001-Overview-Redesign]]"]

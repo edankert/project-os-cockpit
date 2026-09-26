@@ -9,7 +9,7 @@ created: 2026-08-16
 updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["Edwin 2026-08-16: 'I actually like the cycling checkbox idea better'", "Edwin 2026-08-16: 'it would be great if I could provide this information directly while selecting the ! for the check'"]
-parent: ""
+parent: "[[FEAT-0104]]"
 origin: "[[FEAT-0104-The-Suite-Is-The-Surface]]"
 effort: L
 depends: ["[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]", "[[TASK-0434-The-Check-Map-And-The-Exception-Mark]]"]

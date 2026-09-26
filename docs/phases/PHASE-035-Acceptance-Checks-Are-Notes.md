@@ -12,14 +12,13 @@ goal: "Get the testing model right: move the acceptance record out of a grammar-
 features:
   - "[[FEAT-0113-The-Check-Type-And-The-Migration]]"
   - "[[FEAT-0114-The-Suite-Is-A-View]]"
-  - "[[FEAT-0115-The-Sweep-Is-Continuous]]"
   - "[[FEAT-0116-A-Release-Can-Be-Finished]]"
   - "[[FEAT-0117-One-View-Per-Item]]"
   - "[[FEAT-0118-The-Test-Type-Absorbs-The-Check]]"
   - "[[FEAT-0119-The-Merge-Migration]]"
   - "[[FEAT-0120-The-Automation-Path]]"
   - "[[FEAT-0121-The-Verification-Link-Normalises]]"
-issues: ["[[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]]", "[[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]]", "[[ISS-0195-Two-Types-Carry-One-Act]]", "[[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]]", "[[ISS-0197-The-Runs-Section-Is-Write-Only]]", "[[ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks]]", "[[ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated]]"]
+issues: ["[[ISS-0193-The-Tests-Landing-Overwrites-The-Checks-Page]]", "[[ISS-0194-A-Virtual-Page-Never-Refreshes-The-Nav-Highlight]]", "[[ISS-0195-Two-Types-Carry-One-Act]]", "[[ISS-0196-The-Review-Gate-Is-Described-Two-Ways]]", "[[ISS-0197-The-Runs-Section-Is-Write-Only]]", "[[ISS-0198-Automation-And-Covered-By-Are-Empty-On-All-669-Checks]]", "[[ISS-0199-Twenty-Of-Sixty-One-Feature-To-Test-Edges-Are-Not-Reciprocated]]", "[[ISS-0192-A-Frozen-Release-Suite-Still-Offers-Live-Marks]]"]
 related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Verification-Link-Has-One-Direction]]", "[[ADR-0030-Acceptance-Checks-Are-Notes-Outside-The-Test-Gates]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[FEAT-0112-The-Acceptance-Suite-Gets-A-Machine-Readable-Projection]]", "[[ISS-0181-Four-Things-The-Release-Surface-Cannot-Do]]", "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"]
 ---
 

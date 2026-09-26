@@ -12,7 +12,7 @@ source: []
 goal: "Replace the iframe with a native renderer pane that fetches the rendered Markdown HTML fragment (FEAT-0008) and owns navigation, history, scroll preservation, hash anchors, and interactive checkboxes."
 related: ["[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0009-Native-Shell-Layout]]", "[[FEAT-0010-Native-Nav-Right-Pane]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 requirements: []
-tasks: []
+tasks: ["[[TASK-0070]]", "[[TASK-0071]]", "[[TASK-0072]]", "[[TASK-0073]]", "[[TASK-0074]]", "[[TASK-0075]]"]
 release: ""
 
 ---

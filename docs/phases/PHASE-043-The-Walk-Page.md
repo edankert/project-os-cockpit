@@ -25,7 +25,7 @@ tasks:
   - "[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]"
   - "[[TASK-0630-Record-And-Resume-Walk-Observations]]"
   - "[[TASK-0631-Verify-The-Guided-Walk]]"
-issues: []
+issues: ["[[ISS-0303]]", "[[ISS-0304]]"]
 related:
   - "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
   - "[[PHASE-038-A-Verdict-Is-An-Event]]"

@@ -4,7 +4,7 @@ id: ISS-0184
 aliases: ["ISS-0184"]
 title: "Clicking a checkbox in a Markdown document can tick a different line if the page shows fewer checkboxes than the file holds"
 status: "fixed"
-phase: ""
+phase: "[[PHASE-034]]"
 owner: user:edwin
 created: 2026-08-17
 updated: "2026-09-20"

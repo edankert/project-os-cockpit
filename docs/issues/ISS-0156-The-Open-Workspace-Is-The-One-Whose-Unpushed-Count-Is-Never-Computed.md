@@ -13,6 +13,7 @@ component: desktop-fleet-health
 parent: ""
 related: ["[[FEAT-0098]]", "[[FEAT-0055]]", "[[ADR-0022]]", "[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 tests: []
+phase: "[[PHASE-030]]"
 ---
 
 # The open workspace is the one whose unpushed count is never computed

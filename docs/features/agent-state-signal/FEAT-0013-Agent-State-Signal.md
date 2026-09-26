@@ -12,7 +12,7 @@ source: []
 goal: "Give running agents (Claude Code, Codex, Aider, …) a tiny way to declare their state — `busy`, `waiting-for-input`, `done`, `error` — so the cockpit can surface 'this workspace needs you' at a glance, distinct from 'this workspace was active recently'."
 related: ["[[FEAT-0010-Native-Nav-Right-Pane]]", "[[FEAT-0006-Cockpit-Layout]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 requirements: []
-tasks: []
+tasks: ["[[TASK-0076]]", "[[TASK-0077]]", "[[TASK-0078]]", "[[TASK-0079]]"]
 release: ""
 
 ---

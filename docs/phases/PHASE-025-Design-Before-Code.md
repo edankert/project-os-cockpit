@@ -15,7 +15,7 @@ features:
   - "[[FEAT-0069-Annotate-To-Request]]"
   - "[[FEAT-0070-Design-Gating-And-Scaffolding]]"
 requirements: []
-issues: []
+issues: ["[[ISS-0136]]"]
 depends: ["[[PHASE-023-Levers-For-The-Human]]"]
 related: ["[[DES-0007-The-Bench-Closes-The-Loop]]"]
 tags: [design, bench]

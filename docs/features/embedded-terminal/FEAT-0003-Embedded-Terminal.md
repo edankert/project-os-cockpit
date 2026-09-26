@@ -16,7 +16,7 @@ goal: "Run an AI coding assistant alongside the docs in a single browser window 
 release: ""
 related: ["[[FEAT-0001]]", "[[FEAT-0002]]", "[[RISK-0001]]", "[[ISS-0310]]", "[[ISS-0311]]", "[[SUR-0002]]", "[[CHG-20260915-Launch-Codex-in-inline-terminal-mode-for-scrollback]]", "[[CHG-20260915-Implement-Codex-Terminal-Scrollback-Fix]]", "[[CHG-20260915-Restore-terminal-scrolling-after-workspace-reattachment]]", "[[CHG-20260915-Fix-terminal-scrollback-and-Codex-exit-lifecycle]]", "[[CHG-20260916-Make-Codex-terminal-history-scrollable-through-tmux]]", "[[CHG-20260916-Keep-tmux-scrolling-after-workspace-reattachment]]", "[[CHG-20260916-Trial-Codex-alternate-screen-display-in-the-Electron-console]]", "[[CHG-20260916-Revert-ineffective-Codex-alternate-screen-trial]]", "[[CHG-20260916-Keep-cockpit-shell-open-after-Codex-exits]]", "[[CHG-20260916-Finish-PHASE-004-terminal-scrollback-and-Codex-exit]]"]
 requirements: ["[[REQ-0005]]"]
-tasks: ["[[TASK-0043]]", "[[TASK-0044]]", "[[TASK-0045]]", "[[TASK-0047]]", "[[TASK-0185]]", "[[TASK-0186]]", "[[TASK-0577]]", "[[TASK-0627]]"]
+tasks: ["[[TASK-0043]]", "[[TASK-0044]]", "[[TASK-0047]]", "[[TASK-0185]]", "[[TASK-0186]]", "[[TASK-0577]]", "[[TASK-0627]]"]
 ---
 
 # Embedded local-only terminal

@@ -12,7 +12,7 @@ source: []
 goal: "Replace the current single-purpose workspace switcher + temporary Browse panel with the IDE-standard two-level nav: narrow workspace rail with per-workspace agent-state indicators, plus a primary in-workspace nav (Features / Tasks / Issues / Library / Recent) and a right context pane. Same data sources mode 1 uses (/api/cockpit/{nav,context}), plus the new agent-state signal from FEAT-0013."
 related: ["[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0009-Native-Shell-Layout]]", "[[FEAT-0013-Agent-State-Signal]]", "[[FEAT-0006-Cockpit-Layout]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 requirements: []
-tasks: []
+tasks: ["[[TASK-0080]]", "[[TASK-0081]]", "[[TASK-0082]]", "[[TASK-0083]]", "[[TASK-0084]]", "[[TASK-0085]]", "[[TASK-0086]]"]
 release: ""
 
 ---

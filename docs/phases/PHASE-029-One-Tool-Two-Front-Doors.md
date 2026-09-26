@@ -18,7 +18,7 @@ features:
 requirements:
   - "[[REQ-0032-Two-Front-Doors-Agree-Or-Differ-On-The-Record]]"
   - "[[REQ-0034]]"
-issues: ["[[ISS-0246-The-Two-Front-Doors-Are-Not-Comparable]]"]
+issues: ["[[ISS-0138-Mode-1-Nav-And-Context-Panes-Throw]]", "[[ISS-0230-The-Browser-Cockpit-Has-No-Surface-Row]]"]
 depends: ["[[PHASE-023-Levers-For-The-Human]]"]
 related: ["[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "[[REQ-0027]]", "[[RISK-0005]]", "[[REQ-0013-Cockpit-Three-Pane-Layout]]", "[[RISK-0001-Render-Server-Exposure]]"]
 tags: [surfaces, mode-1]

@@ -15,6 +15,7 @@ requirements: []
 issues:
   - "[[ISS-0079-Context-Menu-Only-Ever-Fired-For-Anchors]]"
   - "[[ISS-0080-Console-Context-Menu-Replaced-By-Terminal-Convention]]"
+  - "[[ISS-0081-Right-Click-Selected-A-Word-And-Clobbered-The-Clipboard]]"
 depends: ["[[PHASE-016-The-Overview-Answers-Questions]]"]
 related: ["[[FEAT-0037-Native-Text-Menus]]", "[[TASK-0167-Terminal-Context-Menu]]"]
 tags: [desktop, clipboard]

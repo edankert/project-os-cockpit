@@ -9,7 +9,7 @@ created: 2026-08-16
 updated: "2026-08-16"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["The safeguard that lets the mark cycle freely — TESTING.md line 113 requires the justification, so its absence is a real debt rather than a UI problem"]
-parent: ""
+parent: "[[FEAT-0104]]"
 origin: "[[FEAT-0104-The-Suite-Is-The-Surface]]"
 effort: M
 depends: ["[[ISS-0175-The-Nth-Checkbox-Is-Not-The-Nth-Task-Line]]", "[[TASK-0435-The-Cycling-Mark-And-Its-Paired-Write]]"]

@@ -11,8 +11,7 @@ updated: 2026-07-30
 goal: "Close the small 'I cannot tell what I am looking at' gaps on the project overview, so items are identifiable without hovering or inferring."
 features: []
 requirements: []
-issues:
-  - "[[ISS-0076-Phase-Rows-Do-Not-Show-Their-Phase-Id]]"
+issues: []
 superseded_by: "[[PHASE-016-The-Overview-Answers-Questions]]"
 depends: ["[[PHASE-018-History-You-Can-Reach-And-Traverse]]"]
 related: ["[[FEAT-0040-Overview-Rework]]"]

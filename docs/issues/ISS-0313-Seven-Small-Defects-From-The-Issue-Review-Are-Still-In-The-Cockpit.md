@@ -17,6 +17,7 @@ parent: ""
 related: []
 tests: []
 fixed_by: "[[TASK-0632-Fix-The-Seven-Defects-From-The-Issue-Review]]"
+tasks: ["[[TASK-0632]]"]
 ---
 
 # Seven small defects from the issue review are still in the cockpit

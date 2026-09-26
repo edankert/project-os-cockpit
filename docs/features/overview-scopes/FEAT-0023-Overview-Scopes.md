@@ -13,7 +13,7 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "Overview mode keeps the app-wide pane contract: the left pane lists scopes (project + phases), selecting one renders that scope's dashboard in the centre (scoped hero, feature squares, exit criteria, scoped activity), and the right pane shows the scope's context plus a live agent Now column — with the mode's lifecycle bugs (history dead-end, re-render churn, fetch fan-out, stale right pane, static live numbers, uncached stats) fixed."
 requirements: []
-tasks: ["[[TASK-0128]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0173]]", "TASK-0182"]
+tasks: ["[[TASK-0128]]", "[[TASK-0129]]", "[[TASK-0130]]", "[[TASK-0173]]", "TASK-0182", "[[TASK-0176]]", "[[TASK-0177]]", "[[TASK-0181]]"]
 related: ["[[FEAT-0017-Overview-Dashboard]]", "[[FEAT-0022-Session-Insight-And-Traceability]]", "[[FEAT-0020-Agent-Activity-Surfaces]]"]
 
 ---

@@ -9,8 +9,7 @@ owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
 goal: "Replace the overview's three history tiles with one History surface whose rows are document state changes and whose commits are dividers — so the question 'what was fixed or implemented, and when' is answered without reading a git log."
-features:
-  - "[[FEAT-0052-History-Timeline]]"
+features: []
 requirements: []
 issues: []
 superseded_by: "[[PHASE-016-The-Overview-Answers-Questions]]"

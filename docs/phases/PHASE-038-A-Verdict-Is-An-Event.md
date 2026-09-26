@@ -28,6 +28,10 @@ issues:
   - "[[ISS-0216-The-Suite-Parser-Splits-On-Physical-Lines]]"
   - "[[ISS-0217-The-Two-Repos-Holding-Every-Check-Describe-A-Retired-Type]]"
   - "[[ISS-0206-A-Check-Cannot-Belong-To-A-Release]]"
+  - "[[ISS-0218-Taxonomy-Documents-A-Mark-Vocabulary-The-Data-Abandoned]]"
+  - "[[ISS-0219-Two-Checks-Claiming-One-Address]]"
+  - "[[ISS-0220-A-Sealed-Ledger-Is-Immutable-Only-Until-Committed]]"
+  - "[[ISS-0221-Suite-At-Never-Followed-The-Renumber]]"
 related: ["[[ADR-0037-A-Verdict-Is-An-Event]]", "[[PHASE-035-Acceptance-Checks-Are-Notes]]", "[[PHASE-036-One-Human-Walk]]", "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]", "[[DES-0012-Tests-In-Two-Flows]]", "[[ISS-0215-One-Hundred-And-Forty-Rows-Outside-The-Suite]]", "[[ISS-0208-Retire-The-Tier-Rule]]", "[[ISS-0209-The-Acceptance-Gate-Reaches-No-Fleet-Repo]]"]
 tags: [phase]
 ---

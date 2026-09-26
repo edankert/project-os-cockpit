@@ -13,7 +13,7 @@ review_date: 2026-07-20
 review_verdict: approved
 goal: "Dispatch becomes a tracked, workspace-independent unit of work: the queue lives in the Electron main process (persisted, delivering into any workspace's PTY on that workspace's own state transitions), every dispatch is recorded in a sidecar ledger and stamped onto the session it starts, and `cockpit dispatch` lets agents and scripts enqueue work from any terminal."
 requirements: []
-tasks: ["[[TASK-0134]]", "[[TASK-0135]]", "[[TASK-0136]]"]
+tasks: ["[[TASK-0134]]", "[[TASK-0135]]", "[[TASK-0136]]", "[[TASK-0213]]"]
 related: ["[[FEAT-0024-Agent-Verbs]]", "[[FEAT-0022-Session-Insight-And-Traceability]]"]
 
 ---

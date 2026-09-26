@@ -14,11 +14,12 @@ features:
   - "[[FEAT-0075-The-Delegation-Policy]]"
   - "[[FEAT-0076-Escalation-With-Defaults]]"
   - "[[FEAT-0077-The-Intent-Charter]]"
+  - "[[FEAT-0078-Turn-Checkpoints]]"
 requirements:
   - "[[REQ-0029-A-Delegate-Is-Always-Distinguishable]]"
   - "[[REQ-0030-The-Worker-Never-Outruns-Its-Policy]]"
   - "[[REQ-0031-The-Loop-Always-Halts]]"
-issues: []
+issues: ["[[ISS-0094]]", "[[ISS-0095]]"]
 depends: ["[[PHASE-023-Levers-For-The-Human]]", "[[PHASE-024-Acceptance-Witnessed]]"]
 related: ["[[ADR-0009-The-Principal-Is-A-Role]]", "[[DES-0009-The-Standing-Worker]]", "[[RISK-0006-The-Unattended-Worker]]"]
 tags: [autonomy, agents, governance]

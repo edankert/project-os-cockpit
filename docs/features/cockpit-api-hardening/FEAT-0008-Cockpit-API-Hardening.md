@@ -12,7 +12,7 @@ source: []
 goal: "Freeze the Python cockpit's JSON API surface and add the one endpoint the native renderer needs (rendered Markdown fragment) — without breaking any existing mode-1 (browser) behaviour."
 related: ["[[FEAT-0006-Cockpit-Layout]]", "[[FEAT-0007-Desktop-Shell]]", "[[PHASE-006-Native-Cockpit-UI]]"]
 requirements: []
-tasks: []
+tasks: ["[[TASK-0066]]", "[[TASK-0067]]", "[[TASK-0068]]", "[[TASK-0069]]"]
 release: ""
 
 ---

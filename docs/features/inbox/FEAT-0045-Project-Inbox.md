@@ -14,6 +14,7 @@ requirements: []
 tasks:
   - "[[TASK-0232-Inbox-Convention-And-Triage-Skill]]"
   - "[[TASK-0233-Drop-And-Paste-Into-The-Inbox]]"
+  - "[[TASK-0234-Inbox-As-A-Left-Pane-Tray]]"
 release: ""
 design: []
 related: ["[[FEAT-0041-Review-Desk]]"]

@@ -20,6 +20,7 @@ ci:
   suite_command: "python3 -m pytest -q"
 
 retention:
+  derive_lists: true       # reverse lists follow each child's parent:/phase: (project-os-dev ADR-0048)
   policy: active-and-recent
   recent_changes_max: 25
   # Read by tools/scripts/sync-snapshot.py (ADR-0018). Absent = feature off.
@@ -817,7 +818,7 @@ items:
       title: "The review desk gains its record — every acceptance test, and every reviewed item"
       status: done
       phase: "[[PHASE-010-Surface-Ownership]]"
-      tasks: [TASK-0241, TASK-0242]
+      tasks: [TASK-0241, TASK-0242, TASK-0246, TASK-0247]
       note: "The desk shows the transient and hides the durable: Test runs is gated to manual-and-ready (1 of 22 here), and the 62 notes carrying a non-empty review_verdict are listed nowhere. Reviewed comes from note frontmatter, not the store — _MAX_REQUESTS trims the store's tail. Six notes declare review_verdict empty and are correctly excluded."
     FEAT-0050:
       file: "docs/features/library-reduction/FEAT-0050-Library-Reduction.md"
@@ -841,7 +842,7 @@ items:
       status: superseded
       phase: "[[PHASE-009-Design-Surfaces]]"
       requirements: ["REQ-0023"]
-      tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219", "TASK-0220", "TASK-0221", "TASK-0227", "TASK-0228", "TASK-0229"]
+      tasks: ["TASK-0214", "TASK-0215", "TASK-0216", "TASK-0217", "TASK-0218", "TASK-0219", "TASK-0220", "TASK-0221", "TASK-0227", "TASK-0228", "TASK-0229", "TASK-0226"]
       note: "Phase 1 (0214-0216) is useful the day it lands and needs no upstream change. Phase 2 (0217-0219) adds annotation, desk review and token parity."
     FEAT-0041:
       title: "Review desk (~review) — agent proposals, questions, and manual test runs"
@@ -882,7 +883,7 @@ items:
       status: done
       phase: "[[PHASE-007-Agent-Instrumentation]]"
       path: "docs/features/external-signal/FEAT-0027-External-Session-Signal.md"
-      tasks: ["TASK-0141", "TASK-0142", "TASK-0143", "TASK-0635"]
+      tasks: ["TASK-0141", "TASK-0142", "TASK-0143", "TASK-0635", "TASK-0146"]
       note: "2026-09-23: Codex parity follow-up authorised by \"Continue as suggested.\" Historical reviews cover the previous scope; new work needs fresh evidence."
     FEAT-0028:
       title: "Fleet health surface — per-workspace validator badges across all discovered repos"
@@ -898,6 +899,31 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0361:
+      file: docs/features/browser-front-door/plan/tasks/TASK-0361-The-Overview-On-The-Reading-Surface.md
+      status: backlog
+      parent: FEAT-0083
+      phase: "[[PHASE-029]]"
+    TASK-0362:
+      file: docs/features/browser-front-door/plan/tasks/TASK-0362-The-Design-Register-Read-Only.md
+      status: backlog
+      parent: FEAT-0083
+      phase: "[[PHASE-029]]"
+    TASK-0364:
+      file: docs/features/view-vocabulary/plan/tasks/TASK-0364-Views-As-Declared-Data.md
+      status: backlog
+      parent: FEAT-0084
+      phase: "[[PHASE-029]]"
+    TASK-0365:
+      file: docs/features/view-vocabulary/plan/tasks/TASK-0365-Recent-Gets-One-Verdict.md
+      status: backlog
+      parent: FEAT-0084
+      phase: "[[PHASE-029]]"
+    TASK-0386:
+      file: docs/features/harness-survey/plan/tasks/TASK-0386-The-Omnigent-Round.md
+      status: backlog
+      parent: FEAT-0080
+      phase: "[[PHASE-028]]"
     TASK-0629:
       file: "docs/features/guided-walk/plan/tasks/TASK-0629-Show-One-Walk-Action-And-Its-Readiness.md"
       title: "Show one walk action and its readiness"
@@ -3448,7 +3474,7 @@ items:
       goal: "Anything the project makes that has to be looked at — a photo, a mock, a rendered page — is shown from the note that owns it, using conventions every project-os repo already has, instead of from a surface built for designs alone."
       features: ["FEAT-0147", "FEAT-0148"]
       requirements: ["REQ-0063", "REQ-0064", "REQ-0065"]
-      issues: ["ISS-0299", "ISS-0300"]
+      issues: ["ISS-0299", "ISS-0300", "ISS-0302"]
       note: "Opened 2026-09-12. Justified against CLAUDE.md's two questions in the phase note, and the justification is stated as REVERSIBLE: if this turns out to be two sessions, fold it into PHASE-005 and supersede this. NOT PHASE-009 (Design surfaces, done) because this retires what PHASE-009 built and generalises the rest beyond design; reopening a closed phase to delete its own delivery would make the registry describe it as something it was not. NOT PHASE-005 because only the renderer half is desktop-shell work - the sidecar routes, the note template, the authoring skill and the validator are not, and three of those are owned upstream. Five exit criteria, four of them checkable by command."
     PHASE-041:
       file: "docs/phases/PHASE-041-The-Gate-Runs-Where-The-Checks-Are.md"
@@ -3456,7 +3482,7 @@ items:
       status: done
       owner: user:edwin
       goal: "Put the acceptance gate in the repos that hold the checks — migrating each fleet repo onto the upstream validator one at a time, cheapest first — and leave behind a drift check that fails the build when the next divergence opens, so this is the last time the fleet has to catch up."
-      issues: ["ISS-0209"]
+      issues: ["ISS-0209", "ISS-0261", "ISS-0262", "ISS-0263", "ISS-0264", "ISS-0265"]
     PHASE-004:
       file: "docs/phases/PHASE-004-Embedded-Terminal.md"
       title: "Embedded terminal"
@@ -3464,7 +3490,7 @@ items:
       owner: user:edwin
       goal: "The optional embedded local-only terminal panel, loopback-bound, so the docs viewer can run claude / codex next to the rendered notes."
       features: ["FEAT-0003"]
-      issues: ["ISS-0255"]
+      issues: ["ISS-0255", "ISS-0310", "ISS-0311"]
       note: "THE TERMINAL'S STANDING HOME (CLAUDE.md): a single reported defect gets an ISS and a task here rather than a phase of its own. Reopened 2026-08-25 for ISS-0255 and closed again the same session — the rule's shape, since a phase left permanently `active` because its home must be known reads as one somebody forgot. Registry row said `planned` against a note that has said `done` since 2026-07-20; corrected in the same pass (PHASES.md is hand-maintained and sync-snapshot.py does not reach it)."
     PHASE-038:
       file: "docs/phases/PHASE-038-A-Verdict-Is-An-Event.md"
@@ -3474,7 +3500,7 @@ items:
       goal: "An acceptance verdict stops being a scalar field on a check note and becomes a dated, attributed, single-platform event in a per-release ledger — so a repo can say what was verified, by what method, on which platform, for which release, and every downstream question becomes a query instead of a maintained document."
       features: ["FEAT-0133", "FEAT-0134", "FEAT-0135", "FEAT-0136", "FEAT-0137"]
       requirements: ["REQ-0052", "REQ-0053", "REQ-0054", "REQ-0055", "REQ-0056"]
-      issues: ["ISS-0216", "ISS-0217", "ISS-0218", "ISS-0206"]
+      issues: ["ISS-0216", "ISS-0217", "ISS-0218", "ISS-0206", "ISS-0219", "ISS-0220", "ISS-0221"]
       note: "GATED ON ADR-0037 BEING ACCEPTED — it reads proposed and nothing migrates until Edwin decides, the same gate ADR-0030/0031/0034 used. Opened 2026-08-19 from a written proposal out of a your-trainer working session; every claim in it was re-measured here first and four were corrected. THE FACT: a verdict is (check x platform x release) and it is stored in a scalar, so 579 of your-trainer's 581 acceptance notes carry no platform while all 513 of its passes were earned on Android. FOURTH schema change to this corpus in four weeks; what is different is that the previous three all moved the same scalar between shapes without asking whether a scalar could hold the fact. THE RISK IS THE GATE: 513 Android passes stop counting toward an iOS release, which is the honesty gain and a large deliberate tightening — TASK-0529 and TASK-0534 both refuse to run until the per-repo delta is written down. NOT IN SCOPE: ISS-0208 owns the tier rule, ISS-0209 means nothing built here is enforced where the checks live, PARITY_MATRIX retirement needs FEAT-0130 first."
     PHASE-037:
       file: "docs/phases/PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity.md"
@@ -3482,8 +3508,8 @@ items:
       status: active
       owner: user:edwin
       goal: "Every verification surface answers the question its reader actually has, and the record can hold the answer — a release says what holds IT and offers no control that changes a check, the tests view leads with what a person owes rather than with an inventory, and a rendered mark is a check mark. Widened 2026-08-20: where a surface was found stating something nothing had recorded, this phase now also builds the place to record it. Found by use, not by audit."
-      features: ["FEAT-0125", "FEAT-0126", "FEAT-0127", "FEAT-0128", "FEAT-0129"]
-      issues: ["ISS-0210", "ISS-0211", "ISS-0212", "ISS-0213", "ISS-0280", "ISS-0281", "ISS-0282"]
+      features: ["FEAT-0125", "FEAT-0126", "FEAT-0127", "FEAT-0128", "FEAT-0129", "FEAT-0115", "FEAT-0130", "FEAT-0131", "FEAT-0132", "FEAT-0138", "FEAT-0142", "FEAT-0145"]
+      issues: ["ISS-0210", "ISS-0211", "ISS-0212", "ISS-0280", "ISS-0281", "ISS-0282", "ISS-0214", "ISS-0222", "ISS-0223", "ISS-0224", "ISS-0225", "ISS-0226", "ISS-0227", "ISS-0228", "ISS-0229", "ISS-0231", "ISS-0232", "ISS-0233", "ISS-0234", "ISS-0235", "ISS-0241", "ISS-0242", "ISS-0243", "ISS-0244", "ISS-0245", "ISS-0246", "ISS-0247", "ISS-0248", "ISS-0249", "ISS-0250", "ISS-0251", "ISS-0252", "ISS-0253", "ISS-0283", "ISS-0284"]
       note: "REOPENED 2026-09-06 for ISS-0280, ISS-0281 and ISS-0282: three defects on the acceptance checks page Edwin found by walking your-trainer's suite, which is this phase's shape (a surface answering a question its reader did not ask). Close it again when the three are fixed (CLAUDE.md, reopen-and-close rule). Opened 2026-08-18 from five defects Edwin found by USE, not by audit — four are invisible to the validator and to the suite, and two are live regressions PHASE-036 introduced. Closed 2026-08-21 over 97 resolved children. Opens on ADR-0035 (a release page reports, it does not record)."
     PHASE-036:
       file: "docs/phases/PHASE-036-One-Human-Walk.md"
@@ -3500,8 +3526,8 @@ items:
       status: done
       owner: user:edwin
       goal: "Get the testing model right: move the acceptance record out of a grammar-bearing document into notes, run the release process on them end to end, and then remove the split between what a person walks and what a machine runs — so that verifying behaviour has one type, one link direction, and one way to become automated."
-      features: [FEAT-0113, FEAT-0114, FEAT-0115, FEAT-0116, FEAT-0117, FEAT-0118, FEAT-0119, FEAT-0120, FEAT-0121]
-      issues: [ISS-0193, ISS-0194, ISS-0195, ISS-0196, ISS-0197, ISS-0198, ISS-0199]
+      features: [FEAT-0113, FEAT-0114, FEAT-0116, FEAT-0117, FEAT-0118, FEAT-0119, FEAT-0120, FEAT-0121]
+      issues: [ISS-0193, ISS-0194, ISS-0195, ISS-0196, ISS-0197, ISS-0198, ISS-0199, ISS-0192]
       note: "GATED: ADR-0030 is proposed and nothing migrates until Edwin accepts it; then upstream lands first. Order: type+migration (pilot HERE, 34 rows) -> view -> two-shape delta -> frontmatter verdict writes -> close-out sweep -> Mark released -> fleet (trainer LAST, 579 rows) -> per-item view. Must-nots: no per-check obligations ever (ADR-0027), no maintained mirror, frozen snapshot suites never rewritten, no lost rows (parity asserted 34/56/579), badge total must not rise."
     # PHASE-023..027 registered 2026-08-11: REL-0001's re-scope makes them the
     # release's definition, so the snapshot has to carry them as active context.
@@ -3514,8 +3540,8 @@ items:
       status: done
       owner: user:edwin
       goal: "Give the tool the phase it is missing. Publication becomes a first-class view over the whole ladder — commit, push, deploy, versioned release — and every obligation is routed to the phase that owns its subject and asks only while that subject is in flight, so what needs a person is smaller, sorted, and inspectable rather than one undifferentiated number."
-      features: [FEAT-0101, FEAT-0102, FEAT-0108, FEAT-0109, FEAT-0110, FEAT-0111]
-      issues: [ISS-0172, ISS-0173]
+      features: [FEAT-0101, FEAT-0102, FEAT-0108, FEAT-0109, FEAT-0110, FEAT-0111, FEAT-0103, FEAT-0104, FEAT-0105, FEAT-0106, FEAT-0107]
+      issues: [ISS-0172, ISS-0173, ISS-0174, ISS-0175, ISS-0176, ISS-0177, ISS-0179, ISS-0180, ISS-0183, ISS-0184, ISS-0185, ISS-0186, ISS-0187, ISS-0188, ISS-0189, ISS-0190, ISS-0191]
       related: [ADR-0028, ADR-0027, ADR-0020, PHASE-030, FEAT-0100, FEAT-0089]
       note: "Opened 2026-08-16 on Edwin's instruction ('plan this fully, I would suggest a new phase to capture it all'). Passes both of CLAUDE.md's tests for opening one: the goal states an outcome without listing its parts, and the exit criteria are measurements rather than a restatement of the task list. WHAT THIS PHASE MUST NOT DO, stated in the note: it must not make the number bigger — every change is measured against your-trainer's badge total and one that raises it has failed regardless of what else it achieves; and it must not make things vanish instead, because derived silence that cannot be opened is the same invisibility problem inverted. ORDER: ISS-0172 and ISS-0173 need nothing and land first; FEAT-0101 needs ADR-0028 accepted; FEAT-0102 needs the ADR and reads better after ISS-0173. OUT OF SCOPE and recorded as such: renaming the nav modes to match the phases, any widening of write paths, fixing your-trainer's own record, and a Releases view."
     PHASE-026:
@@ -3523,15 +3549,15 @@ items:
       title: "The returning human — the cockpit addresses the person who was away: what happened, what needs you, what shipped, in one voice"
       status: done
       order: 26
-      features: ["FEAT-0072", "FEAT-0073"]
+      features: ["FEAT-0072", "FEAT-0073", "FEAT-0071"]
       note: "REL-0001 leg 2, FIRST — not because it is largest but because FEAT-0072's release surface is what stops REL-0001 being hand-maintained, and that note already drifted (FEAT-0078 missing from its own deferred table). FEAT-0071 is done; 8 of 14 children unresolved, no issues/risks/requirements. TASK-0315 (UNRELEASED · N) then TASK-0316 (drafting becomes an action)."
     PHASE-023:
       file: "docs/phases/PHASE-023-Levers-For-The-Human.md"
       title: "Levers for the human — the cockpit writes the record it renders, wherever the transition is the human's to make"
       status: done
       order: 23
-      features: ["FEAT-0062"]
-      issues: ["ISS-0126"]
+      features: ["FEAT-0062", "FEAT-0059", "FEAT-0060", "FEAT-0061", "FEAT-0082"]
+      issues: ["ISS-0126", "ISS-0129", "ISS-0137"]
       risks: ["RISK-0005"]
       note: "REL-0001 leg 2, second. 5 of 25 children unresolved — the nearest phase to closing. GATED on ISS-0126 (does FEAT-0062 survive ADR-0020, since it builds two verbs onto the retired desk): a DECISION, not work, and it may remove the feature entirely. RISK-0005 (write surface on a LAN-visible server) is now live rather than anticipated — the endpoints shipped in leg 1 — and an open risk does not resolve by its phase closing."
     PHASE-024:
@@ -3572,8 +3598,8 @@ items:
       title: "Obligations go home — every judgment the record owes surfaces where its subject lives, the count is always on screen, and Tests becomes a view"
       status: done
       order: 30
-      features: ["FEAT-0086", "FEAT-0087", "FEAT-0088", "FEAT-0089", "FEAT-0090", "FEAT-0091", "FEAT-0100"]
-      issues: ["ISS-0121", "ISS-0156"]
+      features: ["FEAT-0086", "FEAT-0087", "FEAT-0088", "FEAT-0089", "FEAT-0090", "FEAT-0091", "FEAT-0100", "FEAT-0092", "FEAT-0093", "FEAT-0094", "FEAT-0098"]
+      issues: ["ISS-0121", "ISS-0156", "ISS-0125", "ISS-0128", "ISS-0131", "ISS-0132", "ISS-0133", "ISS-0135", "ISS-0141", "ISS-0144", "ISS-0145", "ISS-0146", "ISS-0148", "ISS-0149", "ISS-0150", "ISS-0151", "ISS-0153", "ISS-0165", "ISS-0166", "ISS-0167", "ISS-0168"]
       note: "From ADR-0020, accepted 2026-08-10. Order is load-bearing: FEAT-0089 (registry) first because everything reads it, the three view features in any order, FEAT-0090 (retire) last because the registry is what PROVES nothing is homeless. Must not build a third surface (ISS-0068) and must not widen the write surface (REQ-0027). WIDENED 2026-08-13 by ADR-0027: the registry counts what needs a PERSON, not only what the record owes, and FEAT-0100 is the widening's first subject — publication. Its two gates are ISS-0156 (no count for the open workspace, and absent-at-zero hides that) and TASK-0416 (the note-less obligation path, a repair to what this phase already built)."
     PHASE-040:
       file: "docs/phases/PHASE-040-The-Agent-Session-Is-Not-A-Terminal.md"
@@ -3595,7 +3621,7 @@ items:
       status: done
       order: 11
       features: ["FEAT-0018"]
-      issues: ["ISS-0024", "ISS-0057", "ISS-0066"]
+      issues: ["ISS-0024", "ISS-0057", "ISS-0066", "ISS-0069", "ISS-0070", "ISS-0071", "ISS-0130", "ISS-0143", "ISS-0163"]
       note: "Measured: 22 items terminal under a verification_waiver and 9 manual tests last verified 66-83 days ago all render as clean solid squares; TST-0022's Coverage register took four review rounds to describe its own assertions. Every item has the data already — surfacing, not new judgement. Sequenced first because it is the only one of the three whose absence actively misleads."
     PHASE-012:
       file: "docs/phases/PHASE-012-Attention-In-The-Strip.md"
@@ -3610,7 +3636,7 @@ items:
       status: done
       order: 13
       features: ["FEAT-0028", "FEAT-0044"]
-      issues: ["ISS-0055"]
+      issues: ["ISS-0055", "ISS-0059", "ISS-0072", "ISS-0073"]
       note: "Both features are half-built and paused rather than abandoned: FEAT-0044 has TASK-0230 done and TASK-0231 outstanding; FEAT-0028 has no tasks at all. Last of the three — nothing here is wrong, it is unfinished."
     PHASE-010:
       file: "docs/phases/PHASE-010-Surface-Ownership.md"
@@ -3619,14 +3645,14 @@ items:
       order: 10
       features: ["FEAT-0046", "FEAT-0047", "FEAT-0048", "FEAT-0049", "FEAT-0050"]
       requirements: ["REQ-0025"]
-      issues: ["ISS-0062", "ISS-0063"]
+      issues: ["ISS-0062", "ISS-0063", "ISS-0064", "ISS-0065"]
       note: "Library accumulated eight by-type groups by a process nobody chose. Measured: one duplicate of the Design mode, one duplicate of the overview record column, a Plans group showing 14 of 33, two dead stat tiles. Each type moves to the page that owns its question."
     PHASE-009:
       file: "docs/phases/PHASE-009-Design-Surfaces.md"
       title: "Design surfaces"
       status: done
       order: 9
-      features: ["FEAT-0042"]
+      features: ["FEAT-0042", "FEAT-0043"]
       note: "Design moves into the project. The overview dossier took six revisions in one session; the sixth is committed and the reasoning for the other five is in a transcript. That is the loss this closes."
     PHASE-001:
       title: "MVP"
@@ -3658,10 +3684,10 @@ items:
       title: "Agent instrumentation (hooks-aware terminal)"
       status: done
       path: "docs/phases/PHASE-007-Agent-Instrumentation.md"
-      features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027", "FEAT-0081"]
-      issues: ["ISS-0104", "ISS-0105", "ISS-0312"]
+      features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027", "FEAT-0081", "FEAT-0030", "FEAT-0031", "FEAT-0032", "FEAT-0033", "FEAT-0034", "FEAT-0035", "FEAT-0036", "FEAT-0037", "FEAT-0038", "FEAT-0039"]
+      issues: ["ISS-0104", "ISS-0105", "ISS-0312", "ISS-0002", "ISS-0003", "ISS-0004", "ISS-0005", "ISS-0006", "ISS-0007", "ISS-0008", "ISS-0009", "ISS-0010", "ISS-0011", "ISS-0012", "ISS-0013", "ISS-0022", "ISS-0023", "ISS-0032"]
       note: "2026-09-23: Reopened for bounded Codex parity work under FEAT-0019 and FEAT-0027. PHASE-040 remains deferred; session ownership is unchanged."
-      tasks: ["TASK-0633", "TASK-0634", "TASK-0635", "TASK-0636", "TASK-0637"]
+      tasks: ["TASK-0633", "TASK-0634", "TASK-0635", "TASK-0636", "TASK-0637", "TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0118", "TASK-0119", "TASK-0120", "TASK-0121", "TASK-0122", "TASK-0123", "TASK-0124", "TASK-0125", "TASK-0126", "TASK-0127", "TASK-0128", "TASK-0129", "TASK-0130", "TASK-0131", "TASK-0132", "TASK-0133", "TASK-0134", "TASK-0135", "TASK-0136", "TASK-0137", "TASK-0138", "TASK-0139", "TASK-0140", "TASK-0141", "TASK-0142", "TASK-0143", "TASK-0144", "TASK-0145", "TASK-0146", "TASK-0147", "TASK-0148", "TASK-0149", "TASK-0150", "TASK-0151", "TASK-0152", "TASK-0153", "TASK-0154", "TASK-0155", "TASK-0156", "TASK-0157", "TASK-0158", "TASK-0159", "TASK-0160", "TASK-0161", "TASK-0162", "TASK-0163", "TASK-0164", "TASK-0165", "TASK-0166", "TASK-0167", "TASK-0168", "TASK-0169", "TASK-0170", "TASK-0171", "TASK-0172", "TASK-0173", "TASK-0175", "TASK-0176", "TASK-0177", "TASK-0178", "TASK-0179", "TASK-0180", "TASK-0181", "TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192", "TASK-0193", "TASK-0194", "TASK-0195", "TASK-0196", "TASK-0197", "TASK-0198", "TASK-0213", "TASK-0343", "TASK-0344", "TASK-0345", "TASK-0346", "TASK-0347", "TASK-0348", "TASK-0349", "TASK-0350", "TASK-0351", "TASK-0352", "TASK-0353", "TASK-0354", "TASK-0355", "TASK-0356", "TASK-0628", "TASK-0638"]
     PHASE-008:
       title: "State & review surfaces"
       status: done

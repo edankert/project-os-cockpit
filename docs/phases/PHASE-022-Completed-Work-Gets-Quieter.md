@@ -26,6 +26,8 @@ issues:
   - "[[ISS-0091-Two-Handles-And-A-Shrinking-Id]]"
   - "[[ISS-0092-Severity-Buckets-Straddled-The-Completed-Split]]"
   - "[[ISS-0093-Nested-Padding-And-Two-Heading-Styles]]"
+  - "[[ISS-0083-Active-Nav-Row-Never-Highlights]]"
+  - "[[ISS-0084-Change-Ids-Print-Their-Description-Twice]]"
 depends: ["[[PHASE-021-Git-Is-Not-The-Users-Job]]"]
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[PHASE-010-Surface-Ownership]]"]
 tags: [ia, overview]

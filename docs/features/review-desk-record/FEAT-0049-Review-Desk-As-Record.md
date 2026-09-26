@@ -11,7 +11,7 @@ updated: 2026-07-29
 source: []
 goal: "The desk is currently queue-only: it shows what is waiting and, when the queue empties, nothing. It gains two registers beneath the queue — the full acceptance-test register, and the reviewed items whose verdicts already live in note frontmatter — so the surface still says something when there is nothing to decide."
 requirements: []
-tasks: ["[[TASK-0241-Tests-Register]]", "[[TASK-0242-Reviewed-Register]]"]
+tasks: ["[[TASK-0241-Tests-Register]]", "[[TASK-0242-Reviewed-Register]]", "[[TASK-0246-Desk-Section-Order-And-Naming]]", "[[TASK-0247-Drop-The-Advisory-Tally]]"]
 release: ""
 related: ["[[PHASE-010-Surface-Ownership]]", "[[FEAT-0041-Review-Desk]]", "[[ISS-0063-Dead-Stat-Tiles]]", "[[FEAT-0050-Library-Reduction]]"]
 reviewed_by: "model:claude-opus-5"

@@ -40,8 +40,10 @@ issues:
   - "[[ISS-0187-The-Repaint-Loses-Your-Place-A-Refusal-Is-Silent-And-The-Dialog-Has-No-Save]]"
   - "[[ISS-0188-The-Scroll-Fix-Looked-Right-Passed-A-Guard-And-Did-Nothing]]"
   - "[[ISS-0189-The-Watcher-Threw-The-Scroll-Away-After-Both-Fixes-Held-It]]"
+  - "[[ISS-0190-The-Acceptance-Tests-Sit-Last-On-Both-Release-Surfaces]]"
+  - "[[ISS-0191-The-Left-Pane-Calls-The-Acceptance-Tests-A-Suite-And-Says-They-Are-Ready]]"
 requirements: []
-tasks: []
+tasks: ["[[TASK-0423]]", "[[TASK-0424]]", "[[TASK-0425]]", "[[TASK-0426]]", "[[TASK-0427]]", "[[TASK-0428]]", "[[TASK-0429]]", "[[TASK-0430]]", "[[TASK-0431]]", "[[TASK-0432]]", "[[TASK-0433]]", "[[TASK-0434]]", "[[TASK-0435]]", "[[TASK-0436]]", "[[TASK-0437]]", "[[TASK-0438]]", "[[TASK-0439]]", "[[TASK-0440]]", "[[TASK-0441]]", "[[TASK-0442]]", "[[TASK-0443]]", "[[TASK-0444]]", "[[TASK-0445]]", "[[TASK-0446]]", "[[TASK-0447]]", "[[TASK-0448]]", "[[TASK-0449]]", "[[TASK-0450]]", "[[TASK-0451]]", "[[TASK-0452]]", "[[TASK-0453]]", "[[TASK-0454]]", "[[TASK-0455]]", "[[TASK-0456]]", "[[TASK-0457]]", "[[TASK-0458]]"]
 depends: []
 related: ["[[ADR-0029-The-Acceptance-Mark-Vocabulary-Is-Minimals]]", "[[ADR-0028-Work-Has-Three-Phases]]", "[[ADR-0027-The-Registry-Counts-What-Needs-A-Person]]", "[[ADR-0020-Obligations-Live-With-Their-Subject]]", "[[ADR-0022]]", "[[PHASE-030-Obligations-Go-Home]]", "[[FEAT-0100-Unpushed-Work-Needs-A-Person]]", "[[FEAT-0089-The-Obligation-Registry-And-The-Badges]]"]
 tags: [surfaces, obligations, publication]

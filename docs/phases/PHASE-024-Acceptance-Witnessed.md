@@ -16,7 +16,7 @@ features:
   - "[[FEAT-0066-Visual-Evidence]]"
 requirements:
   - "[[REQ-0028-Evidence-Names-Its-Witness]]"
-issues: []
+issues: ["[[ISS-0096]]"]
 depends: ["[[PHASE-023-Levers-For-The-Human]]"]
 related: ["[[DES-0006-The-Acceptance-Desk]]"]
 tags: [acceptance, testing, review]

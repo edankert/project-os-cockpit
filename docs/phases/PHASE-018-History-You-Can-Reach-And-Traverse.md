@@ -9,8 +9,7 @@ owner: user:edwin
 created: 2026-07-30
 updated: 2026-07-30
 goal: "Make History reachable without hunting for a link at the bottom of a tile, and make the span of the project navigable — a contribution grid where a day is a destination rather than a decoration."
-features:
-  - "[[FEAT-0053-History-Navigation]]"
+features: []
 requirements: []
 issues: []
 superseded_by: "[[PHASE-016-The-Overview-Answers-Questions]]"

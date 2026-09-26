@@ -15,6 +15,10 @@ features:
   - "[[FEAT-0011-Native-Center-Pane]]"
   - "[[FEAT-0012-Native-UX]]"
   - "[[FEAT-0013-Agent-State-Signal]]"
+  - "[[FEAT-0014-Cockpit-IA-Rework]]"
+  - "[[FEAT-0015-Cockpit-IA-V2]]"
+  - "[[FEAT-0016-Project-Management]]"
+  - "[[FEAT-0017-Overview-Dashboard]]"
 depends: ["[[PHASE-005-Desktop-Shell]]"]
 ---
 
