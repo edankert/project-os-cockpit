@@ -6,7 +6,7 @@ title: "The testing model — one type, a level scale, and who runs what"
 status: active
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-21"
+updated: "2026-09-27"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: approved
@@ -21,7 +21,7 @@ related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Ve
 > [!warning] Superseded in substance by [[PHASE-036-One-Human-Walk]], 2026-08-18.
 > Everything below describes the model **before** ADR-0034 separated the three axes. It still documents the four-heuristic `_is_manual_test`, the two-predicate disagreement, the character marks and a group called `Needs a run` — none of which is current. It is kept because the *reasoning* is still the clearest account of why the merge happened, and because rewriting a reference note into pretending it always said the right thing is how a record stops being one.
 >
-> **What is current**: `level:` says what a test exercises, `command:` says who runs it and how it re-arms, `covers:` says what it gates. Marks are the seven words. The verb is *walk*. Read [[ADR-0034-Three-Axes-Not-One-Word]] and the phase note.
+> **What is current**: `level:` says what a test exercises, `command:` says who runs it and how it re-arms, `covers:` says what it gates. Marks are the seven words. The verb is *test* (project-os-dev ADR-0050). Read [[ADR-0034-Three-Axes-Not-One-Word]] and the phase note.
 
 **Written down at Edwin's request, 2026-08-18, after PHASE-035 closed.** It describes what is *implemented*, not what was intended — where the two differ, the difference is named. The open questions this raised are [[ISS-0200-Marks-Versus-Statuses]] … [[ISS-0204-The-Acceptance-Filter-Bar-Is-Congested]].
 
@@ -39,7 +39,7 @@ A note moves **along** that scale rather than **between** types, and that is the
 2. Otherwise, does `kind`/`automation`/`mode`/`method` say manual? → a person.
 3. Otherwise, does the body have a Steps section? → a person.
 
-The order matters and was a fix: a test with a pytest `command:` and a checklist-shaped body used to be offered a manual stepper and counted among the tests a scope asks a human to walk.
+The order matters and was a fix: a test with a pytest `command:` and a checklist-shaped body used to be offered a manual stepper and counted among the tests a scope asks a human to test by hand.
 
 **But there are two rules, not one, and this note claimed otherwise.** `obligations._is_owed` decides the `Run` obligation — the thing that fills `Needs a run` and the badge — with its own predicate: *does `kind`/`level`/`runner` contain "manual"*, and it never reads `command:` at all. **8 of 788 fleet tests disagree between the two.** None involves a `command:`, so it is latent rather than live. [[REQ-0041-One-Answer-To-Who-Runs-This]] closes it.
 
@@ -119,7 +119,7 @@ automation: full
 
 *(Corrected 2026-08-19. This list used to name `Needs a run`, four verdict-state groups and `Tier 1/2/3`. The verdict states went with [[ADR-0038]] — an automated test has no verdict, and 37 of this repo's 38 sat in one collapsed `Verified` group — and the tiers went with [[ADR-0039]].)*
 
-**Reads** — `## Runs` parses back, so a partly tested procedure can say which steps stand. *(This belongs to the executable/manual half, not the acceptance surface it is filed under here: 14 notes fleet-wide carry a `## Runs` section, all in this repo, none at `level: acceptance`.)* A step's state is: a step's state is its result in the most recent run that **mentions** it, so a partial walk does not un-prove what it never reached.
+**Reads** — `## Runs` parses back, so a partly tested procedure can say which steps stand. *(This belongs to the executable/manual half, not the acceptance surface it is filed under here: 14 notes fleet-wide carry a `## Runs` section, all in this repo, none at `level: acceptance`.)* A step's state is: a step's state is its result in the most recent run that **mentions** it, so a partial manual run does not un-prove what it never reached.
 
 ## What is not true yet
 
@@ -182,7 +182,7 @@ And the one genuine verify-this-build-then-stop case — this repo's `TST-0026` 
 
 Two independent bodies of practice agree with him. **ISTQB** keeps test *level* and test *type* independent expressly to prevent gaps in a test concept, and holds manual-versus-automated out of both as an execution concern; acceptance is a level defined by *whose criteria are checked*, never by who performs it. **The Agile Testing Quadrants** (Marick; Crispin and Gregory) run business-facing/technology-facing against supporting/critiquing — and manual-versus-automated is **not an axis in either**: Q2 is the ATDD/BDD quadrant and is routinely automated.
 
-So `level: acceptance` has been carrying three independent claims: *a person walks it*, *its verdict is `mark:`*, and *it gates the release*. None follows from the word.
+So `level: acceptance` has been carrying three independent claims: *a person tests it*, *its verdict is `mark:`*, and *it gates the release*. None follows from the word.
 
 [[ADR-0034-Three-Axes-Not-One-Word]] supersedes ADR-0033 and separates them — `level:` says what a test exercises, `command:` says who runs it and how it re-arms, `covers:` says what it gates, at any granularity. [[PHASE-036-One-Human-Walk]] carries the work, gated on a measured precondition: **83 of 669 acceptance tests carry an empty `covers:`** and would gate nothing under a derived rule.
 

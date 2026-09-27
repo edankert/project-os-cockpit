@@ -1,16 +1,16 @@
 ---
 type: "[[plan]]"
-title: "Plan — one human walk"
+title: "Plan — one population a person tests"
 status: draft
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-08-18"
+updated: "2026-09-27"
 source: []
 implements: ["[[FEAT-0122-One-Human-Walked-Population]]", "[[FEAT-0123-The-Walk-Surfaces-Say-One-Thing]]"]
 related: ["[[ADR-0033-A-Manual-Test-Is-An-Acceptance-Test]]", "[[PHASE-036-One-Human-Walk]]", "[[ISS-0205-The-Sweep-Writes-Notes-A-Migrated-Repo-Cannot-Read]]"]
 ---
 
-# Plan — one human walk
+# Plan — one population a person tests
 
 ## The gate
 

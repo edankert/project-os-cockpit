@@ -6,7 +6,7 @@ title: "The tests view — the suite as sections, and what a person still owes"
 status: active
 owner: user:edwin
 created: 2026-08-20
-updated: "2026-08-20"
+updated: "2026-09-27"
 kind: screen
 platforms: []
 parent: ""
@@ -18,7 +18,7 @@ tags: [surface]
 
 ## What it is
 
-The left pane's Tests mode and the generated checks page behind it. A person opens it to answer one question — *what do I still have to do* — and leaves having walked a check or having decided not to.
+The left pane's Tests mode and the generated checks page behind it. A person opens it to answer one question — *what do I still have to do* — and leaves having tested a check or having decided not to.
 
 It is the first `SUR-*` because it is the surface this phase spent itself on: four of PHASE-037's issues are about what its section heads say, and every one of them was a sentence retyped rather than derived.
 

@@ -6,7 +6,7 @@ title: "A retired check sheds the obligation and keeps the credit — `acceptanc
 status: open
 owner: user:edwin
 created: 2026-08-30
-updated: "2026-09-19"
+updated: "2026-09-27"
 severity: medium
 component: tooling
 phase:
@@ -32,10 +32,10 @@ question: "Does a retired acceptance check still count as covering its feature? 
 {'FEAT-0001'}
 ```
 
-`grep -n retired tools/scripts/validate-docs.py` finds the value only in status vocabularies; no rule excludes it. So after this change a check that has left the walk still:
+`grep -n retired tools/scripts/validate-docs.py` finds the value only in status vocabularies; no rule excludes it. So after this change a check that has left the release test still:
 
-- satisfies `FEATURE-UNCOVERED` / `VERIFY-ACCEPTANCE` for the feature it no longer walks — retiring removes the obligation *and keeps the coverage credit*, which is the opposite of what a reader would predict from the note's own framing;
-- fires `SURFACE-ORPHAN` when its `area:` names no surface, for a check nobody will ever walk again;
+- satisfies `FEATURE-UNCOVERED` / `VERIFY-ACCEPTANCE` for the feature it is no longer tested for — retiring removes the obligation *and keeps the coverage credit*, which is the opposite of what a reader would predict from the note's own framing;
+- fires `SURFACE-ORPHAN` when its `area:` names no surface, for a check nobody will ever test again;
 - makes `_repo_has_an_acceptance_suite` true in a repo whose every check is retired, so the uncovered-feature rule keeps firing over an empty suite.
 
 Meanwhile `publication.py`'s feature panel (*"which checks does this feature answer for"*) and `cockpit.py`'s per-surface counts both read `Suite.items`, so the cockpit says the feature has no checks while the validator says it is covered.

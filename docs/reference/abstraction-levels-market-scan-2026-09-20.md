@@ -6,7 +6,7 @@ title: "How other tools cut a project into levels, and what of it applies to the
 status: active
 owner: user:edwin
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-27
 scope: "project"
 source:
   - "Edwin 2026-09-20: 'ideally you want to provide different levels of abstraction instead, where each level of abstraction gets you closer to the real content, the full ticket content ... Review research existing online solutions and suggest options and possible designs.'"
@@ -47,7 +47,7 @@ C4 is four diagrams of one system — system context, container, component, code
 
 "Overview first, zoom and filter, then details-on-demand" is Shneiderman's 1996 formulation, and the paper that states it also lists seven tasks rather than three: overview, zoom, filter, details-on-demand, **relate, history and extract** ([The Eyes Have It, Shneiderman 1996 (PDF)](https://www.cs.umd.edu/~ben/papers/Shneiderman1996eyes.pdf), [Beyond guidelines: what can we learn from the Visual Information Seeking Mantra](https://www.researchgate.net/publication/4175429_Beyond_guidelines_What_can_we_learn_from_the_Visual_Information_Seeking_Mantra)).
 
-**Borrow:** the three forgotten tasks. *Relate* is the cockpit's `[[wikilink]]` graph and it already works. *History* is the digest and the timeline. *Extract* — take this subset away with you — is the one the cockpit has nowhere, and it is what a walk sheet, a review packet and a release report each are. Naming it as a task at every level is cheaper than inventing a feature for each.
+**Borrow:** the three forgotten tasks. *Relate* is the cockpit's `[[wikilink]]` graph and it already works. *History* is the digest and the timeline. *Extract* — take this subset away with you — is the one the cockpit has nowhere, and it is what a release test sheet, a review packet and a release report each are. Naming it as a task at every level is cheaper than inventing a feature for each.
 
 ### 4. The dashboard taxonomy: strategic, tactical, operational, analytical
 

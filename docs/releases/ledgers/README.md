@@ -17,7 +17,7 @@ There is no cross-platform ledger, and that is by construction rather than by om
 
 ## The lifecycle
 
-1. A walk, a runner or a migration **appends** an event to `WORKING-<platform>.json`.
+1. A release test, a runner or a migration **appends** an event to `WORKING-<platform>.json`.
 2. At release cut the working ledger is **sealed**: it gains `release`, `version` and `sealed`, is renamed to `REL-####-<platform>.json`, and a fresh working ledger starts.
 3. A sealed ledger is **never edited**. `LEDGER-SEALED` in the validator enforces it against `HEAD`.
 
@@ -44,7 +44,7 @@ Every mark but `pass` is refused without a `reason`.
 
 That is not hypothetical. It is what the code did before these files existed: `Item.excepted` was read from frontmatter and scoped to nothing, while the comment above it still described the per-release property [[ADR-0029]] designed and lost when it moved the release exception from `[!]` to `[-]`. **A field on a note cannot hold *"expires with its release"* at any price.** An event in a per-release ledger gets it by construction, because the ledger it sits in *is* the release it applies to.
 
-## There is no "not yet walked"
+## There is no "not yet tested"
 
 You do not record that you did not do something. **No entry for a platform means owed on that platform** — so adding a platform makes every check immediately owed there, with no schema change, no key to add and no backfill. The absence *is* the initial state, and it is the honest one.
 

@@ -7,7 +7,7 @@ status: active
 phase: "[[PHASE-042-A-Note-Shows-What-It-Is-About]]"
 owner: user:edwin
 created: 2026-09-12
-updated: 2026-09-12
+updated: 2026-09-27
 source: ["[[FEAT-0148-One-HTML-Viewer]]"]
 scope: feature
 level: acceptance
@@ -32,14 +32,14 @@ tags: [test, acceptance, render]
 
 <!-- `issues:` is empty on purpose: a check that names an ISS-* reads as a
      regression check ("this defect was fixed"), and this is a behaviour claim
-     about a new surface. The issues this walk happens to close are in
+     about a new surface. The issues this test happens to close are in
      `related:` instead (ADR-0039 decision 4, `acceptance.section_of`). -->
 
 # An HTML page opens in the viewer
 
 ## Purpose
 
-Check that the replacement works and that the removal took nothing with it that a reader needed. Walked in the running desktop app; steps that were walked in a harness must say so.
+Check that the replacement works and that the removal took nothing with it that a reader needed. Tested in the running desktop app; steps that were tested in a harness must say so.
 
 ## Procedure
 
@@ -60,11 +60,11 @@ Check that the replacement works and that the removal took nothing with it that 
 
 Per step: date, window or browser, what was on screen. Step 8 is a `curl` and its output goes in the ledger verbatim.
 
-## Walked 2026-09-12 (model:claude-opus-5)
+## Tested 2026-09-12 (model:claude-opus-5)
 
 1. **A design's page opens in the viewer, framed, in the theme** — `~view/designs/WALK-0001-page.html`, header naming the file, chip carrying the path. In the running window; screenshot taken.
 2. **One click back to the note.** The viewer's `Read WALK-0001-Walking-The-Pictures` button returned to it. The button appears only when the reader arrived from a note; opened cold the viewer shows none rather than one that goes nowhere.
-3. **A note that is not a design frames the same way** *(harness)*. From `TASK-0613`, a **task** note, `~view/designs/DES-0002-style-guide.html` framed the page and the way back read "Read TASK-0613-A-Generic-HTML-Viewer". The viewer reads a path and never asks a note's type; `tests/test_framing.py` fails if it consults the design register. Walked 2026-09-12 after independent review pointed out that this step had been argued from a unit test rather than observed.
+3. **A note that is not a design frames the same way** *(harness)*. From `TASK-0613`, a **task** note, `~view/designs/DES-0002-style-guide.html` framed the page and the way back read "Read TASK-0613-A-Generic-HTML-Viewer". The viewer reads a path and never asks a note's type; `tests/test_framing.py` fails if it consults the design register. Tested 2026-09-12 after independent review pointed out that this step had been argued from a unit test rather than observed.
 4. **A design with no page opens its note with no apology** — DES-0003, 5,541 characters of content and **no banner at all** ([[ISS-0300-A-Design-With-No-HTML-Page-Is-Told-It-Has-Nothing-To-Show]]).
 5. **`project-os-deck` DES-0002 reads in full** — 10 revision entries and 15 comment lines, in the note, as Markdown.
 5b. **Accept and Decline both work from the note** *(harness)*. On a design at `proposed`, Accept wrote `status: "accepted"`; set back to `proposed`, Decline wrote `status: "cancelled"` — the design's own vocabulary, through the generic path.
@@ -77,6 +77,6 @@ Per step: date, window or browser, what was on screen. Step 8 is a `curl` and it
 9. **A page in another workspace frames**, through that workspace's own sidecar; `..` is refused as in TST-0086 step 8; the sandbox has no same-origin flag, pinned by `tests/test_framing.py`.
 10. **The register's detection commands were re-run** and found two live remnants, now removed — the note actuator's design-verdict branch and its fetch of `/api/cockpit/design-revisions/`.
 
-**Where each step was walked.** Steps 1, 7 and 8 in the running window and against a real sidecar. Steps 2, 4, 5, 5b, 5c, 6 and 9 in the renderer harness on the built renderer. Step 3 was added to the harness list after the review found it argued rather than walked. **Step 10 is not a surface step**: it is a command sweep over the capability register's own detection commands, run at a shell, and it found two live remnants that the removal had missed. The harness was used because: the window was being driven by two other agent sessions during the walk, which moved it mid-sequence more than once, and a sequence read across a switch is not evidence.
+**Where each step was tested.** Steps 1, 7 and 8 in the running window and against a real sidecar. Steps 2, 4, 5, 5b, 5c, 6 and 9 in the renderer harness on the built renderer. Step 3 was added to the harness list after the review found it argued rather than tested. **Step 10 is not a surface step**: it is a command sweep over the capability register's own detection commands, run at a shell, and it found two live remnants that the removal had missed. The harness was used because: the window was being driven by two other agent sessions during the test, which moved it mid-sequence more than once, and a sequence read across a switch is not evidence.
 
 **An unwelcome finding, worth keeping.** The first endpoint sweep reported 200s for routes that had been deleted. The sidecar had been running since before the change and Python never re-imports. Restarting it turned all nine into 404s. A stale sidecar has now produced a false reading twice in this project's history.

@@ -4,7 +4,7 @@ id: TESTS-README
 status: active
 owner: team:docs
 created: 2026-01-27
-updated: 2026-01-27
+updated: 2026-09-27
 tags: [tests]
 ---
 
@@ -18,9 +18,9 @@ Feature-scoped tests live under `docs/features/<feature-slug>/plan/tests/`.
 ## What goes here
 - `TST-####-*.md` created from `../__templates__/test.md`.
 
-## Where the walk order lives
+## Where the section order lives
 
-`docs/tests/acceptance/WALK.md` is the one file that says in what order this project's acceptance checks are walked. It lists sittings — groups of checks sharing one setup state — and each sitting claims its checks **by surface**. `python3 tools/scripts/walk-sheet.py --release REL-#### --platform <platform>` reads it and prints the sheet for a release. Start from `../__templates__/walk.md`; the rules are stated once in `../../tools/instructions/TESTING.md`, "The walk".
+`docs/tests/acceptance/RELEASE-TEST.md` is the one file that says in what order this project's acceptance checks are tested. It lists sections — groups of checks sharing one setup state — and each section claims its checks **by surface**. `python3 tools/scripts/release-test.py --release REL-#### --platform <platform>` reads it and prints the release test sheet for a release. Start from `../__templates__/release-test.md`; the rules are stated once in `../../tools/instructions/TESTING.md`, "The release test".
 
 ## When to add a test note
 - A change introduces or modifies behavior that needs verification.

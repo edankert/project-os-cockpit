@@ -126,7 +126,7 @@ button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid
 </head>
 <body>
 <h1>DES-0015 — The cockpit in layers</h1>
-<p class="lead">Plates for the design note beside this page. Every count is this repository's own, read from its sidecar on 2026-09-17: 33 things need a person (18 to triage, 12 commits to push, 2 requirements to approve, 1 ADR to decide), one feature in flight, a release gate blocked by 3 unwalked checks, 148 transitions since the last <em>Caught up</em>.</p>
+<p class="lead">Plates for the design note beside this page. Every count is this repository's own, read from its sidecar on 2026-09-17: 33 things need a person (18 to triage, 12 commits to push, 2 requirements to approve, 1 ADR to decide), one feature in flight, a release gate blocked by 3 untested checks, 148 transitions since the last <em>Caught up</em>.</p>
 <div class="toolbar"><button class="tg" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'">Toggle theme</button><span>Drawn dark by default; the shell's light scheme is the same tokens.</span></div>
 
 <!-- ===================================================================== -->
@@ -143,7 +143,7 @@ button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid
 
     <div class="L">L1<small>Home</small></div>
     <div>The first screen of a project, replacing the overview</div>
-    <div>Three cards: <b>Needs you</b> (one row per verb group), <b>In flight</b> (the focus feature with its bars and its agent), <b>Shipping</b> (commits, gate, walk). One line for <em>since you looked</em>. The active phase as one row.</div>
+    <div>Three cards: <b>Needs you</b> (one row per verb group), <b>In flight</b> (the focus feature with its bars and its agent), <b>Shipping</b> (commits, gate, release test). One line for <em>since you looked</em>. The active phase as one row.</div>
     <div>landing rows trimmed to 3 per group · <span class="mono s11">stats.focus</span> · one feature progress slice · gate counts · digest counts only</div>
     <div class="num">≈ 30 KB<small>today: 772 KB</small></div>
 
@@ -193,7 +193,7 @@ button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid
 
       <div class="card">
         <h3>Shipping<span class="pin">3</span></h3>
-        <div class="row"><div class="l"><span class="t"><b>Next release</b> · accumulating · 115 features done since 1.0.0</span><span class="badge b-blocked">gate blocked</span></div><div class="r"><span>3 unwalked · macos</span><span class="btn primary">Walk them</span></div></div>
+        <div class="row"><div class="l"><span class="t"><b>Next release</b> · accumulating · 115 features done since 1.0.0</span><span class="badge b-blocked">gate blocked</span></div><div class="r"><span>3 untested · macos</span><span class="btn primary">Test them</span></div></div>
         <div class="row"><div class="l"><span class="t"><b>Automated</b> · 43 tests</span><span class="badge b-archived">no run recorded</span></div><div class="r"><span class="btn">Run</span></div></div>
       </div>
 
@@ -286,7 +286,7 @@ button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid
       <h4>Related</h4>
       <div class="s12">requirement · <span class="id">REQ-0066</span> approved</div>
       <div class="s12">risk · <span class="id">RISK-0010</span> open</div>
-      <div class="s12">surface · <span class="id">SUR-0004</span> The release walk</div>
+      <div class="s12">surface · <span class="id">SUR-0004</span> The release test</div>
       <div class="s12 faint" style="margin-top:6px">▸ 7 changes · 2 features · 9 backlinks</div>
       <h4 style="margin-top:14px">Verification</h4>
       <div class="s12"><span class="id">TST-0089</span> partial · macos · yesterday</div>
@@ -350,7 +350,7 @@ button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid
         <div style="font-size:16px;font-weight:600;margin:6px 0 10px">A procedure's expectation quote is checked against nothing when its check states no Expect section</div>
         <div style="display:flex;gap:16px;align-items:flex-start">
           <span class="thumb"></span>
-          <div class="s12" style="flex:1"><b>Observed.</b> The walk page shows the step's quote as satisfied although the check has no <span class="mono">## Expect</span> to compare against. <br><b>Affects.</b> SUR-0004 The release walk · FEAT-0150 · the gate for the next release. <br><b>Proposed fix.</b> Refuse the procedure line in the bundled validator; 1 file, test exists.</div>
+          <div class="s12" style="flex:1"><b>Observed.</b> The release test page shows the step's quote as satisfied although the check has no <span class="mono">## Expect</span> to compare against. <br><b>Affects.</b> SUR-0004 The release test · FEAT-0150 · the gate for the next release. <br><b>Proposed fix.</b> Refuse the procedure line in the bundled validator; 1 file, test exists.</div>
         </div>
         <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
           <span class="btn primary">Accept for fixing <span class="kbd" style="color:#fff;border-color:#fff8">a</span></span>
@@ -389,7 +389,7 @@ button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid
       <div class="hdr"><h2>Verify</h2><span class="sub">platform macos ▾ · release: next (accumulating)</span></div>
       <div class="card">
         <h3>This release <span class="n">gate blocked</span></h3>
-        <div class="row" style="border-top:0;padding-top:0"><div class="l s12 muted">acceptance checks settled <span class="bar warn" style="width:200px"><i style="width:92%"></i></span> 33 / 36 &nbsp;·&nbsp; 3 owed, all new since 1.0.0, never walked &nbsp;·&nbsp; 0 regressed</div><div class="r"><span class="btn primary">Walk 3</span><span class="btn">Settle…</span></div></div>
+        <div class="row" style="border-top:0;padding-top:0"><div class="l s12 muted">acceptance checks settled <span class="bar warn" style="width:200px"><i style="width:92%"></i></span> 33 / 36 &nbsp;·&nbsp; 3 owed, all new since 1.0.0, never tested &nbsp;·&nbsp; 0 regressed</div><div class="r"><span class="btn primary">Test 3</span><span class="btn">Settle…</span></div></div>
         <div class="row"><div class="l"><span class="muted s12">Publication</span><span class="id">TST-0083</span><span class="t s12">A release is prepared without an editor</span></div><div class="r"><span class="badge b-pending">owed</span></div></div>
         <div class="row"><div class="l"><span class="muted s12">Notes and attachments</span><span class="id">TST-0086</span><span class="t s12">A note shows the pictures beside it</span></div><div class="r"><span class="badge b-pending">owed</span></div></div>
         <div class="row"><div class="l"><span class="muted s12">The viewer</span><span class="id">TST-0087</span><span class="t s12">An HTML page opens in the viewer</span></div><div class="r"><span class="badge b-pending">owed</span></div></div>
@@ -406,7 +406,7 @@ button.tg { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid
     </div>
     <div class="foot"><span>● sidecar: ready</span><span>~verify</span></div>
   </div>
-  <p class="cap">The tests view today says <em>Nothing owed on tests</em> beside a navigator that says <em>6 of 36 outstanding</em>; the two numbers count different scopes. Here each card names its scope, and the release's gate, walk, settle and coverage are one card instead of four sections. The overview's <em>Tests 1 / 90</em> tile, which counts statuses acceptance checks do not carry, is replaced by the two bars that mean something.</p>
+  <p class="cap">The tests view today says <em>Nothing owed on tests</em> beside a navigator that says <em>6 of 36 outstanding</em>; the two numbers count different scopes. Here each card names its scope, and the release's gate, release test, settle and coverage are one card instead of four sections. The overview's <em>Tests 1 / 90</em> tile, which counts statuses acceptance checks do not carry, is replaced by the two bars that mean something.</p>
 </section>
 
 </body>

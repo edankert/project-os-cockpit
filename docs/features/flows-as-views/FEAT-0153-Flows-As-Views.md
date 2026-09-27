@@ -7,7 +7,7 @@ status: backlog
 phase: "[[PHASE-045-The-Cockpit-In-Layers]]"
 owner: user:edwin
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-27
 source:
   - "[[DES-0015-The-Cockpit-In-Layers]], option A, recommended second"
   - "Edwin 2026-09-17: the flows are 'design + review, implementation, verification and issue reporting/triage'"
@@ -40,7 +40,7 @@ Layer L2 of the design. The top bar's modes become Home, Design, Build, Verify a
 - The navigator payload in `cockpit.py` gains a state-first grouping per view, with terminal groups sent as counts and a route to expand one group on demand. Measured today: the features navigator sends 43 groups here and 30 on your-trainer, of which 27 and 14 are closed phases; the issues navigator sends 293 and 416 rows with its severity groups listed twice.
 - The Design view: Awaiting you, Offered, Drafting, Accepted and being built, Implemented folded, About this project folded and last.
 - The Build view: Approve, Now, Next grouped by the active phase only, other phases folded by name, Done since the last release folded, unattached items folded.
-- The Verify view: This release (owed checks by screen, settled bar, Walk, Settle, coverage on one line), In flight (the focus feature's tests), Automated (last result or "no run recorded"), Retired folded.
+- The Verify view: This release (owed checks by screen, settled bar, Test, Settle, coverage on one line), In flight (the focus feature's tests), Automated (last result or "no run recorded"), Retired folded.
 - The Issues view: Triage queue, Open by severity as a stacked bar with the high rows first, Fixed since the last release folded, Deferred and Declined folded. A "Triage next" flow walking the queue one issue at a time with Accept, Defer, Decline and Duplicate of (D4).
 - Where the publication ladder lives is D2's answer, not this note's.
 - Out: subject pages ([[FEAT-0154-Subject-Threads]]), any write path, mode 1.

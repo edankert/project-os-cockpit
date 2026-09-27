@@ -7,7 +7,7 @@ status: backlog
 phase: "[[PHASE-045-The-Cockpit-In-Layers]]"
 owner: user:edwin
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-27
 source:
   - "[[DES-0015-The-Cockpit-In-Layers]], option C, recommended first"
   - "Edwin 2026-09-17: 'I am not fully convinced, so document it in such a way that we can refine over time'"
@@ -40,7 +40,7 @@ Layers L0 and L1 of the design, and nothing below them. The rail square, the fle
 - One composed payload for Home, built from payloads that already exist: the obligations breakdown, the six landing payloads trimmed to three rows per verb group, the focus block, one feature's task, criteria and check counts, the history's unpublished count and the release gate's counts. Measured budget in the design: about 30 KB against 772 KB today.
 - The Needs you card lists one row per verb group, names the newest subject, and offers the registry verb as its only button. Twelve unpushed commits are one row.
 - The In flight card shows the focus feature with three labelled bars and the agent's state, name and last tool on one line. Cost, context and cache temperature move to the record.
-- The Shipping card shows the publication rung and the gate, with Walk, Push and Run as its verbs, and never the list of unreleased features.
+- The Shipping card shows the publication rung and the gate, with Test, Push and Run as its verbs, and never the list of unreleased features.
 - The Dock badge, through Electron's dock API, showing the count decided under D3.
 - Out: any change to the navigators (that is [[FEAT-0153-Flows-As-Views]]), to note pages ([[FEAT-0154-Subject-Threads]]), to any write path, or to the mode 1 HTML.
 

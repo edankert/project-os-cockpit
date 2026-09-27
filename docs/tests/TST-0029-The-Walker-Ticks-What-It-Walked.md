@@ -2,12 +2,12 @@
 type: "[[test]]"
 id: TST-0029
 aliases: ["TST-0029"]
-title: "The walker ticks what it walked and nothing else — pass writes a witness, fail stays unticked, skip writes nothing, and a stale or reconciled row is refused"
+title: "The stepper ticks what it tested and nothing else — pass writes a witness, fail stays unticked, skip writes nothing, and a stale or reconciled row is refused"
 status: ready
 covers: ["[[FEAT-0103-The-Gate-Is-Walkable]]"]
 owner: user:edwin
 created: 2026-08-16
-updated: "2026-08-16"
+updated: "2026-09-27"
 phase: "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
 source: ["[[FEAT-0103]] acceptance criteria"]
 scope: system
@@ -29,11 +29,11 @@ review_verdict: ""
 related: ["[[ISS-0141]]", "[[ADR-0028-Work-Has-Three-Phases]]"]
 ---
 
-# The walker ticks what it walked
+# The stepper ticks what it tested
 
 ## Purpose
 
-A walker that writes the wrong row is worse than one that writes nothing, and a walker that ticks on failure manufactures the claim the suite exists to make. Both are silent. This pins the write.
+A stepper that writes the wrong row is worse than one that writes nothing, and a stepper that ticks on failure manufactures the claim the suite exists to make. Both are silent. This pins the write.
 
 ## Procedure
 
@@ -42,9 +42,9 @@ A walker that writes the wrong row is worse than one that writes nothing, and a 
 3. A skip writes nothing at all — no tick, no annotation.
 4. Address is section-and-ordinal. Editing a row **above** the target does not move which row is written.
 5. The name is carried and compared: if the row at that address is not the row the caller named, the write is refused.
-6. A `- [~]` reconciled row is refused. Settled by decision is not walked ([[ISS-0141]]).
+6. A `- [~]` reconciled row is refused. Settled by decision is not tested ([[ISS-0141]]).
 7. A stale `mtime` is refused, as every other `note_writes` path refuses one.
-8. Round-trip: parse, walk one check, re-parse — the unchecked count drops by exactly one.
+8. Round-trip: parse, test one check, re-parse — the unchecked count drops by exactly one.
 9. Declaring a release creates `REL-*` at `draft`; a version at or below the newest `released` is refused; a second declaration while one is in preparation is refused.
 10. With a release in preparation the gate names it and the obligation fires; with none it is zero.
 11. The gate lists the individual checks and the number it states equals the rows it lists.
@@ -58,6 +58,6 @@ Step 4 is the one worth mutation-testing hardest: a global-index implementation 
 
 ## Retired 2026-08-16 — and the vocabulary has no word for it
 
-The stepper it guarded is deleted by [[FEAT-0107]]. Its assertions were sound and several were the sharpest in the phase — the one asserting that editing a row ABOVE the target does not move which row is written is the one a global-index walker fails and nothing else catches. They are kept here as the record of what the walker proved, and the addressing they exercised (`acceptance.locate` / `rewrite_check`) survives for the exception path.
+The stepper it guarded is deleted by [[FEAT-0107]]. Its assertions were sound and several were the sharpest in the phase — the one asserting that editing a row ABOVE the target does not move which row is written is the one a global-index stepper fails and nothing else catches. They are kept here as the record of what the stepper proved, and the addressing they exercised (`acceptance.locate` / `rewrite_check`) survives for the exception path.
 
 **`status: ready` is the closest honest value the vocabulary allows.** `STATUSES.md` gives a test `ready`, `passing`, `failing` and no terminal state — every other note type has one. `passing` would claim this verifies something that exists; `ready` says defined and not executed, which is true of a test whose subject was deleted. The supersession is carried by this section and by the links, which is what the vocabulary leaves available. Filed as [[ISS-0178]].

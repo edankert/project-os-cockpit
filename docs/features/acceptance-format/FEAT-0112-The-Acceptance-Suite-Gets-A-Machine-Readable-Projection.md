@@ -6,7 +6,7 @@ title: "The acceptance suite gets a machine-readable projection — Markdown sta
 status: backlog
 owner: user:edwin
 created: 2026-08-17
-updated: "2026-08-17"
+updated: "2026-09-27"
 phase: "[[PHASE-999-Future]]"
 source: ["Edwin 2026-08-17: 'I am now considering is this the right format (.md) for the acceptance tests and maybe we need a different format acceptance-tests.json and simply create a tool to manage these and then for a release store the results in an .md file??? review this and suggest if this makes sense and pros and cons'"]
 goal: "Give the acceptance suite the machine-readable half it lacks without giving up the human-readable half it has: expose the structure `acceptance.parse` already computes as a derived projection the tool never authors, and keep `ACCEPTANCE_TESTS.md` as the source of truth."
@@ -92,7 +92,7 @@ GET /api/cockpit/acceptance.json
 
 ## The condition that would change the answer
 
-**Per-check history.** If it becomes worth knowing every verdict a check has ever carried — walked and passed in v2.0.5, excused in v2.1.0, failed in v2.1.6 — Markdown cannot hold that on one line and stay readable, and no projection helps because the data would not exist in the source.
+**Per-check history.** If it becomes worth knowing every verdict a check has ever carried — tested and passed in v2.0.5, excused in v2.1.0, failed in v2.1.6 — Markdown cannot hold that on one line and stay readable, and no projection helps because the data would not exist in the source.
 
 At that point JSON stops being a preference and becomes the only option, and the trade above genuinely reverses. **That is the thing to watch for**, and it is a decision that would want an ADR rather than a feature note, because it overturns [[ADR-0009]]'s premise for one corpus.
 

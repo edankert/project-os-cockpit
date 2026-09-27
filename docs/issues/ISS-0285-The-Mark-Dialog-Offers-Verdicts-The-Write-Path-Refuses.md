@@ -8,7 +8,7 @@ phase: ""
 owner: user:edwin
 reported_by: user:edwin
 created: 2026-09-06
-updated: "2026-09-19"
+updated: "2026-09-27"
 source: ["Edwin, 2026-09-06, walking project-os-deck's first acceptance checks: 'I just marked TST-0008 as a fail with a lot of explanations, but you suggested that fail is not a valid state and does this mean the explanation has been removed?'"]
 severity: high
 component: ui
@@ -23,7 +23,7 @@ In a repo that has no ledger and no open release with a platform, choosing Fail,
 
 ## Problem
 
-**A person walked a check, chose Fail, typed a page of reasoning, and lost all of it.** Nothing was written anywhere: not to the note, not to a ledger, not to any file in the repository.
+**A person tested a check, chose Fail, typed a page of reasoning, and lost all of it.** Nothing was written anywhere: not to the note, not to a ledger, not to any file in the repository.
 
 The mark dialog offers eight verdicts, which are the ledger's vocabulary. A repository with no ledger takes the pre-ledger write path, whose vocabulary is different, and three of the eight do not exist there.
 
@@ -49,7 +49,7 @@ A repository with no ledger always takes the old path, and a repository created 
 ## The two halves
 
 1. **The dialog must offer only what the target path accepts.** It knows which path it will take, because it computes `verdictPlatform()` before sending.
-2. **A refusal must hand the reason back.** This is the half that hurt. A person's paragraph is the expensive part of a walk, and a 400 currently destroys it. Re-open the dialog with the text still in it, or keep it until the write lands.
+2. **A refusal must hand the reason back.** This is the half that hurt. A person's paragraph is the expensive part of a release test, and a 400 currently destroys it. Re-open the dialog with the text still in it, or keep it until the write lands.
 
 ## What it is not
 
@@ -57,7 +57,7 @@ Not the same as [[ISS-0281-A-Failing-Verdict-Is-Erased-From-The-Checks-View]]. T
 
 ## Checked against the code, 2026-09-19: still true, kept
 
-**What a user notices:** A person walks a check, picks Fail, writes an explanation, and gets an error toast; the dialog has closed and the explanation is gone.
+**What a user notices:** A person tests a check, picks Fail, writes an explanation, and gets an error toast; the dialog has closed and the explanation is gone.
 
 Evidence: The dialog still offers `fail`, `na` and `blocked` (`desktop/src/renderer/renderer.ts:2371-2396`). `acceptance.py:2387` `VERDICTS` has `failed`, not `fail`, and no `na` or `blocked`. `server.py:2625-2627`: with no platform from the request, an open release or a single ledger, the write goes to `note_writes.mark_check`, which raises a 400 for an unknown verdict (`note_writes.py`, `acceptance.VERDICTS.get(verdict)` then `raise WriteError`). `postCheckVerdict` in `renderer.ts` catches the refusal, shows a status toast and returns false; `walkOneCheck` then returns without reopening the dialog, so `chosen.reason` is dropped.
 

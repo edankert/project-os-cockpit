@@ -8,7 +8,7 @@ status: proposed
 phase: "[[PHASE-045-The-Cockpit-In-Layers]]"
 owner: user:edwin
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-27
 source:
   - "Edwin 2026-09-20: 'the project-os-cockpit is now too complex, it shows way too much information. At the moment we have defined different layers (PHASE-045) but ideally you want to provide different levels of abstraction instead, where each level of abstraction gets you closer to the real content, the full ticket content. The highest level is where you look at the project more as a high level manager (CEO?) and oversee all the different projects current states. Suggest all the levels of abstraction that would be needed to provide to enable views of the projects for different levels in an organisation the lowest level could even be lower then the level needed to actually drive/develop the project. Review research existing online solutions and suggest options and possible designs.'"
   - "All thirteen project-os repositories under ~/Dev/repos, read from their notes and their git state on 2026-09-20: note counts, statuses, focus items, commit activity, unpushed counts, remotes"
@@ -169,12 +169,12 @@ Edwin's four flows are the columns; the levels are the rows. A cell says what th
 | | Design and review | Implementation | Verification | Issues |
 | --- | --- | --- | --- | --- |
 | **A0 portfolio** | "Decide 3" on the tile | the dot: working, idle, waiting | "gate blocked" or "clear" | "Triage 1" |
-| **A1 project** | the Needs you card, one row per verb | the In flight card with three labelled bars and the agent's state | the Shipping card: gate, walk, commits | one row: count, severity mix, age of the oldest |
+| **A1 project** | the Needs you card, one row per verb | the In flight card with three labelled bars and the agent's state | the Shipping card: gate, release test, commits | one row: count, severity mix, age of the oldest |
 | **A2 flow** | Awaiting you, Offered, Drafting, Accepted; implemented folded | Now, Next by active phase, other phases folded, done folded | this release's owed checks by screen; the feature's tests; automated last result | triage queue, then open by severity, fixed folded |
 | **A3 subject** | the design: pictures, the question, Accept / Request changes / Decline | the feature card: goal, bars, next action, timeline | a check: procedure, verdict history, evidence | the issue card: severity, surface, age, dispositions |
 | **A4 ticket** | the design's prose and its revisions | the note in full: scope, criteria, tasks, requirement | the check's authored setup, steps and expectations | the issue's reproduction and its proposed fix |
 | **A5 evidence** | the verdict history and what changed between offers | the commits, the diffs, the test runs | ledger events and captures | the check that found it, the commit that fixed it |
-| **A6 trace** | — | the agent session that wrote it | the walk sheet the generator produced, and the payload | the session that filed it |
+| **A6 trace** | — | the agent session that wrote it | the release test sheet the generator produced, and the payload | the session that filed it |
 
 ### Three ways to put the ladder on screen
 

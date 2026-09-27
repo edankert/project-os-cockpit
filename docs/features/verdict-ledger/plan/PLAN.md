@@ -76,7 +76,7 @@ And every task has the same obligation as [[PHASE-037]]'s, in a different regist
 
 Each of [[ADR-0037]]'s ten decisions was checked against a task after the two amendments landed. Three had none, and all three are the same shape: **a surface that reads the verdict from the note and was not on anybody's list.**
 
-- **[[TASK-0545]] — `suite_at` gets a third shape.** It already carries two, split by time. A ref after this migration holds notes with no verdict in them. **This is the only one that produces a wrong answer rather than an error**: every historical tag would report zero walked, and the chronic-rows surface would call every row chronic.
+- **[[TASK-0545]] — `suite_at` gets a third shape.** It already carries two, split by time. A ref after this migration holds notes with no verdict in them. **This is the only one that produces a wrong answer rather than an error**: every historical tag would report zero tested, and the chronic-rows surface would call every row chronic.
 - **[[TASK-0544]] — `evidence:` has no destination.** [[REQ-0053]] removes seven fields; six have a home or a stated reason to go. [[ADR-0030]] led its list of what granularity *genuinely unlocked* with per-check evidence attachments, so deleting the field silently gives that back.
 - **[[TASK-0546]] — `tests_verified:` on a release** answers the same question a sealed ledger answers, by hand. Two encodings of one fact is what [[ADR-0032]] spent a decision removing.
 
@@ -84,7 +84,7 @@ Each of [[ADR-0037]]'s ten decisions was checked against a task after the two am
 
 ## What is deliberately not here
 
-- **[[ISS-0208]]** (the tier rule) — orthogonal. Where a verdict is stored says nothing about which checks gate, and the six unwalked Tier 3 checks still need Edwin's reading.
+- **[[ISS-0208]]** (the tier rule) — orthogonal. Where a verdict is stored says nothing about which checks gate, and the six untested Tier 3 checks still need Edwin's reading.
 - **[[ISS-0209]]** (the fleet validators) — a migration per repo, and the reason nothing this phase builds is enforced where the checks live. Stated as a limit in [[REQ-0057]] and [[TASK-0543]] rather than absorbed.
 - **[[ISS-0215]]** (156 stranded checklist rows in four notes) — not in the suite, so this migration does not reach them. They need a surface and a `covers:` per row first.
 - **Retiring `PARITY_MATRIX`** — the ledger subsumes its verdict columns and its back-port table, not its coverage-gap question. That is [[FEAT-0130]]'s `SUR-*` work and `your-trainer`'s decision.

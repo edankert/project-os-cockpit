@@ -7,7 +7,7 @@ status: active
 order: 37
 owner: user:edwin
 created: 2026-08-18
-updated: "2026-09-08"
+updated: "2026-09-27"
 reviewed_by: model:claude-opus-5
 review_date: 2026-08-21
 review_verdict: approved
@@ -169,9 +169,9 @@ Found by the second pass **counting `def test_` across the two commits**, which 
 
 `OWED_VERDICTS` (cockpit, validator, renderer) and the surface-title join (cockpit, validator). Both are forced — the validator is stdlib-only and standalone, the renderer is TypeScript — and both are pinned by tests that **drive** the copies over the same inputs rather than matching text in either. A text assertion passes on a rule whose normalisation is in a comment, which is this repo's own recorded mutation-testing pitfall and which bit this phase again on its last day.
 
-## Reopened 2026-09-06 — three defects on the checks page, found by walking it
+## Reopened 2026-09-06 — three defects on the checks page, found by testing it
 
-Edwin walked `../your-trainer`'s suite on `~checks` and reported three things. A `fail` he wrote that morning showed as never walked, with no comment ([[ISS-0281]]). Leaving the project and coming back dropped him on the Tests landing with his filters gone ([[ISS-0280]]). The mark dialog showed the id and the name of the check and not the sentence he was judging ([[ISS-0282]]).
+Edwin tested `../your-trainer`'s suite on `~checks` and reported three things. A `fail` he wrote that morning showed as never tested, with no comment ([[ISS-0281]]). Leaving the project and coming back dropped him on the Tests landing with his filters gone ([[ISS-0280]]). The mark dialog showed the id and the name of the check and not the sentence he was judging ([[ISS-0282]]).
 
 This phase is their home rather than a new one because each is the shape the phase was opened on: a surface answering a question its reader did not ask. The checks page shows the release gate's join (every platform must clear) where the reader asked what was recorded; the shell restores the *mode* where the reader wanted the *page*; the dialog asks *which mark* where the reader asked *for what*. Three issues in one session do not earn a phase (`CLAUDE.md`, "When to open a phase"), and `PHASE-041`, where the last three checks-page issues went, is about the validator reaching the fleet and is closed on its own criteria.
 
@@ -190,7 +190,7 @@ Edwin prepared `your-trainer` v2.2.0 by hand and every step was an edit or a dia
 
 **Why here rather than in a new phase.** It is the direct successor to [[FEAT-0142]] — a release-page write path replacing a hand-edit — and it amends this phase's own opening decision, [[ADR-0035]]. The 2026-08-20 widening, from *what a surface says* to *whether anything recorded it*, is the sentence that covers it. A new phase fails both of `CLAUDE.md`'s tests: its goal would be one feature's goal, and its exit criteria would restate that feature's task list.
 
-**One decision opens it.** [[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]] narrows [[ADR-0035]] for three of the seven marks — `na`, `excused` and `blocked` are decisions about whether a check is in scope, not attestations that somebody walked it — and leaves it intact for `pass`, `partial`, `fail` and `question`. ADR-0035's note is amended with one line and its argument is untouched.
+**One decision opens it.** [[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]] narrows [[ADR-0035]] for three of the seven marks — `na`, `excused` and `blocked` are decisions about whether a check is in scope, not attestations that somebody tested it — and leaves it intact for `pass`, `partial`, `fail` and `question`. ADR-0035's note is amended with one line and its argument is untouched.
 
 The five exit criteria above stand as ticked, and the 2026-09-06 criterion stands. The reopen adds one:
 
@@ -367,7 +367,7 @@ Fresh context, separate session, `model:claude-opus-5`. Started from the notes a
 
 **Why the widened guard does not see it, established by mutation.** Inserting `void askForMark({});` into each of the eight `subjects` functions fails the test **8/8** — the widening works for a *direct* call. Inserting `wrap.appendChild(buildCheckRow(item));` into each of the same eight **passes 8/8**, including into `buildReleasePage` itself, which is the main release page. The guard is one call deep and the live violation is one call deep. [[ADR-0035]]'s harm is fully present on that page: the checks shown are the ones blocking, the row shows name and area and not the procedure, and the fastest way to clear them is to tick them there.
 
-The narrower reading — that a per-item page's subject is a *feature*, not a release — does not rescue the criterion, because [[ADR-0035]] point 2 allows walking only on *"`~checks` and the check's own note — surfaces whose subject IS the check"*, and a feature page is neither. Either the criterion is false or the guard's `subjects` set is wrong about its own scope; the delivered artefact asserts both.
+The narrower reading — that a per-item page's subject is a *feature*, not a release — does not rescue the criterion, because [[ADR-0035]] point 2 allows testing only on *"`~checks` and the check's own note — surfaces whose subject IS the check"*, and a feature page is neither. Either the criterion is false or the guard's `subjects` set is wrong about its own scope; the delivered artefact asserts both.
 
 ### Finding 2 (medium) — the criterion-1 guard's claims about itself are wider than the guard
 

@@ -6,7 +6,7 @@ title: "A release is prepared without an editor"
 status: active
 owner: user:edwin
 created: 2026-09-08
-updated: 2026-09-08
+updated: 2026-09-27
 tier: 1
 area: "Publication"
 covers: ["[[FEAT-0145-Preparing-A-Release-Is-One-Workflow]]"]
@@ -31,4 +31,4 @@ Expect, in order:
 
 **What must not be there:** any control on this page that marks a check `pass`, `partial`, `fail` or `question`. That is [[ADR-0035]] as narrowed by [[ADR-0041]], and it is the one thing on this list a reader should check by looking for its absence.
 
-Automated coverage of the write paths is [[TST-0082]]; this check is the walk the source-text guards cannot perform.
+Automated coverage of the write paths is [[TST-0082]]; this check is the manual test the source-text guards cannot perform.

@@ -6,7 +6,7 @@ title: "A release can derive what it built and not what it broke — `features:`
 status: open
 owner: user:edwin
 created: 2026-08-29
-updated: "2026-09-19"
+updated: "2026-09-27"
 severity: medium
 component: tooling
 phase: "[[PHASE-999-Future]]"
@@ -23,7 +23,7 @@ question: "Should a release derive the checks its changes may have broken (a des
 
 | leg | count | the relation | derivable from `features:`? |
 |---|---|---|---|
-| authored for the feature, never walked | 13 | check `covers:` → feature → release `features:` | **yes** |
+| authored for the feature, never tested | 13 | check `covers:` → feature → release `features:` | **yes** |
 | invalidated by the diff | 15 | the changed files overlap the check's subject | no |
 | invalidated by the toolchain move | 4 | targetSdk 36 changes window behaviour app-wide | no |
 

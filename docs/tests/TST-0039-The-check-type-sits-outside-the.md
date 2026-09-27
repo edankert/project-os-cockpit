@@ -7,7 +7,7 @@ status: active
 covers: ["[[FEAT-0113-The-Check-Type-And-The-Migration]]"]
 owner: user:edwin
 created: 2026-08-17
-updated: "2026-08-17"
+updated: "2026-09-27"
 last_verified: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 scope: feature
@@ -24,7 +24,7 @@ Automated, in `tests/test_check_type.py`.
 
 ## What it pins
 
-**That a `CHK-*` carrying a failed verdict and an untouched `status:` validates.** That is the normal steady state of a suite between walks; if it did not validate, every repo would be red for as long as anything was unwalked.
+**That a `CHK-*` carrying a failed verdict and an untouched `status:` validates.** That is the normal steady state of a suite between release tests; if it did not validate, every repo would be red for as long as anything was untested.
 
 **That the runner-only rule, the review gate and TEST-ENTRYPOINT never engage.** All three are keyed on something a check cannot hold — `passing` — so the vocabulary itself is the guard, and the test says so by asserting `ALLOWED_STATUS["check"]` and `TEST_RUNNER_STATUSES` are disjoint.
 

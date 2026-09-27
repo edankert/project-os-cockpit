@@ -8,7 +8,7 @@ phase: ""
 owner: user:edwin
 reported_by: user:edwin
 created: 2026-09-06
-updated: "2026-09-19"
+updated: "2026-09-27"
 source: ["Edwin, 2026-09-06, on project-os-deck's ledger: 'do we have different applications or not for different os's. If we don't then I think we should not replicate the acceptance tests for all oss, instead we should have a place to capture the acceptance tests and have os specific kick the tire tests.'"]
 severity: medium
 component: server
@@ -30,7 +30,7 @@ That default was decided on `your-trainer`, where Android and iOS are separately
 
 ## The case that breaks it
 
-`project-os-deck` is one Electron application: one renderer, one main process, one build. Its six acceptance walks include *Spread lists the same notes as the cockpit* and *an address copied out and pasted back restores the same state*. Those are facts about Deck. Walking them again on Windows would tell nobody anything.
+`project-os-deck` is one Electron application: one renderer, one main process, one build. Its six acceptance checks include *Spread lists the same notes as the cockpit* and *an address copied out and pasted back restores the same state*. Those are facts about Deck. Testing them again on Windows would tell nobody anything.
 
 Under the current default, the day that repository gains a second ledger, all six read as owed there, and the only way to say otherwise is to record `na` on each one, per platform, by hand. Nobody will, so the gate reads as blocking and stops being read.
 

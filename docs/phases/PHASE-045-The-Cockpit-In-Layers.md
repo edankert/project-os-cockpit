@@ -101,7 +101,7 @@ Written so the phase can close on a refusal as honestly as on a build.
 - [ ] The design this phase settles on — [[DES-0015-The-Cockpit-In-Layers]] or [[DES-0016-Levels-Of-Abstraction]], which is decision D6 — carries a verdict from Edwin in its frontmatter: `accepted`, or `changes-requested` followed by a revision that is then accepted, or `cancelled`. If cancelled, this phase closes as `superseded` by whatever note records the alternative, or `deferred` if there is none.
 - [ ] D1 to D5 are each decided and recorded: in the design's Review section, or in an ADR where the decision narrows an accepted one (D2 narrows [[ADR-0028-Work-Has-Three-Phases]]).
 - [ ] The layer budgets in the design's Plate 1 are measured on every repository the shell discovers, not only on this one and your-trainer, and the design's table is corrected where the fleet disagrees.
-- [ ] Each of the three features is either built and walked, or declined with the reason in its own note. Declining one does not block the others.
+- [ ] Each of the three features is either built and tested, or declined with the reason in its own note. Declining one does not block the others.
 - [ ] Whatever is built passes the design's ten-second test on Edwin's real data, recorded as an acceptance check: the person names the next decision, the in-flight item and the release blocker within ten seconds of opening a project, and the first screen loads under 50 KB.
 - [ ] Nothing built adds a status, a write path or a machine-written verdict, and the capability register names every new or changed row.
 - [ ] Every row of [[REFERENCE-COCKPIT-LEVELS-INVENTORY]] has a home in the settled design, or a decision recorded that retires it. Nothing is lost by omission.

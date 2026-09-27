@@ -8,7 +8,7 @@ status: proposed
 phase: "[[PHASE-045-The-Cockpit-In-Layers]]"
 owner: user:edwin
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-27
 source:
   - "Edwin 2026-09-17: 'suggest how we could layer the data more and consider what would be the minimum amount of data we would need to be able to show up-front and then what we would show for each of the layers, where the flows/processes would follow the current set of flows and processes, design + review, implementation, verification and issue reporting/triage ... think of this as an Apple design or the way the OpenAI ChatGPT and Claude online and desktop tools have been constructed'"
   - "Edwin 2026-09-16: 'I like to see percentages / progress bars and different colours/status badges instead of seeing all these text strings.'"
@@ -115,7 +115,7 @@ Every rule below is one of those three habits applied to this record.
 
 1. **Each layer shows one level.** A count opens a row, a row opens a page, a page hides the record behind a fold. No layer skips a level and no layer shows two.
 2. **What needs a person outranks what exists.** Counts of obligations sit at layer 0 and 1. Counts of notes sit at layer 4.
-3. **One primary action per row, and it is the registry's verb.** Triage, Push, Approve, Decide, Accept, Run, Walk. Secondary actions sit behind one menu.
+3. **One primary action per row, and it is the registry's verb.** Triage, Push, Approve, Decide, Accept, Run, Test. Secondary actions sit behind one menu.
 4. **The machine's work is folded by default.** Agent sessions, transitions, commits and validator warnings are one line each until opened.
 5. **Empty is a sentence and unknown is a word.** Already this project's rule (`DESIGN.md`); restated because a layer model makes it easier to break, by folding a zero into a card that then looks fine.
 
@@ -142,7 +142,7 @@ For one project, screen one needs these and nothing else:
 | what needs you, by verb | `obligations.breakdown` | one row per verb group, count, newest subject, the verb as the button |
 | what is in flight | `stats.focus` plus that feature's task, criteria and check counts | one card, three labelled bars, the agent's state on one line |
 | whether an agent is working, idle or waiting for input | agent state | a dot and a word on the In flight card |
-| how far the work has travelled | `history.unpublished_count`, `release.gate.counts`, `release.status` | the Shipping card: commits unpushed with age, the gate blocked or clear with the owed count, the walk button |
+| how far the work has travelled | `history.unpublished_count`, `release.gate.counts`, `release.status` | the Shipping card: commits unpushed with age, the gate blocked or clear with the owed count, the release test button |
 | what happened while you were away | `digest.transition_count`, `digest.needs_you_count` | one sentence with a Caught up button; the list is a click away |
 
 That is four facts and one sentence. For the fleet of 12 projects at L0 it is under 25 KB in total, and it is the same four facts per square.
@@ -169,12 +169,12 @@ Each column is one of Edwin's four flows. Each row is a layer. A cell is what th
 
 | | Design and review | Implementation | Verification | Issues |
 | --- | --- | --- | --- | --- |
-| **subjects** | designs, ADRs, requirements at `draft` | features and their tasks; the agent working them | tests, acceptance checks, the release gate, the walk | issues |
+| **subjects** | designs, ADRs, requirements at `draft` | features and their tasks; the agent working them | tests, acceptance checks, the release gate, the release test | issues |
 | **L0 glance** | "Decide 1 · Approve 2" | agent dot and "1 in flight" | "gate blocked · 3" or "gate clear"; "Run 2" | "Triage 18" |
 | **L1 home row** | one row per verb: the newest proposed design or ADR named, its age, revisions since it was offered; button Decide or Accept or Approve | the In flight card: the focus feature, badge, tasks bar, criteria bar, checks bar, the agent's state and last tool; button Open; amber with Answer when the agent waits for input | the Shipping card: next release and its gate with the owed count and platform, button Walk; automated tests with their last result or "no run recorded", button Run; commits unpushed with age, button Push | one row: count, how many high or critical, age of the oldest; button Triage next |
 | **L2 flow view** | Awaiting you; Offered (proposed, with what changed since the last verdict); Drafting; Accepted and being built (with the feature's bar); Implemented folded; About this project (the standing documents) folded and last | Approve (requirements at draft, the design-to-build hand-off); Now; Next, grouped only by the active phase, other phases folded by name with counts; Done since the last release folded; "unattached" folded | This release (owed checks grouped by screen, a settled bar, Walk and Settle, coverage as one line with Commission checks); In flight (the focus feature's tests and their verdicts); Automated (last result); Retired folded | Triage queue; Open by severity as a stacked bar and the high rows first; Fixed since the last release folded; Deferred and Declined folded |
-| **L3 subject** | pictures first, then the question the design asks, then Accept, Request changes, Decline; then what changed since your last look; then Problem and Approach; then Review; frontmatter folded | header card: goal sentence, badges, three bars, Accept or Run checks; What happened as a timeline with agent sessions folded; the note; Related | the walk page as built for a release and platform; a check's page: procedure, verdict history, evidence; the release page with the gate first and contents folded | header card: severity, status, affected surface, feature and check, age; the evidence; Accept for fixing, Defer, Decline, Duplicate of; Fix appears after acceptance; the note; the check that found it and the commit that fixed it |
-| **L4 record** | the HTML page in the viewer, the raw note, the verdict history | session pages with cost, context and cache; the terminal; commits; files touched | ledger events, evidence images, the walk sheet, the validator report | the raw note; the rerun of the check |
+| **L3 subject** | pictures first, then the question the design asks, then Accept, Request changes, Decline; then what changed since your last look; then Problem and Approach; then Review; frontmatter folded | header card: goal sentence, badges, three bars, Accept or Run checks; What happened as a timeline with agent sessions folded; the note; Related | the release test page as built for a release and platform; a check's page: procedure, verdict history, evidence; the release page with the gate first and contents folded | header card: severity, status, affected surface, feature and check, age; the evidence; Accept for fixing, Defer, Decline, Duplicate of; Fix appears after acceptance; the note; the check that found it and the commit that fixed it |
+| **L4 record** | the HTML page in the viewer, the raw note, the verdict history | session pages with cost, context and cache; the terminal; commits; files touched | ledger events, evidence images, the release test sheet, the validator report | the raw note; the rerun of the check |
 
 ### Build
 
@@ -204,7 +204,7 @@ Triage, one issue at a time. Accept is `triage → open`, Defer and Decline are 
 
 ![Plate 7: the Verify view with two scopes, this release and the feature in flight, each number labelled](__attachments__/DES-0015-plate-7-verify.png)
 
-Verify. The tests view today says "Nothing owed on tests" beside a navigator saying "6 of 36 outstanding"; the two count different scopes. Here each card names its scope. The release's gate, walk, settle and coverage are one card instead of four sections. The overview's "Tests 1 / 90" tile is replaced by the two bars that mean something: checks settled for this release, and the automated suite's last recorded result, which here is honestly "no run recorded".
+Verify. The tests view today says "Nothing owed on tests" beside a navigator saying "6 of 36 outstanding"; the two count different scopes. Here each card names its scope. The release's gate, release test, settle and coverage are one card instead of four sections. The overview's "Tests 1 / 90" tile is replaced by the two bars that mean something: checks settled for this release, and the automated suite's last recorded result, which here is honestly "no run recorded".
 
 ## Options
 
@@ -218,7 +218,7 @@ Three ways to reach the model. They are not exclusive; the recommendation is a s
 | risk | low; ADR-0025 already permits the shortcut list | medium; ADR-0028 gave publication its own view on 2026-08-16 and this folds its ladder into Home and Verify | medium to high; 23,000 lines of renderer, and the panel architecture in [[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]] would host it more naturally |
 | the test it must pass | Edwin names the next decision, the in-flight item and the release blocker within ten seconds of opening a project; screen one under 50 KB | a flow view's first screen shows no closed phase and no fixed issue unless opened; each view under 30 KB before a fold is opened | a feature's first screen shows its goal, three bars and its next action without scrolling; the frontmatter is not on screen one |
 
-**Recommendation: C, then A, then B**, each shipped and walked alone. C is additive and reversible and delivers the whole of the "minimum up front" question. A is where the four flows become the navigation. B is where a subject reads as a thread. If B turns out to belong in Deck, C and A still stand, because they change payloads and one page rather than the pane grammar.
+**Recommendation: C, then A, then B**, each shipped and tested alone. C is additive and reversible and delivers the whole of the "minimum up front" question. A is where the four flows become the navigation. B is where a subject reads as a thread. If B turns out to belong in Deck, C and A still stand, because they change payloads and one page rather than the pane grammar.
 
 ## Decisions asked of Edwin
 

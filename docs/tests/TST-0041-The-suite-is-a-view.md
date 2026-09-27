@@ -7,7 +7,7 @@ status: active
 covers: ["[[FEAT-0114-The-Suite-Is-A-View]]"]
 owner: user:edwin
 created: 2026-08-17
-updated: "2026-08-17"
+updated: "2026-09-27"
 last_verified: 2026-08-17
 phase: "[[PHASE-035-Acceptance-Checks-Are-Notes]]"
 scope: feature
@@ -30,7 +30,7 @@ Edwin's contract verbatim: *"We can then present them still as the same list wit
 
 **That marking holds the reader's position** — twice, once synchronously and once inside the animation frame, because layout lands a frame after the children are replaced ([[ISS-0188]]).
 
-**That one walk layer serves both surfaces**, asserted as *no second `postJson`* in either caller rather than as a name appearing somewhere.
+**That one testing layer serves both surfaces**, asserted as *no second `postJson`* in either caller rather than as a name appearing somewhere.
 
 ## Adequacy
 

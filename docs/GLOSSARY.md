@@ -85,5 +85,5 @@ The principle is to keep the words the cockpit already uses and add as few new o
 | **record** | all the notes of a project (the section "The record" above) | "L4 Record" as a level name (DES-0015) | keep the existing meaning; never a level name |
 | **phase** | a `PHASE-*` note | also [[ADR-0028-Work-Has-Three-Phases]]'s three phases (design, implementation, publication) | open question: call ADR-0028's three **stages**, which needs an amendment to it, so "phase" means only a `PHASE-*` note |
 | **Needs you** | the list of what is owed to a person, first in each view and in the left pane | "the minimum up front", "what needs you by verb" | keep; "owed" stays the word for a row's state |
-| **release test**, **section** | as defined above (renamed 2026-09-27) | "walk", "sitting" in both designs | the designs catch up when they are revised |
+| **release test**, **section** | as defined above (renamed 2026-09-27) | "walk", "sitting" in both designs until 2026-09-27 | the designs now say release test; the pictures of past notes keep those notes' titles |
 | **Shipping** | — | DES-0015's card for commits, the gate and the release test | say **Publication**, the view's name |

@@ -6,7 +6,7 @@ title: "49 checklist rows in three of your-trainer's test notes never reach the 
 status: open
 owner: user:edwin
 created: 2026-08-19
-updated: "2026-09-19"
+updated: "2026-09-27"
 reported_by: agent
 severity: high
 component: docs
@@ -58,7 +58,7 @@ It was missed because this issue's population came from [[ISS-0213]], and [[ISS-
 
 ## Checked against the code, 2026-09-19: still true, kept
 
-**What a user notices:** A person preparing an Android or iOS release is not asked to walk the BLE-hardening or edge-to-edge checks, and the release gate can pass with them undone.
+**What a user notices:** A person preparing an Android or iOS release is not asked to test the BLE-hardening or edge-to-edge checks, and the release gate can pass with them undone.
 
 Evidence: in ../your-trainer on 2026-09-19, `docs/tests/TST-0011-AndroidBleHardeningAcceptance.md` (18 rows), `TST-0012-IosBleHardeningAcceptance.md` (15 rows) and `TST-0014-EdgeToEdgeInsetAcceptance.md` (16 rows) are `status: ready`, `level: system`, filed under `docs/tests/` and not under `docs/tests/acceptance/` (row count by `grep -cE '^\s*- \[.\]'`). `TST-0013-IosParityAcceptance.md` is now `status: retired` with 0 rows; its split landed in your-trainer 65344d40 (2026-08-25, "the iOS parity walk split"). This is **bigger**: each row needs a check note with an `area:` and `covers:`, authored in your-trainer, and the gate change measured first.
 

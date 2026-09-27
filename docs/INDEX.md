@@ -3,7 +3,7 @@ type: reference
 id: INDEX
 owner: team:docs
 created: 2026-01-26
-updated: 2026-09-16
+updated: 2026-09-27
 tags: [index]
 ---
 
@@ -33,7 +33,7 @@ Primary entrypoints for this documentation system.
 - What it is and how it is built: `ARCHITECTURE.md` · `GLOSSARY.md` · `DESIGN.md` · `STYLEGUIDE.md`
 - The operating contract and edit policy: `../CONTEXT.md`
 - Security model and its decided direction: `../SECURITY.md`
-- The acceptance suite a person walks: `tests/ACCEPTANCE_TESTS.md`
+- The acceptance suite a person tests: `tests/ACCEPTANCE_TESTS.md`
 - Releases: `releases/` — [[REL-0001-The-Human-Has-Levers]] is the first, shipped 2026-08-11
 - **Upstream is two repos, and no citation says which:** `project-os` is the template `tools/` syncs from; **`project-os-dev` holds every upstream ADR** ([[ISS-0123]]). A note there is `[[project-os-dev#ADR-0011]]` ([[ADR-0024]]).
 - Handoff/recovery: `../tools/instructions/HANDOFF.md`

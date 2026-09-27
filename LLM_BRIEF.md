@@ -3,7 +3,7 @@ type: reference
 id: LLM-BRIEF
 owner: user:edwin
 created: 2026-05-08
-updated: 2026-08-12
+updated: 2026-09-27
 tags: [llm, brief]
 ---
 
@@ -85,5 +85,5 @@ In practice, five questions answered without opening a file:
 - **Upstream is TWO repos and no citation says which.** `project-os` is the template; **`project-os-dev` holds every upstream ADR** — `ADR-0011`, `ADR-0013` and sixteen others live there, cited in 41 files here and absent from both repos a reader would look in (ISS-0123). A note in another project is `[[project-os-dev#ADR-0011]]` (ADR-0024).
 - **The validator ships twice** — `tools/scripts/validate-docs.py` and `src/project_os_cockpit/validate_docs_bundled.py`, the second a verbatim copy so a repo without its own still gets a verdict.
 - **`statuses.py` keeps retired values on purpose** (`LEGACY_STATUS_BAND`) so an unmigrated corpus still renders; rendering tolerance is not permission, and the validator still refuses them.
-- **A reconciled check is `- [~]`** — settled by decision, not walked. It does not block a release and is counted and named separately (ISS-0141).
-- **This session's own transcript is evidence.** The acceptance suite has been walked from inside the cockpit's embedded terminal, and `.cockpit/sessions.json` records what each session touched.
+- **A reconciled check is `- [~]`** — settled by decision, not tested. It does not block a release and is counted and named separately (ISS-0141).
+- **This session's own transcript is evidence.** The acceptance suite has been tested from inside the cockpit's embedded terminal, and `.cockpit/sessions.json` records what each session touched.

@@ -4,7 +4,7 @@ id: REFERENCE-FUTURE-COCKPIT-ENHANCEMENTS
 title: "Possible future cockpit enhancements"
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-16
+updated: 2026-09-27
 scope: "project"
 source:
   - "Edwin 2026-09-16: review the cockpit against design, development, testing and issue triage, including similar solutions; prefer less or differently presented data."
@@ -134,7 +134,7 @@ When testing finds an issue, retain the originating test step, candidate, platfo
 
 Progress indicators should reveal uncertainty when their inputs cannot be trusted. Missing test coverage is different from tests that passed. A missing candidate is different from a failed build.
 
-[[ISS-0306]] records incomplete screen documentation that limits the cockpit's own changed-screen survey. The review found two surface notes, so the issue's earlier one-note count was already historical. Improve the input records before presenting the survey as complete.
+[[ISS-0306]] records incomplete screen documentation that limits the cockpit's own list of changed screens (what changed). The review found two surface notes, so the issue's earlier one-note count was already historical. Improve the input records before presenting that list as complete.
 
 The review also found malformed quoting in SNAPSHOT.yaml despite a successful documentation-validator result. The quoting was repaired while recording this reference. The mismatch remains useful evidence that a clean validator result does not establish every kind of record consistency.
 

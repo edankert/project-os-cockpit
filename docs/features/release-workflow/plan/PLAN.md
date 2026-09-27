@@ -4,7 +4,7 @@ title: "Preparing a release is one workflow — delivery sequence"
 status: active
 owner: user:edwin
 created: 2026-09-08
-updated: "2026-09-08"
+updated: "2026-09-27"
 source: ["[[FEAT-0145-Preparing-A-Release-Is-One-Workflow]]"]
 implements: ["[[FEAT-0145-Preparing-A-Release-Is-One-Workflow]]"]
 related: ["[[REQ-0061-A-Release-Is-Written-Through-One-Workflow]]", "[[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]]"]
@@ -21,7 +21,7 @@ Eight tasks in four pairs. Each pair is a server half and the surface that uses 
 3. **[[TASK-0599]] — a prepared release is abandoned, not deleted.** `note_writes.abandon_release` behind `POST /api/notes/release-abandon`, plus the narrow delete. **This one lands upstream first**: `abandoned` is a new value in a template-owned status vocabulary, so `~/Dev/repos/project-os` changes before anything here writes the status.
 4. **[[TASK-0600]] — the version and the platform are named on the release page.** The renderer half of 1–3.
 5. **[[TASK-0601]] — the owed checks are settled where they are owed.** `POST /api/notes/release-settle`, and the rewrite of `test_no_write_path_to_a_check_appears_on_the_release_page` that [[ADR-0041]] requires.
-6. **[[TASK-0602]] — the walk is one screen.** The owed list on the release page, grouped by area, each row carrying its own procedure text. This is the surface [[ADR-0041]] authorises and the payment of ADR-0035's second objection.
+6. **[[TASK-0602]] — the release test is one screen.** The owed list on the release page, grouped by area, each row carrying its own procedure text. This is the surface [[ADR-0041]] authorises and the payment of ADR-0035's second objection.
 7. **[[TASK-0603]] — the coverage gap is computed, not guessed.** `publication.coverage_gaps` and its section on the release page.
 8. **[[TASK-0604]] — an agent drafts the missing checks; a person accepts them.** A `release` entry in `agent_actions.DEFAULT_ACTIONS` with a `commission-checks` verb, and `REL` in the renderer's `NOTE_TYPE_BY_PREFIX` so the verb resolves.
 

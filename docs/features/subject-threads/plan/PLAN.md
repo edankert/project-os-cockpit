@@ -4,7 +4,7 @@ title: "Delivery plan — subject threads"
 status: draft
 owner: user:edwin
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-27
 source: ["[[FEAT-0154-Subject-Threads]]"]
 implements: ["[[FEAT-0154-Subject-Threads]]"]
 related: ["[[PHASE-045-The-Cockpit-In-Layers]]", "[[DES-0015-The-Cockpit-In-Layers]]", "[[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]"]
@@ -33,4 +33,4 @@ Written before acceptance. Tasks are minted only once [[DES-0015-The-Cockpit-In-
 ## Open questions
 
 - Whether the sidebar-by-recency step belongs here at all, or is Deck's Spread.
-- How a release's thread and the walk page relate: the walk page is already the release's layer 3 for one platform.
+- How a release's thread and the release test page relate: the release test page is already the release's layer 3 for one platform.

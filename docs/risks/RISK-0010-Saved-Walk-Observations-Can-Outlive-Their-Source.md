@@ -1,11 +1,11 @@
 ---
 type: "[[risk]]"
 id: RISK-0010
-title: "Saved walk observations can outlive the action they judged"
+title: "Saved release test observations can outlive the action they judged"
 status: open
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-16
+updated: 2026-09-27
 source: ["Your Trainer FEAT-0122, 2026-09-16"]
 likelihood: medium
 impact: high
@@ -13,7 +13,7 @@ mitigation: ["Key saved progress by workspace, release and platform", "Associate
 related: ["[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]"]
 ---
 
-# Saved walk observations can outlive the action they judged
+# Saved release test observations can outlive the action they judged
 
 ## Description
 
@@ -28,7 +28,7 @@ The page can retain a local step mark after the procedure action, expectation, c
 
 ## Implemented storage boundary
 
-The cockpit owns the browser records under `cockpit:walk-focus:<workspace>`, `cockpit:walk-steps:<workspace>`, `cockpit:walk-completed:<workspace>`, `cockpit:walk-evidence:<workspace>`, `cockpit:walk-ready:<workspace>`, `cockpit:walk-observation-history:<workspace>` and `cockpit:walk-timer:<workspace>:<step>`. Each observation key includes release, platform, sitting and the full authored action, required state, capture metadata and expectation content. The completed-check index names checks this browser recorded under a release and platform; it does not hold verdicts. A saved note also records its user-entered build, platform, release, required state and recording time. The browser retains these records until the user clears site data; no cross-computer transfer is promised.
+The cockpit owns the browser records under `cockpit:walk-focus:<workspace>`, `cockpit:walk-steps:<workspace>`, `cockpit:walk-completed:<workspace>`, `cockpit:walk-evidence:<workspace>`, `cockpit:walk-ready:<workspace>`, `cockpit:walk-observation-history:<workspace>` and `cockpit:walk-timer:<workspace>:<step>`. Each observation key includes release, platform, section and the full authored action, required state, capture metadata and expectation content. The completed-check index names checks this browser recorded under a release and platform; it does not hold verdicts. A saved note also records its user-entered build, platform, release, required state and recording time. The browser retains these records until the user clears site data; no cross-computer transfer is promised.
 
 When the procedure changes, an old observation is retained for review and cannot mark the new action. When a candidate invalidation appears in the ledger history, the old mark is archived before the action can be recorded again. Marks for completed checks stay available in the correction section. After a changed step is rerun, its older mark is archived. A failed archive pauses step recording rather than reusing an invalid mark. The ledger remains the only store for completed check verdicts.
 
@@ -41,5 +41,5 @@ The correction path asks the server for the current authored procedure for brows
 ## Triggers
 
 - A new action displays an old mark after a procedure edit.
-- A different platform or release displays another walk's evidence.
+- A different platform or release displays another release test's evidence.
 - A failed write advances the page as though its verdict were recorded.
