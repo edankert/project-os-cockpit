@@ -6542,3 +6542,4 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .rt-timer { all: unset; cursor: pointer; font: 500 12px/1 var(--font-mono); color: var(--accent-link); justify-self: start; }
 .rt-timer:focus-visible { outline: 2px solid var(--accent-focus); }
 .rt-capture { display: flex; flex-direction: column; gap: 4px; }
+.rt-capture-pic { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

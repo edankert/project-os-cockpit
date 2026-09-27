@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0643
 title: "The section page: what changed, Setup folded, grouped checks, and seven results with a required reason, written through the existing ledger path"
-status: doing
+status: done
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
@@ -30,7 +30,7 @@ tests: []
 - [x] The row background takes the result's colour. `data-mark` on the row.
 - [x] A check that cannot be done yet is greyed, with one line of why, and "(suggested)" beside the suggested result under More. It can still be given any result. `rt-muted` and the flag line; "(suggested)" under More.
 - [x] A timer shown on a check starts only when tapped and never sets a result. `rtBuildTimer`.
-- [ ] A check that asks for a screenshot or note at the moment of observation keeps that control on its row (REQ-0069).
+- [x] A check that asks for a screenshot or note at the moment of observation keeps that control on its row (REQ-0069). The row has a note box and a PNG picker; the picture is filed under the check's first test note through `/api/notes/attach` (`rtAttachPicture`), and its path is kept with the note. `rtSafeAttachment` refuses any reply path outside `attachments/<TST>/`; `release-test.test.mjs` tests it, and `tests/test_attachments.py` covers the route.
 - [x] Results reach the ledger through `postCheckVerdict`. On a ledger copy, giving every check of a test note a result writes the same events as marking that test note directly, with the worst result winning. In the browser on a copy of your-trainer, Pass on check 6 (TST-0028's only printed check) wrote one `{"result": "pass", "method": "manual", "by": "user:edwin"}` event, the same event marking TST-0028 directly writes. `rtWorst` picks the most serious result; tested.
 - [x] After a result, the reader stays on the page at the same scroll position, and the pane and overview update. A renderer test proves both. The scroll position is restored and `rtRefreshPane` updates the pane; the data half is tested, the scroll was seen in the browser.
 - [x] Keyboard: every control is reachable and shows focus; Escape closes More. Buttons and inputs are native controls; Escape closes More and returns focus to it.
@@ -42,6 +42,8 @@ Offering N/A, Excused and Blocked on the section page is consistent with [[ADR-0
 
 Who is recorded as having given the result is still the constant `user:edwin`; that is [[ISS-0307-Every-Tick-From-The-Shell-Says-Edwin-Walked-It]] and is not fixed here.
 
-## Close-out, 2026-09-27 — one box open
+## Close-out, 2026-09-27
 
 **A capture is a typed note, not a screenshot.** A check that asks the tester to keep what they saw gets a note box kept in the browser with the check. The walk page could also attach a picture through the evidence upload; that is not ported. Whether the pilot needs it is for TASK-0645 with Edwin.
+
+**Picture capture, added the same day.** The walk page's evidence upload is ported to the release test: a check with a capture offers a PNG picker beside its note box. It was not tried in the browser, because the harness had stopped; the request is the one the walk page sent, to a route that is unchanged.

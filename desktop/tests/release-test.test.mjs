@@ -267,3 +267,12 @@ test("the platform row in the pane counts what Needs you lists, and drops the co
   context.rtSetNavNeeds(li, 0);
   assert.equal(added[0].removed, true);
 });
+
+test('a filed picture is kept only when the reply names a PNG under its own test note', async () => {
+  const rt = await load();
+  assert.equal(rt.rtSafeAttachment('attachments/TST-0028/2026-09-27-1.png', 'TST-0028'), true);
+  assert.equal(rt.rtSafeAttachment('attachments/TST-0029/2026-09-27-1.png', 'TST-0028'), false);
+  assert.equal(rt.rtSafeAttachment('attachments/TST-0028/../../secret.png', 'TST-0028'), false);
+  assert.equal(rt.rtSafeAttachment('attachments/TST-0028/2026-09-27-1.jpg', 'TST-0028'), false);
+  assert.equal(rt.rtSafeAttachment('', 'TST-0028'), false);
+});

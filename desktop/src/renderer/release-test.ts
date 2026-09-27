@@ -1015,10 +1015,11 @@ function rtBuildTimer(seconds: number): HTMLElement {
  *  comparison: a note kept with the check's result here (REQ-0069). */
 function rtBuildCaptureNote(page: RtPage, section: RtSection, check: RtCheck,
                             marks: RtMarks): HTMLElement {
-  const wrap = rtEl('label', 'rt-capture');
+  const wrap = rtEl('div', 'rt-capture');
   wrap.appendChild(rtEl('span', 'rt-hint', `Keep what you see: ${check.capture}`));
   const box = rtEl('input', 'rt-reason');
   box.placeholder = 'What you saw';
+  box.setAttribute('aria-label', `What you saw at check ${check.number}`);
   const key = rtCheckKey(page, section, check);
   box.value = rtLoadNotes()[key] || marks[key]?.note || '';
   box.addEventListener('change', () => {
@@ -1027,7 +1028,72 @@ function rtBuildCaptureNote(page: RtPage, section: RtSection, check: RtCheck,
     rtSaveNotes(notes);
   });
   wrap.appendChild(box);
+  //: A picture of what was seen, filed under the check's first test note
+  //: as `docs/attachments/<TST>/…png` ([[TASK-0643]]; the walk page's
+  //: evidence upload, ported). Its path is kept with the note.
+  const owner = check.checks[0] || '';
+  if (owner) {
+    const row = rtEl('div', 'rt-capture-pic');
+    const shown = rtEl('span', 'rt-hint');
+    const setShown = (rel: string) => {
+      shown.textContent = rel ? `Picture filed at docs/${rel}` : '';
+    };
+    setShown(rtLoadNotes()[`${key}#png`] || '');
+    const pick = rtEl('input');
+    pick.type = 'file';
+    pick.accept = 'image/png';
+    pick.setAttribute('aria-label', `Attach a PNG of what you saw at check ${check.number}`);
+    pick.addEventListener('change', async () => {
+      const file = pick.files?.[0];
+      pick.value = '';
+      if (!file) return;
+      const rel = await rtAttachPicture(page, check, owner, file);
+      if (!rel) return;
+      const notes = rtLoadNotes();
+      notes[`${key}#png`] = rel;
+      rtSaveNotes(notes);
+      setShown(rel);
+    });
+    row.append(rtEl('span', 'rt-hint', 'Picture:'), pick, shown);
+    wrap.appendChild(row);
+  }
   return wrap;
+}
+
+/** File a PNG as evidence under a test note; the path it was filed at, or
+ *  '' after saying why not. Only a PNG under 8 MB is sent, the server's own
+ *  limit (`note_writes.MAX_ATTACHMENT_BYTES`). */
+async function rtAttachPicture(page: RtPage, check: RtCheck, owner: string,
+                               file: File): Promise<string> {
+  if (file.size > 8 * 1024 * 1024 || !file.name.toLowerCase().endsWith('.png')) {
+    showStatus('Choose a PNG smaller than 8 MB.', 'error');
+    return '';
+  }
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    let binary = '';
+    for (let at = 0; at < bytes.length; at += 8192)
+      binary += String.fromCharCode(...bytes.subarray(at, at + 8192));
+    const caption = `${owner}, release test check ${check.number} `
+      + `(${check.tags.join(', ')}), ${page.platform}, ${page.release}`;
+    const response = await postJson('/api/notes/attach', {
+      id: owner, png_base64: btoa(binary), caption, actor: 'user:edwin',
+    });
+    const rel = String((response.result as { rel?: string } | undefined)?.rel || '');
+    if (!rtSafeAttachment(rel, owner)) throw new Error('the reply named no safe file path');
+    showStatus('Picture filed with the check.', 'info');
+    scheduleHide(3000);
+    return rel;
+  } catch (error) {
+    showStatus(`Could not file the picture: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    return '';
+  }
+}
+
+/** A filed picture's path is `attachments/<owner>/<name>.png` and nothing else. */
+function rtSafeAttachment(rel: string, owner: string): boolean {
+  return rel.startsWith(`attachments/${owner}/`)
+    && /^attachments\/[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.png$/.test(rel);
 }
 
 function rtNotesKey(workspaceId: string): string {
