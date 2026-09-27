@@ -37,3 +37,7 @@ tests: []
 ## Close-out, 2026-09-27
 
 Seen in a browser on a copy of your-trainer through `desktop/harness/live-harness.html`: the group, the counts and the highlighted row.
+
+## After Edwin's review, 2026-09-27
+
+See TASK-0645 for his words. Changed here: the pane opens each platform's sections by default and always opens the one being read, drops the status chips (the dot says the state), and names its unit ("Android · 25/355 checks"). The overview names the test notes still owed beside the printed checks (86 of 93 on Android, the acceptance page's manual count), is wider, and merges Needs you entries that share a reason. Seen in the browser harness on a scratch copy of your-trainer; `tests/test_release_test_route.py` asserts the test-note count against `ledger.owed` on both platforms.

@@ -2561,11 +2561,19 @@ def release_test_payload(docs_root: Path, *, platform: str,
         section["progress"] = {"done": done, "total": len(to_test)}
         done_all += done
         total_all += len(to_test)
+    #: **Test notes, beside printed checks** (Edwin, 2026-09-27: "I see a
+    #: number 95 todo on the acceptance page but I see 25/355 done"). The
+    #: acceptance page counts test notes and the release test counts printed
+    #: checks, so both are given, and `owed` is the acceptance page's manual
+    #: blocking count: notes on the page with no clearing result.
+    clearing = {"pass", "partial", "na", "excused"}
+    cleared = sum(1 for r in results.values() if r["result"] in clearing)
     return {
         **base,
         **page,
         "results": results,
         "progress": {"done": done_all, "total": total_all},
+        "notes": {"total": len(shown), "owed": len(shown) - cleared},
         "error": "",
     }
 

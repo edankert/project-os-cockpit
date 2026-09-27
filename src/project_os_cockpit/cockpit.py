@@ -4449,10 +4449,15 @@ def _release_test_group(index: Index) -> dict[str, Any] | None:
 
         items.append({
             "id": "",
-            "title": f"{platform_label(platform)} · {done}/{total}",
+            #: The unit is named: 355 is printed checks, and the acceptance
+            #: page counts test notes (Edwin, 2026-09-27).
+            "title": f"{platform_label(platform)} · {done}/{total} checks",
+            #: Its sections show without a click (Edwin, 2026-09-27: "the
+            #: left hand pane does not allow to select the sections").
+            "open": True,
             "subtitle": f"{done}/{total}",
             "url": f"{RELEASE_TEST_ROUTE}/{platform}",
-            "status": "passing" if total and done == total else "active",
+            "status": None,
             "progress": {"done": done, "total": total, "stale": 0,
                          "pct": round(100 * done / total) if total else 0},
             "items": [{
@@ -4461,9 +4466,9 @@ def _release_test_group(index: Index) -> dict[str, Any] | None:
                 "subtitle": "{done}/{total}".format(**section["progress"]),
                 "url": f"{RELEASE_TEST_ROUTE}/{platform}/{section['slug']}",
                 "dot": dot(section),
-                "status": ("passing" if section["progress"]["total"]
-                           and section["progress"]["done"] == section["progress"]["total"]
-                           else "active"),
+                #: No status chip: the dot says it, and a chip left the name
+                #: too little room (Edwin's review, 2026-09-27).
+                "status": None,
                 "progress": {"done": section["progress"]["done"],
                              "total": section["progress"]["total"], "stale": 0,
                              "pct": round(100 * section["progress"]["done"]

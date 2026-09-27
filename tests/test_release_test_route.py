@@ -105,6 +105,8 @@ def test_a_check_stays_on_the_page_after_its_result_is_recorded(tmp_path: Path) 
     assert profile["slug"] == "profile"
     assert profile["progress"] == {"done": 1, "total": 2}
     assert page["progress"] == {"done": 1, "total": 3}
+    #: Test notes beside printed checks, as the acceptance page counts them.
+    assert page["notes"] == {"total": 3, "owed": 2}
 
 
 def test_the_page_is_the_generators_own_data(tmp_path: Path) -> None:
@@ -191,7 +193,9 @@ def test_the_tests_pane_lists_each_platform_and_its_sections(tmp_path: Path) -> 
     assert group["label"] == "Release test · v1.1.0"
     rows = {item["title"].split(" · ")[0]: item for item in group["items"]}
     assert set(rows) == {"Android", "iOS"}
-    assert rows["Android"]["title"] == "Android · 1/3"
+    assert rows["Android"]["title"] == "Android · 1/3 checks"
+    #: Its sections show without a click (Edwin, 2026-09-27).
+    assert rows["Android"]["open"] is True
     assert rows["Android"]["url"] == "~release-test/android"
     assert [s["url"] for s in rows["Android"]["items"]] == [
         "~release-test/android/profile", "~release-test/android/workouts"]
@@ -241,5 +245,7 @@ def test_on_your_trainer_the_page_is_what_is_owed_plus_what_this_release_recorde
         shown = set(_tests(page))
         owed = set(_ledger.owed(YOUR_TRAINER, platform, manual))
         assert owed <= shown, sorted(owed - shown)[:10]
+        #: "Test notes still owed" is the acceptance page's manual count.
+        assert page["notes"]["owed"] == len(owed), platform
         assert shown - owed == {t for t in page["results"]
                                 if page["results"][t]["result"] in {"pass", "partial", "na", "excused"}}, platform

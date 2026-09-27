@@ -4264,6 +4264,9 @@ interface NavItem {
   ref_title?: string;
   /** A check's ledger mark (ISS-0232) — never a runner status. */
   mark?: string;
+  /** Its `items` start unfolded. A release test platform's sections are
+   *  what a tester picks from, so they show without a click ([[TASK-0641]]). */
+  open?: boolean;
   /** A release test section's state ([[TASK-0641]]): `empty`, `part`,
    *  `done`, or `bad` when a result there needs the owner. */
   dot?: string;
@@ -13528,14 +13531,16 @@ function buildNavRow(item: NavItem, extraClass?: string): HTMLLIElement {
     li.classList.add('nav-row-parent');
     const kids = document.createElement('ul');
     kids.className = 'nav-children';
-    kids.hidden = true;
+    kids.hidden = !item.open;
     for (const kid of item.items) kids.appendChild(buildNavRow(kid));
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'nav-row-toggle';
-    toggle.setAttribute('aria-expanded', 'false');
+    toggle.setAttribute('aria-expanded', String(!kids.hidden));
     toggle.textContent = String(item.items.length);
-    toggle.title = `Show the ${item.items.length} checks in this surface`;
+    toggle.title = item.dot !== undefined || item.open
+      ? `Show or hide the ${item.items.length} sections`
+      : `Show the ${item.items.length} checks in this surface`;
     toggle.addEventListener('click', (e) => {
       e.stopPropagation();
       kids.hidden = !kids.hidden;

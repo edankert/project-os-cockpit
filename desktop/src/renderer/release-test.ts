@@ -47,6 +47,7 @@ interface RtSection {
 }
 interface RtLedgerResult { result: string; reason: string; date: string }
 interface RtPage {
+  notes?: { total: number; owed: number };
   platform: string; release: string; version?: string; platforms?: string[];
   error: string; owed?: number; progress?: { done: number; total: number };
   notices?: string[]; warnings?: string[];
@@ -195,28 +196,41 @@ function rtSectionTally(page: RtPage, section: RtSection, marks: RtMarks):
   return { done, total, counts };
 }
 
-/** What asks for the owner: a result that is not a pass or an excusal, and
- *  a section whose procedure the validator refused. */
+/** What asks for the owner: a result that is not a pass or an excusal, a
+ *  declared readiness problem with no result yet, and a section whose
+ *  procedure the validator refused.
+ *
+ *  **One entry per reason.** Several printed checks share a test note, so a
+ *  Fail on the note shows on each of them with the same reason; those are
+ *  one entry naming all their checks (Edwin's review, 2026-09-27). */
 function rtNeedsYou(page: RtPage, marks: RtMarks):
-    Array<{ section: RtSection; check: RtCheck | null; result: string; text: string }> {
-  const out: Array<{ section: RtSection; check: RtCheck | null; result: string; text: string }> = [];
+    Array<{ section: RtSection; check: RtCheck | null; checks: number[]; result: string; text: string }> {
+  const out: Array<{ section: RtSection; check: RtCheck | null; checks: number[]; result: string; text: string }> = [];
+  const seen = new Map<string, { checks: number[] }>();
   for (const section of page.sections) {
     if (section.problems.length) {
-      out.push({ section, check: null, result: 'question',
+      out.push({ section, check: null, checks: [], result: 'question',
         text: 'Its procedure no longer matches what the release owes, so its checks are printed one by one.' });
     }
     for (const group of section.groups) {
       for (const check of group.checks) {
         const state = rtCheckState(page, section, check, marks);
+        let entry: { result: string; text: string } | null = null;
         if (['fail', 'question', 'blocked', 'partial'].includes(state.result)) {
-          out.push({ section, check, result: state.result,
-            text: state.reason || check.action });
+          entry = { result: state.result, text: state.reason || check.action };
         } else if (!state.result && check.readiness) {
           //: A declared decision or missing setup asks for the owner before
           //: anyone can test the check ([[TASK-0642]]).
-          out.push({ section, check, result: check.readiness.result,
-            text: `${check.readiness.reason}${check.readiness.issue ? ` (${check.readiness.issue})` : ''}` });
+          entry = { result: check.readiness.result,
+            text: `${check.readiness.reason}${check.readiness.issue ? ` (${check.readiness.issue})` : ''}` };
         }
+        if (!entry) continue;
+        const key = `${section.slug}|${entry.result}|${entry.text}`;
+        const had = seen.get(key);
+        if (had) { had.checks.push(check.number); continue; }
+        const row = { section, check, checks: [check.number], ...entry };
+        seen.set(key, row);
+        out.push(row);
       }
     }
   }
@@ -445,7 +459,15 @@ function rtRefreshPane(page: RtPage, marks: RtMarks): void {
     rtSetNavBar(li, t.done, t.total);
   }
   const row = document.querySelector<HTMLElement>(`li[data-rel="${CSS.escape(rtAddress(page))}"]`);
-  if (row) rtSetNavBar(row, done, total);
+  if (row) {
+    rtSetNavBar(row, done, total);
+    //: The platform being read always shows its sections in the pane.
+    const kids = row.querySelector<HTMLElement>(':scope > .nav-children');
+    if (kids?.hidden) {
+      kids.hidden = false;
+      row.querySelector(':scope > .nav-item .nav-row-toggle')?.setAttribute('aria-expanded', 'true');
+    }
+  }
 }
 
 /** Empty, half, full, or red when a result there needs the owner. */
@@ -462,7 +484,7 @@ function rtSetNavBar(li: HTMLElement, done: number, total: number): void {
   if (bar) bar.title = `${done} of ${total} have a result`;
   //: The row's title carries its count, "Android · 25/355"; keep it true.
   const title = li.querySelector<HTMLElement>(':scope > .nav-item .nav-title');
-  if (title) title.textContent = title.textContent!.replace(/ · \d+\/\d+$/, ` · ${done}/${total}`);
+  if (title) title.textContent = title.textContent!.replace(/ · \d+\/\d+( checks)?$/, (_m, unit) => ` · ${done}/${total}${unit || ''}`);
 }
 
 /** Scroll a check into view and focus its first result button, as Continue
@@ -583,6 +605,12 @@ function rtBuildOverview(page: RtPage): HTMLElement {
   progress.appendChild(bar);
   head.appendChild(progress);
   head.appendChild(rtTally(counts));
+  if (page.notes) {
+    //: The acceptance page counts test notes, not printed checks, so the
+    //: number it shows is given here too, under its own name.
+    head.appendChild(rtEl('p', 'rt-legend',
+      `${page.notes.owed} of ${page.notes.total} test notes still owed. A test note has one or more of the checks below; it stops being owed when every one of its checks has a result other than Fail, Question or Blocked. The Acceptance tests page counts the same test notes, plus automated ones.`));
+  }
   wrap.appendChild(head);
 
   let last = '';
@@ -615,8 +643,8 @@ function rtBuildOverview(page: RtPage): HTMLElement {
       kind.dataset.mark = item.result;
       row.appendChild(kind);
       row.appendChild(rtEl('span', 'rt-att-text', item.text.replace(/\*\*/g, '')));
-      row.appendChild(rtEl('span', 'rt-where',
-        item.check ? `${item.section.name} · check ${item.check.number}` : item.section.name));
+      row.appendChild(rtEl('span', 'rt-where', !item.check ? item.section.name
+        : `${item.section.name} · ${item.checks.length > 1 ? 'checks' : 'check'} ${item.checks.join(', ')}`));
       row.addEventListener('click', () => {
         void navigateTo(rtAddress(page, item.section)
           + (item.check ? `#rt-check-${item.check.number}` : ''));

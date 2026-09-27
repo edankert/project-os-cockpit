@@ -232,3 +232,14 @@ test('a readiness problem with no result asks for the owner', async () => {
   assert.deepEqual(plain(needs.map((n) => [n.section.slug, n.result, n.text])),
     [['rides', 'blocked', 'No way to set this up yet. (ISS-0512)']]);
 });
+
+test('Needs you shows one entry for one reason, naming every check it holds', async () => {
+  const rt = await load();
+  const p = page();
+  // TST-0001 failed in the ledger; checks 1 and 3 both cite it.
+  p.results['TST-0001'] = { result: 'fail', reason: 'The slot is empty.', date: '2026-09-27' };
+  const needs = rt.rtNeedsYou(p, {});
+  assert.deepEqual(plain(needs.map((n) => [n.section.slug, n.result, n.text, n.checks])),
+    [['equipment-hub', 'fail', 'The slot is empty.', [1, 3]]]);
+});
+

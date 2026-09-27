@@ -31,3 +31,7 @@ tests: []
 ## Close-out, 2026-09-27 — one box open
 
 "Needs you" on the overview lists Fail, Question, Blocked and Partial results with their reasons, and declared readiness problems, each opening its check. **Not done: the "Needs you" row at the top of the Tests pane does not add these.** That row is the server's list of owed test notes, and a result given on a printed check lives in the browser until its test note is complete, so the server cannot count it. Either the pane's row gains a count the renderer adds, or the box is reworded; this is for the pilot (TASK-0645) to settle with Edwin.
+
+## After Edwin's review, 2026-09-27
+
+See TASK-0645 for his words. Changed here: the pane opens each platform's sections by default and always opens the one being read, drops the status chips (the dot says the state), and names its unit ("Android · 25/355 checks"). The overview names the test notes still owed beside the printed checks (86 of 93 on Android, the acceptance page's manual count), is wider, and merges Needs you entries that share a reason. Seen in the browser harness on a scratch copy of your-trainer; `tests/test_release_test_route.py` asserts the test-note count against `ledger.owed` on both platforms.

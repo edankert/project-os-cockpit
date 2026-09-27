@@ -6407,7 +6407,9 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   --rt-pass: #23724A; --rt-pass-soft: #DDF0E4; --rt-fail: #B0352B; --rt-fail-soft: #F8E0DD;
   --rt-warn: #94600E; --rt-warn-soft: #F7ECD6; --rt-q: #3F44A0; --rt-q-soft: #E4E5F7;
   --rt-blk: #3E5670; --rt-blk-soft: #E1E8EF; --rt-off: #6B7470; --rt-off-soft: #ECEEEA;
-  max-width: 860px; margin: 0 auto; padding: 24px 16px 64px;
+  /* The example's 860 px left most of a wide window empty (Edwin, 2026-09-27):
+     the page now widens with the window, up to a line length still easy to read. */
+  max-width: 1320px; margin: 0 auto; padding: 24px 32px 64px;
   display: flex; flex-direction: column; gap: 24px; font-size: 14px;
 }
 :root[data-theme="dark"] .rt-page {
@@ -6457,7 +6459,7 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .rt-att { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
 .rt-kind { grid-row: 1 / span 2; align-self: start; padding: 2px 8px; border-radius: 10px; background: var(--cs); color: var(--c); font-weight: 600; font-size: 12px; }
 .rt-where { font-size: 12.5px; color: var(--text-muted); }
-.rt-sec { display: grid; grid-template-columns: 18px minmax(0, 1fr) 150px 70px; gap: 4px 14px; align-items: center; }
+.rt-sec { display: grid; grid-template-columns: 18px minmax(0, 1fr) minmax(150px, 30%) 70px; gap: 4px 14px; align-items: center; }
 .rt-sec .rt-name { font-weight: 500; }
 .rt-sec .rt-bench { grid-column: 2; font-size: 12.5px; color: var(--text-muted); }
 .rt-sec .rt-bar { grid-row: 1; grid-column: 3; }
