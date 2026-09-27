@@ -25,14 +25,14 @@ Words this project uses in a particular way. Where a word has a single source in
 - **Note** — one Markdown file with project-os frontmatter. Its `type` names its template.
 - **Standing document** — one of the eight per-project documents this glossary belongs to. A manifest, not a lifecycle: they have no status, and `updated:` carries the meaning ([[FEAT-0091]]).
 - **Obligation** — something owed to a person: a decision to take, a requirement to approve, an issue to triage, a test to run. The registry (`obligations.py`) says what is owed, of what kind, and **which view owns it** ([[ADR-0020]]).
-- **Owed / settled** — a row is owed while it needs a person. Settled covers both walked and reconciled.
+- **Owed / settled** — a row is owed while it needs a person. Settled covers both tested and reconciled.
 - **Reconciled** — a check closed by a decision rather than by being performed: `- [~]`. It does not block, and it is counted and named rather than dropped ([[ISS-0141]]).
 - **Decision record** — the `## Decision record` section on a note, holding one dated, attributed Obsidian callout per human verb ([[ADR-0020]] upstream).
 - **Watermark / digest** — the moment you last said *Caught up*, and the band of what changed since ([[FEAT-0071]]).
 
 ## Verification
 
-- **Acceptance suite** — `docs/tests/ACCEPTANCE_TESTS.md`: manual checks a person walks, in three tiers. Distinct from `TST-*` notes, which are formal specifications, mostly automated.
+- **Acceptance suite** — `docs/tests/ACCEPTANCE_TESTS.md`: manual checks a person tests by hand, in three tiers. Distinct from `TST-*` notes, which are formal specifications, mostly automated.
 - **Tier 1 / 2 / 3** — feature tests, regression tests, and temporary verification checks. **A release is blocked while any Tier 1 or Tier 2 check is unsettled**; Tier 3 never gates.
 - **The gate** — that rule, computed. It fired green for the first time on 2026-08-11.
 - **Evidence** — what a ticked criterion carries: `— evidence: … (actor, date)`. A tick without it is refused.
@@ -56,11 +56,11 @@ Words this project uses in a particular way. Where a word has a single source in
 
 - **Upstream** — `project-os` is the template every repo syncs `tools/` from; **`project-os-dev` holds the design record**, including every upstream ADR. Neither is obvious from a citation, which is [[ISS-0123]].
 - **Downstream consumer** — any repo the cockpit renders. Nothing is installed into one.
-- **walk**: To execute an acceptance check by hand.
-- **walk sheet**: The generated document a release is walked from — the changed screens first, then every owed check in order with its setup, steps and expected result inline (`tools/instructions/TESTING.md`, "The walk").
-- **sitting**: A group of checks that share one setup state — one build, one account tier, one piece of hardware on the bench — walked in one go.
-- **survey**: The walk sheet's first section: the screens this release changed, one sentence per change, with the screen at the last release beside the screen now.
-- **procedure**: A written script for one sitting — the setup stated once, then numbered steps, each naming the screen it happens on. One file per sitting under `docs/tests/acceptance/walk/`.
-- **owed part**: One numbered step of a check this platform still owes, which is what a procedure is counted against. A check whose steps are not numbered is one part.
-- **expectation tag**: A label such as `TST-0648.4` on a line of a procedure step, saying that line satisfies step 4 of that check.
-- **walk order**: `docs/tests/acceptance/WALK.md`, the one file per project that authors the sitting order.
+- **release test**: Testing a release by hand, one platform at a time, from the page the generator prints (`tools/instructions/TESTING.md`, "The release test"). It was called the walk until 2026-09-27.
+- **release test sheet**: The generated page a release is tested from: a table of sections, then each section's changes, setup and numbered checks, each one action and one expected line. The cockpit draws the same page at `~release-test/<platform>`.
+- **section**: A group of checks that share one setup state — one build, one account tier, one piece of hardware on the bench — tested in one go. It was called a sitting.
+- **what changed**: The screens a release changed on one platform, one line per change, with the screen at the last release beside the screen now. Each section starts with the ones it tests. It was called the survey.
+- **result**: What a tester records for a check: pass, fail, partial, question, blocked, N/A or excused.
+- **test kind**: Feature tests, regression tests and automated tests, the three kinds a test note is sorted into (ADR-0039 called them sections).
+- **procedure**: A written script for one section — setup items, then numbered steps in groups, each group with a `Start:` line. One file per section under `docs/tests/acceptance/release-test/`.
+- **section order**: `docs/tests/acceptance/RELEASE-TEST.md`, the one file per project that sets the order of the sections.

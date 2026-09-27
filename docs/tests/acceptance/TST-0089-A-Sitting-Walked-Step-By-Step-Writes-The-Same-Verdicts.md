@@ -3,11 +3,11 @@ type: "[[test]]"
 id: TST-0089
 aliases: ["TST-0089"]
 title: "A sitting walked step by step on the walk page writes the same ledger verdicts as its checks ticked one by one, under screen cards that show before and after"
-status: active
+status: retired
 phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
 owner: user:edwin
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-27
 source: ["[[FEAT-0150-The-Walk-Page-Reads-As-A-Script]]"]
 scope: feature
 level: acceptance
@@ -32,6 +32,9 @@ tags: [test, acceptance, publication]
 ---
 
 # A sitting walked step by step writes the same verdicts
+
+> [!note] Retired 2026-09-27
+> The page this check asked about, a sitting ticked step by step on the walk page, was removed when the walk became the release test (FEAT-0155, TASK-0639). Its replacement is [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]]: a section opened from the Tests pane, results given on its checks, and the ledger holding the same events as marking the checks directly. The results recorded below are kept as history.
 
 ## Setup
 

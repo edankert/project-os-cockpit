@@ -100,7 +100,7 @@ focus:
   # 2026-09-25, later: Edwin re-ran TST-0011 live and all 13 rows passed. TASK-0633/0634/0635 are done, ISS-0312 is fixed, and every PHASE-007 exit criterion is ticked. FEAT-0019 and FEAT-0027 are in their shared independent review; the handoff is in the FEAT-0019 note. No task is in flight.
   # 2026-09-25, review: the FEAT-0019/FEAT-0027 shared review returned changes-requested; TASK-0638 fixes the findings.
   # 2026-09-25, close: FEAT-0019 and FEAT-0027 are done after a two-round shared review, and PHASE-007 is closed. No task is in flight; the next choice is Edwin's.
-  task: ""
+  task: "TASK-0645"
   # TASK-0631 ran the actual walk in isolated Electron on copied Your Trainer docs and ledgers: Android survey, step advance, reload, blocked action, interrupted timer and uploaded PNG comparison worked. Review results now lists all 39 owed Android checks instead of hiding ten expired prior-release excuses. The iOS route loads 327 owed rows but has no open release id. Eighty focused renderer tests, the full desktop suite, 47 Python walk tests and docs gates pass; human and full iOS walks remain open.
   # TASK-0629 is correcting a full Electron walk finding: the session-wide readiness list stays expanded and repeats the current warning, and Walk options lacks a direct step picker. The isolated browser uses copied Your Trainer docs and ledgers.
   # TASK-0629 moved occasional walk navigation under Walk options and sitting state/equipment into required setup. The focused renderer suite passes 77 cases, and standalone Chrome rendered the current Android payload at desktop and narrow widths. Full Electron and Edwin walks remain open.
@@ -910,32 +910,32 @@ items:
   tasks:
     TASK-0639:
       file: docs/features/release-test/plan/tasks/TASK-0639-Rename-The-Walk-To-The-Release-Test.md
-      status: backlog
+      status: done
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0640:
       file: docs/features/release-test/plan/tasks/TASK-0640-The-Release-Test-Payload.md
-      status: backlog
+      status: done
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0641:
       file: docs/features/release-test/plan/tasks/TASK-0641-The-Release-Test-In-The-Tests-Pane.md
-      status: backlog
+      status: done
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0642:
       file: docs/features/release-test/plan/tasks/TASK-0642-The-Platform-Overview-Continue-And-Needs-You.md
-      status: backlog
+      status: doing
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0643:
       file: docs/features/release-test/plan/tasks/TASK-0643-The-Section-Page-And-Its-Results.md
-      status: backlog
+      status: doing
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0644:
       file: docs/features/release-test/plan/tasks/TASK-0644-Retire-The-Walk-Page-In-The-Publication-View.md
-      status: backlog
+      status: doing
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0645:
@@ -2725,7 +2725,7 @@ items:
       note: "Planned 2026-09-14 from Edwin's approved goal wording, not started. Cockpit half of a three-repo plan: upstream project-os-dev PHASE-0005 (FEAT-0030, FEAT-0031; ADR-0044 and ADR-0045 ACCEPTED 2026-09-14). STARTS once project-os-dev TASK-0119 fixes the procedure format, consumer your-trainer PHASE-024 (FEAT-0120, FEAT-0121). Justified as a phase against CLAUDE.md's two questions in the note, reversibly: fold into PHASE-043 if it is one session. Builds against a fixture; TASK-0626 waits for your-trainer's v2.2.0 procedures."
     PHASE-043:
       file: "docs/phases/PHASE-043-The-Walk-Page.md"
-      title: "The walk page — the publication view hands the owed checks over as a procedure"
+      title: "The release test page — the Tests view hands the owed checks over section by section (the walk page until 2026-09-27)"
       status: active
       owner: user:edwin
       goal: "When a release is in preparation, the publication view gives the person walking it one page that says what to do and in what order: the surfaces the release changed first, then every owed check inside the sitting it belongs to, with its setup, steps and expected result on the page, and a tick that writes the ledger."
@@ -3028,7 +3028,7 @@ items:
     TST-0089:
       file: "docs/tests/acceptance/TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts.md"
       title: "A sitting walked step by step on the walk page writes the same ledger verdicts as its checks ticked one by one, under screen cards that show before and after"
-      status: active
+      status: retired
       owner: user:edwin
       phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
       scope: feature
@@ -3607,7 +3607,7 @@ metrics:
     features_total: 154
     features_done: 136
     tasks_total: 639
-    tasks_done: 596
+    tasks_done: 599
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

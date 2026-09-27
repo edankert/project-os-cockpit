@@ -3,11 +3,11 @@ type: "[[test]]"
 id: TST-0088
 aliases: ["TST-0088"]
 title: "The walk page hands over the owed checks as a procedure, and a tick on it is the same verdict everywhere else"
-status: active
+status: retired
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-27
 source: ["[[FEAT-0149-The-Walk-Page]]"]
 scope: feature
 level: acceptance
@@ -35,6 +35,9 @@ tags: [test, acceptance, publication]
      (ADR-0039 decision 4, `acceptance.section_of`). -->
 
 # The walk page hands over the owed checks
+
+> [!note] Retired 2026-09-27
+> The page this check asked about, the walk page, was removed when the walk became the release test (FEAT-0155, TASK-0639). Its replacement is [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]]: a section opened from the Tests pane, results given on its checks, and the ledger holding the same events as marking the checks directly. The results recorded below are kept as history.
 
 ## Setup
 

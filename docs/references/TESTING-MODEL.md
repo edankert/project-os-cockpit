@@ -29,7 +29,7 @@ related: ["[[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]]", "[[ADR-0032-The-Ve
 
 There used to be two types. There is now one — `[[test]]` — and a scale, `level:`, running `unit → integration → system → e2e → acceptance`.
 
-A note moves **along** that scale rather than **between** types, and that is the point: adding a `command:` is how a hand-walk becomes automated, without changing what the note is or breaking anything that points at it. Before [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]], a check could not be automated at all — the asymmetry that caused the merge.
+A note moves **along** that scale rather than **between** types, and that is the point: adding a `command:` is how a hand test becomes automated, without changing what the note is or breaking anything that points at it. Before [[ADR-0031-One-Test-Type-Acceptance-Is-A-Level]], a check could not be automated at all — the asymmetry that caused the merge.
 
 ## Who runs it: `command:` decides
 
@@ -57,7 +57,7 @@ The order matters and was a fix: a test with a pytest `command:` and a checklist
 
 *(Corrected 2026-08-19, [[ADR-0038]] and [[ADR-0039]]. The `result in` row used to read **"written by the runner from the exit code"** and the last row named `Tier 1/2/3`. Both are reversed: an automated test records no verdict, and there are no tiers — a check's section is derived from `covers:` and `command:`.)*
 
-**Walking an acceptance test never touches `status:`.** That one rule carries the design.
+**Testing an acceptance check by hand never touches `status:`.** That one rule carries the design.
 
 ## Why that rule is load-bearing
 
@@ -87,7 +87,7 @@ automation: full
 `Item.settled` is: the mark is settled **or** every test in `covered_by:` is `passing`. So automating a check discharges it. Three properties, each corrected during review:
 
 - **all covers must pass, not any** — one passing and one failing used to settle it;
-- **only an executable test counts** — a manual `passing` would let one hand-walk launder itself into another's automation;
+- **only an executable test counts** — a manual `passing` would let one hand test launder itself into another's automation;
 - **resolved at load, never stored** — which is why a *failing* cover un-settles the check, and why a `ready` cover settles nothing. *"Not failing"* is not coverage.
 
 `note_writes.cover_check` writes the link behind **six** refusals — empty `covered_by`, an automation value outside `full`/`partial`, `partial` without a reason, an unresolvable id, a target that is not a test, and a target with no `command:`. The last is the load-bearing one.
@@ -119,7 +119,7 @@ automation: full
 
 *(Corrected 2026-08-19. This list used to name `Needs a run`, four verdict-state groups and `Tier 1/2/3`. The verdict states went with [[ADR-0038]] — an automated test has no verdict, and 37 of this repo's 38 sat in one collapsed `Verified` group — and the tiers went with [[ADR-0039]].)*
 
-**Reads** — `## Runs` parses back, so a partly-walked procedure can say which steps stand. *(This belongs to the executable/manual half, not the acceptance surface it is filed under here: 14 notes fleet-wide carry a `## Runs` section, all in this repo, none at `level: acceptance`.)* A step's state is: a step's state is its result in the most recent run that **mentions** it, so a partial walk does not un-prove what it never reached.
+**Reads** — `## Runs` parses back, so a partly tested procedure can say which steps stand. *(This belongs to the executable/manual half, not the acceptance surface it is filed under here: 14 notes fleet-wide carry a `## Runs` section, all in this repo, none at `level: acceptance`.)* A step's state is: a step's state is its result in the most recent run that **mentions** it, so a partial walk does not un-prove what it never reached.
 
 ## What is not true yet
 

@@ -2,7 +2,7 @@
 type: "[[phase]]"
 id: PHASE-043
 aliases: ["PHASE-043"]
-title: "The walk page — the publication view hands the owed checks over as a procedure"
+title: "The release test page — the Tests view hands the owed checks over section by section (the walk page until 2026-09-27)"
 status: active
 order: 43
 owner: user:edwin

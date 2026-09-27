@@ -458,9 +458,24 @@ or
 
 ## Acceptance (ADR-0037)
 
+### `GET /api/cockpit/release-test?platform=<name>&release=<REL-id>`
+
+One platform's release test ([[FEAT-0155]]; it replaced `/api/cockpit/walk` on 2026-09-27). The body is the template generator's own page data, `payload()` in `release_test_bundled.py`, whose shape is `tools/instructions/TESTING.md`, "The release test", rule 10, plus:
+
+| field | means |
+| --- | --- |
+| `results` | `{TST-id: {result, reason, date}}`: the open ledger's latest result for each test note on the page, dropped when a later invalidation reopened it |
+| `progress` | `{done, total}` over the printed checks that take a result; each section carries its own, and a `slug` for its address |
+| `version`, `platforms`, `release` | the release's version, the platforms with a ledger, and the release resolved when none was sent |
+| `error` | why there is no release test (no ledger, no acceptance check); empty otherwise |
+
+The sections hold what the open release **owed**, not what it still owes: the open ledger's results are set aside while the page is built, so a check stays on the page after its result is recorded. `platform=all` and a platform with no ledger are refused with 400. A platform with no open release note of its own is tested against the newest open release.
+
+**Consumers**: mode-3 renderer, `release-test.ts`.
+
 ### `GET /api/cockpit/acceptance?platform=<name>`
 
-The suite, the release gate and the walkable view — **for one platform**.
+The suite and the release gate — **for one platform**.
 
 A verdict is a fact about *(check × platform × release)* and lives as a dated event in `docs/releases/ledgers/`, never on the check note. So every answer here is about a platform, and every payload says which in its `platform` field.
 

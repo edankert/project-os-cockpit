@@ -25,7 +25,7 @@ review_date: ""
 review_verdict: ""
 review_round: ""
 related: ["[[TST-0088-The-Walk-Page-Hands-Over-The-Owed-Checks]]", "[[TST-0089-A-Sitting-Walked-Step-By-Step-Writes-The-Same-Verdicts]]", "[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]"]
-area: "the walk"
+area: "the release test"
 after: []
 tags: [test, acceptance, release-test]
 ---
