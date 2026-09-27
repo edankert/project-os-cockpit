@@ -22,8 +22,8 @@ related: ["[[PHASE-043-The-Walk-Page]]"]
 
 ## Dependencies
 
-- **Hard:** project-os-dev must rename its generator and produce sections, groups, "Start:" lines, the three-part Setup, what changed per platform and readiness before steps 1 and 2 can finish (project-os-dev: release test generator, vocabulary ADR and release-prep skill, ID to follow). The cockpit bundles that generator byte for byte and does not work these out itself.
-- **Hard:** the pilot in step 4 needs Your Trainer's rewritten equipment section and shortened `## Expect` lines (your-trainer: rewrite of the procedures and test notes, equipment section pilot, ID to follow).
+- **Hard:** project-os-dev must rename its generator and produce sections, groups, "Start:" lines, the three-part Setup, what changed per platform and readiness before steps 1 and 2 can finish (project-os-dev FEAT-0040 and ADR-0050, the release test generator, the vocabulary decision and the release-prep skill). The cockpit bundles that generator byte for byte and does not work these out itself.
+- **Hard:** the pilot in step 4 needs Your Trainer's rewritten equipment section and shortened `## Expect` lines (your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot).
 - **Soft:** the old page stays in place until the pilot passes, so a release in progress is never left without a page.
 
 ## Open questions

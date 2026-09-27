@@ -33,7 +33,7 @@ tests: []
 
 ## Steps
 
-- [ ] Wait until project-os-dev has renamed its generator (project-os-dev: release test generator, vocabulary ADR and release-prep skill, ID to follow), then sync it, so the bundled copy and its name arrive together.
+- [ ] Wait until project-os-dev has renamed its generator (project-os-dev FEAT-0040 and ADR-0050, the release test generator, the vocabulary decision and the release-prep skill), then sync it, so the bundled copy and its name arrive together.
 - [ ] Rename the server route, the payload function and its tests.
 - [ ] Rename the renderer's route handling, functions, CSS classes and labels; add the `~walk` redirect and the storage-key migration.
 - [ ] Rename the words in the live notes listed above.

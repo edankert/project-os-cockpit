@@ -21,7 +21,7 @@ tests: ["[[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]]"]
 
 ## Definition of Done
 
-- [ ] Your Trainer's Android Equipment Hub section, rewritten in your-trainer (your-trainer: rewrite of the procedures and test notes, equipment section pilot, ID to follow), renders in the cockpit from a copy of Your Trainer's docs and ledger.
+- [ ] Your Trainer's Android Equipment Hub section, rewritten in your-trainer (your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot), renders in the cockpit from a copy of Your Trainer's docs and ledger.
 - [ ] It is compared with `../../__attachments__/release-test-example/index.html` part by part: header, what changed, Setup, each group and each check. Every difference is listed below with whether it is fixed here, in the generator (project-os-dev), or in Your Trainer's notes.
 - [ ] Edwin has looked at the rendered pilot section beside the example and said whether it matches. That answer is quoted here.
 - [ ] Only then: every other Android section renders, and the Android overview's totals equal `ledger.owed` for Android.

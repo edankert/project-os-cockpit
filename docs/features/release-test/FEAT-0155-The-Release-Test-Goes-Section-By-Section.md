@@ -68,8 +68,8 @@ The values stored in the release ledger do not change (`pass`, `fail`, `partial`
 
 **Out of scope.**
 
-- The generator that works out sections, groups, "Start:" lines, bench lists, what changed and readiness. It lives in project-os-dev and is bundled here byte for byte: project-os-dev: release test generator, vocabulary ADR and release-prep skill (ID to follow).
-- Rewriting Your Trainer's procedures and test notes, including shortening the `## Expect` lines (D2): your-trainer: rewrite of the procedures and test notes, equipment section pilot (ID to follow).
+- The generator that works out sections, groups, "Start:" lines, bench lists, what changed and readiness. It lives in project-os-dev and is bundled here byte for byte: project-os-dev FEAT-0040 and ADR-0050, the release test generator, the vocabulary decision and the release-prep skill.
+- Rewriting Your Trainer's procedures and test notes, including shortening the `## Expect` lines (D2): your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot.
 - The ledger format and its stored values.
 - Time estimates of any kind.
 
@@ -125,4 +125,4 @@ Not started.
 - Tasks: [[TASK-0639-Rename-The-Walk-To-The-Release-Test]], [[TASK-0640-The-Release-Test-Payload]], [[TASK-0641-The-Release-Test-In-The-Tests-Pane]], [[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]], [[TASK-0643-The-Section-Page-And-Its-Results]], [[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]], [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]].
 - Acceptance check: [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]].
 - Specification: `__attachments__/release-test-example/index.html` (the approved example, with its screenshots in `img/`).
-- Other repositories: project-os-dev: release test generator, vocabulary ADR and release-prep skill (ID to follow). your-trainer: rewrite of the procedures and test notes, equipment section pilot (ID to follow).
+- Other repositories: project-os-dev FEAT-0040 and ADR-0050, the release test generator, the vocabulary decision and the release-prep skill. your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot.
