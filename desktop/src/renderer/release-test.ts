@@ -374,7 +374,7 @@ function rtSaveMarks(marks: RtMarks): boolean {
   } catch { return false; }
 }
 
-/** Once per page load: rename the walk page's keys, and carry its saved step
+/** Once per page load: remove the walk page's view state, and carry its saved step
  *  results onto this page's checks for this release and platform. */
 function rtAdoptSavedState(page: RtPage): void {
   if (!activeId) return;

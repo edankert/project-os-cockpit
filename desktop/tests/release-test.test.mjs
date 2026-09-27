@@ -315,3 +315,28 @@ test("the pane's platform row gets the overview's Needs you count", async () => 
   assert.deepEqual(got, [[true, rt.rtNeedsYou(p, marks).length]]);
   assert.ok(got[0][1] > 0);
 });
+
+/** A function's text from a built file, braces balanced. */
+async function builtFunction(file, name) {
+  const src = await fs.readFile(path.join(here, '..', 'dist', 'renderer', file), 'utf8');
+  const start = src.indexOf(`function ${name}(`);
+  assert.notEqual(start, -1, `${name} not found in ${file}`);
+  let depth = 0;
+  //: The body's brace, not one in a default parameter such as `opts = {}`.
+  let i = src.indexOf(') {', start) + 2;
+  for (; i < src.length; i += 1) {
+    if (src[i] === '{') depth += 1;
+    else if (src[i] === '}') { depth -= 1; if (depth === 0) break; }
+  }
+  return src.slice(start, i + 1);
+}
+
+test('recording a result redraws the page, a pane rebuild lays the results back on, and old addresses are redirected', async () => {
+  //: The helpers are tested above; these are the three places that call them
+  //: (FEAT-0155 review, round 2).
+  assert.match(await builtFunction('release-test.js', 'rtRecord'), /rtRedraw\(page, section\)/);
+  assert.match(await builtFunction('renderer.js', 'renderWsNav'), /rtReapplyPane\(\)/);
+  const nav = await builtFunction('renderer.js', 'navigateToInner');
+  assert.match(nav, /rtRoute\(normalised\)/);
+  assert.match(nav, /if \(route\?\.moved\)[\s\S]*?navigateToInner\(route\.address/);
+});
