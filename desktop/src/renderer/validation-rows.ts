@@ -141,6 +141,7 @@ const VALIDATION_LABELS: Record<string, string> = {
   'FRONTMATTER-TYPO': 'a frontmatter field name that looks like a typo',
   'REVIEW-ROUND': 'a review ran more than two rounds',
   'ACCEPT-LOCATION': 'a manual check is outside docs/tests/acceptance/',
+  'CHECK-KIND': 'a check declares a kind that cannot apply',
   'ISSUE-REPORTER': 'an issue does not say who reported it',
   'ISSUE-QUESTION': 'an issue waits on the owner but states no question',
 };

@@ -26,7 +26,7 @@ import pytest
 from project_os_cockpit import acceptance
 
 
-def _check(*, covers, verdict="2026-01-01", invalid="2026-06-01", command=""):
+def _check(*, covers, verdict="2026-01-01", invalid="2026-06-01", command="", kind=None):
     fm = {
         "id": "TST-0001",
         "title": "a check",
@@ -37,6 +37,8 @@ def _check(*, covers, verdict="2026-01-01", invalid="2026-06-01", command=""):
         "command": command,
         "invalidated_by": {"change": "TASK-0001", "reason": "moved", "date": invalid},
     }
+    if kind is not None:
+        fm["kind"] = kind
     item = acceptance.item_from_note(fm, rel="docs/tests/acceptance/TST-0001-A.md")
     assert item is not None
     return item
@@ -64,6 +66,36 @@ def test_an_automated_check_is_not_re_opened_either() -> None:
     item = _check(covers=["[[FEAT-0001]]"], command="pytest tests/x.py")
     assert acceptance.kind_of(item) == acceptance.KIND_AUTOMATED
     assert item.stale is False
+
+
+def test_a_check_that_declares_kind_feature_is_re_opened_despite_its_issue() -> None:
+    """`kind: feature` wins over the `ISS-*` in `covers:` ([[ISS-0316]]).
+
+    your-trainer's TST-0642 covers ISS-0387 and asserts that the FIT file the
+    app writes today imports into Garmin Connect. A change to those bytes must
+    reopen it, and the issue stays in `covers:` as the record of the defect.
+    """
+    item = _check(covers=["[[ISS-0001]]"], kind="feature")
+    assert acceptance.kind_of(item) == acceptance.KIND_FEATURE
+    assert item.stale is True
+
+
+def test_a_declared_regression_kind_is_honoured_without_an_issue() -> None:
+    item = _check(covers=["[[FEAT-0001]]"], kind="Regression")
+    assert acceptance.kind_of(item) == acceptance.KIND_REGRESSION
+    assert item.stale is False
+
+
+def test_a_command_still_wins_over_a_declared_kind() -> None:
+    """The validator refuses the pair (CHECK-KIND); the reader still answers
+    the way the precedence says, so a note that slips through reads as automated."""
+    item = _check(covers=["[[ISS-0001]]"], kind="feature", command="pytest tests/x.py")
+    assert acceptance.kind_of(item) == acceptance.KIND_AUTOMATED
+
+
+def test_an_unknown_declared_kind_falls_back_to_covers() -> None:
+    item = _check(covers=["[[ISS-0001]]"], kind="feture")
+    assert acceptance.kind_of(item) == acceptance.KIND_REGRESSION
 
 
 def test_a_verdict_after_the_change_answers_it() -> None:
