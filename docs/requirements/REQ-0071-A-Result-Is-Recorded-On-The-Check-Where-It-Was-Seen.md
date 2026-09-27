@@ -2,13 +2,17 @@
 type: "[[requirement]]"
 id: REQ-0071
 title: "A result is recorded on the check where it was seen, with a reason for anything but Pass, and every count on screen follows at once without moving the reader"
-status: approved
+status: implemented
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
 updated: 2026-09-27
 source: ["Edwin, 2026-09-27: approved the example page in docs/features/release-test/__attachments__/release-test-example/index.html"]
 priority: high
+reviewed_by: "model:claude-opus-5-5 (FEAT-0155 review, two rounds)"
+review_date: 2026-09-27
+review_round: 2
+review_verdict: approved
 approved_by: "user:edwin"
 approved: 2026-09-27
 scope: "Results on the release test's section page, the existing ledger write path, and the overview that summarises them"

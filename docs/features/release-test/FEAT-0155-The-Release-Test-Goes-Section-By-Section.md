@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0155
 aliases: ["FEAT-0155"]
 title: "The release test is opened from the Tests pane and read one section at a time, with a platform overview that says where to continue and what needs you"
-status: review
+status: done
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
@@ -18,7 +18,7 @@ acceptance: ""
 design: ""
 reviewed_by: "model:claude-opus-5-5 (two reviewers, fresh contexts)"
 review_date: 2026-09-27
-review_verdict: "changes-requested"
+review_verdict: "approved"
 review_round: "2"
 related: ["[[FEAT-0149-The-Walk-Page]]", "[[FEAT-0150-The-Walk-Page-Reads-As-A-Script]]", "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]", "[[SUR-0004-The-Release-Walk]]", "[[SUR-0001-The-Tests-View]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]]", "[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]", "[[ISS-0309-A-Procedure-Quote-Is-Unchecked-Where-The-Check-States-No-Expect]]", "[[RISK-0010-Saved-Walk-Observations-Can-Outlive-Their-Source]]", "[[RISK-0011-Renaming-The-Walk-Drops-Links-And-Saved-Progress]]"]
 ---
@@ -166,3 +166,5 @@ Round 2, 2026-09-27. Two reviewers, each breaking guards in their own worktree. 
 - The Scope, the goal and two criteria still carried round one's refuted wording, or claimed the count on every platform row. All are corrected.
 - Removing the call from `rtRecord` to `rtRedraw`, the call from `renderWsNav` to `rtReapplyPane`, or the renderer's `route.moved` branch broke no test. `release-test.test.mjs` now reads each of these three functions from the built code and fails if the call is gone.
 - The comment above `rtAdoptSavedState` still said "rename"; it now says the old view state is removed.
+
+Round 2 completed, 2026-09-27. A third reviewer checked the round-two list against 9e7f663, breaking each call in its own worktree: each guard fails when its call is removed, and the wording is corrected. Verdict: **approved**. No separate packet was written for this completion pass; its scope was the round-two list above.

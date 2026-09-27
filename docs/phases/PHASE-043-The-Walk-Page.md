@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-043
 aliases: ["PHASE-043"]
 title: "The release test page — the Tests view hands the owed checks over section by section (the walk page until 2026-09-27)"
-status: active
+status: done
 order: 43
 owner: user:edwin
 created: 2026-09-13
@@ -129,3 +129,7 @@ FEAT-0151 is done, so this phase goes back to `done`, as a standing phase does w
 Edwin approved a redesign of this page on 2026-09-27. [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]] moves it into the Tests pane as the release test (his new name for the walk), with a platform overview and one short page per section. It is walk-page work, so it joins this standing phase, as the previous section says the next piece of work should. The phase closes again when the criterion below is met.
 
 - [ ] FEAT-0155 is `done`: the release test is reached from the Tests pane, the Publication view's walk page is retired, and the notes it replaces are superseded.
+
+## Closed again 2026-09-27
+
+FEAT-0155 is done: the release test is in the Tests pane, one section per page, reviewed in two rounds and tested as TST-0092. FEAT-0149, FEAT-0150 and FEAT-0151 are superseded by it. Edwin: *"It looks great, I think we can now fully close out the cockpit phase-0010 and the release test functionality."* The exit criteria above describe the walk page this phase first built; its successor meets them through the same generator and ledger path.

@@ -2,7 +2,7 @@
 type: "[[requirement]]"
 id: REQ-0072
 title: "The walk is called the release test everywhere in the cockpit, internal names included, and old walk links still open it"
-status: approved
+status: implemented
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27

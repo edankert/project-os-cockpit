@@ -2,13 +2,17 @@
 type: "[[requirement]]"
 id: REQ-0070
 title: "The release test is reached from the Tests pane, opens on a platform overview, and shows one section per page"
-status: approved
+status: implemented
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
 updated: 2026-09-27
 source: ["Edwin, 2026-09-27: approved the example page in docs/features/release-test/__attachments__/release-test-example/index.html"]
 priority: high
+reviewed_by: "model:claude-opus-5-5 (FEAT-0155 review, two rounds)"
+review_date: 2026-09-27
+review_round: 2
+review_verdict: approved
 approved_by: "user:edwin"
 approved: 2026-09-27
 scope: "The release test in the cockpit's Tests pane, for any project-os workspace with an open release and a ledger"
