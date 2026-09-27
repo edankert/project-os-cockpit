@@ -16,10 +16,10 @@ release: ""
 acceptance_exception: ""
 acceptance: ""
 design: ""
-reviewed_by: ""
-review_date: ""
-review_verdict: ""
-review_round: ""
+reviewed_by: "model:claude-opus-5-5 (two reviewers, fresh contexts)"
+review_date: 2026-09-27
+review_verdict: "changes-requested"
+review_round: "1"
 related: ["[[FEAT-0149-The-Walk-Page]]", "[[FEAT-0150-The-Walk-Page-Reads-As-A-Script]]", "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]", "[[SUR-0004-The-Release-Walk]]", "[[SUR-0001-The-Tests-View]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]]", "[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]", "[[ISS-0309-A-Procedure-Quote-Is-Unchecked-Where-The-Check-States-No-Expect]]", "[[RISK-0010-Saved-Walk-Observations-Can-Outlive-Their-Source]]", "[[RISK-0011-Renaming-The-Walk-Drops-Links-And-Saved-Progress]]"]
 ---
 
@@ -134,9 +134,9 @@ Full run, 2026-09-27: `.venv/bin/python -m pytest -q` passed 2,136 tests with 11
 - Specification: `__attachments__/release-test-example/index.html` (the approved example, with its screenshots in `img/`).
 - Other repositories: project-os-dev FEAT-0040 and ADR-0050, the release test generator, the vocabulary decision and the release-prep skill. your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot.
 
-## Review, round 1, 2026-09-27
+## Review
 
-Two independent reviewers (model:claude-opus-5-5, fresh contexts) reviewed the packet for ef1e21f..3f46b4a. Combined verdict: **changes-requested**.
+Round 1, 2026-09-27. Two independent reviewers (model:claude-opus-5-5, fresh contexts) reviewed the packet for ef1e21f..3f46b4a. Combined verdict: **changes-requested**.
 
 | Claim | Combined | What was done |
 |---|---|---|
