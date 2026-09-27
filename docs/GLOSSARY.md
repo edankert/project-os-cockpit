@@ -3,7 +3,7 @@ type: "[[reference]]"
 id: GLOSSARY
 owner: user:edwin
 created: 2026-05-07
-updated: 2026-08-12
+updated: 2026-09-27
 tags: [glossary]
 ---
 
@@ -64,3 +64,26 @@ Words this project uses in a particular way. Where a word has a single source in
 - **test kind**: Feature tests, regression tests and automated tests, the three kinds a test note is sorted into (ADR-0039 called them sections).
 - **procedure**: A written script for one section — setup items, then numbered steps in groups, each group with a `Start:` line. One file per section under `docs/tests/acceptance/release-test/`.
 - **section order**: `docs/tests/acceptance/RELEASE-TEST.md`, the one file per project that sets the order of the sections.
+
+## Proposed words for the levels (not agreed yet)
+
+**Nothing in this section is agreed.** It is the vocabulary proposed on 2026-09-27 for [[PHASE-045-The-Cockpit-In-Layers]], decision D11. Edwin said that the words in [[DES-0015-The-Cockpit-In-Layers]] and [[DES-0016-Levels-Of-Abstraction]] had drifted from the ones defined earlier, and that he no longer knew exactly what each meant. Once agreed, each word moves into the sections above and both designs are revised to use only these words. Until then, the rest of this glossary wins.
+
+The principle is to keep the words the cockpit already uses and add as few new ones as possible.
+
+| word | means | replaces, or collides with | recommendation |
+| --- | --- | --- | --- |
+| **level** | how close a person stands to the work: Fleet, Project, View, Note, Evidence, Trace | "layer" L0 to L4 (DES-0015), "level" A0 to A6 and "altitude" (DES-0016) | use "level" only; drop "layer" and "altitude" |
+| **Fleet** level | all workspaces at once: which project needs me | "Glance" (DES-0015), "Portfolio" (DES-0016) | keep **fleet**, already defined above |
+| **Project** level | one workspace's summary: what needs me, what is in flight, how far from shipping | "Home" (DES-0015), "A1 Project" (DES-0016) | the level is Project; the page keeps its name, **Overview** |
+| **View** level | one kind of note, listed in the navigator and grouped by state | "flow" and "flow view" (both designs) | keep **view**, meaning one kind of note ([[ADR-0028-Work-Has-Three-Phases]]: "a view is a corpus") |
+| view names | Overview, Intent, Features, Issues, Tests, Publication, Library | Home, Design, Build, Verify, Issues, and no Library (DES-0015) | keep the built names; Intent is the name Edwin agreed in TASK-0385 |
+| **Note** level | one note: a summary at the top (status, bars, next verb), the body below, the frontmatter folded | "subject" (L3, A3) and "ticket" (A4); both are the same page scrolled | say **note**; do not use "subject" or "ticket" |
+| **Evidence** level | what proves a note's claims: ledger results, screenshots, commits, validator and test runs | part of "L4 Record" (DES-0015), "A5 Evidence" (DES-0016) | keep "evidence"; it widens the word above, which means a ticked criterion's proof |
+| **Trace** level | the agent's turns, tool calls and the raw payload a page was drawn from | part of "L4 Record", "A6 Trace" | new word; glossed here |
+| **flow** | one of the activities a person does: design and review, implementation, verification, issue triage | used for navigator tabs in both designs | an activity, not a tab. A flow decides the order of rows inside a view and the rows in Needs you |
+| **record** | all the notes of a project (the section "The record" above) | "L4 Record" as a level name (DES-0015) | keep the existing meaning; never a level name |
+| **phase** | a `PHASE-*` note | also [[ADR-0028-Work-Has-Three-Phases]]'s three phases (design, implementation, publication) | open question: call ADR-0028's three **stages**, which needs an amendment to it, so "phase" means only a `PHASE-*` note |
+| **Needs you** | the list of what is owed to a person, first in each view and in the left pane | "the minimum up front", "what needs you by verb" | keep; "owed" stays the word for a row's state |
+| **release test**, **section** | as defined above (renamed 2026-09-27) | "walk", "sitting" in both designs | the designs catch up when they are revised |
+| **Shipping** | — | DES-0015's card for commits, the gate and the release test | say **Publication**, the view's name |

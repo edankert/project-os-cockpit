@@ -7,7 +7,7 @@ status: planned
 order: 45
 owner: user:edwin
 created: 2026-09-17
-updated: 2026-09-20
+updated: 2026-09-27
 goal: "A person opening a project sees what needs them, what is in flight and how far the work has travelled on one screen of a few kilobytes, and reaches the design, build, verification and issue flows one layer at a time, with the record behind a fold. Opened as a place to refine that idea, not as a commitment to build it."
 features:
   - "[[FEAT-0152-Home-First]]"
@@ -20,6 +20,8 @@ related:
   - "[[DES-0015-The-Cockpit-In-Layers]]"
   - "[[DES-0016-Levels-Of-Abstraction]]"
   - "[[REFERENCE-ABSTRACTION-LEVELS-SCAN]]"
+  - "[[REFERENCE-COCKPIT-LEVELS-INVENTORY]]"
+  - "[[GLOSSARY]]"
   - "[[REFERENCE-FUTURE-COCKPIT-ENHANCEMENTS]]"
   - "[[DES-0001-Overview-Redesign]]"
   - "[[DES-0008-The-Returning-Human]]"
@@ -83,6 +85,12 @@ D1 to D5 come from [[DES-0015-The-Cockpit-In-Layers]] and D6 to D10 from [[DES-0
 | D8 | Does the portfolio level get its own screen, and what are its four facts? | yes: decisions owed, issues open, commits unpushed, risks open, with a movement dot taken from the focus item rather than from git | open |
 | D9 | How far below the working level does this cockpit go — evidence, trace, or neither? | both, folded and reached only from a subject; the alternative is that the trace belongs to Deck or the terminal | open |
 | D10 | Is the drill-down contract a rule with teeth (an ADR), so an unresolvable number is a defect? | yes; it fails the overview's Tests 1 / 90 tile immediately, which is the point | open |
+| D11 | Which words do the designs use? Both drifted from the glossary: layer and level, Home and Overview, Design and Intent, flow and view, subject and ticket and note, Record as a level | the proposed vocabulary in [[GLOSSARY]], section "Proposed words for the levels": keep the built words, six levels named Fleet, Project, View, Note, Evidence, Trace | open |
+| D12 | Does a level only hide things, or may it remove them? DES-0015 leaves no path to untyped Markdown, because the Library moves under a fold reached only from a feature or issue page | a level hides and never removes; everything reachable today stays within two clicks of the Project level; the Library stays a view; a workspace with no project-os notes opens on the Library. The check is [[REFERENCE-COCKPIT-LEVELS-INVENTORY]] | open |
+| D13 | Are the plates redrawn before D1 to D10 are decided? They are mostly rows of text, show zeros on the fleet tiles, and put the note ID before the title | yes: one kind of picture per level, the title before the ID, zeros not drawn, one real item followed from Fleet to Trace | open |
+| D14 | Does the Fleet level live in the left pane's Needs you panel instead of on a page of its own? | yes: the panel already has one card per project that waits on you; it grows to show owed counts by verb, with projects owing nothing folded to one line, and `~agents` stays as its full page. This replaces D8's recommendation of a separate screen | open |
+| D15 | Do the levels run left to right across the panes? | yes: the rail and Needs you panel are the Fleet, the navigator is the View, the centre is the Note, the right pane is its Evidence; before a pick, the centre shows a summary (the Overview for a project, a picture for a view), never a second copy of the navigator's list | open |
+| D16 | Is the Project summary, or a view, a kanban board? | not by default. The Project summary is a strip of four flows with a count on each and the in-flight item placed on its flow. A view's state groups in the navigator are a board turned on its side; a board layout in the centre is optional for Features and Issues. Nothing is dragged, because a status changes only through a registry verb | open |
 
 Edwin's stance on the whole, 2026-09-17: *"I am not fully convinced."* No decision above is presumed.
 
@@ -96,16 +104,19 @@ Written so the phase can close on a refusal as honestly as on a build.
 - [ ] Each of the three features is either built and walked, or declined with the reason in its own note. Declining one does not block the others.
 - [ ] Whatever is built passes the design's ten-second test on Edwin's real data, recorded as an acceptance check: the person names the next decision, the in-flight item and the release blocker within ten seconds of opening a project, and the first screen loads under 50 KB.
 - [ ] Nothing built adds a status, a write path or a machine-written verdict, and the capability register names every new or changed row.
+- [ ] Every row of [[REFERENCE-COCKPIT-LEVELS-INVENTORY]] has a home in the settled design, or a decision recorded that retires it. Nothing is lost by omission.
 
 ## How to refine this
 
-- **To change the proposal**, edit [[DES-0015-The-Cockpit-In-Layers]] and its plates, add a line to its Revisions, and add a dated line to the log below saying what changed and why. One revision per commit.
+- **To change the proposal**, edit [[DES-0015-The-Cockpit-In-Layers]] or [[DES-0016-Levels-Of-Abstraction]] and its plates, add a line to its Revisions, and add a dated line to the log below saying what changed and why. One revision per commit.
 - **To raise a question**, add a row to Open decisions with a new id and leave its status `open`.
 - **To decide something**, fill the status column with the date and Edwin's words, and record it where the table says.
 - **To try one option without committing to the model**, move that feature to `planned` and set `focus.feature`; the phase becomes `active` with it. The other two stay `backlog`.
 - **To give up on it**, cancel the design and close this phase as `deferred` or `superseded`; the measurements in the design stay true either way.
 
 ## Refinement log
+
+- 2026-09-27 — Edwin reviewed DES-0015 and raised three concerns: *"the terminology is shifting from what was defined initially and I am not sure I am fully happy with or know exactly what is going anymore"*; *"some of the functionality would be removed if we would implement this, for instance the opportunity to read none project-os type tickets stored in the docs area"*; and *"a lot of the layers can do with a little more changes to the graphics to make them more easily to digest"*. He then asked whether the fleet could live in the left pane's Needs you panel, whether the project view is a kanban board, and whether the left pane could hold the high-level view with more detail to the right. Recorded as D11 to D16. A vocabulary proposal was added to [[GLOSSARY]] and the inventory [[REFERENCE-COCKPIT-LEVELS-INVENTORY]] written; it found four real losses (Library with its pins, Publication, the platform filter, backlinks under option B) and six things neither design mentions. It also corrects the first review: the shell shows seven view buttons, not nine. The designs and their plates are not revised yet; that waits for D11. The phase's own goal and headings still say "layer" for the same reason.
 
 - 2026-09-20 — Second design offered, [[DES-0016-Levels-Of-Abstraction]], after Edwin: *"the project-os-cockpit is now too complex, it shows way too much information … ideally you want to provide different levels of abstraction instead, where each level of abstraction gets you closer to the real content, the full ticket content."* It re-cuts DES-0015's material by reader rather than by payload size and extends it in both directions: a portfolio level above (thirteen projects as thirteen states) and evidence and trace levels below the one anyone needs to build with. Seven plates, measured across all thirteen repositories on 2026-09-20; the market scan behind it is [[REFERENCE-ABSTRACTION-LEVELS-SCAN]]. Five decisions added, D6 to D10. Nothing built; no feature moved; focus unchanged.
 
