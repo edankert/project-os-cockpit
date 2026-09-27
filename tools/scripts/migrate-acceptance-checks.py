@@ -263,7 +263,7 @@ def compare(before: list[A.Item], after: list[A.Item]) -> list[str]:
     # the source.
     def _gated(items):
         return [i for i in items
-                if A.section_of(i) in A.MANUAL_SECTIONS and i.tier != 3]
+                if A.kind_of(i) in A.MANUAL_KINDS and i.tier != 3]
 
     for label, fn in (("settled", lambda s: sum(1 for i in s if i.settled)),
                       ("blocking", lambda s: sum(
@@ -282,9 +282,9 @@ def entering_the_gate(before: list[A.Item], after: list[A.Item]) -> list[A.Item]
     accept.
     """
     was = {i.number for i in before
-           if A.section_of(i) in A.MANUAL_SECTIONS and not i.settled}
+           if A.kind_of(i) in A.MANUAL_KINDS and not i.settled}
     return [i for i in after
-            if A.section_of(i) in A.MANUAL_SECTIONS and not i.settled
+            if A.kind_of(i) in A.MANUAL_KINDS and not i.settled
             and i.number not in was]
 
 
@@ -460,7 +460,7 @@ def main() -> int:
 
     settled = sum(1 for i in after if i.settled)
     blocking = sum(1 for i in after
-                   if A.section_of(i) in A.MANUAL_SECTIONS and not i.settled)
+                   if A.kind_of(i) in A.MANUAL_KINDS and not i.settled)
     marks: dict[str, int] = {}
     for item in after:
         marks[item.mark] = marks.get(item.mark, 0) + 1

@@ -3,7 +3,7 @@
   "entries": [
     {
       "check": "TST-0044",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -11,7 +11,7 @@
     },
     {
       "check": "TST-0045",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -19,7 +19,7 @@
     },
     {
       "check": "TST-0046",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -27,7 +27,7 @@
     },
     {
       "check": "TST-0047",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -35,7 +35,7 @@
     },
     {
       "check": "TST-0048",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -43,7 +43,7 @@
     },
     {
       "check": "TST-0049",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -51,7 +51,7 @@
     },
     {
       "check": "TST-0050",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -59,7 +59,7 @@
     },
     {
       "check": "TST-0051",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -67,7 +67,7 @@
     },
     {
       "check": "TST-0052",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -75,7 +75,7 @@
     },
     {
       "check": "TST-0053",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -83,7 +83,7 @@
     },
     {
       "check": "TST-0054",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -91,7 +91,7 @@
     },
     {
       "check": "TST-0055",
-      "mark": "partial",
+      "result": "partial",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -99,7 +99,7 @@
     },
     {
       "check": "TST-0056",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -107,7 +107,7 @@
     },
     {
       "check": "TST-0057",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -115,7 +115,7 @@
     },
     {
       "check": "TST-0058",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -123,7 +123,7 @@
     },
     {
       "check": "TST-0059",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -131,7 +131,7 @@
     },
     {
       "check": "TST-0060",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -139,7 +139,7 @@
     },
     {
       "check": "TST-0061",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -147,7 +147,7 @@
     },
     {
       "check": "TST-0062",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -155,7 +155,7 @@
     },
     {
       "check": "TST-0063",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -163,7 +163,7 @@
     },
     {
       "check": "TST-0064",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -171,7 +171,7 @@
     },
     {
       "check": "TST-0065",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -179,7 +179,7 @@
     },
     {
       "check": "TST-0066",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -187,7 +187,7 @@
     },
     {
       "check": "TST-0067",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -195,7 +195,7 @@
     },
     {
       "check": "TST-0068",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -203,7 +203,7 @@
     },
     {
       "check": "TST-0069",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -211,7 +211,7 @@
     },
     {
       "check": "TST-0070",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -219,7 +219,7 @@
     },
     {
       "check": "TST-0071",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -227,7 +227,7 @@
     },
     {
       "check": "TST-0072",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -235,7 +235,7 @@
     },
     {
       "check": "TST-0073",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -243,7 +243,7 @@
     },
     {
       "check": "TST-0074",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -251,7 +251,7 @@
     },
     {
       "check": "TST-0075",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -259,7 +259,7 @@
     },
     {
       "check": "TST-0076",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -267,7 +267,7 @@
     },
     {
       "check": "TST-0077",
-      "mark": "pass",
+      "result": "pass",
       "date": "2026-08-19",
       "method": "migration",
       "by": "migration",
@@ -275,7 +275,7 @@
     },
     {
       "check": "TST-0088",
-      "mark": "partial",
+      "result": "partial",
       "date": "2026-09-13",
       "method": "manual",
       "by": "user:edwin",
@@ -283,7 +283,7 @@
     },
     {
       "check": "TST-0089",
-      "mark": "partial",
+      "result": "partial",
       "date": "2026-09-14",
       "method": "manual",
       "by": "model:claude-opus-5",
