@@ -26,6 +26,6 @@ related: ["[[PHASE-043-The-Walk-Page]]"]
 - **Hard:** the pilot in step 4 needs Your Trainer's rewritten equipment section and shortened `## Expect` lines (your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot).
 - **Soft:** the old page stays in place until the pilot passes, so a release in progress is never left without a page.
 
-## Open questions
+## Answered questions
 
-- The word "section" already names "Feature tests", "Regression tests" and "Automated tests" in this repository ([[ADR-0039-Three-Sections-Derived-Not-Filed]]). See the feature's open questions.
+- The word "section" used to name "Feature tests", "Regression tests" and "Automated tests" here ([[ADR-0039-Three-Sections-Derived-Not-Filed]]). Edwin decided on 2026-09-27 that those become "test kinds", so "section" has one meaning. TASK-0639 renames them.

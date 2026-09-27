@@ -28,7 +28,8 @@ tests: []
 - [ ] The obligation links in `src/project_os_cockpit/obligations.py` and `cockpit.py` ("Walk them") point at the new address and use the new words.
 - [ ] A test searches `src/` and `desktop/src/` for the old words in the old sense and fails on any hit outside a redirect or migration table.
 - [ ] Live notes use the new words: SUR-0004's title and prose, `docs/GLOSSARY.md`, `docs/references/COCKPIT-API.md`, `docs/references/TESTING-MODEL.md`, `docs/reference/cockpit-capability-register.md`, `docs/tests/acceptance/WALK.md` and `README.md`, and PHASE-043's title. File names and IDs of existing notes do not change. Closed ADRs, change notes and archived notes are not edited.
-- [ ] The ledger's stored values are unchanged.
+- [ ] The ledger's stored values are unchanged. New entries use the key `result`, and every reader accepts `mark`.
+- [ ] "Feature tests", "Regression tests" and "Automated tests" are called test kinds in code and live notes (`section_of`, `SECTION_FEATURE`, `MANUAL_SECTIONS` and the like become `kind_of`, `KIND_FEATURE`, `MANUAL_KINDS`), so "section" means only a release test section.
 - [ ] The full Python suite and the desktop suite pass.
 
 ## Steps
@@ -45,4 +46,4 @@ Template-owned files (`tools/instructions/TESTING.md` "The walk", `tools/skills/
 
 Every fleet repository carries a copy of the cockpit under `tools/cockpit/`, which still links to `~walk` until the next cockpit release reaches it. The `~walk` redirect covers those links, and the release note links in Your Trainer such as `REL-0017-v2.2.0.md`.
 
-The word "section" already has a meaning in this repository. [[ADR-0039-Three-Sections-Derived-Not-Filed]] calls "Feature tests", "Regression tests" and "Automated tests" sections, and the code says `section_of`, `SECTION_FEATURE` and `MANUAL_SECTIONS`. After the rename, the Tests pane would show both kinds of "section" under "Acceptance tests". This is an open question for Edwin, recorded on the feature. Until he answers, the new code names the release-test kind `release_section` and leaves ADR-0039's names alone.
+The word "section" already has a meaning in this repository. [[ADR-0039-Three-Sections-Derived-Not-Filed]] calls "Feature tests", "Regression tests" and "Automated tests" sections, and the code says `section_of`, `SECTION_FEATURE` and `MANUAL_SECTIONS`. After the rename, the Tests pane would show both kinds of "section" under "Acceptance tests". Edwin decided on 2026-09-27 to rename the old meaning: those three become "test kinds" in code and notes (`kind_of`, `KIND_FEATURE`, `MANUAL_KINDS` and the like), and the release test's groups are plain `section`. The ledger's stored key becomes `result`, and every reader keeps accepting `mark`.
