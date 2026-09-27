@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0645
 title: "Pilot: Your Trainer's Android Equipment Hub section end to end, compared with the example page; then the other Android sections; then iOS"
-status: doing
+status: done
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
@@ -21,12 +21,12 @@ tests: ["[[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]]"]
 
 ## Definition of Done
 
-- [ ] Your Trainer's Android Equipment Hub section, rewritten in your-trainer (your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot), renders in the cockpit from a copy of Your Trainer's docs and ledger.
-- [ ] It is compared with `../../__attachments__/release-test-example/index.html` part by part: header, what changed, Setup, each group and each check. Every difference is listed below with whether it is fixed here, in the generator (project-os-dev), or in Your Trainer's notes.
-- [ ] Edwin has looked at the rendered pilot section beside the example and said whether it matches. That answer is quoted here.
-- [ ] Only then: every other Android section renders, and the Android overview's totals equal `ledger.owed` for Android.
-- [ ] Then the same for iOS.
-- [ ] No ledger outside a copy is written by this task.
+- [x] Your Trainer's Android Equipment Hub section, rewritten in your-trainer (your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot), renders in the cockpit from a copy of Your Trainer's docs and ledger. Opened in `desktop/harness/live-harness.html` on a scratch copy of your-trainer (see Progress).
+- [x] It is compared with `../../__attachments__/release-test-example/index.html` part by part: header, what changed, Setup, each group and each check. Every difference is listed below with whether it is fixed here, in the generator (project-os-dev), or in Your Trainer's notes. The differences and their reasons are in your-trainer TASK-0975's notes, with screenshots under your-trainer `docs/features/release-test/evidence/`. The three Edwin raised are listed under his review below.
+- [x] Edwin has looked at the rendered pilot section beside the example and said whether it matches. That answer is quoted here. Quoted below: "the overall setup is now really good", with three issues, each fixed.
+- [x] Only then: every other Android section renders, and the Android overview's totals equal `ledger.owed` for Android. All thirteen Android sections were rewritten in your-trainer that day (TASK-0976). `tests/test_release_test_route.py` builds the page on your-trainer's corpus for each platform with no error, and asserts that its test notes are `ledger.owed` plus the ones this release already recorded, and that "test notes still owed" equals `ledger.owed`. It passes on the rewritten corpus.
+- [x] Then the same for iOS. The same test covers iOS. your-trainer TASK-0978 rewrote the fourteen iOS sections.
+- [x] No ledger outside a copy is written by this task. Results were only given in the harness, on the scratch copy.
 
 ## Differences from the example
 

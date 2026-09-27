@@ -940,7 +940,7 @@ items:
       phase: "[[PHASE-043]]"
     TASK-0645:
       file: docs/features/release-test/plan/tasks/TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest.md
-      status: doing
+      status: done
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0361:
@@ -3607,7 +3607,7 @@ metrics:
     features_total: 154
     features_done: 136
     tasks_total: 639
-    tasks_done: 601
+    tasks_done: 602
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182
