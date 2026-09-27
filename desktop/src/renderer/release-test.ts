@@ -300,41 +300,46 @@ function rtCarryWalkMarks(page: RtPage, old: Record<string, { verdict?: string; 
   return { marks, used };
 }
 
-/** The walk page's five browser storage keys, and the names they have now.
- *  Each is moved once, then the old key is removed ([[TASK-0639]]). */
-const RT_RENAMED_KEYS: Array<[string, string]> = [
-  ['walk-focus', 'release-test-focus'],
-  ['walk-completed', 'release-test-completed'],
-  ['walk-place', 'release-test-place'],
-  ['walk-steps', 'release-test-walk-steps'],
-  ['walk-evidence', 'release-test-evidence'],
-];
+/** The walk page's browser storage, and what becomes of each key
+ *  ([[TASK-0639]], review of FEAT-0155). Its step results are carried onto
+ *  this page's checks by `rtAdoptSavedState`, from the old key itself.
+ *  Its focus, completed steps, place and readiness were the old page's own
+ *  view state, which nothing here reads, so they are removed. Its typed
+ *  evidence is left where it is: this page has no step to show it against,
+ *  and removing it would lose what the tester wrote. */
+const RT_OLD_STEPS_KEY = 'walk-steps';
+const RT_RETIRED_KEYS = ['walk-focus', 'walk-completed', 'walk-place', 'walk-ready'];
 
-/** Move each old key's value under its new name, once. A value already under
- *  the new name wins. The walk page's step results stay in
- *  `release-test-walk-steps` until `rtCarryWalkMarks` has carried them. */
+/** Remove the old page's view state, once. Returns the keys removed. */
 function rtMigrateStorage(store: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>,
                           workspaceId: string): string[] {
-  const moved: string[] = [];
-  for (const [from, to] of RT_RENAMED_KEYS) {
+  const removed: string[] = [];
+  for (const from of RT_RETIRED_KEYS) {
     const oldKey = `cockpit:${from}:${workspaceId}`;
-    const newKey = `cockpit:${to}:${workspaceId}`;
-    const value = store.getItem(oldKey);
-    if (value === null) continue;
-    if (store.getItem(newKey) === null) {
-      //: A saved place is an address, and the old address is `~walk`.
-      store.setItem(newKey, from === 'walk-place'
-        ? value.replace(/^~walk(?=\/|$)/, '~release-test') : value);
-    }
+    if (store.getItem(oldKey) === null) continue;
     store.removeItem(oldKey);
-    moved.push(from);
+    removed.push(from);
   }
-  return moved;
+  return removed;
 }
 
 /** `~walk` and `~walk/<platform>`, the old addresses, as the new ones. */
 function rtAddressFor(rel: string): string {
   return rel.replace(/^~walk(?=\/|$)/, '~release-test');
+}
+
+/** What an address means to the release test, or null when it is another
+ *  page. `moved` is an old `~walk` address, which the renderer opens under
+ *  its new name; otherwise the platform, the section slug and the fragment
+ *  naming a check. The renderer routes through this one function, so the
+ *  redirect is tested here ([[TASK-0644]]). */
+function rtRoute(rel: string): { moved: boolean; address: string; platform: string;
+                                 slug: string; fragment: string } | null {
+  const [path, fragment = ''] = rel.split('#');
+  const address = rtAddressFor(path);
+  if (address !== '~release-test' && !address.startsWith('~release-test/')) return null;
+  const parts = address.split('/').slice(1).map((part) => decodeURIComponent(part));
+  return { moved: address !== path, address, platform: parts[0] || '', slug: parts[1] || '', fragment };
 }
 
 // ------------------------------------------------------------------- storage
@@ -375,7 +380,7 @@ function rtAdoptSavedState(page: RtPage): void {
   if (!activeId) return;
   try {
     rtMigrateStorage(localStorage, activeId);
-    const key = `cockpit:release-test-walk-steps:${activeId}`;
+    const key = `cockpit:${RT_OLD_STEPS_KEY}:${activeId}`;
     const raw = localStorage.getItem(key);
     if (!raw) return;
     const old = JSON.parse(raw) as Record<string, { verdict?: string; reason?: string }>;
@@ -392,6 +397,8 @@ function rtAdoptSavedState(page: RtPage): void {
 // ---------------------------------------------------------------------- page
 
 let rtPage: RtPage | null = null;
+/** The workspace `rtPage` was drawn for. */
+let rtPageWorkspace: string | null = null;
 /** Which sections' Setup the tester opened, for this session. */
 const rtSetupOpen = new Set<string>();
 
@@ -412,6 +419,7 @@ async function renderReleaseTestPage(platform: string, slug: string): Promise<bo
     page = body;
   } catch { return false; }
   rtPage = page;
+  rtPageWorkspace = activeId;
   if (Array.isArray(page.platforms)) ledgerPlatforms = page.platforms;
   if (page.error) {
     rtShow(rtNotice('release-test-refusal', page.error));
@@ -488,6 +496,23 @@ function rtSetNavNeeds(li: HTMLElement, n: number): void {
   }
   badge.textContent = String(n);
   badge.title = `${n} need${n === 1 ? 's' : ''} you: open the overview's Needs you list`;
+}
+
+/** After a result: draw the section again where the reader was, and bring
+ *  the pane's dots, bars and count up to date ([[TASK-0643]]). */
+function rtRedraw(page: RtPage, section: RtSection): void {
+  const scroll = docView.scrollTop;
+  rtShow(rtBuildSection(page, section));
+  docView.scrollTop = scroll;
+  rtRefreshPane(page, rtLoadMarks());
+}
+
+/** The pane is rebuilt from the server when a file changes, and the server
+ *  counts only what the ledger holds. The results in this browser are laid
+ *  on again for the release test last opened in this workspace. */
+function rtReapplyPane(): void {
+  if (!rtPage || rtPageWorkspace !== activeId) return;
+  rtRefreshPane(rtPage, rtLoadMarks());
 }
 
 /** Empty, half, full, or red when a result there needs the owner. */
@@ -639,7 +664,7 @@ function rtBuildOverview(page: RtPage): HTMLElement {
   const cont = rtEl('button', 'rt-continue');
   cont.type = 'button';
   if (next) {
-    cont.appendChild(rtEl('small', '', done ? 'Continue where you stopped' : 'Start'));
+    cont.appendChild(rtEl('small', '', done || Object.keys(page.results).length ? 'Continue where you stopped' : 'Start'));
     cont.appendChild(rtEl('b', '', next.section.name));
     cont.appendChild(rtEl('span', 'rt-next', `Check ${next.check.number}: ${next.check.action.replace(/\*\*/g, '')}`));
     cont.appendChild(rtEl('span', 'rt-arrow', '→'));
@@ -1207,10 +1232,7 @@ async function rtRecord(page: RtPage, section: RtSection, check: RtCheck,
       wrote = true;
     }
   }
-  const scroll = docView.scrollTop;
-  rtShow(rtBuildSection(page, section));
-  docView.scrollTop = scroll;
-  rtRefreshPane(page, rtLoadMarks());
+  rtRedraw(page, section);
   if (wrote) {
     showStatus(`Recorded ${check.checks.join(', ')} in the ${rtPlatformName(page.platform)} ledger.`, 'info');
     scheduleHide(4000);

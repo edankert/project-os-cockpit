@@ -32,7 +32,7 @@ This replaces the one-action-at-a-time rule of [[REQ-0066-The-Release-Walk-Keeps
 - [x] The Tests pane lists the release test per platform and per section, with progress — evidence: `cockpit._release_test_group` and `rtRefreshPane` ([[TASK-0641-The-Release-Test-In-The-Tests-Pane]]); [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]] step 1, 2026-09-27.
 - [x] A platform opens on its overview — evidence: `~release-test/<platform>` draws the overview ([[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]]); TST-0092 step 2.
 - [x] A section page shows what changed, then Setup folded, then grouped checks — evidence: [[TASK-0643-The-Section-Page-And-Its-Results]]; TST-0092 step 4.
-- [x] Each check is one action, one expected result and its test tag — evidence: TASK-0643 and the pilot, [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]]; TST-0092 step 4.
+- [x] Each check is one action, the expected line of each part it cites, and its tags (corrected on review, 2026-09-27: a step may cite several parts) — evidence: TASK-0643 and the pilot, [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]]; TST-0092 step 4.
 
 ## Traceability
 

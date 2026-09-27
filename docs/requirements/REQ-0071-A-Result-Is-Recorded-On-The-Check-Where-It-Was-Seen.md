@@ -30,7 +30,7 @@ The section page must let a person give each check one of seven results where th
 ## Acceptance Criteria
 
 - [x] All seven results are offered, Pass and Fail in one tap — evidence: TASK-0643; TST-0092 step 5.
-- [x] Every result but Pass needs a reason before it is saved — evidence: `rtNoteResults` writes nothing until every reason is filled in; `release-test.test.mjs`; TST-0092 step 5.
+- [x] Every result but Pass needs a reason before it is written to the ledger (corrected on review, 2026-09-27) — evidence: `rtNoteResults` writes nothing until every reason is filled in; `release-test.test.mjs`; TST-0092 step 5.
 - [x] Results reach the ledger through the existing write path with unchanged stored values — evidence: `postCheckVerdict`; TST-0092 step 8 on a scratch ledger wrote one event with the worst result, stored under `result`.
 - [x] Pane, overview, Continue and Needs you update at once and the reader stays in place — evidence: `rtRefreshPane`; `release-test.test.mjs`; TST-0092 step 6.
 - [x] Continue names and opens the next check with no result — evidence: `rtContinue` and `rtFocusCheck`; TST-0092 step 3.

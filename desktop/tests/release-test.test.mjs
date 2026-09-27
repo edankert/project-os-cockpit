@@ -159,25 +159,26 @@ test("the walk page's saved step results move to the check with the same tags", 
   assert.equal(used.length, 2, 'the iOS entry belongs to the iOS page and is left for it');
 });
 
-test('the five walk storage keys are moved once, and a saved place gets the new address', async () => {
+test("the old page's view state is removed once, and its typed evidence is left alone", async () => {
   const rt = await load();
   const store = new Map([
     ['cockpit:walk-place:ws', '~walk/android'],
-    ['cockpit:walk-steps:ws', '{}'],
-    ['cockpit:release-test-focus:ws', 'kept'],
     ['cockpit:walk-focus:ws', 'older'],
+    ['cockpit:walk-ready:ws', '{}'],
+    ['cockpit:walk-evidence:ws', '{"k":{"note":"typed"}}'],
+    ['cockpit:walk-steps:ws', '{}'],
   ]);
   const api = {
     getItem: (k) => (store.has(k) ? store.get(k) : null),
     setItem: (k, v) => store.set(k, v),
     removeItem: (k) => store.delete(k),
   };
-  const moved = rt.rtMigrateStorage(api, 'ws');
-  assert.deepEqual(plain([...moved].sort()), ['walk-focus', 'walk-place', 'walk-steps']);
-  assert.equal(store.get('cockpit:release-test-place:ws'), '~release-test/android');
-  assert.equal(store.get('cockpit:release-test-focus:ws'), 'kept', 'a value under the new name wins');
-  assert.ok(![...store.keys()].some((k) => k.startsWith('cockpit:walk-')), 'every old key is removed');
-  assert.deepEqual(plain(rt.rtMigrateStorage(api, 'ws')), [], 'a second run moves nothing');
+  const removed = rt.rtMigrateStorage(api, 'ws');
+  assert.deepEqual(plain([...removed].sort()), ['walk-focus', 'walk-place', 'walk-ready']);
+  assert.equal(store.get('cockpit:walk-evidence:ws'), '{"k":{"note":"typed"}}', 'what the tester typed is kept');
+  assert.equal(store.get('cockpit:walk-steps:ws'), '{}', 'step results wait for rtAdoptSavedState');
+  assert.ok(![...store.keys()].some((k) => /release-test-.*walk/.test(k)), 'no new key names the walk');
+  assert.deepEqual(plain(rt.rtMigrateStorage(api, 'ws')), [], 'a second run removes nothing');
 });
 
 test('the old addresses open the release test', async () => {
@@ -275,4 +276,42 @@ test('a filed picture is kept only when the reply names a PNG under its own test
   assert.equal(rt.rtSafeAttachment('attachments/TST-0028/../../secret.png', 'TST-0028'), false);
   assert.equal(rt.rtSafeAttachment('attachments/TST-0028/2026-09-27-1.jpg', 'TST-0028'), false);
   assert.equal(rt.rtSafeAttachment('', 'TST-0028'), false);
+});
+
+test('the old walk addresses route to the release test, and other pages do not', async () => {
+  const rt = await load();
+  assert.deepEqual(plain(rt.rtRoute('~walk')), { moved: true, address: '~release-test', platform: '', slug: '', fragment: '' });
+  assert.deepEqual(plain(rt.rtRoute('~walk/android')), { moved: true, address: '~release-test/android', platform: 'android', slug: '', fragment: '' });
+  assert.deepEqual(plain(rt.rtRoute('~release-test/android/fresh-install#rt-check-4')),
+    { moved: false, address: '~release-test/android/fresh-install', platform: 'android', slug: 'fresh-install', fragment: 'rt-check-4' });
+  assert.equal(rt.rtRoute('~walker'), null);
+  assert.equal(rt.rtRoute('~checks'), null);
+});
+
+test('after a result the section is drawn again where the reader was, and the pane is refreshed', async () => {
+  const rt = await load();
+  const calls = [];
+  rt.docView = { scrollTop: 480 };
+  rt.rtBuildSection = () => ({});
+  rt.rtShow = () => { rt.docView.scrollTop = 0; };
+  rt.rtLoadMarks = () => ({ k: 1 });
+  rt.rtRefreshPane = (page, marks) => calls.push(plain(marks));
+  const p = page();
+  rt.rtRedraw(p, p.sections[0]);
+  assert.equal(rt.docView.scrollTop, 480);
+  assert.deepEqual(calls, [{ k: 1 }]);
+});
+
+test("the pane's platform row gets the overview's Needs you count", async () => {
+  const rt = await load();
+  const row = { querySelector: () => null };
+  rt.CSS = { escape: (s) => s };
+  rt.document = { querySelector: (sel) => (sel === 'li[data-rel="~release-test/android"]' ? row : null) };
+  const got = [];
+  rt.rtSetNavNeeds = (li, n) => got.push([li === row, n]);
+  const p = page();
+  const marks = Object.fromEntries([mark(rt, p, 0, 1, 'fail', 'Slot missing')]);
+  rt.rtRefreshPane(p, marks);
+  assert.deepEqual(got, [[true, rt.rtNeedsYou(p, marks).length]]);
+  assert.ok(got[0][1] > 0);
 });

@@ -30,14 +30,14 @@ OLD = re.compile(r"walk|sitting|survey", re.I)
 #: Where an old word stays, as `(file name, text that must be on the line)`.
 ALLOWED = [
     #: The redirect: `~walk` and `~walk/<platform>` open the release test.
-    ("renderer.ts", "normalised === '~walk'"),
-    ("release-test.ts", "~walk"),
-    #: The storage migration table and the step results it carries over.
-    ("release-test.ts", "'walk-"),
-    ("release-test.ts", "release-test-walk-steps"),
+    ("release-test.ts", "replace(/^~walk(?=\\/|$)/, '~release-test')"),
+    #: The old page's storage keys, and the step results carried from them.
+    ("release-test.ts", "RT_OLD_STEPS_KEY = 'walk-steps'"),
+    ("release-test.ts", "RT_RETIRED_KEYS = ['walk-focus'"),
     ("release-test.ts", "rtCarryWalkMarks"),
     ("release-test.ts", "old: Record<string, { verdict?: string; reason?: string }>"),
-    ("release-test.ts", "sitting"),
+    ("release-test.ts", "const sitting = parts[2]"),
+    ("release-test.ts", "s.name === sitting"),
     #: The validator code for an old name has to say what the old name was.
     ("validation-rows.ts", "'OLD-NAME'"),
     #: The DOM's own name for walking a tree.

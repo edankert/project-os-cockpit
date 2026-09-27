@@ -51,7 +51,7 @@ The values stored in the release ledger do not change (`pass`, `fail`, `partial`
 
 ## Scope
 
-**The Tests pane.** Under "Acceptance tests" there is a new entry, "Release test · <version>". Under it is one row per platform with its progress. Under each platform are its sections, each with a status dot and a count such as 11/28. The dot is empty before any result, half filled when part done, filled when done, and red when the section holds a Fail, Question or Blocked result. "Feature tests" and "Regression tests" stay under "Acceptance tests" as they are. This entry replaces the `~walk/<platform>` page in the Publication view.
+**The Tests pane.** The Tests pane has a new group, "Release test · <version>", placed right after "Needs you" and above "Feature tests" and "Regression tests". Under it is one row per platform with its progress. Under each platform are its sections, each with a status dot and a count such as 11/28. The dot is empty before any result, half filled when part done, filled when done, and red when the section holds a Fail, Question or Blocked result. "Feature tests" and "Regression tests" stay under "Acceptance tests" as they are. This entry replaces the `~walk/<platform>` page in the Publication view.
 
 **The platform overview** opens by default when a platform row is chosen. It shows:
 
@@ -107,13 +107,13 @@ Risk scan: the route, API path, bundled file name and browser storage keys chang
 
 ## Acceptance
 
-- [x] The Tests pane shows "Release test · <version>" under "Acceptance tests", one row per platform with its progress, and under each platform its sections with a status dot and a done/total count. "Feature tests" and "Regression tests" are still under "Acceptance tests". — TST-0092 step 1: the pane's first group is "Release test · v2.2.0", above Feature, Regression and Automated tests; the pane has no "Acceptance tests" heading and never had one, so TST-0092 now says "first group".
+- [x] The Tests pane shows "Release test · <version>" right after "Needs you" and above "Feature tests" and "Regression tests", one row per platform with its progress, and under each platform its sections with a status dot and a done/total count. — TST-0092 step 1. *Corrected on review, 2026-09-27: this said "under Acceptance tests", a heading the pane has never had.*
 - [x] Choosing a platform opens its overview: a bar coloured by result with a count per result, a Continue button naming the next check with no result, Needs you, and the section list with one bench line each. — TST-0092 step 2 ([[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]]).
 - [x] Continue opens the section holding the next check with no result and scrolls that check into view. — TST-0092 step 3 (`rtContinue`, `rtFocusCheck`).
 - [x] Needs you lists every Fail, Question, Blocked and Partial result with its reason, and every declared decision and readiness problem. Each entry opens its check. — TST-0092 steps 6 and 7; each platform row also carries the count (`rtSetNavNeeds`).
 - [x] A section page shows, in order: what changed for this platform grouped by screen, with screenshots that enlarge on click and a warning on a stale capture; Setup folded by default in three parts; then the checks in groups, each with a heading and at most one "Start:" line. — TST-0092 step 4 ([[TASK-0643-The-Section-Page-And-Its-Results]]).
-- [x] Each check shows a number, one action line, one expected line after an arrow, and its test tag, and nothing else unless it is greyed with a reason. — TST-0092 step 4; greyed checks seen on your-trainer's Equipment section.
-- [x] Pass and Fail take one tap. The other five results are under More with their one-line meanings. Every result except Pass requires a reason before it is saved. — TST-0092 step 5.
+- [x] Each check shows a number, one action line, the expected line of each check part it cites after an arrow, and its tags. It shows nothing else unless it is greyed with a reason, or its procedure declares a timer, a capture, a comparison or a start state for it. — TST-0092 step 4; `rtBuildCheck`. *Corrected on review, 2026-09-27: this said "one expected line". A procedure step may cite several parts of one check, and the approved example has a timer; on REL-0017, 17 Android checks cite more than one part.*
+- [x] Pass and Fail take one tap. The other five results are under More with their one-line meanings. A result shows at once on the page, and every result except Pass is written to the ledger only when its reason is filled in; until then its box is outlined in the Fail colour. — TST-0092 steps 5 and 8; `rtNoteResults`. *Corrected on review, 2026-09-27: this said "before it is saved"; what waits for the reason is the ledger write.*
 - [x] A result reaches the release ledger through `postCheckVerdict`. On a ledger copy, results on every check of a test note write the same events as marking that test note directly. — TST-0092 step 8 on a scratch ledger; `release-test.test.mjs` (`rtWorst`).
 - [x] After a result, the pane dot and count, the overview bar, Continue and Needs you all change without a reload, and the reader stays on the section page at the same scroll position. — TST-0092 step 6; `release-test.test.mjs`.
 - [x] No route, API path, payload function, bundled file name, label, CSS class or storage key in `src/` or `desktop/src/` contains "walk", "sitting" or "survey" in the old sense. Saved results under the old storage keys are carried over, not lost. — `tests/test_release_test_names.py` ([[TASK-0639-Rename-The-Walk-To-The-Release-Test]]); the storage move is tested in `release-test.test.mjs`.
@@ -133,3 +133,30 @@ Full run, 2026-09-27: `.venv/bin/python -m pytest -q` passed 2,136 tests with 11
 - Acceptance check: [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]].
 - Specification: `__attachments__/release-test-example/index.html` (the approved example, with its screenshots in `img/`).
 - Other repositories: project-os-dev FEAT-0040 and ADR-0050, the release test generator, the vocabulary decision and the release-prep skill. your-trainer FEAT-0129, the rewrite of the procedures and test notes with the Equipment section pilot.
+
+## Review, round 1, 2026-09-27
+
+Two independent reviewers (model:claude-opus-5-5, fresh contexts) reviewed the packet for ef1e21f..3f46b4a. Combined verdict: **changes-requested**.
+
+| Claim | Combined | What was done |
+|---|---|---|
+| 1. The pane shows the release test "under Acceptance tests" | refuted as worded | The pane has no such heading, and the group sits after Needs you. The criterion and the Scope now say where it is. |
+| 2, 3, 4, 8 | holds | — |
+| 5. Section page order | holds; the stale warning and enlarge were not checked | — |
+| 6. "One expected line" per check | refuted | A step citing several parts of one check prints each part's line, as TESTING.md rule 9 says, and the approved example has a timer. The criterion now says so. |
+| 7. A reason "before it is saved" | partly refuted | The result shows at once; the ledger write waits for the reason. The criterion now says so. |
+| 9. The pane updates and the scroll is kept after a result | refuted as tested | `rtRedraw` now holds these steps, and a test fails if either is removed. A server rebuild of the pane dropped the browser's counts; `renderWsNav` now calls `rtReapplyPane`. |
+| 10. No name says walk; saved results carry over | partly refuted | A new key, `release-test-walk-steps`, named the walk, three moved keys had no reader, `walk-ready` was missed, and the moved place never matched. Now: step results are carried from the old key itself; focus, completed, place and ready are removed; the typed evidence is left where it is, because this page has nothing to show it against. The name test's allowlist is narrowed to the exact lines. |
+| 11. `~walk` opens the new overview | holds, not guarded | The route is decided by `rtRoute`, which the renderer calls for every release test address, and a test covers the redirect. |
+| 12. Equipment section matches the example | not checked | Edwin's comparison, 2026-09-27. |
+| A1. The row's count equals Needs you | partly refuted | A test now fails if the wiring is removed. The count shows for the platform whose page was opened in this session; the other platform's row has no count until its page is opened, because the browser holds its results but not its page. |
+| A2. A picture is filed under the first test note | holds | The refusal of an unexpected path happens after the server wrote the file, so it could leave a stray PNG; the server always returns the safe path, so this is defence only. |
+
+Observations kept as they are, with the reason:
+
+- A test note is written to the ledger only when every printed check citing it has a result in this browser, so a check showing only a ledger result must be marked again here before the note is rewritten. That is deliberate: a new result for a note comes from its checks on this release.
+- Clearing a local result shows the ledger's recorded result for that check again, which is the true state.
+- The pane label uses one version for every platform when a platform falls back to another's open release (TASK-0640, tested).
+- Continue said "Start" when nothing was marked in this browser but the ledger already held results; it now says "Continue where you stopped" then.
+- `rtAttachPicture` checks the file name; the server checks the PNG itself.
+- The two reviewers removed guards in the same working tree at the same time, and each saw the other's change. The independent-review skill should tell a reviewer to break guards in its own copy (reported to project-os-dev as an observation, not filed).

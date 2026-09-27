@@ -1391,20 +1391,20 @@ async function navigateToInner(
   //: ([[FEAT-0149]]). The walk is the release test now ([[TASK-0639]]), and
   //: the old addresses still open it: every fleet repo's copy of the cockpit
   //: and your-trainer's release notes still link to them.
-  if (normalised === '~walk' || normalised.startsWith('~walk/')) {
-    await navigateToInner(rtAddressFor(normalised), { ...opts, replace: true });
-    return;
-  }
   //: `~release-test[/<platform>[/<section>]]` — one platform's release test,
   //: in the Tests view ([[FEAT-0155]]). A fragment names a check to scroll
-  //: to, as "Continue" and "Needs you" do.
-  if (normalised === '~release-test' || normalised.startsWith('~release-test/')) {
-    const [address, fragment] = normalised.split('#');
-    const parts = address.split('/').slice(1).map((part) => decodeURIComponent(part));
-    const ok = await renderReleaseTestPage(parts[0] || '', parts[1] || '');
+  //: to, as "Continue" and "Needs you" do. `rtRoute` decides both.
+  const route = rtRoute(normalised);
+  if (route?.moved) {
+    await navigateToInner(route.address + (route.fragment ? `#${route.fragment}` : ''),
+      { ...opts, replace: true });
+    return;
+  }
+  if (route) {
+    const ok = await renderReleaseTestPage(route.platform, route.slug);
     if (ok) {
-      commitVirtualPage(address, opts);
-      if (fragment) rtFocusCheck(fragment);
+      commitVirtualPage(route.address, opts);
+      if (route.fragment) rtFocusCheck(route.fragment);
     }
     return;
   }
@@ -13115,6 +13115,9 @@ function renderWsNav(data: NavPayload): void {
     wsNavContent.appendChild(empty);
   }
   refreshActiveNavRow();
+  //: The server counts only the ledger; lay this browser's release test
+  //: results back on after every rebuild ([[FEAT-0155]] review).
+  rtReapplyPane();
 }
 
 // ----------------------------------------------------------------------
