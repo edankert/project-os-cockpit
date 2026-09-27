@@ -31,6 +31,10 @@ The page for testing a release by hand moves from the Publication view into the 
 
 The page the tooling calls the "walk" today is too long to work from. On Your Trainer's Android v2.2.0 release, 86 owed checks became 353 steps and 37,254 words on one page. The same starting-state paragraph was repeated above most steps, and the list of changed screens came before the first step.
 
+## The shared finish line
+
+Edwin set one goal for this feature, project-os-dev FEAT-0040, project-os-cockpit FEAT-0155 and your-trainer FEAT-0129 on 2026-09-27: **Edwin can test v2.2.0 on Android and iOS from the cockpit's Tests pane, every section opens in the approved layout, and one `release-test-prep` request prepared all of them.** your-trainer FEAT-0129, "The shared finish line for all three features", states the seven conditions and the nine stages. The three features finish together.
+
 ## Vocabulary
 
 Edwin renamed the terms on 2026-09-27 (decision D1): *"I have said this before I don't like calling this a walk"*, and *"rename all in one go. (to avoid confusion later on)"*. The new words are used here and in every note, label, route and code name this feature touches:
