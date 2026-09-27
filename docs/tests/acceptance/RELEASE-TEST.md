@@ -1,5 +1,6 @@
 ---
 type: "[[reference]]"
+length_limits: {error: false}  # until ISS-0315: three owed checks have no procedure yet
 title: "Test order — the sections this cockpit's releases are tested in"
 status: active
 owner: user:edwin

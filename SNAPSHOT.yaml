@@ -72,7 +72,7 @@ counters:
     last_date: 20260916
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 155
-  ISS: 314
+  ISS: 315
   PHASE: 45
   REQ: 72
   RISK: 11
@@ -3613,7 +3613,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 18
+    issues_open: 19
     issues_triage: 0
     risks_open: 9
     releases_total: 1

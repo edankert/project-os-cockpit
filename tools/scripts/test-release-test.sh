@@ -1092,6 +1092,7 @@ JSON
 cat > "$PROC/docs/tests/acceptance/RELEASE-TEST.md" <<'MD'
 ---
 type: "[[reference]]"
+quoted_lines: warning
 title: "Section order"
 status: active
 owner: user:fixture
@@ -1386,7 +1387,7 @@ sheet = rt.build_release_test(
     thin, read.events, read.sections, release="REL-0011", platform="testbed",
     surfaces=read.surfaces, surface_notes=read.surface_notes,
     procedures=read.procedures, known=read.checks, retired=read.retired,
-    authored_order=read.authored)
+    authored_order=read.authored, quoted_refused=read.quoted_refused)
 bench = [p for p in sheet.sections if p.section.name == "The bench"][0]
 print("problems=%d tested=%s" % (len(bench.procedure.problems),
                                  bench.tested_from_procedure))
@@ -1648,7 +1649,7 @@ p.write_text(t.replace("- [bench] It opens slowly.", "- [bench] It opens slowly.
 PY
 procfail "an Expect line marked for a platform with no ledger is refused, naming the check and the line" "$TYPO" \
   'TST-0405: an Expect line is marked \[andriod\], and this repo keeps ledgers only for bench, testbed: - \[andriod\] It opens on the phone\.'
-# A quoted procedure line is a warning: it prints, and --check still passes.
+# With `quoted_lines: warning`, a quoted procedure line prints and --check still passes.
 OUT="$(python3 "$SHEET" --check --platform testbed --repo-root "$PLAT" 2>&1)"; code=$?
 check "a quoted expectation line is reported as a warning and does not fail --check" \
   "$( { [[ $code -eq 0 ]] && printf '%s' "$OUT" | grep -q "^WARN  \[RELEASE-TEST\] .*step 1 of .*the-bench\.md quotes an expectation instead of giving its tags alone: 'The panel lists the trainer\.'"; }; echo $?)" "exit $code: $OUT"
@@ -1662,7 +1663,8 @@ ACTIONTAG="$(variant actiontag '4. **Equipment panel (SUR-0001).** Unpair everyt
 OUT="$(python3 "$SHEET" --check --platform testbed --repo-root "$ACTIONTAG" 2>&1)"
 check "tags on an action line are reported too" \
   "$(printf '%s' "$OUT" | grep -q 'step 4 of .*carries tags on its action line' && echo 0 || echo 1)" "$OUT"
-# The switch that turns the warning into an error, once consumers have moved.
+# By default a quoted line is refused (the consumers have moved to tags alone);
+# `quoted_lines: warning` in the section order file makes it a warning.
 refused="$(SHEET_PATH="$SHEET" REPO_ROOT="$PLAT" python3 - <<'PY'
 import importlib.util as ilu, os, pathlib, sys
 spec = ilu.spec_from_file_location("release_test", os.environ["SHEET_PATH"])
@@ -1670,13 +1672,15 @@ rt = ilu.module_from_spec(spec); sys.modules["release_test"] = rt
 spec.loader.exec_module(rt)
 root = pathlib.Path(os.environ["REPO_ROOT"])
 before = rt.check_repo(root, "testbed")[0]
-rt.QUOTED_EXPECTATIONS_REFUSED = True
+order = root / "docs/tests/acceptance/RELEASE-TEST.md"
+order.write_text(order.read_text().replace("quoted_lines: warning\n", "", 1))
 after = rt.check_repo(root, "testbed")[0]
+order.write_text(order.read_text().replace('type: "[[reference]]"\n', 'type: "[[reference]]"\nquoted_lines: warning\n', 1))
 print("before=%d after=%d" % (sum("quotes an expectation" in p for p in before),
                               sum("quotes an expectation" in p for p in after)))
 PY
 )"
-check "with QUOTED_EXPECTATIONS_REFUSED on, a quoted line is a problem" \
+check "without quoted_lines: warning, a quoted line is refused by default" \
   "$(printf '%s' "$refused" | grep -qx 'before=0 after=6' && echo 0 || echo 1)" "$refused"
 # release-test-tags.py --all rewrites every quoted line, so the warnings go.
 ALL="$TMP/proc-platform-all"; rm -rf "$ALL"; cp -R "$PLAT" "$ALL"
@@ -1888,8 +1892,22 @@ t = t.replace("- The slot reads empty.",
               "- The slot reads empty, and it stays empty for the whole ride, whatever the trainer does and however often the rider opens and closes the panel.", 1)
 chk.write_text(t)
 PY
+# The limits and the budget are set in the section order file's frontmatter.
+limits() { # limits <dir> <yaml map>
+  python3 - "$1/docs/tests/acceptance/RELEASE-TEST.md" "$2" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1]); t = p.read_text()
+p.write_text(t.replace('type: "[[reference]]"\n', 'type: "[[reference]]"\nlength_limits: %s\n' % sys.argv[2], 1))
+PY
+}
+# By default the reports are errors (project-os-dev TASK-0196).
+DEF="$TMP/proc-length-default"; rm -rf "$DEF"; cp -R "$LEN" "$DEF"
+OUT="$(python3 "$SHEET" --check --platform testbed --repo-root "$DEF" 2>&1)"; code=$?
+check "by default an over-long line fails --check" "$([[ $code -eq 1 ]]; echo $?)" "exit $code: $OUT"
+has   "and is printed as an error" '^ERROR \[RELEASE-TEST\] .*check 2 .*the action is'
+limits "$LEN" '{error: false}'
 OUT="$(python3 "$SHEET" --check --platform testbed --repo-root "$LEN" 2>&1)"; code=$?
-check "an over-long line is a warning, and --check still passes" "$code" "$OUT"
+check "with error: false an over-long line is a warning, and --check still passes" "$code" "$OUT"
 has "an action over 20 words is reported with its section, check number and tag" \
   '^WARN  \[RELEASE-TEST\] .*section 1, "The bench", check 2 \(`TST-0401\.2` `TST-0402\.2`\): the action is 2[0-9] words, over the limit of 20: "Start the workout from the list of workouts ...'
 has "an expected line over 25 words is reported with its own tag" \
@@ -1899,22 +1917,14 @@ hasnt "a section inside its budget is not reported" 'over its budget'
 QUIETLEN="$(python3 "$SHEET" --check --quiet --platform testbed --repo-root "$LEN" 2>&1)"
 check "under --quiet the length warnings are one counted line" \
   "$(printf '%s' "$QUIETLEN" | grep -q '^WARN  \[RELEASE-TEST\] release-test --check: 2 line(s) or section(s) are longer than their word limit' && echo 0 || echo 1)" "$QUIETLEN"
-# The limits and the budget are set in the section order file's frontmatter.
-limits() { # limits <dir> <yaml map>
-  python3 - "$1/docs/tests/acceptance/RELEASE-TEST.md" "$2" <<'PY'
-import pathlib, sys
-p = pathlib.Path(sys.argv[1]); t = p.read_text()
-p.write_text(t.replace('type: "[[reference]]"\n', 'type: "[[reference]]"\nlength_limits: %s\n' % sys.argv[2], 1))
-PY
-}
-BUDGET="$TMP/proc-length-budget"; rm -rf "$BUDGET"; cp -R "$LEN" "$BUDGET"
-limits "$BUDGET" '{action: 40, expected: 40, section_base: 10, section_per_check: 5}'
+BUDGET="$TMP/proc-length-budget"; rm -rf "$BUDGET"; cp -R "$DEF" "$BUDGET"
+limits "$BUDGET" '{action: 40, expected: 40, section_base: 10, section_per_check: 5, error: false}'
 OUT="$(python3 "$SHEET" --check --platform testbed --repo-root "$BUDGET" 2>&1)"; code=$?
 hasnt "a raised action limit lets the long action through" 'the action is'
 hasnt "and a raised expected limit the long line"            'an expected line is'
 has   "a section over its budget is reported with the sum" \
   '^WARN  \[RELEASE-TEST\] .*Section 1, "The bench" prints [0-9]+ words, over its budget of 30 \(10 \+ 5 for each of its 4 checks\)'
-STRICT="$TMP/proc-length-strict"; rm -rf "$STRICT"; cp -R "$LEN" "$STRICT"
+STRICT="$TMP/proc-length-strict"; rm -rf "$STRICT"; cp -R "$DEF" "$STRICT"
 limits "$STRICT" '{error: true}'
 OUT="$(python3 "$SHEET" --check --platform testbed --repo-root "$STRICT" 2>&1)"; code=$?
 check "with error: true an over-long line fails --check" "$([[ $code -eq 1 ]]; echo $?)" "exit $code: $OUT"

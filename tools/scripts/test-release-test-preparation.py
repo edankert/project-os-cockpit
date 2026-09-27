@@ -20,6 +20,10 @@ spec = importlib.util.spec_from_file_location("release_test_preparation_test", M
 rt = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = rt
 spec.loader.exec_module(rt)
+#: These fixtures quote expected lines in the older form, and what they test is
+#: preparation, not quoting, so a quote is a warning here as `quoted_lines:
+#: warning` makes it in a repo (project-os-dev REQ-0034).
+rt.QUOTED_EXPECTATIONS_REFUSED = False
 
 
 PROCEDURE = """---

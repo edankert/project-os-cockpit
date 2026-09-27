@@ -2233,7 +2233,8 @@ def build_release_test(checks: dict[str, Check], events: list[Event], sections: 
                warnings=None, notices=None, authored_order: bool = True,
                what_changed_release: str = "", what_changed_tag: str = "",
                what_changed_problem: str = "", short_lines: ShortLines | None = None,
-               stale=None, known_platforms=None) -> ReleaseTest:
+               stale=None, known_platforms=None,
+               quoted_refused: bool | None = None) -> ReleaseTest:
     """The sheet as data: what changed, the sections and the unplaced rows.
 
     Takes plain values rather than a repo path, so a host with its own note
@@ -2277,7 +2278,8 @@ def build_release_test(checks: dict[str, Check], events: list[Event], sections: 
         procedure = by_section.get(section.name)
         if procedure is not None:
             attach_procedure(entry, procedure, checks, owed_ids, sections,
-                             surfaces, platform=platform, retired=retired, known=known)
+                             surfaces, platform=platform, retired=retired, known=known,
+                             quoted_refused=quoted_refused)
         placed.append(entry)
     unplaced = order_rows([c for c in owed if c.id not in taken],
                           warnings, "Unplaced")
@@ -2323,7 +2325,8 @@ def attach_procedure(entry: Placed, procedure: Procedure, checks: dict[str, Chec
                      owed_ids: set[str], sections: list[Section],
                      surfaces: dict[str, str], platform: str = "",
                      retired: set[str] | None = None,
-                     known: dict[str, Check] | None = None) -> None:
+                     known: dict[str, Check] | None = None,
+                     quoted_refused: bool | None = None) -> None:
     """Hold a procedure to what this section owes, then keep what prints.
 
     The judgement is `audit_procedure`; this decides what a sheet does with
@@ -2338,7 +2341,7 @@ def attach_procedure(entry: Placed, procedure: Procedure, checks: dict[str, Chec
         step.readiness = step.readiness_declared
     procedure.problems, procedure.remarks = audit_procedure(
         procedure, entry.section, entry.rows, checks, owed_ids, sections, surfaces,
-        platform=platform, retired=retired, known=known)
+        platform=platform, retired=retired, known=known, quoted_refused=quoted_refused)
     if procedure.problems:
         return
     applicable = [step for step in procedure.steps
@@ -2614,12 +2617,16 @@ def expand_tag_only(procedure: Procedure, checks: dict[str, Check], platform: st
             step.expectations = expectations + list(pending.values())
 
 
-#: Whether a quoted expectation line is refused. **A warning until the
-#: consumers have moved to tags alone, then an error** (project-os-dev
-#: REQ-0034, ADR-0050 D2). your-trainer's procedures held 724 quoted lines on
-#: 2026-09-27; `release-test-tags.py --all --apply` rewrites them. Turning this
-#: on refuses such a procedure, so its section falls back to per-check rows.
-QUOTED_EXPECTATIONS_REFUSED = False
+#: Whether a quoted expectation line is refused, unless the section order
+#: file says `quoted_lines: warning`. **A warning until the consumers had
+#: moved to tags alone, then an error** (project-os-dev REQ-0034, ADR-0050 D2).
+#: your-trainer's procedures held 724 quoted lines on 2026-09-27 and none by
+#: the end of that day; `release-test-tags.py --all --apply` rewrites them.
+#: A refused procedure's section falls back to per-check rows.
+QUOTED_EXPECTATIONS_REFUSED = True
+
+#: The values `quoted_lines:` may take in the section order file.
+QUOTED_LINE_MODES = {"refused": True, "warning": False}
 
 
 def quoted_expectations(procedure: Procedure) -> list[str]:
@@ -2654,7 +2661,8 @@ def audit_procedure(procedure: Procedure, section: Section, owed: list[Check],
                     sections: list[Section], surfaces: dict[str, str],
                     platform: str = "",
                     retired: set[str] | None = None,
-                    known: dict[str, Check] | None = None) -> tuple[list[str], list[str]]:
+                    known: dict[str, Check] | None = None,
+                    quoted_refused: bool | None = None) -> tuple[list[str], list[str]]:
     """(problems, remarks) for one procedure ("The release test", rule 9).
 
     A problem is a disagreement between the procedure and the release's owed
@@ -2672,8 +2680,10 @@ def audit_procedure(procedure: Procedure, section: Section, owed: list[Check],
     remarks: list[str] = []
     retired = retired or set()
     procedure.warnings = list(procedure.parse_warnings)
+    if quoted_refused is None:
+        quoted_refused = QUOTED_EXPECTATIONS_REFUSED
     for message in quoted_expectations(procedure):
-        if QUOTED_EXPECTATIONS_REFUSED:
+        if quoted_refused:
             problems.append(message)
         else:
             procedure.warnings.append(("quoted", message))
@@ -3431,6 +3441,9 @@ class Reading:
     platforms: list[str] = field(default_factory=list)
     limits: LengthLimits = field(default_factory=lambda: LengthLimits())
     limit_problems: list[str] = field(default_factory=list)
+    #: `quoted_lines:` from the section order file: whether a quoted
+    #: expectation line refuses its procedure (the default) or only warns.
+    quoted_refused: bool = True
 
 
 def read_repo(repo_root: Path, platform: str) -> Reading:
@@ -3461,6 +3474,7 @@ def read_repo(repo_root: Path, platform: str) -> Reading:
     release_test_path = docs_root / RELEASE_TEST_REL
     authored = release_test_path.is_file()
     limits, limit_problems = LengthLimits(), []
+    quoted_refused = QUOTED_EXPECTATIONS_REFUSED
     if authored:
         gallery, sections, warnings = parse_section_order(
             release_test_path.read_text(encoding="utf-8"))
@@ -3468,6 +3482,14 @@ def read_repo(repo_root: Path, platform: str) -> Reading:
         limits, limit_problems = parse_limits(
             front.get("length_limits") if isinstance(front, dict) else None,
             "docs/%s" % RELEASE_TEST_REL)
+        mode = front.get("quoted_lines") if isinstance(front, dict) else None
+        if mode not in (None, ""):
+            if mode in QUOTED_LINE_MODES:
+                quoted_refused = QUOTED_LINE_MODES[mode]
+            else:
+                limit_problems.append(
+                    "docs/%s: `quoted_lines` is %r; it is refused (the default) or warning"
+                    % (RELEASE_TEST_REL, mode))
     else:
         gallery, sections, warnings = "", unordered_sections(list(checks.values())), []
     surface_notes = load_surfaces(index)
@@ -3488,7 +3510,7 @@ def read_repo(repo_root: Path, platform: str) -> Reading:
         authored=authored, what_changed_release=release_id,
         what_changed_tag="" if problem else tag, what_changed_problem=problem, changes=changes,
         short_lines=load_short_lines(docs_root, platform, repo_root), platforms=known,
-        limits=limits, limit_problems=limit_problems)
+        limits=limits, limit_problems=limit_problems, quoted_refused=quoted_refused)
 
 
 def generate(repo_root: Path, release: str, platform: str) -> ReleaseTest:
@@ -3520,7 +3542,7 @@ def sheet_from(read: Reading, release: str, platform: str, notices=None,
         authored_order=read.authored, what_changed_release=read.what_changed_release,
         what_changed_tag=read.what_changed_tag, what_changed_problem=read.what_changed_problem,
         short_lines=read.short_lines, stale=stale_finder(read.repo_root) if pictures else None,
-        known_platforms=read.platforms)
+        known_platforms=read.platforms, quoted_refused=read.quoted_refused)
 
 
 def check_repo(repo_root: Path, platform: str) -> tuple[list[str], list[str]]:
@@ -3573,7 +3595,8 @@ def check_repo_findings(repo_root: Path, platform: str
         found, said = audit_procedure(procedure, section, mine, read.checks,
                                       owed_ids, read.sections, read.surfaces,
                                       platform=platform,
-                                      retired=read.retired)
+                                      retired=read.retired,
+                                      quoted_refused=read.quoted_refused)
         problems.extend(found)
         warnings.extend(procedure.warnings)
         remarks.extend(said)
@@ -3619,19 +3642,20 @@ class LengthLimits:
 
     The defaults are the one place the limits are set. A project overrides
     them in its section order file's frontmatter, `length_limits:`, with the
-    same keys. `error` turns the reports from warnings into errors.
+    same keys. The reports are errors; `error: false` turns them back into
+    warnings, for a project still shortening its sections.
 
     The section budget is `section_base` words plus `section_per_check` words
-    for each owed check. The approved Equipment Hub example printed about
-    1,000 words for 28 checks; these defaults allow it about 1,420 until
-    your-trainer's pilot measures a rewritten section (TASK-0975).
+    for each owed check. Measured on your-trainer's 27 rewritten sections on
+    2026-09-27 (project-os-dev TASK-0195): every one fits these defaults,
+    and 300 plus 30 would fail 17 of them.
     """
 
     action: int = 20
     expected: int = 25
     section_base: int = 300
     section_per_check: int = 40
-    error: bool = False
+    error: bool = True
 
 
 _LIMIT_KEYS = {"action", "expected", "section_base", "section_per_check", "error"}
