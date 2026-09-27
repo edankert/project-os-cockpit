@@ -284,7 +284,7 @@ def test_the_walk_layer_still_writes_through_the_documents_own_path() -> None:
     the call — rather than as names appearing somewhere in the function.
 
     **The gate-row half of this guard is gone, and deliberately** (ADR-0035).
-    It asserted that `markGateRow` delegated to `walkOneCheck`; a release page
+    It asserted that `markGateRow` delegated to `markOneCheck`; a release page
     no longer writes a check at all, so there is nothing to delegate. That the
     helper stays deleted is asserted in `test_acceptance_marks.py` — here it
     would read as an absence, which is the weakest possible form of the claim.
@@ -296,11 +296,11 @@ def test_the_walk_layer_still_writes_through_the_documents_own_path() -> None:
     page procedure step settles several checks at once, and both the step tick
     and the row tick now write through `postCheckVerdict` — one function, so
     the two cannot build different events. So the chain is asserted over the
-    pair: the dialog and the delegation in `walkOneCheck`, the endpoint and
+    pair: the dialog and the delegation in `markOneCheck`, the endpoint and
     the refusal handling in what it calls.
     """
     src = RENDERER.read_text(encoding="utf-8")
-    body = _body_of(src, "async function walkOneCheck(")
+    body = _body_of(src, "async function markOneCheck(")
     write = _body_of(src, "async function postCheckVerdict(")
     assert "await askForMark({" in body, body
     assert "postCheckVerdict(item, platform, chosen)" in body, body
@@ -325,10 +325,10 @@ def test_the_walk_holds_the_readers_place() -> None:
     **The `renderReleasePage(releaseId)` assertion is gone** (ADR-0035): it
     pinned the repaint the release page passed in, and the release page no
     longer marks anything. The scroll property itself belongs to
-    `walkOneCheck` and is unchanged — it is what `~checks` still relies on.
+    `markOneCheck` and is unchanged — it is what `~checks` still relies on.
     """
     src = RENDERER.read_text(encoding="utf-8")
-    body = _body_of(src, "async function walkOneCheck(")
+    body = _body_of(src, "async function markOneCheck(")
 
     def at(needle: str) -> int:
         # `str.index` raises ValueError when the thing is simply GONE, which
@@ -593,7 +593,7 @@ def test_a_regression_guard_rests_when_its_issue_closes() -> None:
     src = inspect.getsource(acceptance.gate_payload)
     i = src.index("resting = [")
     block = src[i:i + 400]
-    assert "section_of(i) == SECTION_REGRESSION" in block, (
+    assert "kind_of(i) == KIND_REGRESSION" in block, (
         "the resting rule is not restricted to regression checks — a feature "
         "check whose FEAT is `done` is the ordinary case, and resting on it "
         f"would empty the gate: {block[:200]!r}"

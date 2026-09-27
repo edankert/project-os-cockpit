@@ -727,7 +727,7 @@ def test_the_tiers_render_in_the_tests_view(repo_index: Index) -> None:
     suite = acceptance.load(REPO_DOCS)
     # **Sections, derived** (ADR-0039). The keys are still `tier1`/`tier2`/
     # `tier3` because that is the address the front ends use, but the
-    # population behind each is `section_of`, and nothing reads a `tier:`.
+    # population behind each is `kind_of`, and nothing reads a `tier:`.
     #
     # A section is on the view when it HOLDS something — an empty one is
     # skipped, because `Automated tests · 0` would say "nothing is automated"
@@ -3100,7 +3100,7 @@ def test_the_section_order_is_pinned_on_the_basis_readers_actually_see() -> None
         project-os-cockpit  ->  tier1, tier2, automated, retired, quiet
         your-trainer        ->  needs-you, tier1, tier2, tier3, retired
 
-    So the six `tier*` entries in `_SECTION_ORDER_INDEX` were exercised by
+    So the six `tier*` entries in `_KIND_ORDER_INDEX` were exercised by
     nothing, and **swapping `tier1` and `tier2` renders Regression above
     Feature on both real screens with the whole suite green** — the exact
     reversal this feature exists to prevent. Found by independent review.
@@ -3118,7 +3118,7 @@ def test_the_section_order_is_pinned_on_the_basis_readers_actually_see() -> None
     #: `tier1`/`feature` are the same section under two namings ([[ADR-0039]]
     #: retired `tier:`; both spellings are still emitted depending on corpus).
     #: Asserting the PAIRS is what makes a tier-key reorder fail.
-    rank = cockpit._SECTION_ORDER_INDEX
+    rank = cockpit._KIND_ORDER_INDEX
     for host, derived in (("tier1", "feature"), ("tier2", "regression"),
                           ("tier3", "automated")):
         assert rank[host] == rank[derived], (
@@ -3150,7 +3150,7 @@ def test_the_section_order_is_pinned_on_the_basis_readers_actually_see() -> None
 
 
 def test_what_actually_hoists_needs_you_is_the_partition_not_the_index() -> None:
-    """[[REQ-0047]] criterion 1 was cited to `_SECTION_ORDER_INDEX`, and that
+    """[[REQ-0047]] criterion 1 was cited to `_KIND_ORDER_INDEX`, and that
     is not what does the work.
 
     `_tests_groups` ends `return owed + rest`, partitioned on `needs_human`.
@@ -3165,7 +3165,9 @@ def test_what_actually_hoists_needs_you_is_the_partition_not_the_index() -> None
     import inspect
 
     src = inspect.getsource(cockpit._tests_groups)
-    assert "return owed + rest" in src, (
+    #: The release test group sits between the two halves (FEAT-0155), and the
+    #: partition around it is unchanged.
+    assert "groups = owed + rest" in src, (
         "the needs_human partition is gone; REQ-0047 c1 now rests on the "
         "index alone and its citation must be re-derived"
     )

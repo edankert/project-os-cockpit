@@ -51,7 +51,7 @@ def test_a_blank_evidence_slot_does_not_count_as_evidence() -> None:
     )
     grade = publication._grade(rec)
     assert grade["total"] == 2
-    assert grade["walked"] == 0
+    assert grade["tested"] == 0
     assert grade["evidence"] == 0
 
 
@@ -65,7 +65,7 @@ def test_a_filled_slot_a_witness_and_a_dated_verdict_all_count() -> None:
     )
     grade = publication._grade(rec)
     assert grade["total"] == 3
-    assert grade["walked"] == 2
+    assert grade["tested"] == 2
     assert grade["evidence"] == 3
 
 
@@ -318,14 +318,14 @@ def test_every_good_store_listing_carries_ten_locales() -> None:
 
 
 @needs_trainer
-def test_rel_0012_names_a_test_note_where_nothing_was_walked() -> None:
+def test_rel_0012_names_a_test_note_where_nothing_was_tested() -> None:
     """The heading says *"as executed"*. This is what it links to."""
     index = Index.build(TRAINER / "docs")
     payload = publication.release_payload(TRAINER, index, "REL-0012")
     row = next(v for v in payload["tests_verified"] if "TST-0011" in v["id"])
     # The claim is *nothing was executed*, not *eighteen things were not*.
     assert row["grade"]["total"] > 0
-    assert row["grade"]["walked"] == 0
+    assert row["grade"]["tested"] == 0
     assert row["grade"]["evidence"] == 0
 
 
@@ -439,7 +439,7 @@ def test_an_entry_resolving_to_no_note_is_said_rather_than_linked(
 
 def test_a_note_with_no_checkboxes_grades_as_no_checks() -> None:
     grade = publication._grade(_Rec("Just prose, nothing to walk.\n"))
-    assert grade["total"] == 0 and grade["walked"] == 0
+    assert grade["total"] == 0 and grade["tested"] == 0
 
 
 def test_an_empty_tests_verified_is_a_stated_absence(tmp_path: Path) -> None:

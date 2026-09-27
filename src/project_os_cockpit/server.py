@@ -1140,73 +1140,63 @@ def _make_handler(
                 })
                 return
 
-            if path == "/api/cockpit/walk":
-                #: **The owed checks as a procedure** ([[FEAT-0149]] /
-                #: [[TASK-0618]]). The same rows `/api/cockpit/acceptance`
-                #: reports as owed, in the order the browsed repo authored in
-                #: `docs/tests/acceptance/WALK.md`, with each check's setup,
-                #: steps and expected result on the row.
+            if path == "/api/cockpit/release-test":
+                #: **One platform's release test** ([[FEAT-0155]] /
+                #: [[TASK-0640]]): the page upstream's generator prints, as
+                #: data, plus which of its checks already have a result in the
+                #: open ledger (`acceptance.release_test_payload`).
                 _params = urllib.parse.parse_qs(parsed.query)
                 _platform = (_params.get("platform", [""])[0]).strip().lower()
-                from . import ledger as _led_walk
-                _known = _led_walk.platforms(docs_root)
+                from . import ledger as _led_rt
+                _known = _led_rt.platforms(docs_root)
                 #: **`all` is refused rather than answered.** The acceptance
                 #: route accepts it because a gate over two ledgers must fail
-                #: closed by taking the union. A walk is a person at one bench
-                #: with one build, and a union walk would ask them to tick a
-                #: check for a platform they are not holding.
+                #: closed by taking the union. A release test is a person at
+                #: one bench with one build, and a union would ask them to
+                #: record a result for a platform they are not holding.
                 if _platform == "all":
                     self._respond_json(
                         {"ok": False, "error": (
-                            "a walk is on one platform. Ask for one of: "
+                            "a release test is on one platform. Ask for one of: "
                             + (", ".join(_known) or "(this repo keeps no "
                                                     "ledger)")),
                          "platforms": _known},
                         HTTPStatus.BAD_REQUEST)
                     return
-                #: **Which release this walk is of** ([[TASK-0624]]). It was
-                #: resolved for the platform and not for the release, so a
-                #: caller sending neither got a walk that named no release —
-                #: and the page keys a half-walked sitting's step ticks by
-                #: release, platform, sitting and step. With an empty release
-                #: segment, a tick left over from the last walk would show as
-                #: already ticked on the next one, on a step somebody still
-                #: has to walk.
+                #: **Which release this is** ([[TASK-0624]]). The page keys
+                #: its per-check results by release, platform, section and
+                #: check, so an empty release would let a result left over
+                #: from the last release show on the next one.
                 _release = (_params.get("release") or [""])[0].strip()
-                if not _platform or not _release:
-                    from . import publication as _pub_walk
-
-                    _open = _pub_walk.open_releases(index)
-                    if not _platform:
-                        _platform = (
-                            str((_open[0].get("platform") or "")).strip().lower()
-                            if _open else ""
-                        )
-                        if not _platform and len(_known) == 1:
-                            _platform = _known[0]
-                    #: **And it must be a release for THIS platform.**
-                    #: `open_releases` is the whole fleet of drafts, so the
-                    #: first row is whichever version sorts highest — on
-                    #: `your-trainer` that is an Android draft, and
-                    #: `~walk/ios` was headed with it and keyed its iOS step
-                    #: ticks under an Android release id. A note carrying no
-                    #: `platform:` counts for every platform, which is the
-                    #: opt-in rule release contents already use. Found by
-                    #: independent review, 2026-09-14.
-                    if not _release:
-                        _mine = [
-                            r for r in _open
-                            if str(r.get("platform") or "").strip().lower()
-                            in ("", _platform)
-                        ]
-                        if _mine:
-                            _release = str(_mine[0].get("id") or "").strip()
+                from . import publication as _pub_rt
+                _open = _pub_rt.open_releases(index)
+                if not _platform:
+                    _platform = (
+                        str((_open[0].get("platform") or "")).strip().lower()
+                        if _open else ""
+                    )
+                    if not _platform and len(_known) == 1:
+                        _platform = _known[0]
+                #: **And it must be a release for THIS platform.** A note
+                #: carrying no `platform:` counts for every platform, which is
+                #: the opt-in rule release contents already use. Found by
+                #: independent review, 2026-09-14.
+                _mine = [
+                    r for r in _open
+                    if str(r.get("platform") or "").strip().lower()
+                    in ("", _platform)
+                ]
+                #: A platform with no open release of its own is tested against
+                #: the newest open one, as the Tests pane lists it.
+                _mine = _mine or _open
+                if not _release and _mine:
+                    _release = str(_mine[0].get("id") or "").strip()
+                _version = next((str(r.get("version") or "") for r in _open
+                                 if str(r.get("id") or "") == _release), "")
                 #: **An unknown name is refused, never answered.** A ledger
-                #: read for a platform that has none returns no verdicts, so
-                #: every check in the repo comes back owed — 545 rows on
-                #: `your-trainer` for `--platform andriod`, printed with total
-                #: confidence. Upstream refuses the generation for this reason
-                #: and so does this.
+                #: read for a platform that has none returns no results, so
+                #: every check in the repo comes back owed. Upstream refuses
+                #: the generation for this reason and so does this.
                 if _platform not in _known:
                     self._respond_json(
                         {"ok": False, "error": (
@@ -1218,15 +1208,9 @@ def _make_handler(
                     return
                 self._respond_json({
                     "schema_version": cockpit.SCHEMA_VERSION,
-                    **acceptance.walk_payload(
-                        docs_root, index, platform=_platform,
-                        release=_release,
-                        review_ids={value for part in _params.get("review", [])
-                                    for value in part.split(",")
-                                    if re.fullmatch(r"(?:TST|CHK)-[0-9]{4}", value)}
-                        if sum(len(part.split(",")) for part in _params.get("review", [])) <= 1024
-                        else set(),
-                    ),
+                    **acceptance.release_test_payload(
+                        docs_root, platform=_platform, release=_release),
+                    "version": _version,
                     "platforms": _known,
                 })
                 return

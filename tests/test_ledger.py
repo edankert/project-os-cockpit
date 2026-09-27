@@ -708,7 +708,7 @@ def test_a_scalar_cannot_be_written_in_a_repo_that_keeps_ledgers(
 ) -> None:
     """**Finding 9.** `mark_check` writes frontmatter and never sees a ledger.
 
-    Reachable today: `walkOneCheck` in the renderer sends no `platform`, so
+    Reachable today: `markOneCheck` in the renderer sends no `platform`, so
     after the fields are removed the first walk would put a scalar back — the
     exact failure [[REQ-0055]] names, without the 87-site renderer migration
     going wrong at all.

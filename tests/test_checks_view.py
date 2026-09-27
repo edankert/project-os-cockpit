@@ -120,7 +120,7 @@ def test_marking_from_the_view_holds_the_readers_position() -> None:
     in the frame.
     """
     src = _renderer()
-    block = src[src.index("async function walkOneCheck"):]
+    block = src[src.index("async function markOneCheck"):]
     block = block[:block.index("\n}\n")]
     assert "const held = docView.scrollTop" in block
     assert "requestAnimationFrame" in block
@@ -128,7 +128,7 @@ def test_marking_from_the_view_holds_the_readers_position() -> None:
 def test_one_walk_layer_and_now_exactly_one_surface() -> None:
     """TASK-0465: the write goes through one function. ADR-0035: one caller.
     This asserted that **both** `markGateRow` and `markCheckRow` delegated to
-    `walkOneCheck`, because the two copies had drifted twice — ISS-0187's
+    `markOneCheck`, because the two copies had drifted twice — ISS-0187's
     unhandled rejection existed in one and not the other, and ISS-0188's
     scroll fix had to be applied twice.
     `markGateRow` is now deleted: a release page reports the gate and records
@@ -140,7 +140,7 @@ def test_one_walk_layer_and_now_exactly_one_surface() -> None:
     src = _renderer()
     block = src[src.index("async function markCheckRow"):]
     block = block[:block.index("\n}")]
-    assert "walkOneCheck" in block
+    assert "markOneCheck" in block
     # …and nothing else. A caller that still posts for itself is a second
     # copy wearing a call to the first.
     assert "postJson" not in block
@@ -169,7 +169,7 @@ def test_cancelling_writes_nothing() -> None:
     handled before it.
     """
     src = _renderer()
-    block = src[src.index("async function walkOneCheck"):]
+    block = src[src.index("async function markOneCheck"):]
     block = block[:block.index("\n}\n")]
     body = block[:block.index("postCheckVerdict(")]
     assert "if (chosen === null) return;" in body
@@ -506,7 +506,7 @@ def test_marking_a_check_does_not_clear_the_readers_filters() -> None:
     `renderChecksPage(tier, area)` is address-driven: it sets both filter axes
     unconditionally, because arriving at a bare `~checks` must not inherit the
     last page's filter (ISS-0203). `markCheckRow` handed that function straight
-    to `walkOneCheck` as its repaint, so each mark ran it with no address and
+    to `markOneCheck` as its repaint, so each mark ran it with no address and
     cleared the tier and area the reader was working in.
 
     Edwin, walking the suite for v2.1.7: *"it moves away from the list of
@@ -525,7 +525,7 @@ def test_marking_a_check_does_not_clear_the_readers_filters() -> None:
     #: `~checks` passes what the picker says, which is what it always sent.
     #: The property this test is about is the LAST argument — which function
     #: repaints — and it is asserted on that.
-    assert "walkOneCheck(item, verdictPlatform(), repaintChecksPage)" in body, body
+    assert "markOneCheck(item, verdictPlatform(), repaintChecksPage)" in body, body
     assert "renderChecksPage)" not in body, \
         "the address-driven render is being used as a repaint again"
 
@@ -761,7 +761,7 @@ def test_the_mark_dialog_is_given_the_check_it_marks() -> None:
     row clamps that prose to two lines, so they may never have been fully
     read.
     """
-    body = js_function_body(_renderer(), "async function walkOneCheck(")
+    body = js_function_body(_renderer(), "async function markOneCheck(")
     assert "text: item.text" in body
     assert "history: checksHistory[" in body, (
         "and everything anybody has said about it (ISS-0281)")
@@ -878,7 +878,7 @@ def test_the_dialog_renders_the_body_rather_than_printing_it() -> None:
     src = _renderer()
     body = js_function_body(src, "async function fillCheckProse(")
     assert "/api/render?path=" in body
-    walk = js_function_body(src, "async function walkOneCheck(")
+    walk = js_function_body(src, "async function markOneCheck(")
     assert "rel: item.rel" in walk, "the render needs the note's address"
     # The plain text is still passed, and is what stays when the fetch fails.
     assert "text: item.text" in walk

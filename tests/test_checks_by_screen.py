@@ -159,7 +159,7 @@ def test_the_page_and_the_walk_sheet_resolve_the_same_parent(
 
     index = Index.build(docs)
     by_area = {a["area"]: a for a in _areas(docs)}
-    walk = acceptance._walk_module()
+    walk = acceptance._release_test_module()
     surfaces, _titles, _kinds = acceptance._surface_map(index)
     for area, sid in [("By id", "SUR-0002"), ("By wikilink", "SUR-0003"),
                       ("By title", "SUR-0004")]:

@@ -4010,7 +4010,7 @@ def _feat_refs(record: NoteRecord) -> list[str]:
 def _covers_an_issue(record: NoteRecord) -> bool:
     """Does this test verify a past defect rather than current behaviour?
 
-    **Delegates to `acceptance.section_of` rather than asking again.** It
+    **Delegates to `acceptance.kind_of` rather than asking again.** It
     carried its own regex and its own reading -- `re.search` here against
     `re.match` there -- so `covers: ["[[FEAT-0001]] and ISS-0002"]` classified
     one way in the navigator and the other on the generated page, and swapping
@@ -4039,7 +4039,7 @@ def _covers_an_issue(record: NoteRecord) -> bool:
     item = _acceptance.item_from_note(fm, rel="")
     if item is None:
         return False
-    return _acceptance.section_of(item) == _acceptance.SECTION_REGRESSION
+    return _acceptance.kind_of(item) == _acceptance.KIND_REGRESSION
 
 
 def _test_item(
@@ -4314,7 +4314,7 @@ def _tests_groups(
     merged: list[dict[str, Any]] = []
     for group in out:
         key = group.get("key")
-        host = by_key.pop(_SECTION_TO_TIER_KEY.get(key, ""), None)
+        host = by_key.pop(_KIND_TO_TIER_KEY.get(key, ""), None)
         if host is None:
             #: **A section with no acceptance checks still gets a section head**
             #: ([[ISS-0242]]). Edwin: *"Why does automated tests look different
@@ -4333,7 +4333,7 @@ def _tests_groups(
             #: deliberately: they are cross-cutting state groups, not sections
             #: of the suite, and [[ISS-0241]] left that alone on purpose.
             records = group.pop("_records", [])
-            if key in _SECTION_TO_TIER_KEY and records:
+            if key in _KIND_TO_TIER_KEY and records:
                 group["_head"] = {
                     "heading": str(group.get("label") or ""),
                     "manual": key != "automated",
@@ -4344,7 +4344,7 @@ def _tests_groups(
                         1 for r in records
                         if not statuses.is_completed(r.status or "")),
                 }
-                group["label"] = _section_head_label(group["_head"])
+                group["label"] = _kind_head_label(group["_head"])
                 group["head_counts"] = True
             merged.append(group)
             continue
@@ -4373,7 +4373,7 @@ def _tests_groups(
             head["extra_total"] = len(extras)
             head["extra_outstanding"] = sum(
                 1 for e in extras if not statuses.is_completed(str(e.get("status") or "")))
-            host["label"] = _section_head_label(head)
+            host["label"] = _kind_head_label(head)
         merged.append(host)
     # A section with acceptance checks and no non-acceptance tests still exists.
     for key in ("tier1", "tier2", "tier3"):
@@ -4381,27 +4381,130 @@ def _tests_groups(
         if leftover is not None:
             merged.append(leftover)
     ordered = sorted(
-        merged, key=lambda g: _SECTION_ORDER_INDEX.get(str(g.get("key")), 99))
+        merged, key=lambda g: _KIND_ORDER_INDEX.get(str(g.get("key")), 99))
     #: `_head` is scaffolding for the rebuild above and must not reach a
     #: client -- a key the server sends and no renderer reads is [[ISS-0225]].
     for g in ordered:
         g.pop("_head", None)
     owed = [g for g in ordered if g.get("needs_human")]
     rest = [g for g in ordered if not g.get("needs_human")]
-    return owed + rest
+    #: Straight after `Needs you` and above the test kinds, where the
+    #: approved example puts it ([[TASK-0641]]).
+    release_test = _release_test_group(index)
+    groups = owed + rest
+    if release_test:
+        after = next((i + 1 for i, g in enumerate(groups) if g.get("key") == "needs-you"), 0)
+        groups.insert(after, release_test)
+    return groups
+
+
+def _release_test_group(index: Index) -> dict[str, Any] | None:
+    """`Release test · v2.2.0`: each platform, and under it each section.
+
+    ([[FEAT-0155]], [[TASK-0641]].) Placed after `Needs you` and before the
+    test kinds, where the approved example puts it. A repo with no section
+    order or no open release has no release test, so it gets no group.
+    Progress is the ledger's (`acceptance.release_test_payload`).
+    """
+    from . import ledger as _ledger
+    from . import publication as _pub
+    docs_root = index.docs_root
+    if not (docs_root / _acceptance.RELEASE_TEST_REL).is_file():
+        return None
+    try:
+        platforms = _ledger.platforms(docs_root)
+    except OSError:
+        return None
+    opens = _pub.open_releases(index)
+    items: list[dict[str, Any]] = []
+    version = ""
+    for platform in platforms:
+        mine = [r for r in opens
+                if str(r.get("platform") or "").strip().lower() in ("", platform)]
+        #: A platform with no open release note of its own is tested against
+        #: the newest open release: your-trainer's REL-0017 names Android
+        #: only, and v2.2.0 is tested on iOS too. Results are kept per
+        #: platform, so the two cannot mix.
+        mine = mine or opens
+        if not mine:
+            continue
+        release = str(mine[0].get("id") or "")
+        version = version or str(mine[0].get("version") or "")
+        page = _acceptance.release_test_payload_cached(
+            docs_root, platform=platform, release=release)
+        if page.get("error"):
+            continue
+        done, total = page["progress"]["done"], page["progress"]["total"]
+        results = page.get("results") or {}
+
+        def dot(section: dict[str, Any]) -> str:
+            """Empty, half, full, or red when a result there needs the owner."""
+            if any((results.get(t) or {}).get("result") in _RT_NEEDS_YOU
+                   for t in section["tests"]):
+                return "bad"
+            progress = section["progress"]
+            if progress["total"] and progress["done"] == progress["total"]:
+                return "done"
+            return "part" if progress["done"] else "empty"
+
+        items.append({
+            "id": "",
+            "title": f"{platform_label(platform)} · {done}/{total}",
+            "subtitle": f"{done}/{total}",
+            "url": f"{RELEASE_TEST_ROUTE}/{platform}",
+            "status": "passing" if total and done == total else "active",
+            "progress": {"done": done, "total": total, "stale": 0,
+                         "pct": round(100 * done / total) if total else 0},
+            "items": [{
+                "id": "",
+                "title": "{name} · {done}/{total}".format(name=section["name"], **section["progress"]),
+                "subtitle": "{done}/{total}".format(**section["progress"]),
+                "url": f"{RELEASE_TEST_ROUTE}/{platform}/{section['slug']}",
+                "dot": dot(section),
+                "status": ("passing" if section["progress"]["total"]
+                           and section["progress"]["done"] == section["progress"]["total"]
+                           else "active"),
+                "progress": {"done": section["progress"]["done"],
+                             "total": section["progress"]["total"], "stale": 0,
+                             "pct": round(100 * section["progress"]["done"]
+                                          / section["progress"]["total"])
+                             if section["progress"]["total"] else 0},
+            } for section in page["sections"]],
+        })
+    if not items:
+        return None
+    return {
+        "key": "release-test",
+        "label": "Release test · v%s" % version if version else "Release test",
+        "url": RELEASE_TEST_ROUTE,
+        "status": None,
+        "items": items,
+        "default_open": True,
+    }
+
+
+#: A result that asks for the owner: the section's dot turns red
+#: ([[TASK-0641]]).
+_RT_NEEDS_YOU = frozenset({"fail", "question", "blocked"})
+
+
+def platform_label(platform: str) -> str:
+    """`android` -> `Android`, `ios` -> `iOS`, `macos` -> `macOS`."""
+    return {"ios": "iOS", "macos": "macOS", "ipados": "iPadOS"}.get(
+        platform, platform[:1].upper() + platform[1:])
 
 
 #: A derived section's own key, and the key `_acceptance_tier_groups` emits for
 #: the same section. The second is `tier1`/`tier2`/`tier3` only because the
 #: front ends address a group by it; nothing reads a `tier:` from a note.
-_SECTION_TO_TIER_KEY: dict[str, str] = {
+_KIND_TO_TIER_KEY: dict[str, str] = {
     "feature": "tier1", "regression": "tier2", "automated": "tier3",
 }
 
 #: Display order. `Needs you` leads because it is the one group that is asking
 #: (REQ-0047); `Broken command` sits with it because it is the same claim about
 #: an automated test.
-_SECTION_ORDER_INDEX: dict[str, int] = {
+_KIND_ORDER_INDEX: dict[str, int] = {
     "needs-you": 0, "broken-command": 1,
     "tier1": 2, "feature": 2, "tier2": 3, "regression": 3,
     "tier3": 4, "automated": 4, "retired": 5,
@@ -4429,7 +4532,7 @@ _SECTION_ORDER_INDEX: dict[str, int] = {
 #: third independent review, which is where a contradiction two lines apart
 #: gets found rather than by reading.
 #: **Gone with `tier:`** (ADR-0039). The three names survive as the labels of
-#: DERIVED sections and live in `acceptance.SECTION_LABELS`, so the navigator
+#: DERIVED sections and live in `acceptance.KIND_LABELS`, so the navigator
 #: and the generated page cannot disagree about what a section is called. The
 #: third one changed meaning as well as owner: *Verification tests* was a
 #: temporary tier a person moved checks into on their way to deletion, and 67
@@ -4441,10 +4544,11 @@ _SECTION_ORDER_INDEX: dict[str, int] = {
 #: mode: the suite lives inside Tests, and a ninth mode would put one corpus in
 #: two places — ISS-0068's defect, which this project has already paid for.
 CHECKS_VIEW_ROUTE = "~checks"
-#: The walk page's address ([[FEAT-0149]]). One platform per walk, always —
-#: `~walk` alone lets the sidecar resolve the open release's platform, and the
-#: ladder names the platform it means.
-WALK_VIEW_ROUTE = "~walk"
+#: The release test page's address ([[FEAT-0155]]). One platform per release
+#: test, always — `~release-test` alone lets the sidecar resolve the open
+#: release's platform, and the ladder names the platform it means. The old
+#: `~walk` address opens it too (the renderer redirects).
+RELEASE_TEST_ROUTE = "~release-test"
 
 
 def _ledger_platforms(index: Index) -> list[str]:
@@ -4647,7 +4751,7 @@ def _surface_rows(items: list[dict[str, Any]], url: str, tier: int,
     return rows
 
 
-def _section_head_label(head: dict[str, Any]) -> str:
+def _kind_head_label(head: dict[str, Any]) -> str:
     """The head of a tests-view section, built from one place.
 
     **Built here rather than inline so the MERGE can rebuild it** ([[ISS-0242]]).
@@ -4806,7 +4910,7 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             #: not appear a second time here; a `done` pill on a card called
             #: `Done` is what [[ISS-0089]] and [[ISS-0090]] took off the group
             #: heads, and it should not return through this door.
-            label = ""  # built by _section_head_label below
+            label = ""  # built by _kind_head_label below
         else:
             #: **What is OUTSTANDING, once** ([[ISS-0241]], Edwin's word: not
             #: `todo`). This head carried `{checked}/{total} completed` and
@@ -4824,13 +4928,13 @@ def _acceptance_tier_groups(index: Index) -> list[dict[str, Any]]:
             #: `0 of 27 outstanding` is a sentence about absence; `all 27 done`
             #: is the fact the reader wants, and it is the one state where the
             #: total alone is the whole answer.
-            label = ""  # built by _section_head_label below
+            label = ""  # built by _kind_head_label below
         head = {
             "heading": heading, "manual": bool(tier.get("manual", True)),
             "total": int(tier["total"]), "unchecked": unchecked,
             "rerun": rerun, "stale": stale, "reconciled": reconciled,
         }
-        label = _section_head_label(head)
+        label = _kind_head_label(head)
         group: dict[str, Any] = {
             "key": f"tier{tier['tier']}",
             "label": label,
@@ -5238,14 +5342,14 @@ def _release_content_rows(
                 if _owed:
                     tests.append({
                         "id": "",
-                        "title": "Walk them",
+                        "title": "Test them",
                         "subtitle": (
-                            f"{_owed} owed on {_draft_platform} — the checks in "
-                            "walking order, each with its setup, steps and "
-                            "expected result"),
+                            f"{_owed} owed on {_draft_platform} — the release "
+                            "test, section by section, each check one action "
+                            "and one expected result"),
                         "status": "blocked",
                         "type": "test",
-                        "url": f"{WALK_VIEW_ROUTE}/{_draft_platform}",
+                        "url": f"{RELEASE_TEST_ROUTE}/{_draft_platform}",
                     })
     if tests:
         groups.append({"key": "rel-tests",

@@ -741,7 +741,7 @@ def test_a_gate_row_carries_a_token_and_never_a_control() -> None:
 def test_the_release_page_has_no_write_path_for_a_check() -> None:
     """The helper goes too, not just its caller.
 
-    `markGateRow` was `walkOneCheck` plus a repaint, reachable only from the
+    `markGateRow` was `markOneCheck` plus a repaint, reachable only from the
     control above. Left unreferenced it is how the next caller re-acquires the
     behaviour a decision just removed — so ADR-0035 deletes it, and this says
     so where a reader adding a release-page feature will meet it.
@@ -751,12 +751,12 @@ def test_the_release_page_has_no_write_path_for_a_check() -> None:
     assert not calls, f"markGateRow is live again: {calls}"
 
     # `buildGateSection`'s own body — not the span up to the next interface,
-    # which contains `walkOneCheck`'s definition and would make this vacuous
+    # which contains `markOneCheck`'s definition and would make this vacuous
     # in the noisiest possible way: passing because it matched a declaration.
     start = src.index("function buildGateSection")
     body = src[start:src.index("\n}\n", start) + 3]
-    assert "walkOneCheck" not in body, (
-        "the gate section reaches walkOneCheck — that is the write path "
+    assert "markOneCheck" not in body, (
+        "the gate section reaches markOneCheck — that is the write path "
         "ADR-0035 removes from any page whose subject is a release"
     )
 

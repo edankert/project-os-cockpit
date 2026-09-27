@@ -45,7 +45,7 @@ def _check(*, covers, verdict="2026-01-01", invalid="2026-06-01", command=""):
 def test_a_feature_check_overtaken_by_a_change_is_stale() -> None:
     """The case the mechanism exists for, unchanged."""
     item = _check(covers=["[[FEAT-0001]]"])
-    assert acceptance.section_of(item) == acceptance.SECTION_FEATURE
+    assert acceptance.kind_of(item) == acceptance.KIND_FEATURE
     assert item.stale is True
 
 
@@ -55,14 +55,14 @@ def test_a_regression_check_is_not_re_opened_by_a_change() -> None:
     Nothing a change does can falsify *this defect was fixed on that date*.
     """
     item = _check(covers=["[[ISS-0001]]"])
-    assert acceptance.section_of(item) == acceptance.SECTION_REGRESSION
+    assert acceptance.kind_of(item) == acceptance.KIND_REGRESSION
     assert item.stale is False
 
 
 def test_an_automated_check_is_not_re_opened_either() -> None:
     """CI is current by construction; there is nothing for a clock to grade."""
     item = _check(covers=["[[FEAT-0001]]"], command="pytest tests/x.py")
-    assert acceptance.section_of(item) == acceptance.SECTION_AUTOMATED
+    assert acceptance.kind_of(item) == acceptance.KIND_AUTOMATED
     assert item.stale is False
 
 
@@ -85,7 +85,7 @@ def test_an_explicit_rerun_still_re_opens_a_regression_check() -> None:
     }
     item = acceptance.item_from_note(fm, rel="docs/tests/acceptance/TST-0002-B.md")
     assert item is not None
-    assert acceptance.section_of(item) == acceptance.SECTION_REGRESSION
+    assert acceptance.kind_of(item) == acceptance.KIND_REGRESSION
     assert item.needs_rerun is True
     assert item.settled is False, "an explicit re-check must still be owed"
 
@@ -98,11 +98,11 @@ def test_the_mutant_is_caught() -> None:
     cases were wrong.
     """
     regression = _check(covers=["[[ISS-0001]]"])
-    real = acceptance.section_of
+    real = acceptance.kind_of
     try:
-        acceptance.section_of = lambda item: acceptance.SECTION_FEATURE  # the mutant
+        acceptance.kind_of = lambda item: acceptance.KIND_FEATURE  # the mutant
         assert regression.stale is True, (
             "the mutant did not change behaviour — these tests prove nothing")
     finally:
-        acceptance.section_of = real
+        acceptance.kind_of = real
     assert regression.stale is False

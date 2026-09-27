@@ -69,11 +69,11 @@ body {
 .app.right-collapsed {
   grid-template-columns: 44px var(--nav-width) 1fr 0;
 }
-#top-bar       { grid-area: top; }
-#ws-rail       { grid-area: rail; }
-#ws-nav        { grid-area: nav; }
-#stage         { grid-area: stage; }
-#right-pane    { grid-area: right; }
+#top-bar { grid-area: top; }
+#ws-rail { grid-area: rail; }
+#ws-nav { grid-area: nav; }
+#stage { grid-area: stage; }
+#right-pane { grid-area: right; }
 #status-footer { grid-area: footer; }
 /* Splitters (FEAT-0009 / TASK-0096). Each is a thin absolute strip
  * anchored to the column boundary. Position-relative on the parent
@@ -286,7 +286,7 @@ body {
 }
 @keyframes ws-waiting-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.55; transform: scale(0.85); }
+  50% { opacity: 0.55; transform: scale(0.85); }
 }
 /* ---- Window-wide top bar (FEAT-0015 / iteration 3) ----
  * Three flex zones: left (rail+nav width), stage (flex 1, drag),
@@ -1273,7 +1273,6 @@ body {
    the head — the head is the thing being indented from. */
 .ws-nav-content .nav-group:has(> .nav-group-header.is-thing) > .group-body { padding-left: 5px; }
 
-
 /* A chip never sets a row's height — same rule the group head got at
    ISS-0087, for the same reason: it is the tallest thing on the line and
    it is not the line's subject. */
@@ -1800,7 +1799,7 @@ body {
   border-radius: 0;
 }
 .sf-theme-btn:first-child { border-radius: 3px 0 0 3px; }
-.sf-theme-btn:last-child  { border-radius: 0 3px 3px 0; }
+.sf-theme-btn:last-child { border-radius: 0 3px 3px 0; }
 .sf-theme-btn:hover { color: var(--text); background: var(--row-hover); }
 .sf-theme-btn.active {
   background: var(--accent-soft);
@@ -2000,10 +1999,10 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   min-width: 2px;
 }
 /* Segment colours: the status families, not new hues. */
-.ov-mixbar > i[data-seg="done"]      { background: var(--status-done); }
-.ov-mixbar > i[data-seg="doing"]     { background: var(--accent-link); }
+.ov-mixbar > i[data-seg="done"] { background: var(--status-done); }
+.ov-mixbar > i[data-seg="doing"] { background: var(--accent-link); }
 .ov-mixbar > i[data-seg="attention"] { background: var(--severity-high); }
-.ov-mixbar > i[data-seg="backlog"]   { background: var(--text-faint); opacity: 0.5; }
+.ov-mixbar > i[data-seg="backlog"] { background: var(--text-faint); opacity: 0.5; }
 .ov-mix-key {
   display: flex;
   gap: 14px;
@@ -2020,10 +2019,10 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   margin-right: 4px;
   transform: translateY(0.5px);
 }
-.ov-mix-key i[data-seg="done"]      { background: var(--status-done); }
-.ov-mix-key i[data-seg="doing"]     { background: var(--accent-link); }
+.ov-mix-key i[data-seg="done"] { background: var(--status-done); }
+.ov-mix-key i[data-seg="doing"] { background: var(--accent-link); }
 .ov-mix-key i[data-seg="attention"] { background: var(--severity-high); }
-.ov-mix-key i[data-seg="backlog"]   { background: var(--text-faint); opacity: 0.5; }
+.ov-mix-key i[data-seg="backlog"] { background: var(--text-faint); opacity: 0.5; }
 /* Shared tile shell for the stage's lower sections. */
 .doc-view.overview-pane .ov-tile {
   background: var(--bg-elevated);
@@ -2259,12 +2258,12 @@ button.ov-stat:hover { border-color: var(--accent-link); }
    while every x measurement still read correct, because the columns were
    right and only the row was wrong. Pinning the row makes DOM order
    irrelevant, which is the whole point of assigning columns. */
-.ov-phase-head > .ov-chev          { grid-column: 1; grid-row: 1; }
-.ov-phase-head > .ov-phase-id      { grid-column: 2; grid-row: 1; }
-.ov-phase-head > .ov-phase-title   { grid-column: 3; grid-row: 1; }
+.ov-phase-head > .ov-chev { grid-column: 1; grid-row: 1; }
+.ov-phase-head > .ov-phase-id { grid-column: 2; grid-row: 1; }
+.ov-phase-head > .ov-phase-title { grid-column: 3; grid-row: 1; }
 .ov-phase-head > .ov-phase-rowmeta { grid-column: 4; grid-row: 1; justify-self: end; }
-.ov-phase-head > .ov-phase-count   { grid-column: 5; grid-row: 1; justify-self: end; }
-.ov-phase-head > .status-chip      { grid-column: 6; grid-row: 1; justify-self: start; }
+.ov-phase-head > .ov-phase-count { grid-column: 5; grid-row: 1; justify-self: end; }
+.ov-phase-head > .status-chip { grid-column: 6; grid-row: 1; justify-self: start; }
 .ov-phase-rowmeta {
   justify-self: end;
   display: flex;
@@ -2352,16 +2351,16 @@ button.ov-stat:hover { border-color: var(--accent-link); }
 /* Assigned, for the same reason: a feature with no annotation trail must
    not let its neighbours' columns shift. */
 .scoped-feat > .scoped-feat-name { grid-column: 1; }
-.scoped-feat > .status-chip      { grid-column: 2; justify-self: start; }
+.scoped-feat > .status-chip { grid-column: 2; justify-self: start; }
 .scoped-feat > .scoped-feat-frac { grid-column: 3; }
-.scoped-feat > .scoped-feat-sqs  { grid-column: 4; }
+.scoped-feat > .scoped-feat-sqs { grid-column: 4; }
 .scoped-feat > .scoped-feat-next { grid-column: 5; }
 /* `.scoped-feat-top` is `display: contents`, so ITS children are the
    row's grid items — the assignments above must reach them too. */
 .scoped-feat-top > .scoped-feat-name { grid-column: 1; }
-.scoped-feat-top > .status-chip      { grid-column: 2; justify-self: start; }
+.scoped-feat-top > .status-chip { grid-column: 2; justify-self: start; }
 .scoped-feat-top > .scoped-feat-frac { grid-column: 3; }
-.scoped-feat-top > .scoped-feat-sqs  { grid-column: 4; }
+.scoped-feat-top > .scoped-feat-sqs { grid-column: 4; }
 .scoped-feat.is-done .scoped-feat-name { color: var(--text-muted); }
 .scoped-feat-next {
   display: flex;
@@ -2489,7 +2488,7 @@ button.ov-stat:hover { border-color: var(--accent-link); }
   background: var(--surface-2);
 }
 .release-gate.is-blocked { border-left-color: var(--error-fg); }
-.release-gate.is-clear   { border-left-color: var(--status-done); }
+.release-gate.is-clear { border-left-color: var(--status-done); }
 .release-gate.is-unknown { border-left-color: var(--text-faint); }
 .release-gate-line { margin: 0; font-weight: 600; font-size: 13px; }
 .release-gate-note {
@@ -2601,18 +2600,18 @@ button.ov-stat:hover { border-color: var(--accent-link); }
    each with their own colour rules, and an unscoped selector here would
    reach across all of them. */
 .ov-typed { color: var(--type-default); }
-.ov-typed[data-type="feature"]     { color: var(--type-feature); }
-.ov-typed[data-type="task"]        { color: var(--type-task); }
+.ov-typed[data-type="feature"] { color: var(--type-feature); }
+.ov-typed[data-type="task"] { color: var(--type-task); }
 .ov-typed[data-type="requirement"] { color: var(--type-requirement); }
-.ov-typed[data-type="issue"]       { color: var(--type-issue); }
-.ov-typed[data-type="risk"]        { color: var(--type-risk); }
-.ov-typed[data-type="test"]        { color: var(--type-test); }
+.ov-typed[data-type="issue"] { color: var(--type-issue); }
+.ov-typed[data-type="risk"] { color: var(--type-risk); }
+.ov-typed[data-type="test"] { color: var(--type-test); }
 .ov-typed[data-type="adr"],
-.ov-typed[data-type="decision"]    { color: var(--type-adr); }
-.ov-typed[data-type="change"]      { color: var(--type-change); }
-.ov-typed[data-type="phase"]       { color: var(--type-phase); }
-.ov-typed[data-type="release"]     { color: var(--type-release); }
-.ov-typed[data-type="reference"]   { color: var(--type-reference); }
+.ov-typed[data-type="decision"] { color: var(--type-adr); }
+.ov-typed[data-type="change"] { color: var(--type-change); }
+.ov-typed[data-type="phase"] { color: var(--type-phase); }
+.ov-typed[data-type="release"] { color: var(--type-release); }
+.ov-typed[data-type="reference"] { color: var(--type-reference); }
 /* Hero strip — equal-width cells with a big number + label. */
 .ov-hero {
   display: grid;
@@ -2807,18 +2806,18 @@ a.ov-phase-title:hover {
    for this, which read as an alarm rather than a queue. */
 .ov-phase-attn-inline { color: var(--severity-medium); }
 .ov-phase-pill.is-unclosed { color: var(--status-active); }
-.ov-phase-sq[data-type="feature"]     { color: var(--type-feature); }
-.ov-phase-sq[data-type="task"]        { color: var(--type-task); }
+.ov-phase-sq[data-type="feature"] { color: var(--type-feature); }
+.ov-phase-sq[data-type="task"] { color: var(--type-task); }
 .ov-phase-sq[data-type="requirement"] { color: var(--type-requirement); }
-.ov-phase-sq[data-type="issue"]       { color: var(--type-issue); }
-.ov-phase-sq[data-type="risk"]        { color: var(--type-risk); }
-.ov-phase-sq[data-type="test"]        { color: var(--type-test); }
+.ov-phase-sq[data-type="issue"] { color: var(--type-issue); }
+.ov-phase-sq[data-type="risk"] { color: var(--type-risk); }
+.ov-phase-sq[data-type="test"] { color: var(--type-test); }
 .ov-phase-sq[data-type="adr"],
-.ov-phase-sq[data-type="decision"]    { color: var(--type-adr); }
-.ov-phase-sq[data-type="change"]      { color: var(--type-change); }
-.ov-phase-sq[data-type="release"]     { color: var(--type-release); }
-.ov-phase-sq[data-type="workflow"]    { color: var(--type-workflow); }
-.ov-phase-sq[data-type="plan"]        { color: var(--type-plan); }
+.ov-phase-sq[data-type="decision"] { color: var(--type-adr); }
+.ov-phase-sq[data-type="change"] { color: var(--type-change); }
+.ov-phase-sq[data-type="release"] { color: var(--type-release); }
+.ov-phase-sq[data-type="workflow"] { color: var(--type-workflow); }
+.ov-phase-sq[data-type="plan"] { color: var(--type-plan); }
 .ov-phase-empty {
   font-size: 11px;
   color: var(--text-faint);
@@ -2924,18 +2923,18 @@ a.ov-phase-title:hover {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.ov-feed-type-feature      { color: var(--type-feature); }
-.ov-feed-type-task         { color: var(--type-task); }
-.ov-feed-type-issue        { color: var(--type-issue); }
-.ov-feed-type-requirement  { color: var(--type-requirement); }
-.ov-feed-type-change       { color: var(--type-change); }
-.ov-feed-type-risk         { color: var(--type-risk); }
-.ov-feed-type-test         { color: var(--type-test); }
+.ov-feed-type-feature { color: var(--type-feature); }
+.ov-feed-type-task { color: var(--type-task); }
+.ov-feed-type-issue { color: var(--type-issue); }
+.ov-feed-type-requirement { color: var(--type-requirement); }
+.ov-feed-type-change { color: var(--type-change); }
+.ov-feed-type-risk { color: var(--type-risk); }
+.ov-feed-type-test { color: var(--type-test); }
 .ov-feed-type-adr,
-.ov-feed-type-decision     { color: var(--type-adr); }
-.ov-feed-type-release      { color: var(--type-release); }
-.ov-feed-type-workflow     { color: var(--type-workflow); }
-.ov-feed-type-plan         { color: var(--type-plan); }
+.ov-feed-type-decision { color: var(--type-adr); }
+.ov-feed-type-release { color: var(--type-release); }
+.ov-feed-type-workflow { color: var(--type-workflow); }
+.ov-feed-type-plan { color: var(--type-plan); }
 .ov-feed-id {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 11px;
@@ -3035,7 +3034,7 @@ a.ov-phase-title:hover {
 }
 @keyframes ws-needs-input-pulse {
   0%, 100% { transform: scale(1); opacity: 1; }
-  50%      { transform: scale(1.25); opacity: 0.65; }
+  50% { transform: scale(1.25); opacity: 0.65; }
 }
 /* needs-input additionally rings the whole square (ISS-0006) —
    urgency alone earns the loud treatment; calm states stay a dot. */
@@ -4206,7 +4205,7 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .queue-kind.is-decide { color: var(--type-adr); }
 .queue-kind.is-review { color: var(--type-feature); }
 .queue-kind.is-answer { color: var(--accent-link); }
-.queue-kind.is-run    { color: var(--type-test); }
+.queue-kind.is-run { color: var(--type-test); }
 /* Stage. */
 .review-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .review-head h2 { font-size: 16px; margin: 0; font-weight: 600; }
@@ -5251,7 +5250,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   font-style: italic;
 }
 
-
 /* ----- The actuator row (FEAT-0060 / TASK-0281) -------------------------
    A single quiet row under the note's metadata strip. DES-0005: 11px caps
    for the row label, buttons at chip height. Absent — not empty — when the
@@ -5291,7 +5289,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 .note-action-btn.is-good { color: var(--status-active); border-color: var(--status-active); }
 .note-action-btn.is-terminal { color: var(--status-blocked); border-color: var(--status-blocked); }
 
-
 /* Inline evidence prompt on a criterion (FEAT-0060 / TASK-0282). */
 .tick-prompt { display: flex; gap: 6px; align-items: center; margin: 6px 0 4px; }
 .tick-prompt-field {
@@ -5307,7 +5304,6 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
 }
 .tick-prompt-field::placeholder { color: var(--text-faint); }
 input[type=checkbox][data-criterion="true"] { cursor: pointer; }
-
 
 /* Quick capture (FEAT-0061 / TASK-0283). Centred, one field, no chrome —
    under three seconds from thought to record is the whole requirement. */
@@ -5350,7 +5346,6 @@ input[type=checkbox][data-criterion="true"] { cursor: pointer; }
 .capture-field:disabled { opacity: 0.6; }
 .capture-hint { font-size: 11px; color: var(--text-faint); margin-top: 8px; }
 .capture-hint.is-error { color: var(--severity-critical); }
-
 
 /* Obligation badge on a view button (FEAT-0089 / TASK-0370). Absent, never
    zero — a permanent 0 is the shape of thing a reader stops seeing. */
@@ -5693,7 +5688,7 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 }
 .release-abandon-form .ask-field { width: 100%; }
 
-/* ----- the walk, on the release page (FEAT-0145 / ADR-0041) ------------- */
+/* ----- settling checks, on the release page (FEAT-0145 / ADR-0041) ------ */
 .release-settle-bar {
   display: flex; align-items: baseline; gap: 10px;
   margin: 10px 0 6px;
@@ -5854,15 +5849,15 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
  * `[ ]` to-do, `[!]` important, `[?]` question; the three that clear the gate
  * are cool or muted. Scanning 579 rows, the question is not which of six but
  * whether this one still stands between you and shipping. */
-.acc-mark-todo       { color: var(--fg-muted, #8b949e); }
-.acc-mark-done       { color: var(--ok, #3fb950); }
+.acc-mark-todo { color: var(--fg-muted, #8b949e); }
+.acc-mark-done { color: var(--ok, #3fb950); }
 .acc-mark-incomplete { color: var(--accent, #58a6ff); }
-.acc-mark-canceled   { color: var(--fg-muted, #8b949e); opacity: 0.75; }
-.acc-mark-important  { color: var(--danger, #f85149); font-weight: 700; }
-.acc-mark-question   { color: var(--warn, #d29922); font-weight: 700; }
+.acc-mark-canceled { color: var(--fg-muted, #8b949e); opacity: 0.75; }
+.acc-mark-important { color: var(--danger, #f85149); font-weight: 700; }
+.acc-mark-question { color: var(--warn, #d29922); font-weight: 700; }
 /* One of Minimal's other sixteen, or a typo. Unrecognised marks block, and
  * looking wrong is correct for something that holds a release until noticed. */
-.acc-mark-unknown    { color: var(--danger, #f85149); opacity: 0.6; }
+.acc-mark-unknown { color: var(--danger, #f85149); opacity: 0.6; }
 
 /* Minimal strikes canceled text through, and it is the clearest signal on a
  * long list: this row is not being waited for.
@@ -6025,7 +6020,6 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .mark-choice-failed   strong, .mark-choice-failed   .mark-choice-mark { color: var(--danger, #f85149); }
 .mark-choice-question strong, .mark-choice-question .mark-choice-mark { color: var(--warn, #d29922); }
 .mark-choice-clear    strong, .mark-choice-clear    .mark-choice-mark { color: var(--fg-muted, #8b949e); }
-
 
 /* ----- the acceptance view (FEAT-0114 / TASK-0464) ----------------------
  *
@@ -6333,202 +6327,15 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 .gate-breakdown-count {
   color: var(--text-faint);
 }
-
-/* ----- the walk page (FEAT-0149 / TASK-0619) ----------------------------
- *
- * The owed checks as a procedure: survey first, then sittings in the order the
- * browsed repo authored, each row carrying the check's setup, steps and
- * expected result. It reuses `.checks-row` for the row itself and
- * `.release-head` for the header, so a check looks the same wherever it is
- * drawn — the same argument the acceptance view makes one block up.
- *
- * Nothing here is a bar, a percentage or a time. Counts of rows are the only
- * numbers on this page (TASK-0449's guard rail, which outlived that task).
- */
-.walk-page { padding-bottom: 3rem; }
-.walk-focus-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 14px 0;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg-inset, transparent);
-}
-.walk-focus-nav > strong { margin-right: auto; font-size: 14px; }
-.walk-focus-progress { color: var(--text-muted); font-size: 12px; }
-.walk-focus-nav button { min-height: 32px; }
-/* A resumed walk, a moved position and the problems recorded so far each
-   take a full row under the controls: they are what the walker reads before
-   the step (FEAT-0151 B7, C2, C7). */
-.walk-focus-nav > .walk-resume,
-.walk-focus-nav > .walk-attention,
-.walk-focus-nav > .walk-focus-moved {
-  flex-basis: 100%;
-  margin: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.walk-resume p, .walk-attention p { margin: 6px 0; }
-.walk-resume button, .walk-attention button { display: block; margin: 6px 0 0; text-align: left; }
-.walk-resume-unchecked { color: var(--text-muted); font-size: 12px; }
-.walk-focus-nav > .walk-attention { border-color: var(--warn, #d29922); }
-.walk-attention > strong { display: block; color: var(--warn, #d29922); }
-.walk-step-earlier, .walk-step-decision { margin: 8px 0 0; font-size: 12px; }
-.walk-step-earlier { color: var(--warn, #d29922); }
-.walk-review-state.is-attention { color: var(--warn, #d29922); font-weight: 600; }
-.walk-session-select { max-width: 15rem; min-height: 32px; }
-.walk-options { flex-basis: auto; }
-.walk-options > summary {
-  cursor: pointer;
-  min-height: 32px;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  color: var(--text);
-  background: var(--bg-elevated);
-}
-.walk-options[open] { flex-basis: 100%; }
-.walk-options-menu {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-.walk-options-menu label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-}
-:root[data-theme="light"] .walk-step-evidence { color-scheme: light; }
-:root[data-theme="dark"] .walk-step-evidence { color-scheme: dark; }
-
-.walk-banner,
-.walk-notice {
-  margin: 10px 0;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-left-width: 3px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--text-muted, var(--text-faint));
-}
-.walk-banner { border-left-color: var(--accent, #58a6ff); }
-.walk-notice.is-warn { border-left-color: var(--warn, #d29922); }
-.walk-notice.is-error { border-left-color: var(--danger, #f85149); }
-
 /* The survey — the surfaces a change reopened, before any scripted check.
    It is the first thing on the page because it is the first thing to do. */
-.walk-survey {
-  margin: 0 0 22px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.walk-survey > h3 {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.walk-survey-lead { margin: 0 0 10px; font-size: 12px; color: var(--text-muted); }
-.walk-gallery {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0 0 10px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-.walk-gallery code { overflow-wrap: anywhere; }
-.walk-survey-surface { margin: 0 0 14px; }
-.walk-survey-surface > h4 {
-  margin: 0 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.walk-survey-surface > h4.is-link { cursor: pointer; }
-.walk-survey-surface > h4.is-link:hover { text-decoration: underline; }
-.walk-survey-checks { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
-.walk-survey-cause { margin: 0 0 6px; }
-.walk-reopened {
-  margin: 4px 0 0 10px;
-  padding-left: 8px;
-  border-left: 2px solid var(--border);
-  font-size: 12px;
-  color: var(--text-muted);
-}
 
 /* A sitting: the group of checks that share one product state. `state` and
    `bench` are rendered verbatim and never parsed — they are the two facts the
    hand-written run plan's pre-flight carried and no note could. */
-.walk-sitting { margin: 0 0 26px; }
-.walk-sitting > h3 {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.walk-sitting-state,
-.walk-sitting-why {
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-.walk-bench { margin: 0 0 8px 1.1rem; padding: 0; font-size: 12px; }
-.walk-sitting-count {
-  display: block;
-  margin: 0 0 8px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-}
 
 /* One row: the checks row, then the procedure under it. The border groups the
    two so a long Steps block cannot be read as belonging to the next check. */
-.walk-row {
-  margin: 0 0 14px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.walk-row.is-walked { opacity: 0.6; }
-.walk-proc {
-  padding: 6px 10px 10px;
-  border-top: 1px solid var(--border);
-}
-.walk-proc-block { margin: 8px 0 0; }
-.walk-proc-label {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-}
-.walk-proc-text {
-  font-size: 12px;
-  /* The check's own words, wrapped as the author wrote them: a walker follows
-     these, and reflowing a numbered list into a paragraph would be putting
-     words nobody wrote in front of the person recording the verdict. */
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.walk-proc-setup ul { margin: 0 0 0 1.1rem; padding: 0; }
-.walk-proc-setup li,
-.walk-proc-setup p { margin: 0 0 4px; }
-.walk-proc-block.is-missing .walk-proc-text,
-.walk-proc-block.is-partial .walk-proc-text { color: var(--text-muted); }
-.walk-proc-why {
-  font-size: 11px;
-  color: var(--text-faint);
-}
 
 /* ----- the walk page reads as a script (FEAT-0150 / PHASE-044) -----------
  *
@@ -6544,206 +6351,25 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
 /* A screen's card. A child screen — a dialog — is drawn inside its parent's
    card, indented and rule-marked, because that is where the walker will be
    standing when they open it. */
-.walk-survey-surface {
-  margin: 0 0 14px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.walk-survey-surface.is-child {
-  margin: 10px 0 0;
-  padding: 8px 10px;
-  border-left: 3px solid var(--border);
-}
-.walk-survey-surface > h5 {
-  margin: 0 0 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.walk-survey-surface > h5.is-link { cursor: pointer; }
-.walk-survey-surface > h5.is-link:hover { text-decoration: underline; }
-.walk-survey-unresolved {
-  margin: 0 0 6px;
-  font-size: 12px;
-  color: var(--warn, #d29922);
-}
-.walk-survey-sentence { margin: 0 0 4px; font-size: 12px; }
 
 /* Before and after, at the same width. Equal `flex-basis` rather than
    `auto`: two screenshots of the same screen differ by a few pixels of
    height, and sizing them to content drew the "now" picture slightly larger
    than the "at the last release" one — which is exactly the difference the
    walker is looking for, invented by the layout. */
-.walk-survey-captures { margin: 8px 0 0; }
-.walk-survey-capture-key {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-faint);
-}
-.walk-survey-shelf {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 6px 0 0;
-}
-.walk-survey-shot {
-  flex: 1 1 0;
-  min-width: 140px;
-  max-width: 360px;
-  margin: 0;
-}
-.walk-survey-capture {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-inset, transparent);
-}
-.walk-survey-when {
-  margin: 3px 0 0;
-  font-size: 11px;
-  color: var(--text-faint);
-}
 
 /* The sitting's script. */
-.walk-procedure {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.walk-procedure.is-walked { opacity: 0.6; }
-.walk-proc-source { margin: 0 0 8px; }
-.walk-proc-details { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 8px; }
-.walk-proc-details > summary, .walk-proc-block > summary { cursor: pointer; color: var(--text-muted); }
 
-.walk-step {
-  margin: 10px 0 0;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-.walk-step-head {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.walk-step-head.is-link { cursor: pointer; }
-.walk-step-head.is-link:hover { text-decoration: underline; }
-.walk-step-state { margin: 4px 0 8px; color: var(--text-muted); font-size: 12px; }
-.walk-step-evidence, .walk-step-timer {
-  margin: 12px 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.walk-step-evidence label { display: block; }
-.walk-step-evidence-note {
-  display: block;
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 70px;
-  margin: 8px 0;
-  font: inherit;
-}
-.walk-step-evidence-build {
-  display: block;
-  width: min(100%, 440px);
-  margin: 6px 0 10px;
-}
-.walk-step-evidence-file { display: block; margin: 10px 0 6px; }
-.walk-step-evidence-image {
-  display: block;
-  max-width: min(100%, 520px);
-  max-height: 320px;
-  object-fit: contain;
-  margin: 10px 0;
-  border: 1px solid var(--border);
-}
-.walk-step-evidence-missing { color: var(--text-warning, var(--text-muted)); }
-.walk-step-timer span { display: block; margin-bottom: 8px; }
-.walk-step-readiness, .walk-proc-readiness, .walk-row-readiness {
-  margin: 10px 0;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-}
-.walk-step-readiness p, .walk-proc-readiness p, .walk-row-readiness p { margin: 6px 0; }
-.walk-step-coverage, .walk-step-reference { margin: 10px 0; }
-.walk-step-coverage .walk-tag { margin: 6px 6px 0 0; }
-.walk-review-summary { margin-top: 12px; }
-.walk-review-summary ul { margin: 10px 0; padding-left: 22px; }
-.walk-review-summary li { margin: 6px 0; }
-.walk-review-corrections { margin: 12px 0; padding: 10px; border: 1px solid var(--border); border-radius: 8px; }
-.walk-review-corrections > summary { cursor: pointer; font-weight: 600; }
-.walk-review-corrections .walk-step { margin-top: 10px; }
-.walk-step-action-label { min-width: 54px; color: var(--text-muted); font-size: 11px; }
-.walk-step-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 6px;
-  margin: 3px 0 0;
-  font-size: 12px;
-}
 /* An expectation line is what a verdict will be recorded against, so it is
    drawn apart from the instructions around it. */
-.walk-step-line.is-expectation {
-  padding-left: 8px;
-  border-left: 2px solid var(--accent, #58a6ff);
-}
-.walk-step-said { overflow-wrap: anywhere; }
 
 /* The check part this line settles. `is-passed` is a part already walked on
    this platform: shown, because the procedure covers the whole sitting, and
    struck through, because ticking the step does not record it again. */
-.walk-tag {
-  padding: 0 5px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  font-family: var(--mono, ui-monospace, monospace);
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.walk-tag.is-passed {
-  text-decoration: line-through;
-  color: var(--text-faint);
-  opacity: 0.75;
-}
-
-.walk-step-tick {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-  margin: 8px 0 0;
-}
-.walk-step-button.is-pass { border-color: var(--ok, #3fb950); }
-.walk-step-button.is-partial { border-color: var(--warn, #d29922); }
-.walk-step-button.is-fail { border-color: var(--danger, #f85149); }
-.walk-step-button.is-question { border-color: var(--accent, #58a6ff); }
-.walk-step-waiting { font-size: 11px; color: var(--text-faint); }
 
 /* What the ticks above will record, and what each verdict is still waiting
    on. The walker never sees a check row inside a scripted sitting, so this
    is where the checks are named and opened. */
-.walk-proc-verdicts {
-  margin: 12px 0 0;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
-}
-.walk-proc-verdict {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-  margin: 4px 0 0;
-}
-.walk-proc-verdict-state { font-size: 11px; color: var(--text-faint); }
-.walk-proc-verdict-state.is-ready { color: var(--text-muted); }
 
 /* A dialog's checks, under the screen it opens from (TASK-0625 / ADR-0044).
    The indent and the rule say "part of the screen above"; the `in <screen>`
@@ -6772,3 +6398,144 @@ textarea.ask-field { min-height: 92px; resize: vertical; }
   font-size: 10px;
   color: var(--warn, #d29922);
 }
+
+/* ---------------------------------------------------------------------------
+   The release test page (FEAT-0155). Ported from the example Edwin approved on
+   2026-09-27 (your-trainer docs/features/release-test/evidence/). Result colours
+   are the page's own; everything else uses the shell's theme tokens. */
+.rt-page {
+  --rt-pass: #23724A; --rt-pass-soft: #DDF0E4; --rt-fail: #B0352B; --rt-fail-soft: #F8E0DD;
+  --rt-warn: #94600E; --rt-warn-soft: #F7ECD6; --rt-q: #3F44A0; --rt-q-soft: #E4E5F7;
+  --rt-blk: #3E5670; --rt-blk-soft: #E1E8EF; --rt-off: #6B7470; --rt-off-soft: #ECEEEA;
+  max-width: 860px; margin: 0 auto; padding: 24px 16px 64px;
+  display: flex; flex-direction: column; gap: 24px; font-size: 14px;
+}
+:root[data-theme="dark"] .rt-page {
+  --rt-pass: #6FCB97; --rt-pass-soft: #1C3527; --rt-fail: #F08A7E; --rt-fail-soft: #3D2220;
+  --rt-warn: #E4B35F; --rt-warn-soft: #3A2E17; --rt-q: #AEB1F5; --rt-q-soft: #262949;
+  --rt-blk: #9DB9D6; --rt-blk-soft: #1E2A36; --rt-off: #A2ABA7; --rt-off-soft: #252B29;
+}
+.rt-page h1, .rt-page h2, .rt-page h3 { margin: 0; line-height: 1.2; }
+.rt-page h1 { font-size: 24px; }
+.rt-page h2 { font-size: 18px; }
+.rt-page h3 { font-size: 15px; }
+.rt-page p { margin: 0; }
+.rt-head { display: flex; flex-direction: column; gap: 8px; }
+.rt-eyebrow { font: 500 11.5px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.rt-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--text-muted); }
+.rt-block { display: flex; flex-direction: column; gap: 12px; }
+.rt-legend, .rt-hint { color: var(--text-muted); font-size: 13px; }
+.rt-hint { font-style: italic; }
+.rt-notice, .rt-warn { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: 10px 14px; }
+.rt-link { all: unset; cursor: pointer; color: var(--accent-link); }
+.rt-link:hover { text-decoration: underline; }
+.rt-link:focus-visible { outline: 2px solid var(--accent-focus); }
+.rt-progress { display: flex; align-items: center; gap: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.rt-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; display: block; }
+.rt-bar i { display: block; height: 100%; background: var(--rt-pass); }
+.rt-tally { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12.5px; }
+.rt-tally span { padding: 3px 8px; border-radius: 10px; background: var(--cs); color: var(--c); font-weight: 600; }
+.rt-page [data-mark="pass"] { --c: var(--rt-pass); --cs: var(--rt-pass-soft); }
+.rt-page [data-mark="fail"] { --c: var(--rt-fail); --cs: var(--rt-fail-soft); }
+.rt-page [data-mark="partial"] { --c: var(--rt-warn); --cs: var(--rt-warn-soft); }
+.rt-page [data-mark="question"] { --c: var(--rt-q); --cs: var(--rt-q-soft); }
+.rt-page [data-mark="blocked"] { --c: var(--rt-blk); --cs: var(--rt-blk-soft); }
+.rt-page [data-mark="na"], .rt-page [data-mark="excused"] { --c: var(--rt-off); --cs: var(--rt-off-soft); }
+
+/* overview */
+.rt-continue { all: unset; box-sizing: border-box; cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; background: var(--accent-link); color: var(--bg); border-radius: 10px; padding: 14px 18px; }
+.rt-continue:disabled { cursor: default; opacity: .7; }
+.rt-continue:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.rt-continue small { font: 500 11.5px/1 var(--font-mono); letter-spacing: .05em; text-transform: uppercase; opacity: .85; }
+.rt-continue b { font-size: 17px; }
+.rt-continue .rt-arrow { grid-row: 1 / span 3; grid-column: 2; font-size: 22px; }
+.rt-attention, .rt-sections { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.rt-att, .rt-sec { all: unset; box-sizing: border-box; cursor: pointer; border-top: 1px solid var(--border); padding: 10px 16px; }
+.rt-att:first-child, .rt-sec:first-child { border-top: 0; }
+.rt-att:hover, .rt-sec:hover { background: var(--row-hover); }
+.rt-att:focus-visible, .rt-sec:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: -2px; }
+.rt-att { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; }
+.rt-kind { grid-row: 1 / span 2; align-self: start; padding: 2px 8px; border-radius: 10px; background: var(--cs); color: var(--c); font-weight: 600; font-size: 12px; }
+.rt-where { font-size: 12.5px; color: var(--text-muted); }
+.rt-sec { display: grid; grid-template-columns: 18px minmax(0, 1fr) 150px 70px; gap: 4px 14px; align-items: center; }
+.rt-sec .rt-name { font-weight: 500; }
+.rt-sec .rt-bench { grid-column: 2; font-size: 12.5px; color: var(--text-muted); }
+.rt-sec .rt-bar { grid-row: 1; grid-column: 3; }
+.rt-sec .rt-n { grid-row: 1; grid-column: 4; text-align: right; font: 500 12.5px/1 var(--font-mono); color: var(--text-muted); }
+.rt-dot { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--text-muted); justify-self: center; }
+.rt-dot.done { background: var(--rt-pass); border-color: var(--rt-pass); }
+.rt-dot.part { background: linear-gradient(90deg, var(--rt-pass) 50%, transparent 50%); border-color: var(--rt-pass); }
+.rt-dot.bad { background: var(--rt-fail); border-color: var(--rt-fail); }
+
+/* what changed */
+.rt-changes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px 28px; }
+.rt-screen { display: flex; flex-direction: column; gap: 6px; }
+.rt-screen.rt-child h3::before { content: "↳ "; color: var(--text-muted); }
+.rt-screen ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.rt-shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.rt-shots figure { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.rt-shots img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: top; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); }
+.rt-shots figcaption { font-size: 12px; color: var(--text-muted); }
+.rt-tag { font: 500 11px/1 var(--font-mono); padding: 3px 6px; border-radius: 4px; }
+.rt-tag.new { background: var(--rt-pass-soft); color: var(--rt-pass); }
+.rt-tag.before, .rt-tag.now { background: var(--code-bg); color: var(--text-muted); }
+.rt-tag.stale { background: var(--rt-warn-soft); color: var(--rt-warn); }
+.rt-stale { font-size: 12.5px; color: var(--rt-warn); }
+
+/* setup */
+.rt-setup { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.rt-setup summary { cursor: pointer; padding: 12px 16px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.rt-setup summary span { color: var(--text-muted); }
+.rt-setup-body { padding: 0 16px 16px 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px 28px; }
+.rt-setup-body ul, .rt-setup-body ol { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.rt-later { grid-column: 1 / -1; background: var(--code-bg); border-radius: 8px; padding: 10px 12px; }
+
+/* checks */
+.rt-group { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.rt-group-head { padding: 12px 16px; display: flex; flex-direction: column; gap: 3px; }
+.rt-start { color: var(--text-muted); }
+.rt-start b { color: var(--text); }
+.rt-check { --c: transparent; --cs: transparent; background: var(--cs); display: grid; grid-template-columns: 28px 1fr auto; gap: 4px 12px; padding: 10px 16px; border-top: 1px solid var(--border); align-items: start; }
+.rt-check > :not(.rt-num):not(.rt-marks):not(.rt-start-again) { grid-column: 2; }
+.rt-check .rt-start-again { grid-column: 1 / -1; }
+.rt-num { font: 500 13px/1.6 var(--font-mono); color: var(--text-muted); grid-column: 1; }
+.rt-do { font-weight: 500; }
+.rt-expect { position: relative; padding-left: 18px; }
+.rt-expect::before { content: "→"; position: absolute; left: 0; color: var(--accent-link); font-weight: 600; }
+.rt-tid { font: 400 11.5px/1.3 var(--font-mono); color: var(--text-muted); }
+.rt-note-part { color: var(--text-muted); font-size: 13px; white-space: pre-wrap; margin: 0; font-family: inherit; }
+.rt-flag { background: var(--rt-warn-soft); color: var(--rt-warn); border-radius: 5px; padding: 5px 8px; font-size: 13px; }
+.rt-timer { font: 500 12px/1 var(--font-mono); color: var(--accent-link); }
+.rt-check.rt-muted .rt-do, .rt-check.rt-muted .rt-expect { color: var(--text-muted); }
+.rt-marks { grid-row: 1 / span 4; grid-column: 3; display: flex; gap: 4px; position: relative; }
+.rt-marks button { font: 600 12px/1 var(--font-sans); border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); border-radius: 5px; padding: 6px 8px; cursor: pointer; white-space: nowrap; }
+.rt-marks button.on { background: var(--c); color: var(--surface); border-color: var(--c); }
+.rt-marks button:focus-visible, .rt-menu button:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
+.rt-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 5; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-soft); padding: 4px; display: flex; flex-direction: column; min-width: 250px; }
+.rt-menu button { all: unset; cursor: pointer; display: grid; grid-template-columns: 78px 1fr; gap: 8px; padding: 7px 8px; border-radius: 5px; font-size: 13px; color: var(--text-muted); }
+.rt-menu button b { color: var(--text); }
+.rt-menu button:hover { background: var(--row-hover); }
+.rt-reason { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 6px 8px; width: 100%; }
+.rt-reason.missing { border-color: var(--rt-fail); }
+.rt-pager { display: flex; justify-content: space-between; gap: 12px; }
+@media (max-width: 560px) {
+  .rt-check { grid-template-columns: 24px 1fr; }
+  .rt-marks { grid-row: auto; grid-column: 2; }
+  .rt-sec { grid-template-columns: 18px 1fr 60px; }
+  .rt-sec .rt-bar { grid-row: 3; grid-column: 2 / 4; }
+  .rt-sec .rt-n { grid-column: 3; }
+}
+/* The pane's section dots use the page's colours outside the page too. */
+.nav-line .rt-dot { --rt-pass: #23724A; --rt-fail: #B0352B; display: inline-block; margin-right: 6px; flex: none; }
+:root[data-theme="dark"] .nav-line .rt-dot { --rt-pass: #6FCB97; --rt-fail: #F08A7E; }
+.rt-bar-split { display: flex; }
+.rt-bar-split i { background: var(--c); }
+.rt-shot { all: unset; cursor: zoom-in; display: block; }
+.rt-shot:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 2px; border-radius: 6px; }
+.rt-enlarged { border: 0; padding: 0; background: transparent; max-width: min(92vw, 760px); }
+.rt-enlarged::backdrop { background: rgb(0 0 0 / .7); }
+.rt-enlarged img { max-height: 86vh; width: auto; border-radius: 6px; display: block; margin: 0 auto; }
+.rt-enlarged p { color: #fff; text-align: center; margin-top: 8px; }
+.rt-timer { all: unset; cursor: pointer; font: 500 12px/1 var(--font-mono); color: var(--accent-link); justify-self: start; }
+.rt-timer:focus-visible { outline: 2px solid var(--accent-focus); }
+.rt-capture { display: flex; flex-direction: column; gap: 4px; }

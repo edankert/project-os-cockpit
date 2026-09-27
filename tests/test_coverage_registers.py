@@ -78,6 +78,11 @@ def test_every_test_named_in_a_note_exists(note: Path) -> None:
     defined = _defined_tests()
     modules = _module_names()
     text = note.read_text(encoding="utf-8")
+    #: A retired check is kept as history, and the tests it names may have
+    #: been removed with the code they tested (TST-0088, TST-0089: the walk
+    #: page, 2026-09-27). Its citations describe what was, not what is.
+    if "\nstatus: retired\n" in text.split("\n---", 1)[0] + "\n":
+        pytest.skip("a retired check's citations are history")
 
     missing = sorted(
         name for name in set(MENTION.findall(text))

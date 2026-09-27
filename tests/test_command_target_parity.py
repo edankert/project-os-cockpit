@@ -138,7 +138,7 @@ def test_the_navigator_and_the_page_classify_a_note_identically() -> None:
     """**One predicate, asserted rather than intended** ([[REQ-0059]]).
 
     `cockpit._covers_an_issue` carried its own regex — `re.search` against
-    `acceptance.section_of`'s `re.match` — so a `covers:` entry holding a
+    `acceptance.kind_of`'s `re.match` — so a `covers:` entry holding a
     `FEAT-*` id *and the word* `ISS-0002` classified one way in the navigator
     and the other on the generated page. Swapping the two readings passed the
     whole suite; independent review found it by swapping them.
@@ -165,5 +165,5 @@ def test_the_navigator_and_the_page_classify_a_note_identically() -> None:
         item = acceptance.item_from_note(
             {"id": "TST-9100", "title": "x", "level": "acceptance",
              "mark": " ", "covers": covers}, rel="x.md")
-        expected = acceptance.section_of(item) == acceptance.SECTION_REGRESSION
+        expected = acceptance.kind_of(item) == acceptance.KIND_REGRESSION
         assert cockpit._covers_an_issue(record) is expected, covers

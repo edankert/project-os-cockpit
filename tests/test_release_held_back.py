@@ -455,11 +455,11 @@ def test_no_attestation_path_to_a_check_appears_on_the_release_page() -> None:
     #: here, and [[ISS-0254]] owns the durable form — a rule over the call
     #: graph rather than over spellings.
     #:
-    #: `walkOneCheck` and `/api/notes/mark-check` stay forbidden even though
+    #: `markOneCheck` and `/api/notes/mark-check` stay forbidden even though
     #: the endpoint could in principle be sent `excused`: they are the surface
     #: that offers all seven marks, and a release page reaching them would be
     #: one refactor away from offering `pass`.
-    forbidden = ("walkOneCheck", "/api/notes/mark-check",
+    forbidden = ("markOneCheck", "/api/notes/mark-check",
                  "/api/notes/retire-check",
                  "gateMark(", "markGateRow(", "retireCheckRow(",
                  "checkMark(", "markCheckRow(", "paintCheckList(")
