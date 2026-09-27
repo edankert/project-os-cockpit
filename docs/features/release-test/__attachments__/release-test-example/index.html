@@ -1,0 +1,552 @@
+<title>Release Test Example</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --ground:#F3F4F1; --panel:#FFFFFF; --ink:#1B2220; --muted:#5A6561; --line:#DADFDA;
+  --accent:#4B4FA6; --accent-soft:#E7E7F6;
+  --pass:#23724A; --pass-soft:#DDF0E4; --fail:#B0352B; --fail-soft:#F8E0DD;
+  --warn:#94600E; --warn-soft:#F7ECD6; --note:#EEF0EC;
+  --q:#3F44A0; --q-soft:#E4E5F7; --blk:#3E5670; --blk-soft:#E1E8EF; --off:#6B7470; --off-soft:#ECEEEA;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#141817; --panel:#1C2120; --ink:#E6EAE7; --muted:#9AA5A0; --line:#2E3533;
+    --accent:#A3A6F0; --accent-soft:#2A2C4A;
+    --pass:#6FCB97; --pass-soft:#1C3527; --fail:#F08A7E; --fail-soft:#3D2220;
+    --warn:#E4B35F; --warn-soft:#3A2E17; --note:#222826;
+    --q:#AEB1F5; --q-soft:#262949; --blk:#9DB9D6; --blk-soft:#1E2A36; --off:#A2ABA7; --off-soft:#252B29;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#141817; --panel:#1C2120; --ink:#E6EAE7; --muted:#9AA5A0; --line:#2E3533;
+  --accent:#A3A6F0; --accent-soft:#2A2C4A;
+  --pass:#6FCB97; --pass-soft:#1C3527; --fail:#F08A7E; --fail-soft:#3D2220;
+  --warn:#E4B35F; --warn-soft:#3A2E17; --note:#222826;
+  --q:#AEB1F5; --q-soft:#262949; --blk:#9DB9D6; --blk-soft:#1E2A36; --off:#A2ABA7; --off-soft:#252B29;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font:15px/1.5 var(--body);padding-inline:16px;padding-block:24px 64px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:30px;font-weight:700}
+h2{font-size:21px;font-weight:600}
+h3{font-size:17px;font-weight:600}
+p{margin:0}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mock-note{background:var(--accent-soft);color:var(--ink);border-radius:8px;padding:10px 14px;font-size:13.5px}
+header{display:flex;flex-direction:column;gap:8px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--muted);font-size:14px}
+.meta b{color:var(--ink);font-weight:600}
+section{display:flex;flex-direction:column;gap:14px}
+
+/* what changed */
+.changes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px 28px}
+.changes h3{margin-bottom:6px}
+.changes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.changes li::marker{color:var(--accent)}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+figure{margin:0;display:flex;flex-direction:column;gap:6px}
+figure button{all:unset;cursor:zoom-in;border-radius:6px;overflow:hidden;border:1px solid var(--line);display:block;aspect-ratio:3/4;background:var(--panel)}
+figure button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+figure img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+figcaption{font-size:13px;color:var(--muted)}
+figcaption b{color:var(--ink);font-weight:600}
+.pair{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.pair{grid-column:auto}}
+.tag{font:500 11px/1 var(--mono);padding:3px 6px;border-radius:4px;display:inline-block;vertical-align:1px}
+.tag.new{background:var(--pass-soft);color:var(--pass)}
+.tag.before{background:var(--note);color:var(--muted)}
+.tag.stale{background:var(--warn-soft);color:var(--warn)}
+.stale-note{font-size:13px;color:var(--warn)}
+
+/* setup */
+details.setup{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+details.setup summary{cursor:pointer;padding:14px 16px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;list-style:none}
+details.setup summary::-webkit-details-marker{display:none}
+details.setup summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details.setup[open] summary::before{transform:rotate(90deg)}
+details.setup summary h2{font-size:18px}
+details.setup summary span{color:var(--muted);font-size:14px}
+.setup-body{padding:0 16px 16px 36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px 28px}
+.setup-body h3{font-size:15px;margin-bottom:6px}
+.setup-body ul,.setup-body ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.setup-body .later{grid-column:1/-1;background:var(--note);border-radius:8px;padding:10px 12px;font-size:14px}
+
+/* checks */
+.progress{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--pass);transition:width .2s}
+.group{display:flex;flex-direction:column;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.group-head{padding:12px 16px;display:flex;flex-direction:column;gap:3px}
+.start{font-size:14px;color:var(--muted)}
+.start b{color:var(--ink);font-weight:600}
+.check{display:grid;grid-template-columns:28px 1fr auto;gap:4px 12px;padding:11px 16px;border-top:1px solid var(--line);align-items:start}
+.num{font:500 13px/1.6 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.do{font-weight:500}
+.expect{grid-column:2;color:var(--ink);display:flex;gap:6px}
+.expect::before{content:"→";color:var(--accent);font-weight:600}
+.tid{grid-column:2;font:400 11.5px/1.3 var(--mono);color:var(--muted)}
+.marks{grid-row:1/span 4;grid-column:3;display:flex;gap:4px;position:relative;align-self:start}
+.marks button{font:600 12px/1 var(--body);border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:5px;padding:6px 8px;cursor:pointer;white-space:nowrap}
+.marks button:focus-visible,.menu button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.menu{position:absolute;right:0;top:calc(100% + 4px);z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgb(0 0 0 / .14);padding:4px;display:flex;flex-direction:column;min-width:250px}
+.menu button{all:unset;cursor:pointer;display:grid;grid-template-columns:78px 1fr;gap:8px;align-items:baseline;padding:7px 8px;border-radius:5px;font-size:13px;color:var(--muted)}
+.menu button b{font-weight:600;color:var(--ink)}
+.menu button:hover{background:var(--note)}
+.reason{grid-column:2;font:14px/1.3 var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:6px 8px;width:100%}
+.reason:focus-visible{outline:2px solid var(--accent);outline-offset:0}
+.reason.missing{border-color:var(--fail)}
+.check{--c:transparent;--cs:transparent;background:var(--cs)}
+[data-mark="pass"]{--c:var(--pass);--cs:var(--pass-soft)}
+[data-mark="fail"]{--c:var(--fail);--cs:var(--fail-soft)}
+[data-mark="partial"]{--c:var(--warn);--cs:var(--warn-soft)}
+[data-mark="question"]{--c:var(--q);--cs:var(--q-soft)}
+[data-mark="blocked"]{--c:var(--blk);--cs:var(--blk-soft)}
+[data-mark="na"],[data-mark="excused"]{--c:var(--off);--cs:var(--off-soft)}
+.marks .on{background:var(--c);color:var(--panel);border-color:var(--c)}
+.flag{grid-column:2;font-size:13px;border-radius:5px;padding:5px 8px}
+.flag.warn{background:var(--warn-soft);color:var(--warn)}
+.flag.hint{padding:0;color:var(--muted);font-style:italic}
+.check.muted .do,.check.muted .expect{color:var(--muted)}
+.check.muted .expect::before{color:var(--muted)}
+.tally{display:flex;flex-wrap:wrap;gap:6px;font-size:12.5px}
+.tally span{padding:3px 8px;border-radius:10px;background:var(--cs);color:var(--c);font-weight:600}
+.timer{font:500 12px/1 var(--mono);color:var(--accent)}
+@media (max-width:560px){
+  .check{grid-template-columns:24px 1fr}
+  .marks{grid-row:auto;grid-column:2;margin-top:4px}
+  .menu{left:0;right:auto}
+}
+
+/* reviewer notes */
+.notes{border-top:2px dashed var(--line);padding-top:22px}
+.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.stat{display:flex;flex-wrap:wrap;gap:10px 28px;font-variant-numeric:tabular-nums}
+.stat div{display:flex;flex-direction:column}
+.stat b{font:600 24px/1.1 var(--display)}
+.stat span{font-size:13px;color:var(--muted)}
+
+dialog{border:0;padding:0;background:transparent;max-width:min(92vw,700px)}
+dialog::backdrop{background:rgb(0 0 0 / .7)}
+dialog img{max-height:88vh;width:auto;border-radius:6px;display:block;margin:0 auto}
+dialog p{color:#fff;text-align:center;margin-top:8px;font-size:14px}
+
+/* cockpit shell */
+body{padding:0}
+.app{display:grid;grid-template-columns:292px minmax(0,1fr);min-height:100vh}
+.pane{background:var(--panel);border-right:1px solid var(--line);padding-block:18px 32px;padding-inline:14px;position:sticky;top:0;height:100vh;overflow-y:auto;font-size:13.5px}
+.pane-title{font:600 13px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 6px 12px}
+.nav{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px}
+.nav .nav{padding-left:14px}
+.nav-row{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:14px 1fr auto;align-items:center;gap:6px;width:100%;padding:5px 6px;border-radius:5px;color:var(--ink)}
+.nav-row:hover{background:var(--note)}
+.nav-row:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.nav-row[aria-current="page"]{background:var(--accent-soft);font-weight:600}
+.nav-row .tw{color:var(--muted);font-size:10px;text-align:center}
+.nav-row .n{font:500 11.5px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.nav-row.heading{font-weight:600}
+.nav-row.static{cursor:default;color:var(--muted)}
+.nav-row.static:hover{background:none}
+.nav-row.new-thing{box-shadow:inset 2px 0 0 var(--accent)}
+.dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted);justify-self:center}
+.dot.done{background:var(--pass);border-color:var(--pass)}
+.dot.part{background:linear-gradient(90deg,var(--pass) 50%,transparent 50%);border-color:var(--pass)}
+.dot.bad{background:var(--fail);border-color:var(--fail)}
+.nav-bar{grid-column:2/4;height:3px;border-radius:2px;background:var(--line);overflow:hidden;margin-top:3px}
+.nav-bar i{display:block;height:100%;background:var(--pass)}
+.nav-sep{height:1px;background:var(--line);margin:8px 6px}
+.stage{padding-inline:28px;padding-block:24px 64px;min-width:0}
+.stage > .mock-note{max-width:860px;margin:0 auto 22px}
+.view[hidden]{display:none}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .pane{position:static;height:auto;max-height:none;border-right:0;border-bottom:1px solid var(--line);padding-inline:16px}
+  .stage{padding-inline:16px}
+}
+
+/* overview */
+.ov-head{display:flex;flex-direction:column;gap:8px}
+.big-bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;display:flex}
+.big-bar i{display:block;height:100%}
+.continue{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 16px;background:var(--accent);color:var(--panel);border-radius:10px;padding:14px 18px}
+.continue:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.continue small{font:500 12px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;opacity:.8}
+.continue b{font:600 18px/1.25 var(--display)}
+.continue span.arrow{grid-row:1/span 3;grid-column:2;font:600 22px/1 var(--display)}
+.continue .next{font-size:14px;opacity:.9}
+.attention{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.att{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:10px 16px;border-top:1px solid var(--line)}
+.att:first-child{border-top:0}
+.att:hover{background:var(--note)}
+.att:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.att .kind{grid-row:1/span 2;align-self:start;margin-top:2px}
+.att .where{font-size:12.5px;color:var(--muted)}
+.sections{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.sec{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:18px minmax(0,1fr) 150px 70px;align-items:center;gap:4px 14px;padding:11px 16px;border-top:1px solid var(--line)}
+.sec:first-child{border-top:0}
+.sec:hover{background:var(--note)}
+.sec:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.sec .name{font-weight:500}
+.sec .bench{grid-column:2;font-size:12.5px;color:var(--muted)}
+.sec .bar{grid-row:1;grid-column:3}
+.sec .n{grid-row:1;grid-column:4;text-align:right;font:500 12.5px/1 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+@media (max-width:560px){
+  .sec{grid-template-columns:18px 1fr 60px}
+  .sec .bar{grid-row:3;grid-column:2/4}
+  .sec .n{grid-column:3}
+}
+.placeholder{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.placeholder .box{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:28px;color:var(--muted);text-align:center}
+.legend{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+<nav class="pane" aria-label="Tests">
+  <div class="pane-title">Tests</div>
+  <ul class="nav">
+    <li><button class="nav-row heading" data-view="overview" data-scroll="needs"><span class="tw"></span><span>Needs you</span><span class="n" id="nav-needs">2</span></button></li>
+    <li class="nav-sep" role="separator"></li>
+    <li><span class="nav-row heading static"><span class="tw">▾</span><span>Acceptance tests</span><span></span></span>
+      <ul class="nav">
+        <li><span class="nav-row static new-thing"><span class="tw">▾</span><span>Release test · v2.2.0</span><span></span></span>
+          <ul class="nav">
+            <li><button class="nav-row" data-view="overview" aria-current="page"><span class="tw">▾</span><span><b>Android</b></span><span class="n" id="nav-android">0/353</span><span class="nav-bar"><i id="nav-android-bar"></i></span></button>
+              <ul class="nav"><li><button class="nav-row" data-view="sec" data-sec="fresh"><span class="dot" data-dot="fresh"></span><span>Fresh install</span><span class="n" data-n="fresh">0/7</span></button></li><li><button class="nav-row" data-view="eq" data-sec="eq"><span class="dot" data-dot="eq"></span><span>Equipment Hub</span><span class="n" data-n="eq">0/28</span></button></li><li><button class="nav-row" data-view="sec" data-sec="dataonly"><span class="dot" data-dot="dataonly"></span><span>A bike the app cannot drive</span><span class="n" data-n="dataonly">0/52</span></button></li><li><button class="nav-row" data-view="sec" data-sec="nav"><span class="dot" data-dot="nav"></span><span>Navigation and top bar</span><span class="n" data-n="nav">0/36</span></button></li><li><button class="nav-row" data-view="sec" data-sec="free"><span class="dot" data-dot="free"></span><span>FREE rides in each mode</span><span class="n" data-n="free">0/8</span></button></li><li><button class="nav-row" data-view="sec" data-sec="paywall"><span class="dot" data-dot="paywall"></span><span>Paywall and the upgrade to PRO</span><span class="n" data-n="paywall">0/10</span></button></li><li><button class="nav-row" data-view="sec" data-sec="power"><span class="dot" data-dot="power"></span><span>PRO Power workouts</span><span class="n" data-n="power">0/15</span></button></li><li><button class="nav-row" data-view="sec" data-sec="route"><span class="dot" data-dot="route"></span><span>PRO Route workouts</span><span class="n" data-n="route">0/86</span></button></li><li><button class="nav-row" data-view="sec" data-sec="hr"><span class="dot" data-dot="hr"></span><span>PRO HR-Zone</span><span class="n" data-n="hr">0/9</span></button></li><li><button class="nav-row" data-view="sec" data-sec="family"><span class="dot" data-dot="family"></span><span>FAMILY and a household of riders</span><span class="n" data-n="family">0/51</span></button></li><li><button class="nav-row" data-view="sec" data-sec="compat"><span class="dot" data-dot="compat"></span><span>Trainer compatibility</span><span class="n" data-n="compat">0/18</span></button></li><li><button class="nav-row" data-view="sec" data-sec="sim"><span class="dot" data-dot="sim"></span><span>Simulation and the gear table</span><span class="n" data-n="sim">0/30</span></button></li><li><button class="nav-row" data-view="sec" data-sec="sweep"><span class="dot" data-dot="sweep"></span><span>Languages and final sweep</span><span class="n" data-n="sweep">0/3</span></button></li></ul>
+            </li>
+            <li><button class="nav-row" data-view="ios"><span class="tw">▸</span><span>iOS</span><span class="n">0/873</span></button></li>
+          </ul>
+        </li>
+        <li><span class="nav-row static"><span class="tw">▸</span><span>Feature tests</span><span class="n">507</span></span></li>
+        <li><span class="nav-row static"><span class="tw">▸</span><span>Regression tests</span><span class="n"></span></span></li>
+      </ul>
+    </li>
+    <li class="nav-sep" role="separator"></li>
+    <li><span class="nav-row static"><span class="tw">▸</span><span>Automated tests</span><span></span></span></li>
+    <li><span class="nav-row static"><span class="tw">▸</span><span>Retired</span><span></span></span></li>
+  </ul>
+</nav>
+<main class="stage">
+<p class="mock-note"><b>Example.</b> The Tests pane on the left and the Android overview are new. The progress shown at first is example progress, not real results; the Equipment Hub section is the page you approved, and marking a check there updates the pane and the overview. Nothing is saved.</p>
+<div class="wrap view" id="view-overview">
+  <header class="ov-head">
+    <span class="eyebrow">Release test · Android · v2.2.0</span>
+    <h1>Test v2.2.0 on Android</h1>
+    <div class="progress"><span id="ov-count"></span><div class="big-bar" id="ov-bar"></div></div>
+    <div class="tally" id="ov-tally"></div>
+  </header>
+  <button class="continue" id="continue"><small>Continue where you stopped</small><b id="cont-where"></b><span class="next" id="cont-next"></span><span class="arrow">→</span></button>
+  <section aria-labelledby="needs"><h2 id="needs">Needs you</h2><div class="attention" id="attention"></div></section>
+  <section aria-labelledby="secs"><h2 id="secs">Sections</h2><p class="legend">Pick any section. The line under each name is what it needs on the bench.</p><div class="sections"><button class="sec" data-view="sec" data-sec="fresh"><span class="dot" data-dot="fresh"></span><span class="name">Fresh install</span><span class="bar"><i data-bar="fresh"></i></span><span class="n" data-n="fresh">0/7</span><span class="bench">Tablet and phone</span></button><button class="sec" data-view="eq" data-sec="eq"><span class="dot" data-dot="eq"></span><span class="name">Equipment Hub</span><span class="bar"><i data-bar="eq"></i></span><span class="n" data-n="eq">0/28</span><span class="bench">KICKR · strap · Garmin Connect in a browser</span></button><button class="sec" data-view="sec" data-sec="dataonly"><span class="dot" data-dot="dataonly"></span><span class="name">A bike the app cannot drive</span><span class="bar"><i data-bar="dataonly"></i></span><span class="n" data-n="dataonly">0/52</span><span class="bench">Fake trainer · KICKR</span></button><button class="sec" data-view="sec" data-sec="nav"><span class="dot" data-dot="nav"></span><span class="name">Navigation and top bar</span><span class="bar"><i data-bar="nav"></i></span><span class="n" data-n="nav">0/36</span><span class="bench">Phone and tablet · strap</span></button><button class="sec" data-view="sec" data-sec="free"><span class="dot" data-dot="free"></span><span class="name">FREE rides in each mode</span><span class="bar"><i data-bar="free"></i></span><span class="n" data-n="free">0/8</span><span class="bench">KICKR</span></button><button class="sec" data-view="sec" data-sec="paywall"><span class="dot" data-dot="paywall"></span><span class="name">Paywall and the upgrade to PRO</span><span class="bar"><i data-bar="paywall"></i></span><span class="n" data-n="paywall">0/10</span><span class="bench">Play test account · Drive files</span></button><button class="sec" data-view="sec" data-sec="power"><span class="dot" data-dot="power"></span><span class="name">PRO Power workouts</span><span class="bar"><i data-bar="power"></i></span><span class="n" data-n="power">0/15</span><span class="bench">OpenAI and Claude keys · KICKR · strap</span></button><button class="sec" data-view="sec" data-sec="route"><span class="dot" data-dot="route"></span><span class="name">PRO Route workouts</span><span class="bar"><i data-bar="route"></i></span><span class="n" data-n="route">0/86</span><span class="bench">Route files · two Strava and two intervals.icu accounts · KICKR · strap · phone</span></button><button class="sec" data-view="sec" data-sec="hr"><span class="dot" data-dot="hr"></span><span class="name">PRO HR-Zone</span><span class="bar"><i data-bar="hr"></i></span><span class="n" data-n="hr">0/9</span><span class="bench">Strap · KICKR</span></button><button class="sec" data-view="sec" data-sec="family"><span class="dot" data-dot="family"></span><span class="name">FAMILY and a household of riders</span><span class="bar"><i data-bar="family"></i></span><span class="n" data-n="family">0/51</span><span class="bench">KICKR · tablet and phone · rider files</span></button><button class="sec" data-view="sec" data-sec="compat"><span class="dot" data-dot="compat"></span><span class="name">Trainer compatibility</span><span class="bar"><i data-bar="compat"></i></span><span class="n" data-n="compat">0/18</span><span class="bench">KICKR · a strap you can switch off</span></button><button class="sec" data-view="sec" data-sec="sim"><span class="dot" data-dot="sim"></span><span class="name">Simulation and the gear table</span><span class="bar"><i data-bar="sim"></i></span><span class="n" data-n="sim">0/30</span><span class="bench">KICKR</span></button><button class="sec" data-view="sec" data-sec="sweep"><span class="dot" data-dot="sweep"></span><span class="name">Languages and final sweep</span><span class="bar"><i data-bar="sweep"></i></span><span class="n" data-n="sweep">0/3</span><span class="bench">Nothing extra</span></button></div></section>
+</div>
+<div class="view placeholder" id="view-sec" hidden><span class="eyebrow">Release test · Android · v2.2.0</span><h1 id="ph-title"></h1><div class="box">Only the Equipment Hub section is built in this example. This section would look the same: what changed, setup folded away, then its checks.</div></div>
+<div class="view placeholder" id="view-ios" hidden><span class="eyebrow">Release test · iOS · v2.2.0</span><h1>Test v2.2.0 on iOS</h1><div class="box">873 checks in 14 sections. The overview would look the same as Android's.</div></div>
+<div class="wrap view" id="view-eq" hidden>
+
+
+
+<header>
+  <span class="eyebrow">Release test · Android · v2.2.0 · Section 2 of 13</span>
+  <h1>Equipment Hub: trainer, power source, cadence, heart rate</h1>
+  <div class="meta"><span><b>28</b> checks</span><span><b>4</b> test notes</span><span>FREE rider</span><span>Fake trainer + KICKR + strap</span></div>
+</header>
+
+<!-- 1. WHAT CHANGED -->
+<section aria-labelledby="changed">
+  <h2 id="changed">What changed since v2.1.8</h2>
+  <div class="changes">
+    <div>
+      <h3>Equipment Hub</h3>
+      <ul>
+        <li>Four slots instead of two: Smart Trainer, Power Source, Cadence, then Heart Rate.</li>
+        <li>It is now its own screen, opened from the equipment icons in the top bar.</li>
+        <li>Cadence says where its rpm comes from: "From the trainer", "From the power source", or the sensor's name.</li>
+        <li>A device already in another slot is refused, with a message.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Scanner</h3>
+      <ul>
+        <li>The cadence scan is titled "Select Cadence Source" and also offers the connected trainer.</li>
+        <li>Pedals that cannot be the trainer are pointed to Power Source.</li>
+      </ul>
+      <h3 style="margin-top:12px">Ride and History</h3>
+      <ul>
+        <li>The cadence tile follows the chosen source. It falls back to the power source, then the trainer, when a sensor is forgotten.</li>
+        <li>A ride powered by pedals says "Power measured at the pedals".</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="shots">
+    <div class="pair">
+      <figure>
+        <button type="button" data-full="img/v2.1.8-workout-selection.png" data-cap="Equipment panel, v2.1.8"><img src="img/v2.1.8-workout-selection.png" alt="v2.1.8: equipment panel with two slots, Smart Trainer and Heart Rate"></button>
+        <figcaption><span class="tag before">v2.1.8</span> Two slots</figcaption>
+      </figure>
+      <figure>
+        <button type="button" data-full="img/candidate-workout-selection.png" data-cap="Equipment panel, candidate (captured 14 Sep)"><img src="img/candidate-workout-selection.png" alt="Candidate: four slots, Smart Trainer, Power Source, Cadence and Heart Rate"></button>
+        <figcaption><span class="tag stale">14 Sep</span> Four slots</figcaption>
+      </figure>
+    </div>
+    <figure>
+      <button type="button" data-full="img/candidate-equipment-hub-dataonly.png" data-cap="Slots filled; cadence reads From the trainer (captured 14 Sep)"><img src="img/candidate-equipment-hub-dataonly.png" alt="Slots filled, cadence reads From the trainer"></button>
+      <figcaption><span class="tag new">new</span> Cadence "From the trainer"</figcaption>
+    </figure>
+    <figure>
+      <button type="button" data-full="img/candidate-history-pedals.png" data-cap="History: Power measured at the pedals (captured 14 Sep)"><img src="img/candidate-history-pedals.png" alt="History ride expanded, reading Power measured at the pedals"></button>
+      <figcaption><span class="tag new">new</span> "Power measured at the pedals"</figcaption>
+    </figure>
+  </div>
+  <p class="stale-note">These screenshots are from 14 Sep and still show the old top tabs. The Hub has since moved to its own screen, so they need recapturing before testing.</p>
+</section>
+
+<!-- 2. SETUP (hidden) -->
+<details class="setup">
+  <summary><h2>Setup</h2><span>6 things on the bench · 3 steps before you start</span></summary>
+  <div class="setup-body">
+    <div>
+      <h3>On the bench</h3>
+      <ul>
+        <li>Tablet that can split-screen, and a phone</li>
+        <li>KICKR, awake</li>
+        <li>Heart-rate strap, charged</li>
+        <li>A ride saved before v2.2.0</li>
+        <li>A second rider</li>
+        <li>Garmin Connect, signed in on a browser</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Before you start</h3>
+      <ol>
+        <li>Developer Options → Fake Trainer: <b>Fake a connected trainer</b> on, <b>Capability Override</b> Off. Quit and reopen.</li>
+        <li>Select a FREE rider. Nothing bound in Power Source or Cadence.</li>
+        <li>App language: English.</li>
+      </ol>
+    </div>
+    <p class="later"><b>Later in the sitting:</b> check 13 needs Tier Override → Pro (restart), then back to Free. The debug scan offers <b>Mock Cadence Sensor</b> (about 90 rpm) and <b>Mock Power Meter</b> (about 60 rpm) for checks 19–26.</p>
+  </div>
+</details>
+
+<!-- 3. CHECKS -->
+<section aria-labelledby="checks">
+  <h2 id="checks">Checks</h2>
+  <div class="progress"><span id="count">0 of 28 marked</span><div class="bar"><i id="fill"></i></div></div>
+  <div class="tally" id="tally"></div>
+
+  <div class="group">
+    <div class="group-head"><h3>Hub layout</h3><p class="start"><b>Start:</b> fake trainer in Smart Trainer, nothing else bound. Open the Hub from the top-bar icons.</p></div>
+    <div class="check"><span class="num">1</span><p class="do">Read the Cadence slot.</p><p class="expect">Trainer's name and "From the trainer". Order: trainer, power, cadence, heart rate last.</p><span class="tid">TST-0657.1</span><div class="marks"></div></div>
+    <div class="check"><span class="num">2</span><p class="do">Open the Hub full-width, in split-screen, and on the phone.</p><p class="expect">Wide: three bike cards in a row, Heart Rate below. Narrow: all four stacked.</p><span class="tid">TST-0657.2</span><div class="marks"></div></div>
+    <div class="check"><span class="num">3</span><p class="do">At each width, read every title and status line.</p><p class="expect">Nothing is cut off.</p><span class="tid">TST-0657.3</span><div class="marks"></div></div>
+    <div class="check"><span class="num">4</span><p class="do">Open a narrow card's ⋮ menu. Set Capability Override to Data-only, reconnect, look again. Set it back to Off.</p><p class="expect">Menu has Forget, Change device, Device info. Bluetooth badge stays. Data-only: hand mark beside it.</p><span class="tid">TST-0657.4</span><div class="marks"></div></div>
+    <div class="check"><span class="num">5</span><p class="do">Read the four titles. Switch through every language, then back to English.</p><p class="expect">English: Smart Trainer, Power Source, Cadence, Heart Rate. Each language capitalises all four alike.</p><span class="tid">TST-0657.5</span><div class="marks"></div></div>
+  </div>
+
+  <div class="group">
+    <div class="group-head"><h3>Connecting devices</h3></div>
+    <div class="check"><span class="num">6</span><p class="do">Connect the fake trainer from Smart Trainer. Start a ride, then discard it.</p><p class="expect">Power and Speed show data.</p><span class="tid">TST-0028</span><div class="marks"></div></div>
+    <div class="check"><span class="num">7</span><p class="do">Connect the KICKR without choosing a slot.</p><p class="expect">It goes to Smart Trainer only, not also to Power Source.</p><span class="tid">TST-0652.3</span><div class="marks"></div></div>
+    <div class="check"><span class="num">8</span><p class="do">Put the fake trainer back. Connect the strap from Heart Rate. Start a ride, then discard it.</p><p class="expect">The heart-rate tile updates live.</p><span class="tid">TST-0029</span><div class="marks"></div></div>
+    <div class="check"><span class="num">9</span><p class="do">Choose the KICKR in Power Source.</p><p class="expect">Smart Trainer still holds the fake trainer, and it is still driven.</p><span class="tid">TST-0652.4</span><div class="marks"></div></div>
+  </div>
+
+  <div class="group">
+    <div class="group-head"><h3>Power from a separate source</h3><p class="start"><b>Start:</b> fake trainer in Smart Trainer, KICKR in Power Source.</p></div>
+    <div class="check"><span class="num">10</span><p class="do">Start a ride and read the watts.</p><p class="expect">Live watts, not zero.</p><span class="tid">TST-0652.1</span><div class="marks"></div></div>
+    <div class="check"><span class="num">11</span><p class="do">Read cadence, then stop pedalling the KICKR.</p><p class="expect">The KICKR's cadence wins. The tile does not flicker when it stops.</p><span class="tid">TST-0652.2</span><div class="marks"></div></div>
+    <div class="check"><span class="num">12</span><p class="do">End. Choose the fake trainer as Power Source and ride a minute. End. Choose the KICKR again and start a new ride.</p><p class="expect">Watts follow the chosen source and never switch mid-ride.</p><span class="tid">TST-0652.8</span><div class="marks"></div></div>
+    <div class="check"><span class="num">13</span><p class="do">Save and open it in History. Switch to Pro, export the FIT file, import it into Garmin. Switch back to Free.</p><p class="expect">The ride names its power source. Garmin accepts the file.</p><span class="tid">TST-0652.9</span><div class="marks"></div></div>
+    <div class="check"><span class="num">14</span><p class="do">Open the ride saved before this release.</p><p class="expect">Power source reads "unknown".</p><span class="tid">TST-0652.10</span><div class="marks"></div></div>
+  </div>
+
+  <div class="group">
+    <div class="group-head"><h3>Scanners and Forget</h3></div>
+    <div class="check"><span class="num">15</span><p class="do">Open the trainer, power and heart-rate scanners in turn. Swipe each away.</p><p class="expect">Each lists only its own kind of device.</p><span class="tid">TST-0652.6</span><div class="marks"></div></div>
+    <div class="check"><span class="num">16</span><p class="do">Strap nearby: open the cadence scan and close it. Open the trainer scan and pick the mock trainer.</p><p class="expect">The strap is not in the cadence scan. The trainer goes to Smart Trainer.</p><span class="tid">TST-0657.13</span><div class="marks"></div></div>
+    <div class="check"><span class="num">17</span><p class="do">With three slots filled, look at each slot's controls. Forget Power Source and relaunch.</p><p class="expect">Change and Forget are buttons on the card. Power Source stays empty after relaunch.</p><p class="flag warn">Contradicts check 4, which expects them in the ⋮ menu. Needs your decision.</p><span class="tid">TST-0652.7</span><div class="marks"></div></div>
+    <div class="check muted" data-suggest="blocked"><span class="num">18</span><p class="do">A stored power-only trainer no longer fits its slot.</p><p class="expect">The rider sees a message.</p><p class="flag hint">No way to set this up yet (ISS-0512). Suggested: Blocked.</p><span class="tid">TST-0652.5</span><div class="marks"></div></div>
+  </div>
+
+  <div class="group">
+    <div class="group-head"><h3>Cadence sensor</h3><p class="start"><b>Start:</b> fake trainer alone. Mock Cadence Sensor reads about 90 rpm, Mock Power Meter about 60.</p></div>
+    <div class="check"><span class="num">19</span><p class="do">Tap Cadence and choose Mock Cadence Sensor. Start a ride.</p><p class="expect">Scan title "Select Cadence Source". Slot shows the sensor's name. The cockpit shows 90 rpm.</p><span class="tid">TST-0657.6</span><div class="marks"></div></div>
+    <div class="check"><span class="num">20</span><p class="do">Watch the rpm for a minute. <span class="timer">⏱ 60 s</span></p><p class="expect">No spikes, no drop to zero, never disappears.</p><span class="tid">TST-0657.7</span><div class="marks"></div></div>
+    <div class="check"><span class="num">21</span><p class="do">Discard. Sensor in Cadence, KICKR in Power Source. Start a ride.</p><p class="expect">The sensor's rpm is shown.</p><span class="tid">TST-0657.8</span><div class="marks"></div></div>
+    <div class="check"><span class="num">22</span><p class="do">Discard. Forget the sensor, read Cadence. Forget the power source, read it again.</p><p class="expect">Cadence falls back to the power source, then to the trainer.</p><span class="tid">TST-0657.9</span><div class="marks"></div></div>
+    <div class="check"><span class="num">23</span><p class="do">Choose Mock Power Meter in the Cadence slot. Ride briefly, discard, forget the meter.</p><p class="expect">About 60 rpm; trainer watts unchanged. After Forget: trainer cadence.</p><span class="tid">TST-0657.10</span><div class="marks"></div></div>
+    <div class="check"><span class="num">24</span><p class="do">Trainer alone. Ride with a cadence jump of more than 30 rpm.</p><p class="expect">The jump is rejected.</p><span class="tid">TST-0657.11</span><div class="marks"></div></div>
+    <div class="check"><span class="num">25</span><p class="do">Sensor in Cadence. Start, pause, tap the cadence icon, pick the trainer. Resume. Rebind the sensor the same way.</p><p class="expect">The ride stays paused and resumes. Slot reads "From the trainer". Rebinding brings 90 rpm back.</p><span class="tid">TST-0657.12</span><div class="marks"></div></div>
+    <div class="check"><span class="num">26</span><p class="do">Bind the sensor to rider 1. Switch to rider 2, read Cadence, start a ride.</p><p class="expect">Rider 2 has their own sensor or none. Rider 1's reading does not carry over.</p><span class="tid">TST-0657.14</span><div class="marks"></div></div>
+  </div>
+
+  <div class="group">
+    <div class="group-head"><h3>No hardware on the bench</h3></div>
+    <div class="check muted" data-suggest="excused"><span class="num">27</span><p class="do">Dual-sided power pedals.</p><p class="expect">Left and right pedal power behave correctly.</p><p class="flag hint">None on the bench. Suggested: Excused.</p><span class="tid">TST-0652.11</span><div class="marks"></div></div>
+    <div class="check muted" data-suggest="excused"><span class="num">28</span><p class="do">A real Bluetooth cadence sensor.</p><p class="expect">A real sensor connects and its rpm is shown.</p><p class="flag hint">Nobody owns one. Suggested: Excused.</p><span class="tid">TST-0657.15</span><div class="marks"></div></div>
+  </div>
+</section>
+
+<!-- REVIEW NOTES -->
+<section class="notes" aria-labelledby="review">
+  <h2 id="review">How this differs from today's page</h2>
+  <div class="stat">
+    <div><b>≈ 4,300</b><span>words today for this section</span></div>
+    <div><b>≈ 1,000</b><span>words on this page</span></div>
+    <div><b>28 → 6</b><span>headings</span></div>
+  </div>
+  <ul>
+    <li><b>The starting state is written once per group,</b> not above every check. Today the same paragraph is repeated above 8 checks in a row.</li>
+    <li><b>Each check is two lines:</b> what to do, then what you should see. The screen name, the "Step 3:" numbering from the test note, and the iOS half of each sentence are gone.</li>
+    <li><b>"What changed" lists Android only,</b> grouped by screen, one line per change. Today it quotes each change note's title in full and mixes in iOS changes.</li>
+    <li><b>Setup is split</b> into things on the bench and steps before you start, and it is closed by default. Things needed only for one check are listed once, under "Later".</li>
+    <li><b>Checks that cannot be done yet are greyed out</b> with one line saying why and which mark fits, instead of a paragraph.</li>
+    <li><b>All seven marks are available.</b> Pass and Fail are one tap. The other five sit under More, each with a one-line meaning, and ask for a reason as the ledger requires.</li>
+    <li><b>The TST number stays small, under each check,</b> so a result can still be traced.</li>
+  </ul>
+</section>
+</div>
+
+</main>
+</div>
+<dialog id="zoom"><img alt=""><p></p></dialog>
+
+<script>
+(function(){
+  var MARKS={pass:'Pass',fail:'Fail',partial:'Partial',question:'Question',blocked:'Blocked',na:'N/A',excused:'Excused'};
+  var MORE=[['partial','Some parts hold, some do not'],['question','The check itself is unclear'],['blocked','Cannot run it right now'],['na','Does not exist on this platform'],['excused','Skipped this release, by decision']];
+  var checks=[].slice.call(document.querySelectorAll('#view-eq .check'));
+  var count=document.getElementById('count'),fill=document.getElementById('fill'),tally=document.getElementById('tally');
+  var openMenu=null;
+  function closeMenu(){if(openMenu){openMenu.remove();openMenu=null}}
+  function setMark(c,m){
+    var cur=c.dataset.mark;
+    if(cur===m){delete c.dataset.mark}else{c.dataset.mark=m}
+    render(c);update();
+  }
+  function render(c){
+    var m=c.dataset.mark, box=c.querySelector('.marks');
+    box.querySelector('.p').classList.toggle('on',m==='pass');
+    box.querySelector('.f').classList.toggle('on',m==='fail');
+    var more=box.querySelector('.more'), other=m&&m!=='pass'&&m!=='fail';
+    more.classList.toggle('on',!!other);
+    more.textContent=(other?MARKS[m]:'More')+' ▾';
+    var r=c.querySelector('.reason');
+    if(m&&m!=='pass'){
+      if(!r){r=document.createElement('input');r.className='reason';r.id='reason-'+c.querySelector('.num').textContent;r.placeholder='Reason (required)';r.addEventListener('input',function(){r.classList.toggle('missing',!r.value.trim())});c.appendChild(r);r.focus()}
+      r.classList.toggle('missing',!r.value.trim());
+    }else if(r){r.remove()}
+  }
+  checks.forEach(function(c){
+    var box=c.querySelector('.marks');
+    box.innerHTML='<button type="button" class="p">Pass</button><button type="button" class="f">Fail</button><button type="button" class="more" aria-haspopup="true">More ▾</button>';
+    box.querySelector('.p').addEventListener('click',function(){closeMenu();setMark(c,'pass')});
+    box.querySelector('.f').addEventListener('click',function(){closeMenu();setMark(c,'fail')});
+    box.querySelector('.more').addEventListener('click',function(e){
+      e.stopPropagation();
+      var had=openMenu&&openMenu.parentNode===box;closeMenu();if(had)return;
+      var menu=document.createElement('div');menu.className='menu';menu.setAttribute('role','menu');
+      MORE.forEach(function(o){
+        var b=document.createElement('button');b.type='button';b.setAttribute('role','menuitem');
+        var sug=c.dataset.suggest===o[0]?' (suggested)':'';
+        b.innerHTML='<b>'+MARKS[o[0]]+'</b><span>'+o[1]+sug+'</span>';
+        b.addEventListener('click',function(ev){ev.stopPropagation();closeMenu();c.dataset.mark=o[0]===c.dataset.mark?'':o[0];if(!c.dataset.mark)delete c.dataset.mark;render(c);update()});
+        menu.appendChild(b);
+      });
+      box.appendChild(menu);openMenu=menu;menu.querySelector('button').focus();
+    });
+    render(c);
+  });
+  document.addEventListener('click',closeMenu);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMenu()});
+  function update(){
+    if(typeof refreshShell==='function')refreshShell();
+    var tallyCounts={};
+    checks.forEach(function(c){if(c.dataset.mark)tallyCounts[c.dataset.mark]=(tallyCounts[c.dataset.mark]||0)+1});
+    var n=Object.keys(tallyCounts).reduce(function(a,k){return a+tallyCounts[k]},0);
+    count.textContent=n+' of '+checks.length+' marked';
+    fill.style.width=(100*n/checks.length)+'%';
+    tally.innerHTML='';
+    Object.keys(MARKS).forEach(function(k){
+      if(!tallyCounts[k])return;
+      var s=document.createElement('span');s.dataset.mark=k;
+      s.textContent=tallyCounts[k]+' '+MARKS[k];tally.appendChild(s);
+    });
+  }
+
+  var SECTIONS=[["fresh", "Fresh install", 7], ["eq", "Equipment Hub", 28], ["dataonly", "A bike the app cannot drive", 52], ["nav", "Navigation and top bar", 36], ["free", "FREE rides in each mode", 8], ["paywall", "Paywall and the upgrade to PRO", 10], ["power", "PRO Power workouts", 15], ["route", "PRO Route workouts", 86], ["hr", "PRO HR-Zone", 9], ["family", "FAMILY and a household of riders", 51], ["compat", "Trainer compatibility", 18], ["sim", "Simulation and the gear table", 30], ["sweep", "Languages and final sweep", 3]];
+  var FRESH_DONE=7;
+  // example progress: Fresh install finished, Equipment Hub checks 1-11 passed
+  checks.slice(0,11).forEach(function(c){c.dataset.mark='pass';render(c)});
+  function eqCounts(){var o={};checks.forEach(function(c){if(c.dataset.mark)o[c.dataset.mark]=(o[c.dataset.mark]||0)+1});return o}
+  function sum(o){return Object.keys(o).reduce(function(a,k){return a+o[k]},0)}
+  function setAll(sel,fn){document.querySelectorAll(sel).forEach(fn)}
+  function refreshShell(){
+    var eq=eqCounts(), eqN=sum(eq), total=0, done=0;
+    var all={pass:FRESH_DONE}; Object.keys(eq).forEach(function(k){all[k]=(all[k]||0)+eq[k]});
+    SECTIONS.forEach(function(s){
+      var k=s[0], c=s[2], n=k==='fresh'?FRESH_DONE:k==='eq'?eqN:0; total+=c; done+=n;
+      var bad=k==='eq'&&(eq.fail||eq.question||eq.blocked);
+      setAll('[data-n="'+k+'"]',function(e){e.textContent=n+'/'+c});
+      setAll('[data-bar="'+k+'"]',function(e){e.style.width=(100*n/c)+'%'});
+      setAll('[data-dot="'+k+'"]',function(e){e.className='dot'+(bad?' bad':n>=c?' done':n>0?' part':'')});
+    });
+    document.getElementById('nav-android').textContent=done+'/'+total;
+    document.getElementById('nav-android-bar').style.width=(100*done/total)+'%';
+    document.getElementById('ov-count').textContent=done+' of '+total+' checks · '+SECTIONS.length+' sections';
+    var bar=document.getElementById('ov-bar'), tl=document.getElementById('ov-tally'); bar.innerHTML='';tl.innerHTML='';
+    Object.keys(MARKS).forEach(function(k){if(!all[k])return;
+      var i=document.createElement('i');i.dataset.mark=k;i.style.width=(100*all[k]/total)+'%';i.style.background='var(--c)';bar.appendChild(i);
+      var s=document.createElement('span');s.dataset.mark=k;s.textContent=all[k]+' '+MARKS[k];tl.appendChild(s)});
+    // continue
+    var next=checks.filter(function(c){return !c.dataset.mark})[0];
+    var cont=document.getElementById('continue');
+    if(next){cont.hidden=false;document.getElementById('cont-where').textContent='Equipment Hub, check '+next.querySelector('.num').textContent;document.getElementById('cont-next').textContent=next.querySelector('.do').textContent;cont.dataset.target=next.querySelector('.num').textContent}
+    else{cont.hidden=true}
+    // needs you
+    var att=document.getElementById('attention');att.innerHTML='';var nAtt=0;
+    function addAtt(kind,label,title,where,num){
+      var b=document.createElement('button');b.className='att';
+      var k=document.createElement('span');k.className='pill kind';if(kind)k.dataset.mark=kind;if(kind){k.style.background='var(--cs)';k.style.color='var(--c)'}k.textContent=label;
+      var tt=document.createElement('span');tt.textContent=title;var w=document.createElement('span');w.className='where';w.textContent=where;
+      b.append(k,tt,w);b.addEventListener('click',function(){show('eq',null,num)});att.appendChild(b);nAtt++;
+    }
+    checks.forEach(function(c){var m=c.dataset.mark;if(m==='fail'||m==='question'||m==='blocked'||m==='partial'){var r=c.querySelector('.reason');addAtt(m,MARKS[m],c.querySelector('.do').textContent,'Equipment Hub, check '+c.querySelector('.num').textContent+(r&&r.value.trim()?' · '+r.value.trim():''),c.querySelector('.num').textContent)}});
+    addAtt(null,'Decide','Check 17 contradicts check 4: are Forget and Change on the card or in the ⋮ menu?','Equipment Hub, checks 4 and 17','17');
+    addAtt(null,'Waiting','Check 18 cannot be set up until ISS-0512 is fixed','Equipment Hub, check 18','18');
+    document.getElementById('nav-needs').textContent=nAtt;
+  }
+  function show(view,sec,num){
+    ['overview','eq','sec','ios'].forEach(function(v){document.getElementById('view-'+v).hidden=v!==view});
+    setAll('.pane [aria-current]',function(e){e.removeAttribute('aria-current')});
+    var sel=view==='overview'?'.pane [data-view="overview"]:not([data-scroll])':view==='ios'?'.pane [data-view="ios"]':'.pane [data-sec="'+(view==='eq'?'eq':sec)+'"]';
+    var cur=document.querySelector(sel);if(cur)cur.setAttribute('aria-current','page');
+    if(view==='sec'){var s=SECTIONS.filter(function(x){return x[0]===sec})[0];document.getElementById('ph-title').textContent=s[1]}
+    if(num){var target=checks.filter(function(c){return c.querySelector('.num').textContent===num})[0];if(target){target.scrollIntoView({block:'center'});var btn=target.querySelector('.marks button');if(btn)btn.focus({preventScroll:true})}}
+    else window.scrollTo(0,0);
+  }
+  setAll('[data-view]',function(b){b.addEventListener('click',function(){
+    show(b.dataset.view,b.dataset.sec);
+    if(b.dataset.scroll){document.getElementById(b.dataset.scroll).scrollIntoView({block:'start'})}
+  })});
+  document.getElementById('continue').addEventListener('click',function(){show('eq',null,this.dataset.target)});
+  document.addEventListener('input',function(e){if(e.target.classList.contains('reason'))refreshShell()});
+  update();
+  var dlg=document.getElementById('zoom');
+  document.querySelectorAll('figure button').forEach(function(b){
+    b.addEventListener('click',function(){
+      dlg.querySelector('img').src=b.dataset.full;
+      dlg.querySelector('img').alt=b.dataset.cap;
+      dlg.querySelector('p').textContent=b.dataset.cap;
+      if(dlg.showModal)dlg.showModal();
+    });
+  });
+  dlg.addEventListener('click',function(){dlg.close()});
+})();
+</script>

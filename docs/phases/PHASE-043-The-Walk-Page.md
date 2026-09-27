@@ -3,20 +3,24 @@ type: "[[phase]]"
 id: PHASE-043
 aliases: ["PHASE-043"]
 title: "The walk page — the publication view hands the owed checks over as a procedure"
-status: done
+status: active
 order: 43
 owner: user:edwin
 created: 2026-09-13
-updated: 2026-09-25
+updated: 2026-09-27
 goal: "When a release is in preparation, the publication view gives the person walking it one page that says what to do and in what order: the surfaces the release changed first, then every owed check inside the sitting it belongs to, with its setup, steps and expected result on the page, and a tick that writes the ledger."
 features:
   - "[[FEAT-0149-The-Walk-Page]]"
   - "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]"
+  - "[[FEAT-0155-The-Release-Test-Goes-Section-By-Section]]"
 requirements:
   - "[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]"
   - "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]"
   - "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]"
   - "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"
+  - "[[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]]"
+  - "[[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]]"
+  - "[[REQ-0072-The-Walk-Is-Called-The-Release-Test-Everywhere]]"
 tasks:
   - "[[TASK-0618-The-Walk-Payload]]"
   - "[[TASK-0619-The-Walk-Page]]"
@@ -25,6 +29,13 @@ tasks:
   - "[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]"
   - "[[TASK-0630-Record-And-Resume-Walk-Observations]]"
   - "[[TASK-0631-Verify-The-Guided-Walk]]"
+  - "[[TASK-0639-Rename-The-Walk-To-The-Release-Test]]"
+  - "[[TASK-0640-The-Release-Test-Payload]]"
+  - "[[TASK-0641-The-Release-Test-In-The-Tests-Pane]]"
+  - "[[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]]"
+  - "[[TASK-0643-The-Section-Page-And-Its-Results]]"
+  - "[[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]"
+  - "[[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]]"
 issues: ["[[ISS-0303]]", "[[ISS-0304]]"]
 related:
   - "[[PHASE-034-Three-Phases-And-Publication-Is-The-Third]]"
@@ -112,3 +123,9 @@ Edwin chose this phase as the walk page's standing home on 2026-09-24. [[FEAT-01
 ## Closed again 2026-09-25
 
 FEAT-0151 is done, so this phase goes back to `done`, as a standing phase does when idle. Its record is [[CHG-20260925-Walk-Setup-Reads-As-A-List]] and the feature's `## Review` section. The next walk-page work reopens it.
+
+## Reopened 2026-09-27 for FEAT-0155
+
+Edwin approved a redesign of this page on 2026-09-27. [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]] moves it into the Tests pane as the release test (his new name for the walk), with a platform overview and one short page per section. It is walk-page work, so it joins this standing phase, as the previous section says the next piece of work should. The phase closes again when the criterion below is met.
+
+- [ ] FEAT-0155 is `done`: the release test is reached from the Tests pane, the Publication view's walk page is retired, and the notes it replaces are superseded.

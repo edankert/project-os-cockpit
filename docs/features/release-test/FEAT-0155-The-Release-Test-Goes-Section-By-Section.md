@@ -1,0 +1,128 @@
+---
+type: "[[feature]]"
+id: FEAT-0155
+aliases: ["FEAT-0155"]
+title: "The release test is opened from the Tests pane and read one section at a time, with a platform overview that says where to continue and what needs you"
+status: planned
+phase: "[[PHASE-043-The-Walk-Page]]"
+owner: user:edwin
+created: 2026-09-27
+updated: 2026-09-27
+source: ["Edwin, 2026-09-27: approved the redesign shown in the example page (copied beside this note, __attachments__/release-test-example/index.html)", "Edwin, 2026-09-27, decision D1: rename walk to release test, sitting to section, survey to what changed, and the mark shown to a person to result, everywhere and internal names included, 'to avoid confusion later on'", "Edwin, 2026-09-27, decision D2: the short 'what you should see' text lives in the test notes; the page prints the check's own words", "Edwin, 2026-09-27, decision D3: content that cannot be generated mechanically may be written by an agent during release preparation (project-os-dev)"]
+goal: "A person testing a release opens it from the Tests pane, sees per platform how far they are and what needs them, and works through one short section page at a time: what changed, setup folded away, then numbered checks with one action and one expected result each and a one-tap result."
+requirements: ["[[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]]", "[[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]]", "[[REQ-0072-The-Walk-Is-Called-The-Release-Test-Everywhere]]"]
+tasks: ["[[TASK-0639]]", "[[TASK-0640]]", "[[TASK-0641]]", "[[TASK-0642]]", "[[TASK-0643]]", "[[TASK-0644]]", "[[TASK-0645]]"]
+release: ""
+acceptance_exception: ""
+acceptance: ""
+design: ""
+reviewed_by: ""
+review_date: ""
+review_verdict: ""
+review_round: ""
+related: ["[[FEAT-0149-The-Walk-Page]]", "[[FEAT-0150-The-Walk-Page-Reads-As-A-Script]]", "[[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]", "[[SUR-0004-The-Release-Walk]]", "[[SUR-0001-The-Tests-View]]", "[[ADR-0039-Three-Sections-Derived-Not-Filed]]", "[[ADR-0041-A-Release-May-Settle-A-Check-It-May-Never-Pass-One]]", "[[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]", "[[ISS-0309-A-Procedure-Quote-Is-Unchecked-Where-The-Check-States-No-Expect]]", "[[RISK-0010-Saved-Walk-Observations-Can-Outlive-Their-Source]]", "[[RISK-0011-Renaming-The-Walk-Drops-Links-And-Saved-Progress]]"]
+---
+
+# The release test goes section by section
+
+## Goal
+
+The page for testing a release by hand moves from the Publication view into the Tests pane and is split into short pages. Edwin approved the new layout on 2026-09-27 from an example page, which is copied beside this note at `__attachments__/release-test-example/index.html` and is the specification. Read the whole file, including its script.
+
+The page the tooling calls the "walk" today is too long to work from. On Your Trainer's Android v2.2.0 release, 86 owed checks became 353 steps and 37,254 words on one page. The same starting-state paragraph was repeated above most steps, and the list of changed screens came before the first step.
+
+## Vocabulary
+
+Edwin renamed the terms on 2026-09-27 (decision D1). The new words are used here and in every note, label, route and code name this feature touches:
+
+| Old word | New word | What it is |
+| --- | --- | --- |
+| walk | release test | testing one release on one platform by hand |
+| sitting | section | a group of checks done with the same things on the bench |
+| survey | what changed | the screens this release changed, shown before the checks |
+| mark or verdict, as shown to a person | result | Pass, Fail, Partial, Question, Blocked, N/A or Excused |
+| check | check (unchanged) | one numbered line: an action and what you should see |
+
+The values stored in the release ledger do not change (`pass`, `fail`, `partial`, `question`, `blocked`, `na`, `excused`). Closed ADRs, change notes and archived notes are history and keep the old words.
+
+## Scope
+
+**The Tests pane.** Under "Acceptance tests" there is a new entry, "Release test · <version>". Under it is one row per platform with its progress. Under each platform are its sections, each with a status dot and a count such as 11/28. The dot is empty before any result, half filled when part done, filled when done, and red when the section holds a Fail, Question or Blocked result. "Feature tests" and "Regression tests" stay under "Acceptance tests" as they are. This entry replaces the `~walk/<platform>` page in the Publication view.
+
+**The platform overview** opens by default when a platform row is chosen. It shows:
+
+- a progress bar coloured by result, with a count per result;
+- a "Continue where you stopped" button that names the next check with no result and jumps to it;
+- "Needs you": every Fail, Question, Blocked and Partial result with its reason, plus declared decisions and readiness problems, each jumping to its check;
+- the section list, each with its progress and one line saying what it needs on the bench.
+
+**The section page** has three parts, in this order:
+
+1. What changed since the previous release, for this platform only. Changes are grouped by screen, one line per change. Before and after screenshots enlarge on click. A warning appears when a screenshot is older than the latest change to its screen.
+2. Setup, folded by default, in three parts: "On the bench", "Before you start" and "Later" (things needed by one check only).
+3. The checks, in groups. Each group has a heading and, where it needs one, a "Start:" line saying the state to begin from, written once. Each check is a number, one action line, one expected line after an arrow, and a small test tag such as `TST-0657.1`.
+
+**Results.** Pass and Fail are one tap each. Partial, Question, Blocked, N/A and Excused sit under "More", each with a one-line meaning. Every result except Pass opens a reason box, and the result is not saved without a reason. The row background takes the result's colour. A check that cannot be done yet is greyed, with one line saying why and which result is suggested. Results reach the release ledger through the existing write path (`postCheckVerdict`), one ledger event per test note under the existing combination rule. Marking a check updates the pane, the overview, the Continue button and Needs you at once, and never moves the reader to another page ([[ISS-0263-A-Write-Evicts-The-Reader-From-The-Checks-Page]]).
+
+**The rename (D1)** in this repository: the `~walk` route, `/api/cockpit/walk`, `acceptance.walk_payload`, the bundled generator `walk_sheet_bundled.py`, labels, CSS classes, browser storage keys, tests, and the live notes' wording. The old `~walk/<platform>` address keeps working by opening the new overview, because release notes in other repositories link to it.
+
+**Out of scope.**
+
+- The generator that works out sections, groups, "Start:" lines, bench lists, what changed and readiness. It lives in project-os-dev and is bundled here byte for byte: project-os-dev: release test generator, vocabulary ADR and release-prep skill (ID to follow).
+- Rewriting Your Trainer's procedures and test notes, including shortening the `## Expect` lines (D2): your-trainer: rewrite of the procedures and test notes, equipment section pilot (ID to follow).
+- The ledger format and its stored values.
+- Time estimates of any kind.
+
+## Rollout
+
+1. Pilot one section end to end: Your Trainer, Android, the Equipment Hub section. Compare it with the example page side by side.
+2. Then the other Android sections.
+3. Then iOS.
+
+Complexity, judged by how much existing behaviour it touches: High overall, because it replaces a page, renames a route, an API and storage keys, and retires two acceptance checks. The pilot alone is Medium.
+
+## What this replaces
+
+This feature replaces the step-by-step page built by [[FEAT-0149-The-Walk-Page]], [[FEAT-0150-The-Walk-Page-Reads-As-A-Script]] and [[FEAT-0151-The-Release-Walk-Has-One-Next-Action]]. Those features stay `done` until this one lands; [[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]] then marks them `superseded`.
+
+- [[REQ-0066-The-Release-Walk-Keeps-Observation-Context]] and [[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]] ask for one current action at a time. The section page shows all of a section's checks at once, so both are superseded by [[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]] and [[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]] when this feature lands.
+- [[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]] still holds: only relevant setup is shown, and no owed check is dropped. Preparation now appears as a group's "Start:" line or in Setup, not as a step card.
+- [[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]] still holds: saved results survive a restart, and changed checks do not inherit old results. Assumption: a check that asks for a screenshot or note at the moment of observation keeps that control on its row. The example page does not show one.
+- [[ISS-0309-A-Procedure-Quote-Is-Unchecked-Where-The-Check-States-No-Expect]] loses its cause for rewritten checks: the page prints the check's own words instead of a procedure's quote of them (D2).
+
+## Open questions
+
+- **"Section" already means something else here.** [[ADR-0039-Three-Sections-Derived-Not-Filed]] calls "Feature tests", "Regression tests" and "Automated tests" sections, and the code says `section_of`, `SECTION_FEATURE` and `MANUAL_SECTIONS`. After D1, the Tests pane would show both kinds of section under "Acceptance tests": "Feature tests" is one kind, "Equipment Hub" the other. Options: (a) keep both, and name the new one `release_section` in code while no label calls ADR-0039's groups "sections"; (b) rename ADR-0039's sections to another word; (c) pick another word for D1's sections. Recommendation: (a), because ADR-0039's word never appears on screen today, only in code. Until Edwin answers, TASK-0639 builds (a).
+
+## Impact analysis and risk scan, 2026-09-27
+
+Checked against FEAT-0149, FEAT-0150, FEAT-0151, REQ-0066 to REQ-0069, ADR-0035, ADR-0037, ADR-0039, ADR-0041, ISS-0263, ISS-0285, ISS-0286, ISS-0307, ISS-0309, RISK-0010, SUR-0001, SUR-0004, and the proposed designs DES-0015 and DES-0016. The conflicts are the ones listed under "What this replaces" and the open question above. ADR-0041 is not in conflict: the three results that settle scope (N/A, Excused, Blocked) were already offered where the procedure is read. DES-0015 and DES-0016 are proposed and change nothing the Tests pane entry needs.
+
+Risk scan: the route, API path, bundled file name and browser storage keys change, which is [[RISK-0011-Renaming-The-Walk-Drops-Links-And-Saved-Progress]]. No other trigger applies: no new dependency, environment variable, long-running step, or credential or licence exposure.
+
+## Acceptance
+
+- [ ] The Tests pane shows "Release test · <version>" under "Acceptance tests", one row per platform with its progress, and under each platform its sections with a status dot and a done/total count. "Feature tests" and "Regression tests" are still under "Acceptance tests".
+- [ ] Choosing a platform opens its overview: a bar coloured by result with a count per result, a Continue button naming the next check with no result, Needs you, and the section list with one bench line each.
+- [ ] Continue opens the section holding the next check with no result and scrolls that check into view.
+- [ ] Needs you lists every Fail, Question, Blocked and Partial result with its reason, and every declared decision and readiness problem. Each entry opens its check.
+- [ ] A section page shows, in order: what changed for this platform grouped by screen, with screenshots that enlarge on click and a warning on a stale capture; Setup folded by default in three parts; then the checks in groups, each with a heading and at most one "Start:" line.
+- [ ] Each check shows a number, one action line, one expected line after an arrow, and its test tag, and nothing else unless it is greyed with a reason.
+- [ ] Pass and Fail take one tap. The other five results are under More with their one-line meanings. Every result except Pass requires a reason before it is saved.
+- [ ] A result reaches the release ledger through `postCheckVerdict`. On a ledger copy, results on every check of a test note write the same events as marking that test note directly.
+- [ ] After a result, the pane dot and count, the overview bar, Continue and Needs you all change without a reload, and the reader stays on the section page at the same scroll position.
+- [ ] No route, API path, payload function, bundled file name, label, CSS class or storage key in `src/` or `desktop/src/` contains "walk", "sitting" or "survey" in the old sense. Saved results under the old storage keys are carried over, not lost.
+- [ ] Opening `~walk/<platform>` shows the new overview for that platform. The Publication view no longer has a walk page, and the release page's link points at the Tests pane entry.
+- [ ] The Your Trainer Android Equipment Hub section, rendered by the cockpit, matches the example page section for section; the differences are listed in [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]].
+
+## Verification
+
+Not started.
+
+## Links
+
+- Requirements: [[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]], [[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]], [[REQ-0072-The-Walk-Is-Called-The-Release-Test-Everywhere]].
+- Tasks: [[TASK-0639-Rename-The-Walk-To-The-Release-Test]], [[TASK-0640-The-Release-Test-Payload]], [[TASK-0641-The-Release-Test-In-The-Tests-Pane]], [[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]], [[TASK-0643-The-Section-Page-And-Its-Results]], [[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]], [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]].
+- Acceptance check: [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]].
+- Specification: `__attachments__/release-test-example/index.html` (the approved example, with its screenshots in `img/`).
+- Other repositories: project-os-dev: release test generator, vocabulary ADR and release-prep skill (ID to follow). your-trainer: rewrite of the procedures and test notes, equipment section pilot (ID to follow).
