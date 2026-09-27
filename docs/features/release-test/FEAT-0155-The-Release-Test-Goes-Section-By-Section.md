@@ -8,7 +8,7 @@ phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
 updated: 2026-09-27
-source: ["Edwin, 2026-09-27: approved the redesign shown in the example page (copied beside this note, __attachments__/release-test-example/index.html)", "Edwin, 2026-09-27, decision D1: rename walk to release test, sitting to section, survey to what changed, and the mark shown to a person to result, everywhere and internal names included, 'to avoid confusion later on'", "Edwin, 2026-09-27, decision D2: the short 'what you should see' text lives in the test notes; the page prints the check's own words", "Edwin, 2026-09-27, decision D3: content that cannot be generated mechanically may be written by an agent during release preparation (project-os-dev)"]
+source: ["Edwin, 2026-09-27: 'We have a problem with the amount of text the walk procedure has. It is just a wall of text, there are no clear paragraphs or headings and all together it is just way too much. [...] This is now a lot worse (more difficult to parse), engage with. Than the original feature tests page ... Review and suggest how to make this more human friendly. More concise and better formatting to start with!!'", "Edwin, 2026-09-27: 'At first I want to see concise information about what has changed for the section we plan to test (including the before/after screen-shots), then I want to see the setup for the section (but this can be hidden away behind a open/close option) and then I would like to see the actual checks as concise and complete as possible.'", "Edwin, 2026-09-27: 'on the checks, I need to be able to record not just pass and fail, so please add back the other options as well (but I really like the background changing and the overall look and feel of the page, this works for me!)'", "Edwin, 2026-09-27: 'I have said this before I don't like calling this a walk, can we think about what this is and how we present this / how to open this in the cockpit?'", "Edwin, 2026-09-27: 'Can we have that in the left pane under the acceptance tests section, that would make it easier to browse and see the actual overview?'", "Edwin, 2026-09-27, approving the example page (copied beside this note, __attachments__/release-test-example/index.html): 'That works for me. How do we create this?'", "Edwin, 2026-09-27, decisions D2 (1: the short expected text lives in the test notes) and D1 (2: rename internal names too), and D3: '1. do as recommended. 2. rename all in one go. (to avoid confusion later on) ... if this cannot be fully automated, I have no problem if we would use an LLM agent / skill to hand edit some of this info when going to a release?'"]
 goal: "A person testing a release opens it from the Tests pane, sees per platform how far they are and what needs them, and works through one short section page at a time: what changed, setup folded away, then numbered checks with one action and one expected result each and a one-tap result."
 requirements: ["[[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]]", "[[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]]", "[[REQ-0072-The-Walk-Is-Called-The-Release-Test-Everywhere]]"]
 tasks: ["[[TASK-0639]]", "[[TASK-0640]]", "[[TASK-0641]]", "[[TASK-0642]]", "[[TASK-0643]]", "[[TASK-0644]]", "[[TASK-0645]]"]
@@ -27,13 +27,13 @@ related: ["[[FEAT-0149-The-Walk-Page]]", "[[FEAT-0150-The-Walk-Page-Reads-As-A-S
 
 ## Goal
 
-The page for testing a release by hand moves from the Publication view into the Tests pane and is split into short pages. Edwin approved the new layout on 2026-09-27 from an example page, which is copied beside this note at `__attachments__/release-test-example/index.html` and is the specification. Read the whole file, including its script.
+The page for testing a release by hand moves from the Publication view into the Tests pane and is split into short pages. Edwin approved the new layout on 2026-09-27 from an example page (*"That works for me. How do we create this?"*), which is copied beside this note at `__attachments__/release-test-example/index.html` and is the specification. Read the whole file, including its script.
 
 The page the tooling calls the "walk" today is too long to work from. On Your Trainer's Android v2.2.0 release, 86 owed checks became 353 steps and 37,254 words on one page. The same starting-state paragraph was repeated above most steps, and the list of changed screens came before the first step.
 
 ## Vocabulary
 
-Edwin renamed the terms on 2026-09-27 (decision D1). The new words are used here and in every note, label, route and code name this feature touches:
+Edwin renamed the terms on 2026-09-27 (decision D1): *"I have said this before I don't like calling this a walk"*, and *"rename all in one go. (to avoid confusion later on)"*. The new words are used here and in every note, label, route and code name this feature touches:
 
 | Old word | New word | What it is |
 | --- | --- | --- |
