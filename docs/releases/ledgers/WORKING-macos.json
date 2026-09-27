@@ -1,294 +1,43 @@
 {
   "platform": "macos",
   "entries": [
-    {
-      "check": "TST-0044",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.1.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0045",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.1.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0046",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.1.3 @ 7de1a86."
-    },
-    {
-      "check": "TST-0047",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.2.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0048",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.2.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0049",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.3.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0050",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.3.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0051",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.3.3 @ 7de1a86."
-    },
-    {
-      "check": "TST-0052",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.4.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0053",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.4.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0054",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.5.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0055",
-      "result": "partial",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: incomplete`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.5.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0056",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.6.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0057",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.6.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0058",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.7.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0059",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.7.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0060",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.7.3 @ 7de1a86."
-    },
-    {
-      "check": "TST-0061",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.8.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0062",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.9.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0063",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.9.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0064",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.10.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0065",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.10.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0066",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.11.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0067",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.11.2 @ 7de1a86."
-    },
-    {
-      "check": "TST-0068",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.12.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0069",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.13.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0070",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.14.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0071",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.1.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0072",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.2.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0073",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.3.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0074",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.4.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0075",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.5.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0076",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.6.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0077",
-      "result": "pass",
-      "date": "2026-08-19",
-      "method": "migration",
-      "by": "migration",
-      "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.7.1 @ 7de1a86."
-    },
-    {
-      "check": "TST-0088",
-      "result": "partial",
-      "date": "2026-09-13",
-      "method": "manual",
-      "by": "user:edwin",
-      "reason": "Walked in the live harness on the built renderer, against a sidecar on this repo, 2026-09-13. Steps 1-12 held. Step 13 is not walkable yet: the register rows for the walk are written in this same close-out. Two defects found and fixed during the walk - a check that states its Setup was told \"Setup: not stated\", and the unordered banner lost its sentence when its button was appended."
-    },
-    {
-      "check": "TST-0089",
-      "result": "partial",
-      "date": "2026-09-14",
-      "method": "manual",
-      "by": "model:claude-opus-5",
-      "reason": "Walked by an agent session, not by Edwin. Walked steps 1 to 7 against the fixture repo TASK-0624 builds, in a browser on the live harness over a real sidecar and a real ledger. The survey drew two screen cards with the child inside its parent and both pictures at one width; the sitting drew its procedure with the setup stated once; ticking step 2 alone wrote nothing; ticking step 1 pass then step 2 fail wrote TST-0001 as fail with 'Step 2: ...' as its reason, and one event per check with the ledger's existing keys; a tick survived a reload and a spent one was forgotten. Step 8 \u2014 the same checks ticked one by one on the fallback rows, two ledgers compared by hand \u2014 was NOT walked; it is asserted instead by the node test 'walking a sitting step by step writes the same events as ticking its checks one by one', which runs both paths against one stubbed POST. Not walked on your-trainer: its procedures do not exist yet (its TASK-0906)."
-    }
+    {"check": "TST-0044", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.1.1 @ 7de1a86."},
+    {"check": "TST-0045", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.1.2 @ 7de1a86."},
+    {"check": "TST-0046", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.1.3 @ 7de1a86."},
+    {"check": "TST-0047", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.2.1 @ 7de1a86."},
+    {"check": "TST-0048", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.2.2 @ 7de1a86."},
+    {"check": "TST-0049", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.3.1 @ 7de1a86."},
+    {"check": "TST-0050", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.3.2 @ 7de1a86."},
+    {"check": "TST-0051", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.3.3 @ 7de1a86."},
+    {"check": "TST-0052", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.4.1 @ 7de1a86."},
+    {"check": "TST-0053", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.4.2 @ 7de1a86."},
+    {"check": "TST-0054", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.5.1 @ 7de1a86."},
+    {"check": "TST-0055", "result": "partial", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: incomplete`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.5.2 @ 7de1a86."},
+    {"check": "TST-0056", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.6.1 @ 7de1a86."},
+    {"check": "TST-0057", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.6.2 @ 7de1a86."},
+    {"check": "TST-0058", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.7.1 @ 7de1a86."},
+    {"check": "TST-0059", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.7.2 @ 7de1a86."},
+    {"check": "TST-0060", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.7.3 @ 7de1a86."},
+    {"check": "TST-0061", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.8.1 @ 7de1a86."},
+    {"check": "TST-0062", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.9.1 @ 7de1a86."},
+    {"check": "TST-0063", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.9.2 @ 7de1a86."},
+    {"check": "TST-0064", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.10.1 @ 7de1a86."},
+    {"check": "TST-0065", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.10.2 @ 7de1a86."},
+    {"check": "TST-0066", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.11.1 @ 7de1a86."},
+    {"check": "TST-0067", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.11.2 @ 7de1a86."},
+    {"check": "TST-0068", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.12.1 @ 7de1a86."},
+    {"check": "TST-0069", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.13.1 @ 7de1a86."},
+    {"check": "TST-0070", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#1.14.1 @ 7de1a86."},
+    {"check": "TST-0071", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.1.1 @ 7de1a86."},
+    {"check": "TST-0072", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.2.1 @ 7de1a86."},
+    {"check": "TST-0073", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.3.1 @ 7de1a86."},
+    {"check": "TST-0074", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.4.1 @ 7de1a86."},
+    {"check": "TST-0075", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.5.1 @ 7de1a86."},
+    {"check": "TST-0076", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.6.1 @ 7de1a86."},
+    {"check": "TST-0077", "result": "pass", "date": "2026-08-19", "method": "migration", "by": "migration", "reason": "Backfilled from `mark: done`. The verdict predates the ledger and carries no date of its own; earned on macos. Original address: tests/ACCEPTANCE_TESTS.md#2.7.1 @ 7de1a86."},
+    {"check": "TST-0088", "result": "partial", "date": "2026-09-13", "method": "manual", "by": "user:edwin", "reason": "Walked in the live harness on the built renderer, against a sidecar on this repo, 2026-09-13. Steps 1-12 held. Step 13 is not walkable yet: the register rows for the walk are written in this same close-out. Two defects found and fixed during the walk - a check that states its Setup was told \"Setup: not stated\", and the unordered banner lost its sentence when its button was appended."},
+    {"check": "TST-0089", "result": "partial", "date": "2026-09-14", "method": "manual", "by": "model:claude-opus-5", "reason": "Walked by an agent session, not by Edwin. Walked steps 1 to 7 against the fixture repo TASK-0624 builds, in a browser on the live harness over a real sidecar and a real ledger. The survey drew two screen cards with the child inside its parent and both pictures at one width; the sitting drew its procedure with the setup stated once; ticking step 2 alone wrote nothing; ticking step 1 pass then step 2 fail wrote TST-0001 as fail with 'Step 2: ...' as its reason, and one event per check with the ledger's existing keys; a tick survived a reload and a spent one was forgotten. Step 8 — the same checks ticked one by one on the fallback rows, two ledgers compared by hand — was NOT walked; it is asserted instead by the node test 'walking a sitting step by step writes the same events as ticking its checks one by one', which runs both paths against one stubbed POST. Not walked on your-trainer: its procedures do not exist yet (its TASK-0906)."},
+    {"check": "TST-0092", "result": "pass", "date": "2026-09-27", "method": "manual", "by": "model:claude-opus-5-5", "reason": "Tested by an agent session, not by Edwin, in the live harness on the built renderer against a scratch copy of your-trainer (REL-0017, Android), 2026-09-27. All nine steps held; step 1's wording was corrected to the pane as built. Two page defects found and fixed in the same change: the platform row's Needs you count was drawn at the top of the pane, and the overview's section dot disagreed with the pane's. Details in TST-0092."}
   ],
   "evidence": []
 }

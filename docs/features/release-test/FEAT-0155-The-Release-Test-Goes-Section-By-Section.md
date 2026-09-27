@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0155
 aliases: ["FEAT-0155"]
 title: "The release test is opened from the Tests pane and read one section at a time, with a platform overview that says where to continue and what needs you"
-status: planned
+status: review
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
@@ -107,22 +107,24 @@ Risk scan: the route, API path, bundled file name and browser storage keys chang
 
 ## Acceptance
 
-- [ ] The Tests pane shows "Release test · <version>" under "Acceptance tests", one row per platform with its progress, and under each platform its sections with a status dot and a done/total count. "Feature tests" and "Regression tests" are still under "Acceptance tests".
-- [ ] Choosing a platform opens its overview: a bar coloured by result with a count per result, a Continue button naming the next check with no result, Needs you, and the section list with one bench line each.
-- [ ] Continue opens the section holding the next check with no result and scrolls that check into view.
-- [ ] Needs you lists every Fail, Question, Blocked and Partial result with its reason, and every declared decision and readiness problem. Each entry opens its check.
-- [ ] A section page shows, in order: what changed for this platform grouped by screen, with screenshots that enlarge on click and a warning on a stale capture; Setup folded by default in three parts; then the checks in groups, each with a heading and at most one "Start:" line.
-- [ ] Each check shows a number, one action line, one expected line after an arrow, and its test tag, and nothing else unless it is greyed with a reason.
-- [ ] Pass and Fail take one tap. The other five results are under More with their one-line meanings. Every result except Pass requires a reason before it is saved.
-- [ ] A result reaches the release ledger through `postCheckVerdict`. On a ledger copy, results on every check of a test note write the same events as marking that test note directly.
-- [ ] After a result, the pane dot and count, the overview bar, Continue and Needs you all change without a reload, and the reader stays on the section page at the same scroll position.
-- [ ] No route, API path, payload function, bundled file name, label, CSS class or storage key in `src/` or `desktop/src/` contains "walk", "sitting" or "survey" in the old sense. Saved results under the old storage keys are carried over, not lost.
-- [ ] Opening `~walk/<platform>` shows the new overview for that platform. The Publication view no longer has a walk page, and the release page's link points at the Tests pane entry.
-- [ ] The Your Trainer Android Equipment Hub section, rendered by the cockpit, matches the example page section for section; the differences are listed in [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]].
+- [x] The Tests pane shows "Release test · <version>" under "Acceptance tests", one row per platform with its progress, and under each platform its sections with a status dot and a done/total count. "Feature tests" and "Regression tests" are still under "Acceptance tests". — TST-0092 step 1: the pane's first group is "Release test · v2.2.0", above Feature, Regression and Automated tests; the pane has no "Acceptance tests" heading and never had one, so TST-0092 now says "first group".
+- [x] Choosing a platform opens its overview: a bar coloured by result with a count per result, a Continue button naming the next check with no result, Needs you, and the section list with one bench line each. — TST-0092 step 2 ([[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]]).
+- [x] Continue opens the section holding the next check with no result and scrolls that check into view. — TST-0092 step 3 (`rtContinue`, `rtFocusCheck`).
+- [x] Needs you lists every Fail, Question, Blocked and Partial result with its reason, and every declared decision and readiness problem. Each entry opens its check. — TST-0092 steps 6 and 7; each platform row also carries the count (`rtSetNavNeeds`).
+- [x] A section page shows, in order: what changed for this platform grouped by screen, with screenshots that enlarge on click and a warning on a stale capture; Setup folded by default in three parts; then the checks in groups, each with a heading and at most one "Start:" line. — TST-0092 step 4 ([[TASK-0643-The-Section-Page-And-Its-Results]]).
+- [x] Each check shows a number, one action line, one expected line after an arrow, and its test tag, and nothing else unless it is greyed with a reason. — TST-0092 step 4; greyed checks seen on your-trainer's Equipment section.
+- [x] Pass and Fail take one tap. The other five results are under More with their one-line meanings. Every result except Pass requires a reason before it is saved. — TST-0092 step 5.
+- [x] A result reaches the release ledger through `postCheckVerdict`. On a ledger copy, results on every check of a test note write the same events as marking that test note directly. — TST-0092 step 8 on a scratch ledger; `release-test.test.mjs` (`rtWorst`).
+- [x] After a result, the pane dot and count, the overview bar, Continue and Needs you all change without a reload, and the reader stays on the section page at the same scroll position. — TST-0092 step 6; `release-test.test.mjs`.
+- [x] No route, API path, payload function, bundled file name, label, CSS class or storage key in `src/` or `desktop/src/` contains "walk", "sitting" or "survey" in the old sense. Saved results under the old storage keys are carried over, not lost. — `tests/test_release_test_names.py` ([[TASK-0639-Rename-The-Walk-To-The-Release-Test]]); the storage move is tested in `release-test.test.mjs`.
+- [x] Opening `~walk/<platform>` shows the new overview for that platform. The Publication view no longer has a walk page, and the release page's link points at the Tests pane entry. — TST-0092 step 9; TASK-0644.
+- [x] The Your Trainer Android Equipment Hub section, rendered by the cockpit, matches the example page section for section; the differences are listed in [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]]. — [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]]; Edwin compared it in the desktop app and said the overall setup is really good.
 
 ## Verification
 
-Not started.
+Full run, 2026-09-27: `.venv/bin/python -m pytest -q` passed 2,136 tests with 11 skipped; the 15 desktop test files under `desktop/tests/` pass one by one with `node --test`, including `release-test.test.mjs` (17 tests).
+
+[[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]] was tested end to end on 2026-09-27, by an agent in the live harness on a scratch copy of your-trainer, and its result is in the macOS ledger. Edwin used the same pages in the desktop app that day: *"It looks great, I think we can now fully close out the cockpit phase-0010 and the release test functionality."*
 
 ## Links
 

@@ -122,7 +122,7 @@ items:
     FEAT-0155:
       file: "docs/features/release-test/FEAT-0155-The-Release-Test-Goes-Section-By-Section.md"
       title: "The release test is opened from the Tests pane and read one section at a time, with a platform overview that says where to continue and what needs you"
-      status: planned
+      status: review
       owner: user:edwin
       phase: "[[PHASE-043-The-Walk-Page]]"
       requirements: ["[[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]]", "[[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]]", "[[REQ-0072-The-Walk-Is-Called-The-Release-Test-Everywhere]]"]
@@ -131,7 +131,7 @@ items:
     FEAT-0151:
       file: "docs/features/guided-walk/FEAT-0151-The-Release-Walk-Has-One-Next-Action.md"
       title: "The release walk has one clear next action"
-      status: done
+      status: superseded
       phase: "[[PHASE-043-The-Walk-Page]]"
       tasks: ["[[TASK-0629-Show-One-Walk-Action-And-Its-Readiness]]", "[[TASK-0630-Record-And-Resume-Walk-Observations]]", "[[TASK-0631-Verify-The-Guided-Walk]]"]
       requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]", "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]", "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]", "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"]
@@ -162,7 +162,7 @@ items:
     FEAT-0150:
       file: "docs/features/walk-script/FEAT-0150-The-Walk-Page-Reads-As-A-Script.md"
       title: "The walk page reads as a script — the survey as screen cards with before and after, each sitting as its procedure, a tick per step that settles every check it cites, and ~checks grouped by screen"
-      status: done
+      status: superseded
       owner: user:edwin
       phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
       tasks: ["TASK-0622", "TASK-0623", "TASK-0624", "TASK-0625", "TASK-0626"]
@@ -170,7 +170,7 @@ items:
     FEAT-0149:
       file: "docs/features/walk-page/FEAT-0149-The-Walk-Page.md"
       title: "The walk page — the owed checks as a procedure, survey first, sittings in the consumer's order, the steps on the page"
-      status: done
+      status: superseded
       owner: user:edwin
       phase: "[[PHASE-043-The-Walk-Page]]"
       tasks: ["TASK-0618", "TASK-0619", "TASK-0620", "TASK-0621"]
@@ -935,7 +935,7 @@ items:
       phase: "[[PHASE-043]]"
     TASK-0644:
       file: docs/features/release-test/plan/tasks/TASK-0644-Retire-The-Walk-Page-In-The-Publication-View.md
-      status: doing
+      status: done
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0645:
@@ -2376,21 +2376,21 @@ items:
     REQ-0070:
       file: "docs/requirements/REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section.md"
       title: "The release test is reached from the Tests pane, opens on a platform overview, and shows one section per page"
-      status: draft
+      status: approved
       owner: user:edwin
       phase: "[[PHASE-043-The-Walk-Page]]"
       implements: FEAT-0155
     REQ-0071:
       file: "docs/requirements/REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen.md"
       title: "A result is recorded on the check where it was seen, with a reason for anything but Pass, and every count on screen follows at once without moving the reader"
-      status: draft
+      status: approved
       owner: user:edwin
       phase: "[[PHASE-043-The-Walk-Page]]"
       implements: FEAT-0155
     REQ-0072:
       file: "docs/requirements/REQ-0072-The-Walk-Is-Called-The-Release-Test-Everywhere.md"
       title: "The walk is called the release test everywhere in the cockpit, internal names included, and old walk links still open it"
-      status: draft
+      status: approved
       owner: user:edwin
       phase: "[[PHASE-043-The-Walk-Page]]"
       implements: FEAT-0155
@@ -3605,9 +3605,9 @@ metrics:
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
     features_total: 154
-    features_done: 136
+    features_done: 133
     tasks_total: 639
-    tasks_done: 602
+    tasks_done: 603
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

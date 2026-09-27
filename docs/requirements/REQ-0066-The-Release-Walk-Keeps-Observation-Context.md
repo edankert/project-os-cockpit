@@ -2,11 +2,12 @@
 type: "[[requirement]]"
 id: REQ-0066
 title: "The release walk keeps the action and context for each observation"
-status: implemented
+status: superseded
+superseded_by: "[[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]]"
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-25
+updated: 2026-09-27
 source: ["Your Trainer FEAT-0122, 2026-09-16"]
 priority: high
 scope: "Release walk page in any project-os workspace"
@@ -38,3 +39,7 @@ The release walk must show the current action, its required state and exact expe
 
 - Implements: [[FEAT-0151-The-Release-Walk-Has-One-Next-Action]].
 - Verified by: pending guided walk tests and browser run.
+
+## Superseded 2026-09-27
+
+The walk page this describes was replaced by the release test in the Tests pane, which Edwin approved on 2026-09-27. [[REQ-0070-The-Release-Test-Is-An-Overview-And-One-Page-Per-Section]] carries it on ([[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]).

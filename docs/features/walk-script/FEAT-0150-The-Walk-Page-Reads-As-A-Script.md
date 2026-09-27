@@ -3,11 +3,12 @@ type: "[[feature]]"
 id: FEAT-0150
 aliases: ["FEAT-0150"]
 title: "The walk page reads as a script — the survey as screen cards with before and after, each sitting as its procedure, a tick per step that settles every check it cites, and ~checks grouped by screen"
-status: done
+status: superseded
+superseded_by: "[[FEAT-0155-The-Release-Test-Goes-Section-By-Section]]"
 phase: "[[PHASE-044-The-Walk-Page-Reads-As-A-Script]]"
 owner: user:edwin
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-27
 source: ["Edwin, 2026-09-14, approved goal: 'Before v2.2.0 ships, Edwin walks the release from a sheet that works like a script … A tick in the cockpit records the verdict for every check that step satisfies. \"Done\" means Edwin walks the whole v2.2.0 release this way and never opens a check note.'"]
 goal: "The walk page shows the screens a release changed as cards with before and after pictures, presents each sitting as its written procedure, and lets the walker tick steps, recording each check's verdict in the ledger once every step that cites it has been ticked."
 requirements: []
@@ -135,3 +136,7 @@ Reviewed from the notes and the diff (commits `024041c`, `e36fdaf`, plus the unc
 ### What held up
 
 The combine rule, the holding rule, the storage key's four segments, the prune's release-and-platform confinement, the `owed`-tag filter and the Markdown stripping each have a test that fails when the behaviour is removed — six mutations run, six caught. The ledger format is unchanged and both tick paths go through `postCheckVerdict`. The framed-viewer route resolves and confines to the workspace `docs/` root. The full Python suite is 2,141 passing and `validate-docs.sh` reports OK.
+
+## Superseded 2026-09-27
+
+The walk page this describes was replaced by the release test in the Tests pane, which Edwin approved on 2026-09-27. [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]] carries it on ([[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]).

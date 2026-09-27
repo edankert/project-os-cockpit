@@ -2,11 +2,12 @@
 type: "[[requirement]]"
 id: REQ-0068
 title: "The walk records one clear observation at a time"
-status: implemented
+status: superseded
+superseded_by: "[[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]]"
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-24
-updated: 2026-09-25
+updated: 2026-09-27
 source: ["Your Trainer REQ-0210, moved here 2026-09-24. Edwin: 'Make the changes as suggested. move them to the cockpit as suggested.'"]
 priority: high
 scope: "Release walk page and the existing ledger write path"
@@ -46,3 +47,7 @@ A criterion is ticked only when every letter it names is met.
 
 - Implements: [[FEAT-0151-The-Release-Walk-Has-One-Next-Action]].
 - Overlaps: [[REQ-0066-The-Release-Walk-Keeps-Observation-Context]], this feature's first requirement, which states the same goal in four lines.
+
+## Superseded 2026-09-27
+
+The walk page this describes was replaced by the release test in the Tests pane, which Edwin approved on 2026-09-27. [[REQ-0071-A-Result-Is-Recorded-On-The-Check-Where-It-Was-Seen]] carries it on ([[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]).

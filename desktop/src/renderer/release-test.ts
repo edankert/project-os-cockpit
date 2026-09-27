@@ -475,14 +475,14 @@ function rtRefreshPane(page: RtPage, marks: RtMarks): void {
  *  ([[TASK-0642]]). The pane's own "Needs you" group stays the badge's list of
  *  owed test notes; a result on a printed check lives in this browser until
  *  its test note is complete, so the server cannot count it. The count sits
- *  on the platform row instead, in the badge's shape, and goes at zero. */
+ *  on the platform row instead, in the Fail colour, and goes at zero. */
 function rtSetNavNeeds(li: HTMLElement, n: number): void {
   const item = li.querySelector<HTMLElement>(':scope > .nav-item');
   if (!item) return;
   let badge = item.querySelector<HTMLElement>(':scope .rt-nav-needs');
   if (!n) { badge?.remove(); return; }
   if (!badge) {
-    badge = rtEl('span', 'mode-badge rt-nav-needs');
+    badge = rtEl('span', 'rt-nav-needs');
     const title = item.querySelector('.nav-title');
     if (title) title.after(badge); else item.appendChild(badge);
   }
@@ -683,9 +683,8 @@ function rtBuildOverview(page: RtPage): HTMLElement {
     const t = tallies.get(section.slug)!;
     const row = rtEl('button', 'rt-sec');
     row.type = 'button';
-    const dot = rtEl('span', 'rt-dot');
-    if (t.total && t.done === t.total) dot.classList.add(t.counts.fail ? 'bad' : 'done');
-    else if (t.done) dot.classList.add('part');
+    //: The same dot the pane draws for this section, so the two agree.
+    const dot = rtEl('span', `rt-dot ${rtDotState(t)}`);
     row.appendChild(dot);
     row.appendChild(rtEl('span', 'rt-name', section.name));
     row.appendChild(rtBar(t.done, t.total));

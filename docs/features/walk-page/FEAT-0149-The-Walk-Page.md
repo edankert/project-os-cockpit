@@ -3,11 +3,12 @@ type: "[[feature]]"
 id: FEAT-0149
 aliases: ["FEAT-0149"]
 title: "The walk page — the owed checks as a procedure, survey first, sittings in the consumer's order, the steps on the page"
-status: done
+status: superseded
+superseded_by: "[[FEAT-0155-The-Release-Test-Goes-Section-By-Section]]"
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-09-27
 source: ["Edwin, 2026-09-13: 'I find it increasingly difficult to understand what steps need to be done to satisfy the outstanding acceptance tests, so I am wondering is there another thing we need to create on-top of the actual tests, which goes through the things that I should be doing to satisfy these tests in a logical order'", "Edwin, 2026-09-13: 'one thing I notice the tests do not suggest me doing is to look at the changed screens at all, which is strange because that is normally the first step I would do'", "Survey of your-trainer, project-os and project-os-cockpit, 2026-09-13: three run plans written by hand and thrown away, none addressable"]
 goal: "Give the person walking a release one page in the publication view that lists every owed check in the order the consumer repo authored, with the surfaces the release changed first and each check's setup, steps and expected result on the page, so the walk is read top to bottom and every tick lands in the ledger."
 requirements: []
@@ -186,3 +187,7 @@ The verdict stands as the reviewer wrote it ([[project-os-dev#ADR-0011]]: a verd
 **6 — filed rather than fixed** ([[ISS-0305-The-Desktop-Node-Suite-Runs-Nowhere-But-A-Developers-Machine]]). The node suite skips on CI because `desktop/dist/` is gitignored and no workflow builds it, so the twenty-three tests holding this page's behaviour run only where somebody has built the desktop. It is not this feature's defect and it predates it by a year; it is filed because this feature put its strongest assertions there. Whether CI grows a node install is Edwin's call.
 
 **The randomized-order flake is not ours.** The reviewer reached the same conclusion independently: `sidecar_stale` compares the newest `.py` mtime under the package against the process start, no test writes there, and an external write under `src/` mid-run is the cross-process hazard the sibling test's own docstring records.
+
+## Superseded 2026-09-27
+
+The walk page this describes was replaced by the release test in the Tests pane, which Edwin approved on 2026-09-27. [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]] carries it on ([[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]).

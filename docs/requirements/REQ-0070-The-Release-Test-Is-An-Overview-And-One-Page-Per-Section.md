@@ -2,13 +2,15 @@
 type: "[[requirement]]"
 id: REQ-0070
 title: "The release test is reached from the Tests pane, opens on a platform overview, and shows one section per page"
-status: draft
+status: approved
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
 updated: 2026-09-27
 source: ["Edwin, 2026-09-27: approved the example page in docs/features/release-test/__attachments__/release-test-example/index.html"]
 priority: high
+approved_by: "user:edwin"
+approved: 2026-09-27
 scope: "The release test in the cockpit's Tests pane, for any project-os workspace with an open release and a ledger"
 acceptance: ["The Tests pane lists the release test per platform and per section, with progress", "A platform opens on its overview", "A section page shows what changed, then Setup folded, then grouped checks", "Each check is one action, one expected result and its test tag"]
 implements: "[[FEAT-0155-The-Release-Test-Goes-Section-By-Section]]"
@@ -27,12 +29,16 @@ This replaces the one-action-at-a-time rule of [[REQ-0066-The-Release-Walk-Keeps
 
 ## Acceptance Criteria
 
-- [ ] The Tests pane lists the release test per platform and per section, with progress — evidence: pending ([[TASK-0641-The-Release-Test-In-The-Tests-Pane]]).
-- [ ] A platform opens on its overview — evidence: pending ([[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]]).
-- [ ] A section page shows what changed, then Setup folded, then grouped checks — evidence: pending ([[TASK-0643-The-Section-Page-And-Its-Results]]).
-- [ ] Each check is one action, one expected result and its test tag — evidence: pending ([[TASK-0643-The-Section-Page-And-Its-Results]], [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]]).
+- [x] The Tests pane lists the release test per platform and per section, with progress — evidence: `cockpit._release_test_group` and `rtRefreshPane` ([[TASK-0641-The-Release-Test-In-The-Tests-Pane]]); [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]] step 1, 2026-09-27.
+- [x] A platform opens on its overview — evidence: `~release-test/<platform>` draws the overview ([[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]]); TST-0092 step 2.
+- [x] A section page shows what changed, then Setup folded, then grouped checks — evidence: [[TASK-0643-The-Section-Page-And-Its-Results]]; TST-0092 step 4.
+- [x] Each check is one action, one expected result and its test tag — evidence: TASK-0643 and the pilot, [[TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest]]; TST-0092 step 4.
 
 ## Traceability
 
 - Implements: [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]].
 - Verified by: [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]] and the desktop renderer tests the tasks add.
+
+## Approved and implemented, 2026-09-27
+
+Edwin approved the release test page after using it in the desktop app: *"It looks great, I think we can now fully close out the cockpit phase-0010 and the release test functionality."* Every criterion above is met; the release test itself was tested end to end as [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]].

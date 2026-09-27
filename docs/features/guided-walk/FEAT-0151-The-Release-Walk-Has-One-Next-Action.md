@@ -3,11 +3,12 @@ type: "[[feature]]"
 id: FEAT-0151
 aliases: ["FEAT-0151"]
 title: "The release walk has one clear next action"
-status: done
+status: superseded
+superseded_by: "[[FEAT-0155-The-Release-Test-Goes-Section-By-Section]]"
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-16
-updated: 2026-09-25
+updated: 2026-09-27
 source: ["Your Trainer FEAT-0122, 2026-09-16: implement and test the guided release walk fully"]
 goal: "A person can perform, record and resume each owed release observation from one focused page with its necessary preparation."
 requirements: ["[[REQ-0066-The-Release-Walk-Keeps-Observation-Context]]", "[[REQ-0067-The-Walk-Keeps-Required-Actions-And-Only-Relevant-Setup]]", "[[REQ-0068-The-Walk-Records-One-Clear-Observation-At-A-Time]]", "[[REQ-0069-The-Walk-Resumes-With-Valid-Evidence]]"]
@@ -211,3 +212,7 @@ All five findings are fixed in `desktop/src/renderer/renderer.ts` and `desktop/t
 | 5 | A readiness kind the type does not have | fixed | The corpus docblock names only `preparation` and `decision`. |
 
 Both wording notes were applied: the reproduction test no longer says "needs equipment", and the corpus test's docblock says it depends on the loop confirming every `preparation` readiness. The reviewer also noted that the node tests read the built bundle, so a source edit without `npm run build` is tested against the old bundle. That is how this suite has always worked; it is recorded here, not changed.
+
+## Superseded 2026-09-27
+
+The walk page this describes was replaced by the release test in the Tests pane, which Edwin approved on 2026-09-27. [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]] carries it on ([[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]).

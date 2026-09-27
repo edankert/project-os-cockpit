@@ -2,7 +2,7 @@
 type: "[[requirement]]"
 id: REQ-0072
 title: "The walk is called the release test everywhere in the cockpit, internal names included, and old walk links still open it"
-status: draft
+status: approved
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
@@ -27,12 +27,16 @@ The cockpit must use one set of words for testing a release by hand: release tes
 
 ## Acceptance Criteria
 
-- [ ] No code name, route, label or storage key uses the old words — evidence: pending (a test that searches `src/` and `desktop/src/`, [[TASK-0639-Rename-The-Walk-To-The-Release-Test]]).
-- [ ] Live notes use the new words; closed ADRs, change notes and archived notes are unchanged — evidence: pending ([[TASK-0639-Rename-The-Walk-To-The-Release-Test]]).
-- [ ] Ledger values are unchanged — evidence: pending (`git diff` of `src/project_os_cockpit/ledger.py` value lists, [[TASK-0639-Rename-The-Walk-To-The-Release-Test]]).
-- [ ] Old ~walk addresses open the new page and saved progress carries over — evidence: pending ([[TASK-0639-Rename-The-Walk-To-The-Release-Test]], [[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]).
+- [x] No code name, route, label or storage key uses the old words — evidence: `tests/test_release_test_names.py` searches `src/` and `desktop/src/` ([[TASK-0639-Rename-The-Walk-To-The-Release-Test]]).
+- [x] Live notes use the new words; closed ADRs, change notes and archived notes are unchanged — evidence: TASK-0639, and the sweep of 45 live notes in 89e4655, 2026-09-27.
+- [x] Ledger values are unchanged — evidence: `ledger.py` keeps its result values; a new entry stores them under `result` and every reader still accepts `mark` (TASK-0639).
+- [x] Old ~walk addresses open the new page and saved progress carries over — evidence: The redirect in `navigateToInner` and the storage move (TASK-0639, [[TASK-0644-Retire-The-Walk-Page-In-The-Publication-View]]); TST-0092 step 9.
 
 ## Traceability
 
 - Implements: [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]].
 - Verified by: tests added in [[TASK-0639-Rename-The-Walk-To-The-Release-Test]].
+
+## Approved and implemented, 2026-09-27
+
+Edwin approved the release test page after using it in the desktop app: *"It looks great, I think we can now fully close out the cockpit phase-0010 and the release test functionality."* Every criterion above is met; the release test itself was tested end to end as [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]].

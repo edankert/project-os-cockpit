@@ -2,13 +2,15 @@
 type: "[[requirement]]"
 id: REQ-0071
 title: "A result is recorded on the check where it was seen, with a reason for anything but Pass, and every count on screen follows at once without moving the reader"
-status: draft
+status: approved
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
 updated: 2026-09-27
 source: ["Edwin, 2026-09-27: approved the example page in docs/features/release-test/__attachments__/release-test-example/index.html"]
 priority: high
+approved_by: "user:edwin"
+approved: 2026-09-27
 scope: "Results on the release test's section page, the existing ledger write path, and the overview that summarises them"
 acceptance: ["All seven results are offered, Pass and Fail in one tap", "Every result but Pass needs a reason before it is saved", "Results reach the ledger through the existing write path with unchanged stored values", "Pane, overview, Continue and Needs you update at once and the reader stays in place", "Continue names and opens the next check with no result", "A check that cannot be done yet is greyed with why and a suggested result"]
 implements: "[[FEAT-0155-The-Release-Test-Goes-Section-By-Section]]"
@@ -27,14 +29,18 @@ The section page must let a person give each check one of seven results where th
 
 ## Acceptance Criteria
 
-- [ ] All seven results are offered, Pass and Fail in one tap — evidence: pending ([[TASK-0643-The-Section-Page-And-Its-Results]]).
-- [ ] Every result but Pass needs a reason before it is saved — evidence: pending ([[TASK-0643-The-Section-Page-And-Its-Results]]).
-- [ ] Results reach the ledger through the existing write path with unchanged stored values — evidence: pending (ledger-copy test in [[TASK-0643-The-Section-Page-And-Its-Results]]).
-- [ ] Pane, overview, Continue and Needs you update at once and the reader stays in place — evidence: pending ([[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]], [[TASK-0643-The-Section-Page-And-Its-Results]]).
-- [ ] Continue names and opens the next check with no result — evidence: pending ([[TASK-0642-The-Platform-Overview-Continue-And-Needs-You]]).
-- [ ] A check that cannot be done yet is greyed with why and a suggested result — evidence: pending ([[TASK-0643-The-Section-Page-And-Its-Results]]).
+- [x] All seven results are offered, Pass and Fail in one tap — evidence: TASK-0643; TST-0092 step 5.
+- [x] Every result but Pass needs a reason before it is saved — evidence: `rtNoteResults` writes nothing until every reason is filled in; `release-test.test.mjs`; TST-0092 step 5.
+- [x] Results reach the ledger through the existing write path with unchanged stored values — evidence: `postCheckVerdict`; TST-0092 step 8 on a scratch ledger wrote one event with the worst result, stored under `result`.
+- [x] Pane, overview, Continue and Needs you update at once and the reader stays in place — evidence: `rtRefreshPane`; `release-test.test.mjs`; TST-0092 step 6.
+- [x] Continue names and opens the next check with no result — evidence: `rtContinue` and `rtFocusCheck`; TST-0092 step 3.
+- [x] A check that cannot be done yet is greyed with why and a suggested result — evidence: `rt-muted` and the readiness line (TASK-0643); seen on your-trainer's Equipment section, check 18.
 
 ## Traceability
 
 - Implements: [[FEAT-0155-The-Release-Test-Goes-Section-By-Section]].
 - Verified by: [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]] and the desktop renderer tests the tasks add.
+
+## Approved and implemented, 2026-09-27
+
+Edwin approved the release test page after using it in the desktop app: *"It looks great, I think we can now fully close out the cockpit phase-0010 and the release test functionality."* Every criterion above is met; the release test itself was tested end to end as [[TST-0092-A-Release-Test-Section-Is-Tested-From-The-Tests-Pane]].
