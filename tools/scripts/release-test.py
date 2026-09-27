@@ -2099,6 +2099,12 @@ def build_what_changed(changes: list[Change], surfaces: dict[str, Surface],
     """
     found: dict[str, Screen] = {}
     altered: dict[str, list[Change]] = {}
+    #: **One short line per change and screen.** A change note with two Impact
+    #: lines for one screen has one short line for both, since the short lines
+    #: are keyed by (change, screen), and it printed twice. Two Impact lines
+    #: with no short line are two sentences, and both print. Found by
+    #: independent review, 2026-09-27.
+    shortened: set[tuple[str, str]] = set()
     for change in changes:
         for surface_id, sentence in change.on(platform):
             if keep is not None and not keep(surface_id):
@@ -2115,9 +2121,13 @@ def build_what_changed(changes: list[Change], surfaces: dict[str, Surface],
                     screen.parent = ""
                 found[surface_id] = screen
             line = (short or {}).get((change.id, surface_id), "")
+            altered.setdefault(surface_id, []).append(change)
+            if line:
+                if (change.id, surface_id) in shortened:
+                    continue
+                shortened.add((change.id, surface_id))
             screen.sentences.append((change.id, change.title, line or sentence))
             screen.short.append(bool(line))
-            altered.setdefault(surface_id, []).append(change)
     # A changed dialog still needs its containing screen in the list, even
     # when no change note names that screen directly.
     for screen in list(found.values()):
@@ -2310,7 +2320,14 @@ def short_lines_for(short_lines: ShortLines | None, tag: str
                     "screen shows the change notes' Impact sentences; "
                     "`tools/skills/release-test-prep/SKILL.md` writes them")
     if not tag:
-        return {}, ""
+        #: **Said, not dropped.** The lines were written and are not used,
+        #: and a sheet that shows the Impact sentences with no reason looks
+        #: as if the file were ignored. Found by independent review, 2026-09-27.
+        return {}, ("the short lines in `%s` are written against %s, and no "
+                    "release has been tagged on this platform yet, so each "
+                    "screen shows the change notes' Impact sentences instead"
+                    % (short_lines.path,
+                       "`%s`" % short_lines.tag if short_lines.tag else "no tag"))
     if short_lines.tag != tag:
         return {}, ("the short lines in `%s` were written against %s and the "
                     "last release is `%s`, so each screen shows the change "
@@ -2492,11 +2509,22 @@ def expect_text(check: Check, platform: str = "") -> list[str]:
     """The check's `## Expect` lines on ``platform``, normalised, in the note's order.
 
     A line marked for another platform is left out (project-os-dev REQ-0034).
+
+    **Two identical lines are both kept.** A tag `.N` pairs with line N by
+    position (`expect_for`), so dropping the second copy moved every later
+    line up by one, and a tag named the line after the one it meant. A reader
+    that lists the lines without pairing them removes the copy itself
+    (`_unique`). Found by independent review, 2026-09-27.
     """
+    return [text for mark, text, _shown in expect_entries(check) if _applies(mark, platform)]
+
+
+def _unique(lines: list[str]) -> list[str]:
+    """``lines`` with each repeat after the first removed, in order."""
     out: list[str] = []
-    for mark, text, _shown in expect_entries(check):
-        if _applies(mark, platform) and text not in out:
-            out.append(text)
+    for line in lines:
+        if line not in out:
+            out.append(line)
     return out
 
 
@@ -2540,17 +2568,23 @@ def expect_for(check: Check, number: str, platform: str = "") -> list[str]:
     them by position, and a tag `.N` names line N. Procedures already read them so:
     on your-trainer, 204 of 211 quotes citing such a check quote line N for
     `.N` (2026-09-26). Any other check has no pairing, so a tag names all of
-    its Expect lines.
+    its Expect lines. For a tag `.N` that is a problem `--check` reports
+    (`_audit_tag`), because the tester would read lines meant for other steps.
 
     **Counted per platform** (project-os-dev REQ-0034): the lines are the ones
     that apply on ``platform``, so a check writing `[android]` and `[ios]`
     versions of line 2 still pairs step 2 with line 2 on each platform.
     """
     lines = expect_text(check, platform)
-    steps = numbered_steps(check)
-    if number and lines and len(lines) == len(steps) and 1 <= int(number) <= len(lines):
+    if number and pairs_steps(check, platform) and 1 <= int(number) <= len(lines):
         return [lines[int(number) - 1]]
-    return lines
+    return _unique(lines)
+
+
+def pairs_steps(check: Check, platform: str = "") -> bool:
+    """Whether the check's Expect lines on ``platform`` number one per numbered step."""
+    lines = expect_text(check, platform)
+    return bool(lines) and len(lines) == len(numbered_steps(check))
 
 
 def expand_tag_only(procedure: Procedure, checks: dict[str, Check], platform: str = "") -> None:
@@ -2787,6 +2821,24 @@ def _audit_tag(procedure: Procedure, step: Step, expectation: Expectation,
     if not number and numbers:
         return ["%s cites %s with no step number, and that check numbers %d "
                 "steps; cite the step" % (at, check_id, len(numbers))]
+    #: **A tag `.N` needs one Expect line per step.** Otherwise `expect_for`
+    #: cannot pair them and prints every line for every tag, so the tester
+    #: reads lines meant for other steps and nothing said so. A check with 3
+    #: steps and the lines `A`, `B`, `[ios] C` printed A and B for each tag on
+    #: Android. A check stating no Expect text is not reported: nothing
+    #: prints, and silence is not a mismatch (below). Found by independent
+    #: review, 2026-09-27.
+    problems = []
+    applying = expect_text(check, platform)
+    if number and platform and applying and not pairs_steps(check, platform):
+        problems.append(
+            "%s cites step %s of %s, and on %s that check has %d numbered %s and "
+            "%d Expect %s, so a step cannot be paired with its line and every tag "
+            "prints all of them; write one Expect line per step, split per "
+            "platform with `[%s]` where they differ"
+            % (at, number, check_id, platform, len(numbers),
+               _plural(len(numbers), "step"), len(applying),
+               _plural(len(applying), "line"), platform))
     wanted = expect_lines(check, platform)
     if not wanted:
         #: **Silence is not a mismatch.** The check states no expected result,
@@ -2794,14 +2846,14 @@ def _audit_tag(procedure: Procedure, step: Step, expectation: Expectation,
         #: either way. Reporting a mismatch here would be a claim the
         #: validator cannot support, and 57 of 61 rows on the corpus that
         #: needs this look like that today (project-os-dev ISS-0064).
-        return []
+        return problems
     if expectation.quote not in wanted:
-        return ["%s quotes %s as %r, and that check's Expect says none of: %s; "
+        return problems + ["%s quotes %s as %r, and that check's Expect says none of: %s; "
                 "`python3 tools/scripts/release-test-tags.py --refresh` re-quotes a line whose "
                 "check was reworded, or cite the step by its tag alone (ADR-0049)"
                 % (at, check_id, expectation.quote,
                    "; ".join(repr(w) for w in sorted(wanted)))]
-    return []
+    return problems
 
 
 def unordered_sections(checks: list[Check]) -> list[Section]:
@@ -2834,8 +2886,11 @@ def _plural(n: int, one: str, many: str = "") -> str:
 #: (project-os-dev REQ-0033).
 DEFAULT_RESULT = {"preparation": "blocked", "decision": "question"}
 #: "Step 3:" at the start of a check's Expect line: the check's own numbering,
-#: which the page does not print (project-os-dev REQ-0033).
-_STEP_PREFIX_RE = re.compile(r"^(\*\*|__)?\s*Step\s+\d+[a-z]?\s*[:.—–-]\s*(\*\*|__)?\s*", re.I)
+#: which the page does not print (project-os-dev REQ-0033). The emphasis
+#: around it may be double (`**`, `__`) or single (`*`, `_`); the double
+#: form is tried first, so `**` is never read as two single markers.
+_STEP_PREFIX_RE = re.compile(
+    r"^(\*\*|__|\*|_)?\s*Step\s+\d+[a-z]?\s*[:.—–-]\s*(\*\*|__|\*|_)?\s*", re.I)
 _TAG_SPAN_RE = re.compile(r"\s*`TST-\d{2,}(?:\.\d+)?`")
 
 
@@ -2854,8 +2909,12 @@ def shown_expected(text: str) -> str:
         #: number and closes it at the end, so the opening marker goes back.
         #: "Step 1: **the panel.**" opens its emphasis after it. Either way
         #: one marker was taken without its partner, and it goes back.
-        if bool(found.group(1)) != bool(found.group(2)):
-            rest = (found.group(1) or found.group(2)) + rest
+        #: "*Step 2:* done" wraps the prefix alone, so both markers go.
+        #: Two different markers, as in "*Step 2: **the panel** shows.*",
+        #: are two openings, and both go back.
+        opened, after = found.group(1) or "", found.group(2) or ""
+        if opened != after:
+            rest = opened + after + rest
         text = rest.strip()
         #: "Step 3: the slot reads ..." was the middle of a sentence; alone,
         #: it starts one.
@@ -3027,7 +3086,7 @@ def _row_checks(rows: list[Check], platform: str) -> list[dict]:
         out.append({
             "number": number, "action": check.title or check.id,
             "expected": [{"text": shown_expected(expect_display(check).get(key, key)), "tags": [],
-                          "passed": []} for key in expect_text(check, platform)],
+                          "passed": []} for key in _unique(expect_text(check, platform))],
             "passed_lines": [],
             "tags": [check.id], "checks": [check.id], "passed": [],
             "preparation": False, "start": "",
@@ -3103,6 +3162,15 @@ def payload(sheet: ReleaseTest) -> dict:
 
 # --------------------------------------------------------------- the renderer
 
+#: How the page writes a platform whose ledger name is not simply capitalised.
+PLATFORM_NAMES = {"android": "Android", "ios": "iOS", "macos": "macOS"}
+
+
+def platform_name(platform: str) -> str:
+    """A ledger's platform name as a sentence writes it: `ios` is iOS, `android` Android."""
+    return PLATFORM_NAMES.get(platform.lower(), platform[:1].upper() + platform[1:])
+
+
 def _result_word(result: str) -> str:
     return {"na": "N/A"}.get(result, result.capitalize())
 
@@ -3116,7 +3184,7 @@ def render_what_changed(page: dict, out: list[str]) -> None:
     list is places to open and look at, not things to run.
     """
     changed = page["what_changed"]
-    platform = page["platform"]
+    platform = platform_name(page["platform"])
     out.append("## What changed on %s" % platform)
     out.append("")
     if changed["gallery"]:
@@ -3327,7 +3395,7 @@ def render_section(section: dict, platform: str, out: list[str]) -> None:
                 indent = "    - " if "setup" in check else "  - "
                 out.append("%s%s%s" % (indent, line["text"], " " + shown if shown else ""))
             if not check["expected"] and not check["preparation"]:
-                said = ("_The note states no expected result for %s._" % platform
+                said = ("_The note states no expected result for %s._" % platform_name(platform)
                         if check.get("expect_stated", True) else "_The note states no expected result._")
                 out.append("  - %s %s" % (said, tags))
             if check["readiness"]:
