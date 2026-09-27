@@ -925,7 +925,7 @@ items:
       phase: "[[PHASE-043]]"
     TASK-0642:
       file: docs/features/release-test/plan/tasks/TASK-0642-The-Platform-Overview-Continue-And-Needs-You.md
-      status: doing
+      status: done
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0643:
@@ -3607,7 +3607,7 @@ metrics:
     features_total: 154
     features_done: 136
     tasks_total: 639
-    tasks_done: 599
+    tasks_done: 600
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

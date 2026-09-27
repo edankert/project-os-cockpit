@@ -461,6 +461,7 @@ function rtRefreshPane(page: RtPage, marks: RtMarks): void {
   const row = document.querySelector<HTMLElement>(`li[data-rel="${CSS.escape(rtAddress(page))}"]`);
   if (row) {
     rtSetNavBar(row, done, total);
+    rtSetNavNeeds(row, rtNeedsYou(page, marks).length);
     //: The platform being read always shows its sections in the pane.
     const kids = row.querySelector<HTMLElement>(':scope > .nav-children');
     if (kids?.hidden) {
@@ -468,6 +469,25 @@ function rtRefreshPane(page: RtPage, marks: RtMarks): void {
       row.querySelector(':scope > .nav-item .nav-row-toggle')?.setAttribute('aria-expanded', 'true');
     }
   }
+}
+
+/** The platform row's count of what the overview's Needs you lists
+ *  ([[TASK-0642]]). The pane's own "Needs you" group stays the badge's list of
+ *  owed test notes; a result on a printed check lives in this browser until
+ *  its test note is complete, so the server cannot count it. The count sits
+ *  on the platform row instead, in the badge's shape, and goes at zero. */
+function rtSetNavNeeds(li: HTMLElement, n: number): void {
+  const item = li.querySelector<HTMLElement>(':scope > .nav-item');
+  if (!item) return;
+  let badge = item.querySelector<HTMLElement>(':scope .rt-nav-needs');
+  if (!n) { badge?.remove(); return; }
+  if (!badge) {
+    badge = rtEl('span', 'mode-badge rt-nav-needs');
+    const title = item.querySelector('.nav-title');
+    if (title) title.after(badge); else item.appendChild(badge);
+  }
+  badge.textContent = String(n);
+  badge.title = `${n} need${n === 1 ? 's' : ''} you: open the overview's Needs you list`;
 }
 
 /** Empty, half, full, or red when a result there needs the owner. */

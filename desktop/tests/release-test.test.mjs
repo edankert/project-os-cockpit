@@ -243,3 +243,27 @@ test('Needs you shows one entry for one reason, naming every check it holds', as
     [['equipment-hub', 'fail', 'The slot is empty.', [1, 3]]]);
 });
 
+
+test("the platform row in the pane counts what Needs you lists, and drops the count at zero", async () => {
+  const context = vm.createContext({
+    console,
+    document: { createElement: () => ({ className: '', textContent: '', title: '', removed: false,
+      remove() { this.removed = true; } }) },
+  });
+  vm.runInContext(await fs.readFile(built, 'utf8'), context);
+  const added = [];
+  const title = { after: (node) => added.push(node) };
+  const item = { querySelector: (sel) => sel === '.nav-title' ? title
+    : sel.includes('rt-nav-needs') ? added.find((n) => !n.removed) || null : null };
+  const li = { querySelector: (sel) => sel === ':scope > .nav-item' ? item : null };
+  const p = page();
+  const marks = Object.fromEntries([mark(context, p, 0, 1, 'fail', 'Slot missing'), mark(context, p, 1, 1, 'question', 'Which one?')]);
+  const n = context.rtNeedsYou(p, marks).length;
+  assert.equal(n, 2);
+  context.rtSetNavNeeds(li, n);
+  assert.equal(added.length, 1);
+  assert.equal(added[0].textContent, '2');
+  assert.match(added[0].className, /rt-nav-needs/);
+  context.rtSetNavNeeds(li, 0);
+  assert.equal(added[0].removed, true);
+});
