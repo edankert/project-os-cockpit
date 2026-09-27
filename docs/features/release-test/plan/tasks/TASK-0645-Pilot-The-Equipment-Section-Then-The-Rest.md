@@ -2,7 +2,7 @@
 type: "[[task]]"
 id: TASK-0645
 title: "Pilot: Your Trainer's Android Equipment Hub section end to end, compared with the example page; then the other Android sections; then iOS"
-status: backlog
+status: doing
 phase: "[[PHASE-043-The-Walk-Page]]"
 owner: user:edwin
 created: 2026-09-27
@@ -35,3 +35,7 @@ None recorded yet.
 ## Notes
 
 Complexity: Medium for the pilot section, judged by how much it touches. No time estimates.
+
+## Progress, 2026-09-27
+
+The page is built (TASK-0639 to TASK-0643) and your-trainer's Equipment section is rewritten (your-trainer TASK-0975). The section was opened in this page through `desktop/harness/live-harness.html` on a scratch copy of your-trainer, and it matches the approved example's layout; the differences and why are in your-trainer TASK-0975's notes, with screenshots in your-trainer `docs/features/release-test/evidence/`. **Waiting on Edwin** to compare it with the example in the real app and say whether the other sections follow it. The desktop app needs a restart to load this code.

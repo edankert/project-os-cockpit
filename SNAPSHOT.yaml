@@ -940,7 +940,7 @@ items:
       phase: "[[PHASE-043]]"
     TASK-0645:
       file: docs/features/release-test/plan/tasks/TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest.md
-      status: backlog
+      status: doing
       parent: FEAT-0155
       phase: "[[PHASE-043]]"
     TASK-0361:
