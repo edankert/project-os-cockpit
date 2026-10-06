@@ -36,6 +36,8 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+import pytest
+
 from project_os_cockpit import cockpit, templates
 from project_os_cockpit.events import EventBus, FileEvent
 from project_os_cockpit.index import Index

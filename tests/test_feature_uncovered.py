@@ -16,6 +16,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from conftest import UPSTREAM, require
+
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = ROOT / "tools" / "scripts" / "validate-docs.py"
 BUNDLED = ROOT / "src" / "project_os_cockpit" / "validate_docs_bundled.py"
@@ -162,11 +164,13 @@ def test_the_two_validator_copies_stay_identical() -> None:
 
 # ---- the rule is a LIFECYCLE rule, so it lives upstream (REQ-0051 c5) -----
 
-UPSTREAM = Path.home() / "Dev" / "repos" / "project-os"
 UPSTREAM_VALIDATOR = UPSTREAM / "tools" / "scripts" / "validate-docs.py"
 
 
 def _upstream_findings(repo: Path) -> int:
+    # Without this, a missing validator prints nothing, so it reports zero
+    # findings and every "upstream is silent" test passes on nothing (ISS-0317).
+    require(UPSTREAM_VALIDATOR.is_file(), "the template repo's validator (%s)" % UPSTREAM_VALIDATOR)
     out = subprocess.run(
         [sys.executable, str(UPSTREAM_VALIDATOR), "--repo-root", str(repo)],
         capture_output=True, text=True).stdout
@@ -188,10 +192,6 @@ def test_the_rule_runs_in_the_template_repo_and_not_only_here(tmp_path: Path) ->
     next sync; a diverged copy (this repo's, 720 lines ahead) is skipped and
     reported for hand-merge rather than clobbered.
     """
-    if not UPSTREAM_VALIDATOR.is_file():                  # pragma: no cover
-        raise AssertionError(
-            "no upstream validator at %s — the rule cannot have landed there"
-            % UPSTREAM_VALIDATOR)
     assert _upstream_findings(_repo(tmp_path, suite=True, status="done")) == 1
 
 
@@ -228,6 +228,7 @@ def test_the_upstream_template_and_schema_carry_the_escape() -> None:
     names a field a downstream author cannot find. `SCHEMAS.md` is the file the
     author reads; the template is the file they get.
     """
+    require(UPSTREAM.is_dir(), "the template repo (%s)" % UPSTREAM)
     fm = (UPSTREAM / "docs" / "__templates__" / "feature.md").read_text(encoding="utf-8")
     assert 'acceptance_exception: ""' in fm
     schemas = (UPSTREAM / "docs" / "__templates__" / "SCHEMAS.md").read_text(encoding="utf-8")

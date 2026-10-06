@@ -66,9 +66,16 @@ jobs:
       - name: Build the renderer
         working-directory: desktop
         run: npm ci && npm run build
+      # The steps above supply the full history, the template repo and the built
+      # renderer. This promise turns a test's "skip, it is missing" into a
+      # failure here, so a broken step above cannot quietly turn those guards
+      # into skips. The template's validate-docs runner makes no such promise
+      # and skips them (ISS-0317).
       - name: Run the suite
         id: suite
         continue-on-error: true
+        env:
+          COCKPIT_CI_FULL_ENV: "1"
         run: python -m pytest -q --junitxml=junit.xml
       - name: Emit what the run observed
         # `always()` because a FAILING run has something to say too: a covering

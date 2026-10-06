@@ -27,6 +27,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from conftest import is_shallow_clone, require
 
 from project_os_cockpit import cockpit
 from project_os_cockpit.cockpit import _parse_history_log, history_payload
@@ -304,6 +305,7 @@ def test_an_anchored_window_ends_at_the_requested_date() -> None:
     """
     from project_os_cockpit.cockpit import history_payload
 
+    require(not is_shallow_clone(), "the git history (this checkout holds one commit)")
     index = Index.build(REPO_ROOT / "docs")
     anchored = history_payload(REPO_ROOT, index, limit=5, until="2026-05-07")
     assert anchored["anchored_at"] == "2026-05-07"

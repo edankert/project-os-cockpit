@@ -72,6 +72,9 @@ def attention_index(tmp_path_factory) -> Index:
     shutil.copytree(REPO_DOCS, root)
     phase = "[[PHASE-013-Fleet-Surfaces]]"
     tasks = root / "features" / "fleet-health" / "plan" / "tasks"
+    # Git keeps no empty folders, and this one emptied when its notes moved
+    # to docs/archive/ (7b9d512), so a fresh clone has no such path (ISS-0317).
+    tasks.mkdir(parents=True, exist_ok=True)
 
     def note(path: Path, ntype: str, nid: str, status: str, extra: str = "") -> None:
         path.write_text(

@@ -31,6 +31,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from conftest import RENDERER_BUNDLE, require
 
 from project_os_cockpit import cockpit
 from project_os_cockpit.index import Index
@@ -197,8 +198,8 @@ def test_the_header_measures_from_the_instant_not_the_day() -> None:
     The producer was correct and the consumer threw the precision away, which
     is why a payload assertion could pass forever while the screen lied.
     """
-    bundle = (REPO_ROOT / "desktop" / "dist" / "renderer" / "renderer.js")
-    assert bundle.is_file(), "the renderer is not built"
+    bundle = RENDERER_BUNDLE
+    require(bundle.is_file(), "the built renderer (desktop/dist/renderer/renderer.js)")
     src = bundle.read_text(encoding="utf-8")
     assert "seen_at.slice(0, 10)" not in src and "seen_at.slice(0,10)" not in src, (
         "the watermark is truncated to a date before it reaches relativeTime; "

@@ -16,6 +16,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from conftest import is_shallow_clone, require
 
 from project_os_cockpit import cockpit
 
@@ -87,6 +88,7 @@ def test_an_empty_id_does_not_match_every_commit(repo: Path) -> None:
 
 def test_it_answers_for_this_repos_own_work() -> None:
     """Against the real corpus, because the fixture cannot exercise scale."""
+    require(not is_shallow_clone(), "the git history (this checkout holds one commit)")
     shape = cockpit.change_shape_payload(REPO, "ISS-0135")
     assert shape["available"] is True
     assert shape["files"] > 0

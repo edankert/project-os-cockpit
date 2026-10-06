@@ -9,8 +9,10 @@ thing, agreeing by coincidence until they stop.
 from __future__ import annotations
 
 import datetime as _dt
+import os
 import re as _re
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -19,6 +21,36 @@ from project_os_cockpit.index import Index
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 REPO_DOCS = REPO_ROOT / "docs"
+
+#: The template repo, where it sits beside this one on Edwin's machine and in
+#: the `observe` job (ISS-0256).
+UPSTREAM = Path.home() / "Dev" / "repos" / "project-os"
+#: The built renderer, which `desktop/dist` holds only after `npm run build`.
+RENDERER_BUNDLE = REPO_ROOT / "desktop" / "dist" / "renderer" / "renderer.js"
+
+
+def is_shallow_clone() -> bool:
+    """True on a depth-1 checkout, which holds one commit and no history."""
+    out = subprocess.run(["git", "rev-parse", "--is-shallow-repository"],
+                         cwd=REPO_ROOT, capture_output=True, text=True).stdout
+    return out.strip() == "true"
+
+
+def require(present: bool, missing: str) -> None:
+    """Skip when the test's environment is missing, unless CI promised it.
+
+    The template's `validate-docs` workflow runs the suite on a bare runner: one
+    commit, no template repo beside it, no built renderer. It is shared by every
+    fleet repo, so it cannot be given any of them (ISS-0317). The `observe` job
+    in `observed-coverage.yml` gives its runner all three and sets
+    `COCKPIT_CI_FULL_ENV=1`. There a missing piece fails the test, so a broken
+    setup step cannot turn these guards into silent skips (ISS-0256).
+    """
+    if present:
+        return
+    if os.environ.get("COCKPIT_CI_FULL_ENV") == "1":
+        pytest.fail(f"COCKPIT_CI_FULL_ENV=1 promised {missing}, and it is missing")
+    pytest.skip(f"{missing} is missing on this runner")
 
 
 def js_function_body(src: str, signature: str) -> str:

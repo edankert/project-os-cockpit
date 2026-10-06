@@ -11,10 +11,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+from conftest import UPSTREAM, require
+
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATOR = ROOT / "tools" / "scripts" / "validate-docs.py"
 BUNDLED = ROOT / "src" / "project_os_cockpit" / "validate_docs_bundled.py"
-UPSTREAM = Path.home() / "Dev" / "repos" / "project-os"
 
 
 def test_the_type_is_wired_into_the_validator() -> None:
@@ -73,8 +74,8 @@ def test_the_template_is_template_owned_and_identical_upstream() -> None:
     here = ROOT / "docs" / "__templates__" / "surface.md"
     there = UPSTREAM / "docs" / "__templates__" / "surface.md"
     assert here.is_file(), "no surface template downstream"
-    if not there.is_file():                       # pragma: no cover
-        raise AssertionError("the template did not land upstream first")
+    require(UPSTREAM.is_dir(), "the template repo (%s)" % UPSTREAM)
+    assert there.is_file(), "the template did not land upstream first"
     assert here.read_bytes() == there.read_bytes(), (
         "the surface template has drifted from upstream — the edit must land "
         "there and sync down, not the other way round"

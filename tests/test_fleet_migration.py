@@ -454,18 +454,22 @@ def test_main_runs_end_to_end_and_its_dry_run_previews_the_snapshot(tmp_path, va
     root = build_repo(tmp_path, tasks=(("TASK-0001", "FEAT-0001"), ("TASK-0002", "FEAT-0001")))
     before = {p: p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()}
 
-    assert mig.main([str(root), "--dry-run", "--no-sync"]) == 0
+    # The same fallback as the `validator` fixture: with no sibling project-os
+    # (a CI runner), this repo's validator stands in for upstream's (ISS-0317).
+    up = UPSTREAM if (UPSTREAM / "tools" / "scripts" / "validate-docs.py").is_file() else REPO
+    opts = ["--no-sync", "--upstream", str(up)]
+    assert mig.main([str(root), "--dry-run", *opts]) == 0
     dry = capsys.readouterr().out
     assert "SNAPSHOT  FEAT-0001 tasks: 0 -> 2" in dry, "the preview was silent about the snapshot"
     assert {p: p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()} == before
 
-    assert mig.main([str(root), "--no-sync"]) == 0
+    assert mig.main([str(root), *opts]) == 0
     wet = capsys.readouterr().out
     assert "BACKLINK  FEAT-0001 `tasks:` -> 2 entries" in wet
     assert "SNAPSHOT  FEAT-0001 tasks: 0 -> 2" in wet
     assert 'tasks: ["TASK-0001", "TASK-0002"]' in (root / "SNAPSHOT.yaml").read_text()
 
-    assert mig.main([str(root), "--no-sync"]) == 0
+    assert mig.main([str(root), *opts]) == 0
     assert "0 note(s) rewritten, 0 snapshot entries" in capsys.readouterr().out
 
 
