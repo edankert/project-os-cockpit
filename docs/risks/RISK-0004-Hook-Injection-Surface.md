@@ -8,8 +8,8 @@ severity: medium
 likelihood: medium
 owner: user:edwin
 created: 2026-07-05
-updated: 2026-09-23
-related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]"]
+updated: "2026-10-08"
+related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]", "[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]]"]
 mitigation_tasks: ["[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0635]]", "[[TASK-0636]]", "[[TASK-0637]]"]
 mitigation:
   - "Per-spawn injection only for terminal instrumentation: generated settings/hooks files live under the app's own state dir and are passed via env/flags; user agent configuration is written ONLY by the explicit agent-specific settings toggle (FEAT-0027) — marker-identified entries, one-time backup, surgical uninstall."

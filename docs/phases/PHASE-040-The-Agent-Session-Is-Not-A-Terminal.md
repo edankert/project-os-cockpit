@@ -7,13 +7,13 @@ status: deferred
 order: 40
 owner: user:edwin
 created: 2026-08-20
-updated: 2026-09-23
+updated: "2026-10-08"
 goal: "Move ownership of agent sessions off a terminal multiplexer and onto a control plane designed for them, so a session survives the app that started it, is reachable from a device that is not this Mac, and reports its state from one place rather than three."
 features: []
 requirements: []
 tasks: []
 issues: []
-related: ["[[FEAT-0003-Embedded-Terminal]]", "[[FEAT-0013-Agent-State]]", "[[FEAT-0025-Dispatch-Ledger]]", "[[ISS-0008-Terminals-Die-With-The-App]]", "[[REQ-0005-Terminal-Local-Only]]", "[[REQ-0034-A-Non-Loopback-Write-Is-Authenticated]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]", "[[ADR-0010-What-The-Browser-Cockpit-Is-For]]"]
+related: ["[[FEAT-0003-Embedded-Terminal]]", "[[FEAT-0013-Agent-State]]", "[[FEAT-0025-Dispatch-Ledger]]", "[[ISS-0008-Terminals-Die-With-The-App]]", "[[REQ-0005-Terminal-Local-Only]]", "[[REQ-0034-A-Non-Loopback-Write-Is-Authenticated]]", "[[PHASE-029-One-Tool-Two-Front-Doors]]", "[[PHASE-033-The-Workspace-Is-Not-Always-Local]]", "[[ADR-0010-What-The-Browser-Cockpit-Is-For]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"]
 tags: [phase, agents, terminals]
 
 ---

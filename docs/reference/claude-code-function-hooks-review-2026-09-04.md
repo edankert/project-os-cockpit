@@ -5,12 +5,14 @@ title: "Claude Code Function Hooks (issue #91870): what it would change for proj
 status: active
 owner: user:edwin
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-10-08
 scope: "project"
 source:
   - "https://github.com/anthropics/claude-code/issues/91870"
   - "https://github.com/user-attachments/files/31802150/EXTERNAL.Function.Hooks.Core.Architecture.pdf"
+  - "https://code.claude.com/docs/en/plugins/mods/overview"
 related:
+  - "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
   - tools/instructions/HOOKS.md
   - tools/adapters/claude-code/ADAPTER.md
 ---
@@ -21,7 +23,7 @@ related:
 
 Anthropic is asking whether to ship "function hooks", a fifth hook type for Claude Code plugins. This note records what the proposal says, which of this repo's current workarounds it would remove, and what it would not fix. Read it when the proposal ships, is closed, or when anyone proposes reshaping `tools/adapters/claude-code/hooks/`.
 
-**Nothing here is a recommendation to change code now.** The proposal has no ship date and may not ship at all.
+**It shipped.** Claude Code released the design as **mods** in v2.1.287; the installed version on 2026-10-08 is 2.1.292. The cockpit's follow-ups are planned in [[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]. The sections below describe the proposal as it was on 2026-09-04, and the workarounds they list are still in the code until that phase removes them.
 
 ## What was proposed
 
@@ -79,12 +81,21 @@ Separately, `ui.render` with `e.surface` would let the cockpit draw the focus it
 
 **Trust moves rather than disappearing.** `agent_hooks.py` treats every payload as untrusted because any local process can POST to the sidecar. A plugin talks to the engine instead of an open localhost port, which is an improvement, but it relocates the question to which plugins are installed and in what order.
 
-## What to do
+## What shipped, and where the follow-ups went
 
-Nothing in this repo. The proposal may not ship, and reshaping the adapters against an unshipped design would be building on sand.
+Mods shipped in Claude Code v2.1.287, under the name "mods" rather than "function hooks" (documentation: https://code.claude.com/docs/en/plugins/mods/overview). Both things this note said were worth asking for now exist. A hook can resolve a permission check: `tool.check` returns `allow`, `ask` or `deny` after the rules and PreToolUse hooks have run. Cost and context are events: `session.measure`, and `$.session.usage()` on demand.
 
-The useful action is to comment on the issue, because this repo is an unusually good witness: it holds two working examples of inventing a channel because none existed. The two asks worth making are a permission event a hook can resolve programmatically, and session cost and context as real events. Both are things the cockpit fakes today, with the code to show for it.
+One property of the proposal did not ship as described. A mod is not confined to `$`: it runs inside Claude Code's process, unsandboxed, with the user's permissions. The trust question in "What it does not fix" is therefore larger than this note assumed.
+
+The cockpit's follow-ups are four features in [[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]:
+
+- the statusline channel, the generated settings files and the dedup window: [[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]];
+- drawing the focus item and open obligations inside the Claude Code window: [[FEAT-0157-The-Project-State-Sits-Above-The-Claude-Prompt]];
+- dispatch by keystroke: [[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]];
+- permission prompts answered from the cockpit: [[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]], which waits on [[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]].
+
+The project-os follow-ups in "What it would change for project-os" (the session marker, pre and post in one function, typed blocking, advisory hooks drawn instead of injected, a resident validator) belong to project-os upstream, which owns those hooks. So does shipping project-os as a plugin marketplace. Both are recorded in PHASE-046's Out of Scope and are not filed in this repository.
 
 ## Maintenance
 
-Revisit when issue #91870 ships or is closed. If it ships, the concrete follow-ups are in "What it would change" above and should become `ISS-*` or a feature at that point, not before. If it is closed unshipped, mark this note `superseded` and keep it: the list of workarounds it catalogues is accurate regardless of what Anthropic decides, and it is the shortest existing statement of why they exist.
+Revisit when a PHASE-046 feature removes one of the workarounds this note lists, and say so beside it. When the phase closes, mark this note `superseded` by the phase and keep it: it is the shortest existing statement of why each workaround existed.

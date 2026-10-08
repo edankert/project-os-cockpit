@@ -7,13 +7,13 @@ status: open
 phase: ""
 owner: user:edwin
 created: 2026-09-12
-updated: "2026-09-20"
+updated: "2026-10-08"
 reported_by: review
 source: ["Independent review of FEAT-0147/FEAT-0148, 2026-09-12, finding 9: 'the sandbox denies reads, not writes ... a framed page has allow-scripts, knows its sidecar URL from location, and originates on the machine, so _require_loopback passes; it cannot read the reply and does not need to'"]
 severity: medium
 component: sidecar
 parent: ""
-related: ["[[ADR-0042-What-May-Be-Framed]]", "[[RISK-0008-The-Sandbox-Is-The-Only-Boundary]]", "[[FEAT-0148-One-HTML-Viewer]]"]
+related: ["[[ADR-0042-What-May-Be-Framed]]", "[[RISK-0008-The-Sandbox-Is-The-Only-Boundary]]", "[[FEAT-0148-One-HTML-Viewer]]", "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]"]
 tests: []
 ---
 
@@ -119,3 +119,7 @@ The report named `_read_json_body`. Five write handlers had their own copy of th
 ### To close this
 
 Edwin reads the above, runs the curl if he wants to, and says so. Then the status goes to `fixed`.
+
+## A planned feature now depends on the secret (2026-10-08)
+
+[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]] would let a click in the cockpit approve a Claude Code permission prompt, including a Bash command. With only the loopback check, any request from this machine that claims to be a person could then run a command. So FEAT-0159 cannot start until the approval answer route requires a secret the shell holds and the agent cannot read. That is the second, unstarted half of this issue, applied to one route first.

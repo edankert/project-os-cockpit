@@ -7,12 +7,12 @@ status: open
 owner: user:edwin
 reported_by: agent
 created: 2026-09-02
-updated: "2026-09-19"
+updated: "2026-10-08"
 severity: medium
 component: tooling
 phase:
 source: ["Found during the fleet release sweep, 2026-09-02"]
-related: ["[[CHG-20260902-The-Inbox-Takes-Any-File-Type]]"]
+related: ["[[CHG-20260902-The-Inbox-Takes-Any-File-Type]]", "[[FEAT-0157-The-Project-State-Sits-Above-The-Claude-Prompt]]"]
 tests: []
 ---
 

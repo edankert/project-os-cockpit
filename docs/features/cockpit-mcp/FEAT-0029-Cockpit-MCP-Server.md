@@ -7,14 +7,13 @@ status: backlog
 phase: "[[PHASE-999-Future]]"
 owner: user:edwin
 created: 2026-07-17
-updated: 2026-07-17
+updated: "2026-10-08"
 source: []
 goal: "Expose the cockpit's documented HTTP API (COCKPIT-API.md, schema v3) as an MCP server, so any MCP-capable agent can query docs state — nav, note render, relationships, stats, validation health, agent state — as first-class tools instead of shelling out to curl."
 requirements: []
 tasks: []
 release: ""
-related: ["[[COCKPIT-API]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0018-Verification-Health-Surface]]"]
-
+related: ["[[COCKPIT-API]]", "[[FEAT-0008-Cockpit-API-Hardening]]", "[[FEAT-0018-Verification-Health-Surface]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"]
 ---
 
 # Cockpit MCP server
