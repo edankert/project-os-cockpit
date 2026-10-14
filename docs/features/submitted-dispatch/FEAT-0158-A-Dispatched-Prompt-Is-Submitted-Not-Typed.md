@@ -24,10 +24,15 @@ tasks:
   - "[[TASK-0659-A-Prompt-Held-After-Esc-Says-Claude-Is-Waiting-For-You]]"
   - "[[TASK-0660-A-Dispatch-Checks-What-Runs-In-The-Terminal-Before-Typing]]"
   - "[[TASK-0661-Every-Project-Uses-One-Codex-Hook-Command]]"
+  - "[[TASK-0662-Review-Round-One-A-Prompt-Unconfirmed-At-Session-End-Is-Not-Called-Cancelled]]"
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Submitted-Prompt-And-Can-Be-Cancelled]]"
 design: ""
+reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)"]
+review_date: 2026-10-14
+review_verdict: changes-requested
+review_round: 1
 related:
   - "[[FEAT-0025]]"
   - "[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]]"
@@ -66,6 +71,31 @@ Full runs on 2026-10-14 at 3e8eab5, after all eight tasks:
 - `command claude plugin validate desktop/plugin/claude-code`: passed with warnings.
 - `bash tools/scripts/validate-docs.sh`: OK.
 - [[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Submitted-Prompt-And-Can-Be-Cancelled]]: pass, all ten steps, Edwin, macOS.
+
+After the round 1 fixes (TASK-0662): pytest 2171 passed, 11 skipped; desktop 214 passed; plugin 23 passed; `tsc` clean; `claude plugin validate` passed with warnings.
+
+## Review
+
+**Round 1, 2026-10-14: `changes-requested`.** Two `independent-reviewer` subagents ran on the same packet (`review-packet.py FEAT-0158`, two author claims), each in a fresh context, with 30 and 32 tool calls. Both ran on the same model as the author. The packet's diff was 1,987 lines, over the 1,500-line warning, accepted knowingly. A refutation with evidence decides a claim.
+
+| # | Criterion | Combined verdict | Evidence |
+|---|---|---|---|
+| 1 | Submitted through `$.prompt.submit`; nothing typed | holds | Both: `routeFor` returns `submit` first; B changed `routeFor`'s last `hold` to `shell` and 3 desktop tests failed. |
+| 2 | Read as the person's own words | holds in code; **no automated guard** | `asUser: true` at `register.ts:210`. B set it to `false` and all 22 plugin tests passed. Fixed: TASK-0662 adds a test. |
+| 3 | Ledger records it only when its turn starts, on that session, at the turn's start | **refuted** (edge case) | A: claim, then `SessionEnd`, moved the `sending` prompt to `held`; the plugin's started report was then refused, so a turn that may have run was never recorded. Reproduced by the author. Normal path holds (B's mutation failed the ledger test). Fixed: TASK-0662. |
+| 4 | Submitted after the running turn, never during it | holds | Both removed the `mainTurnRunning` checks; 2 plugin tests failed. |
+| 5 | Unclaimed session: held, shown, never typed | holds | Both; B's claim-from-held mutation failed a test. |
+| 6 | (amended) shell / Codex / anything else | holds, each part | Both; A's and B's `hold`→`shell` mutation failed 3 tests. |
+| 7 | Cancel before the turn starts; a cancelled prompt never starts a turn; a late cancel says so | **refuted** (edge case) | A: in the case under 3, a cancel was then accepted and the history said "cancelled, before it reached the session" for a prompt that may have run. B's mutation of the `sending` refusal failed 3 tests. Fixed: TASK-0662. |
+| 8 | Loopback-only and JSON-only routes | holds | Both; B removed the claim route's loopback guard and 3 tests failed. |
+| 9 | Fleet queue depth counts the sidecar's prompts | holds in code; **shell half untested** | Sidecar half tested; `agents-fleet.ts` line had no test. Fixed: TASK-0662 adds one. |
+| T | TST-0095 guards the behaviour | holds as a manual check | Both said its record was stale. The status stays `active`: an acceptance check's verdict is in the release ledger, not on the note (STATUSES.md, "`level: acceptance`"), and the ledger has it. The "(in progress)" heading and the missing tasks were fixed. |
+| A1 | Never a shell command into a non-shell foreground | holds | Both, same mutation as 6. A noted the terminal is read once, up to 3 s before typing. |
+| A2 | Identical Codex hook commands, stale launchers included | holds | Both; tests for both halves pass. |
+
+**The packet left out two central commits**, `ac251c2` (TASK-0655) and `3d02c05` (TASK-0656), because their subjects name no ID the packet searched for. Both reviewers read them from git. Round 2's packet uses `--since`.
+
+**Other observations, and what became of them.** Fixed in TASK-0662: the plugin never retried its started report (A); held and dropped prompts filled the 30-prompt cap (A and B); "Clear all" on a dropped prompt wrote "cancelled, before it reached the session" (A). Kept, with the reason in TASK-0662: no re-check of a running turn after the claim (`$.prompt.submit` waits for idle itself); a submit with no `turn.start` reports the next turn (A and B; the TASK-0655 design); a launcher that does not `exec` would look like a shell (B); with two live Claude sessions the state's session is chosen (B; predates this feature); an interruption sticks for Claude until the next prompt (A; that is TASK-0659's rule). Not acted on: `cancelling` is still handled in `deliveryRowText` though unused (B).
 
 ## Decisions, 2026-10-14
 

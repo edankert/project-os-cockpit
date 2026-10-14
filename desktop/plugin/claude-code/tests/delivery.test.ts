@@ -32,7 +32,11 @@ function world(on: On, options: {
   claimStatus?: number
   /** What `prompt.submit` answers beneath instead of holding, e.g. a drop. */
   submit?: (e: { text: string }) => unknown
-} = {}): World {
+  /** How many reports of a turn's start the sidecar fails to answer. */
+  failStarted?: number
+} = {}): World & { asUser: unknown[] } {
+  let failStarted = options.failStarted ?? 0
+  const asUser: unknown[] = []
   const calls: Call[] = []
   const submitted: string[] = []
   const deliveries = options.deliveries ?? [{ did: 'd-1', prompt: 'implement TASK-0001', state: 'waiting' }]
@@ -42,6 +46,10 @@ function world(on: On, options: {
     const path = e.url.replace('http://127.0.0.1:8766', '')
     const body = JSON.parse(e.init?.body ?? '{}')
     calls.push({ method: e.init?.method ?? 'GET', path, body })
+    if (path === '/api/cockpit/deliveries/started' && failStarted > 0) {
+      failStarted -= 1
+      throw new Error('sidecar gone')
+    }
     let status = 200
     let text = '{"ok":true}'
     if (path.startsWith('/api/cockpit/deliveries?session=')) {
@@ -64,6 +72,7 @@ function world(on: On, options: {
   const held: (() => void)[] = []
   on('prompt.submit', async ($, e) => {
     submitted.push(e.text)
+    asUser.push((e as { origin?: { asUser?: unknown } }).origin?.asUser)
     if (options.submit) return options.submit(e)
     await new Promise<void>(resolve => { held.push(resolve) })
     return { text: e.text }
@@ -71,6 +80,7 @@ function world(on: On, options: {
   return {
     calls,
     submitted,
+    asUser,
     enter: () => { for (const resolve of held.splice(0)) resolve() },
     posts: (path: string) => calls.filter(c => c.method === 'POST' && c.path === path).map(c => c.body),
   }
@@ -168,6 +178,25 @@ describe('after the person stops a turn with Esc', () => {
     expect(interrupts[0].session_id).toBe(SESSION)
     expect(interrupts[0].agent).toBe('claude')
     expect(interrupts[0]._cockpit_plugin).toBe(true)
+  })
+})
+
+describe('the report of a turn start', () => {
+  test('is the person\'s own words, and is sent again when the sidecar does not answer', async ($, on) => {
+    mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })
+    const clock = mock.clock(on, { now: 0 })
+    const w = world(on, { failStarted: 1 })
+    await startSession($)
+    await clock.advance(1000)
+    expect(w.submitted).toEqual(['implement TASK-0001'])
+    expect(w.asUser).toEqual([true])
+    await $.turn.start({ text: 'implement TASK-0001', turnId: 'turn-1' })
+    w.enter()
+    await clock.advance(1000)
+    await clock.advance(1000)
+    const tries = w.calls.filter(c => c.path === '/api/cockpit/deliveries/started')
+    expect(tries.length).toBe(2)
+    expect(tries[1].body.turn_id).toBe('turn-1')
   })
 })
 

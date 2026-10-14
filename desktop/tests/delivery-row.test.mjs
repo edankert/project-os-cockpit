@@ -41,3 +41,17 @@ test('a prompt held after Esc says it is waiting for the person', async () => {
   );
   assert.equal(rowText({ state: 'held', reason: 'the session ended' }), 'Not delivered: the session ended');
 });
+
+test('a removed prompt is not called cancelled before it reached the session', async () => {
+  // TASK-0662: a prompt whose session ended while it was being submitted may
+  // have run, so removing it is recorded as removed, with the reason.
+  const text = await extractFunction('dispatchProvenanceText');
+  assert.equal(
+    text({ verb: 'implement', agent: 'claude', removed: true, reason: 'the session ended before Claude confirmed its turn, so it may have run' }, '17:00', ''),
+    'dispatched implement · claude · not delivered (the session ended before Claude confirmed its turn, so it may have run), removed 17:00',
+  );
+  assert.equal(text({ verb: 'implement', agent: 'claude', cancelled: true }, '17:00', ''),
+    'dispatched implement · claude · cancelled 17:00, before it reached the session');
+  assert.equal(text({ verb: 'implement', agent: 'codex' }, '17:00', 'session 01a13b3a'),
+    'dispatched implement · codex · 17:00 → session 01a13b3a');
+});

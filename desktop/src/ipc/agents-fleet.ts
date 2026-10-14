@@ -66,7 +66,8 @@ async function fetchState(url: string): Promise<Record<string, unknown> | null> 
   }
 }
 
-async function buildRow(ws: { id: string; name: string; root: string }): Promise<FleetRow> {
+/** One workspace's fleet row; exported for its test. */
+export async function buildRow(ws: { id: string; name: string; root: string }): Promise<FleetRow> {
   const payload = getLastAgentPayloads().get(ws.id) ?? null;
   const row: FleetRow = {
     workspaceId: ws.id,

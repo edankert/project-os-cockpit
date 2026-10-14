@@ -62,6 +62,19 @@ interface AgentStatePayload {
   attention?: { state: string; ts: string; agent?: string; message?: string; session_id?: string }[];
 }
 
+/** The note's dispatch provenance line. A removed prompt reached Claude, or
+ *  may have, so it is not "cancelled before it reached the session"
+ *  (TASK-0662). */
+function dispatchProvenanceText(
+  d: { verb?: string; agent?: string; cancelled?: boolean; removed?: boolean; reason?: string },
+  when: string, sess: string,
+): string {
+  const head = `dispatched ${d.verb ?? 'default'} · ${d.agent ?? 'agent'}`;
+  if (d.removed) return `${head} · not delivered (${d.reason ?? 'no reason given'}), removed${when ? ` ${when}` : ''}`;
+  if (d.cancelled) return `${head} · cancelled${when ? ` ${when}` : ''}, before it reached the session`;
+  return `${head}${when ? ` · ${when}` : ''}${sess ? ` → ${sess}` : ''}`;
+}
+
 /** A dispatched prompt the sidecar holds for one Claude session, until the
  *  cockpit plugin in it submits it (FEAT-0158). */
 interface Delivery {
@@ -1171,6 +1184,9 @@ interface RenderResponse {
     total_cost_usd?: number;
     /** Withdrawn before it reached the session (FEAT-0158). */
     cancelled?: boolean;
+    /** Not delivered and removed from the queue list; it reached Claude, or
+     *  may have (TASK-0662). */
+    removed?: boolean; reason?: string;
   }>;
 }
 
@@ -1639,9 +1655,7 @@ async function navigateToInner(
       : d.session_id
         ? `session ${d.session_id.slice(0, 8)}${d.live ? ' (live)' : ''}${typeof d.total_cost_usd === 'number' ? ` · $${d.total_cost_usd.toFixed(2)}` : ''}`
         : '';
-    prov.textContent = d.cancelled
-      ? `dispatched ${d.verb ?? 'default'} · ${d.agent ?? 'agent'} · cancelled${when ? ` ${when}` : ''}, before it reached the session`
-      : `dispatched ${d.verb ?? 'default'} · ${d.agent ?? 'agent'}${when ? ` · ${when}` : ''}${sess ? ` → ${sess}` : ''}`;
+    prov.textContent = dispatchProvenanceText(d, when, sess);
     docView.prepend(prov);
   }
   // CHG provenance (FEAT-0022 / TASK-0126): cockpit-side enrichment,

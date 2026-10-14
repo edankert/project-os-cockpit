@@ -182,12 +182,24 @@ type DeliveryState = {
   sending?: Sending
 }
 
-/** Tell the sidecar the prompt's turn started, once. */
+/** How often the plugin tries to report a turn's start when the sidecar
+ *  does not answer (TASK-0662): a report lost to a sidecar restart left the
+ *  prompt "being submitted" with its turn unrecorded. */
+const STARTED_REPORT_TRIES = 3
+
+/** Tell the sidecar the prompt's turn started, once. An answer, a refusal
+ *  included, is final; no answer is tried again a second later. */
 function reportStarted($: EngineInterface, st: DeliveryState, s: Sending, turnId: string): void {
   if (s.reported) return
   s.reported = true
-  void isoNow($)
-    .then(startedAt => sidecarCall($, '/api/cockpit/deliveries/started', { did: s.did, turn_id: turnId, started_at: startedAt }))
+  void (async () => {
+    const startedAt = await isoNow($)
+    for (let attempt = 1; attempt <= STARTED_REPORT_TRIES; attempt++) {
+      const answer = await sidecarCall($, '/api/cockpit/deliveries/started', { did: s.did, turn_id: turnId, started_at: startedAt })
+      if (answer || attempt === STARTED_REPORT_TRIES) return
+      await $.clock.sleep(1000).catch(() => undefined)
+    }
+  })()
     .catch(() => undefined)
     .finally(() => { if (st.sending === s) st.sending = undefined })
 }

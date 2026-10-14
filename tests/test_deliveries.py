@@ -13,6 +13,7 @@ from project_os_cockpit.agent_hooks import (
     DELIVERIES_MAX_OPEN,
     DELIVERY_REASON_ENDED,
     DELIVERY_REASON_UNCLAIMED,
+    DELIVERY_REASON_UNCONFIRMED,
     AgentSessionTracker,
 )
 
@@ -147,13 +148,15 @@ def test_a_session_that_ends_holds_what_was_on_its_way(tmp_path: Path):
     tracker.ingest({"hook_event_name": "SessionEnd", "session_id": "s-a",
                     "agent": "claude", "_cockpit_plugin": True})
     states = {d["prompt"]: (d["state"], d.get("reason")) for d in tracker.list_deliveries()}
-    assert states == {"one": ("held", DELIVERY_REASON_ENDED), "two": ("held", DELIVERY_REASON_ENDED)}
+    # The one being submitted may have started a turn, so it is not held as
+    # if it never left (TASK-0662).
+    assert states == {"one": ("held", DELIVERY_REASON_ENDED), "two": ("dropped", DELIVERY_REASON_UNCONFIRMED)}
     assert len(tracker.take_delivery_changes()) == 2
 
     # A held-because-ended delivery is not woken by a later claim, and a new
     # one for the ended session starts held.
     _claim(tracker, "s-a")
-    assert {d["state"] for d in tracker.list_deliveries()} == {"held"}
+    assert {d["state"] for d in tracker.list_deliveries()} == {"held", "dropped"}
     late, _ = tracker.add_delivery(_item("three"), "s-a")
     assert (late["state"], late["reason"]) == ("held", DELIVERY_REASON_ENDED)
 
@@ -369,3 +372,69 @@ def test_a_claude_session_stopped_with_esc_waits_for_the_person(tmp_path: Path):
     assert send("UserPromptSubmit", prompt="continue")["state"] == "busy"
     assert all("waiting_for" not in d for d in tracker.list_deliveries("s-a"))
     assert sorted(c["prompt"] for c in tracker.take_delivery_changes()) == ["one", "two"]
+
+
+def test_a_prompt_unconfirmed_at_session_end_is_never_recorded_as_cancelled(tmp_path: Path):
+    """FEAT-0158 review, round 1 (TASK-0662). The plugin claimed a prompt and
+    the session ended before it reported the turn's start. The report used to
+    be refused and a cancel accepted, so a prompt that ran read as "cancelled,
+    before it reached the session"."""
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    d, _ = tracker.add_delivery(_item(), "s-a")
+    tracker.move_delivery(d["did"], "sending")
+    tracker.ingest({"hook_event_name": "SessionEnd", "session_id": "s-a",
+                    "agent": "claude", "_cockpit_plugin": True})
+
+    # A late report of its turn still counts, and stamps the history.
+    started, error = tracker.move_delivery(d["did"], "started", turn_id="t-1",
+                                           started_at="2026-10-14T16:00:00+00:00")
+    assert error is None and started["state"] == "started" and "reason" not in started
+    [entry] = tracker.dispatch_history("TASK-0001")
+    assert entry["delivered_by"] == "submit" and entry["turn_id"] == "t-1"
+
+
+def test_removing_an_unconfirmed_prompt_is_recorded_as_removed(tmp_path: Path):
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    d, _ = tracker.add_delivery(_item(), "s-a")
+    tracker.move_delivery(d["did"], "sending")
+    tracker.ingest({"hook_event_name": "SessionEnd", "session_id": "s-a",
+                    "agent": "claude", "_cockpit_plugin": True})
+    gone, error = tracker.cancel_delivery(d["did"])
+    assert error is None and gone["state"] == "cancelled"
+    [entry] = tracker.dispatch_history("TASK-0001")
+    assert entry.get("removed") is True and "cancelled" not in entry
+    assert entry["reason"] == DELIVERY_REASON_UNCONFIRMED
+    assert entry["live"] is False
+
+    # A dropped prompt that was refused, not unconfirmed, has no late start.
+    other, _ = tracker.add_delivery(_item("two", "TASK-0002"), "s-b")
+    _claim(tracker, "s-b")
+    tracker.move_delivery(other["did"], "sending")
+    tracker.move_delivery(other["did"], "dropped", reason="refused")
+    assert tracker.move_delivery(other["did"], "started")[1] is not None
+
+
+def test_a_sidecar_restart_mid_submit_leaves_the_prompt_unconfirmed(tmp_path: Path):
+    path = tmp_path / ".cockpit" / "sessions.json"
+    tracker = AgentSessionTracker(docs_root=tmp_path, sessions_path=path)
+    _claim(tracker, "s-a")
+    d, _ = tracker.add_delivery(_item(), "s-a")
+    tracker.move_delivery(d["did"], "sending")
+
+    reborn = AgentSessionTracker(docs_root=tmp_path, sessions_path=path)
+    [now] = reborn.list_deliveries("s-a")
+    assert (now["state"], now["reason"]) == ("dropped", DELIVERY_REASON_UNCONFIRMED)
+    assert reborn.move_delivery(d["did"], "started", turn_id="t-1")[1] is None
+
+
+def test_prompts_nobody_will_submit_do_not_fill_the_cap(tmp_path: Path):
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    for n in range(DELIVERIES_MAX_OPEN):
+        tracker.add_delivery(_item(f"p{n}"), "s-a")
+    tracker.ingest({"hook_event_name": "SessionEnd", "session_id": "s-a",
+                    "agent": "claude", "_cockpit_plugin": True})
+    # Thirty held for an ended session no longer block a new dispatch.
+    assert tracker.add_delivery(_item("new"), "s-b")[1] is None

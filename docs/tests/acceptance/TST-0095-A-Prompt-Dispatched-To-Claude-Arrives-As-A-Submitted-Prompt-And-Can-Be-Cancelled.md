@@ -16,7 +16,7 @@ command: ""
 last_verified: ""
 covers: ["[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"]
 issues: []
-tasks: ["[[TASK-0656-The-Shell-Sends-A-Claude-Dispatch-To-The-Sidecar-And-Types-Nothing]]", "[[TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts]]"]
+tasks: ["[[TASK-0656-The-Shell-Sends-A-Claude-Dispatch-To-The-Sidecar-And-Types-Nothing]]", "[[TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts]]", "[[TASK-0658-A-Waiting-Prompt-Survives-The-Person-Pressing-Esc]]", "[[TASK-0659-A-Prompt-Held-After-Esc-Says-Claude-Is-Waiting-For-You]]", "[[TASK-0660-A-Dispatch-Checks-What-Runs-In-The-Terminal-Before-Typing]]", "[[TASK-0661-Every-Project-Uses-One-Codex-Hook-Command]]"]
 artifacts: []
 adequacy: ""
 mutation_score: ""
@@ -67,7 +67,7 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 - In step 9 the cockpit sees no Claude session: under the kill switch the plugin is not loaded, and the external hook stops too. Since TASK-0660 it checks what runs in the terminal before typing, finds Claude, and types nothing. The status line says "Claude is running in this terminal but the cockpit cannot reach it — queued", and the prompt waits in the queue list, where its `×` removes it. (Before TASK-0660 the cockpit typed `claude '<prompt>'` into Claude's prompt box. Edwin first accepted that, then chose the terminal check on 2026-10-14 with ISS-0322's fix.)
 - In step 10 the prompt is pasted into Codex and submitted with a separate Return, even when Codex has not been prompted yet and so has not reported to the cockpit (TASK-0660). The note's dispatch history names `codex`, whatever the Agent menu says. The first Codex start after TASK-0661 shows Codex's hook review once; trust the hooks, and later Codex starts in any project do not ask again.
 
-## Run on 2026-10-14 (in progress)
+## Run on 2026-10-14: passed, all ten steps
 
 Edwin ran it in project-os-deck after the application was rebuilt and restarted at 15:20 (local), in a new Claude session (`94462501`), started 15:41.
 

@@ -92,6 +92,19 @@ DELIVERIES_MAX_OPEN = 30       # unfinished deliveries kept per workspace
 DELIVERIES_KEEP_FINISHED = 30  # finished ones kept, newest first, then pruned
 DELIVERY_REASON_UNCLAIMED = "this Claude session has no cockpit plugin"
 DELIVERY_REASON_ENDED = "the session ended"
+# A prompt the plugin was submitting when its session ended, or its sidecar
+# restarted: it may have started a turn that nobody reported (TASK-0662).
+DELIVERY_REASON_UNCONFIRMED = "the session ended before Claude confirmed its turn, so it may have run"
+# On their way into a session the plugin speaks for.
+DELIVERY_PENDING = frozenset({"waiting", "sending"})
+
+
+def _can_still_be_submitted(d: dict[str, Any]) -> bool:
+    """Counts toward the cap: on its way, or held only until a plugin claims
+    its session. A prompt whose session ended, or that was dropped, cannot
+    block new dispatches (TASK-0662)."""
+    return d.get("state") in DELIVERY_PENDING or (
+        d.get("state") == "held" and d.get("reason") == DELIVERY_REASON_UNCLAIMED)
 
 # Notification subtypes that mean "a human must act now" — the agent is
 # blocked mid-work. idle_prompt is deliberately excluded (see below):
@@ -669,13 +682,21 @@ class AgentSessionTracker:
                 self._delivery_changes.append(dict(d))
 
     def _hold_deliveries_locked(self, sid: str, reason: str, ts: str) -> None:
-        """Hold what was on its way to a session that can no longer take it."""
+        """Hold what was on its way to a session that can no longer take it.
+
+        A `waiting` prompt is held. A `sending` one is already in Claude's
+        hands and may have started a turn, so it becomes `dropped` as
+        unconfirmed: a late report of its turn still counts, and removing it
+        is not recorded as a cancel (TASK-0662)."""
         for d in self._deliveries:
-            if d.get("session_id") == sid and d.get("state") in ("waiting", "sending"):
-                d["state"] = "held"
-                d["reason"] = reason
-                d["updated"] = ts
-                self._delivery_changes.append(dict(d))
+            if d.get("session_id") != sid or d.get("state") not in DELIVERY_PENDING:
+                continue
+            if d["state"] == "sending":
+                d["state"], d["reason"] = "dropped", DELIVERY_REASON_UNCONFIRMED
+            else:
+                d["state"], d["reason"] = "held", reason
+            d["updated"] = ts
+            self._delivery_changes.append(dict(d))
 
     def _mark_waiting_for_person_locked(self, sid: str, on: bool, ts: str) -> None:
         """Mark, or unmark, the prompts waiting for a session the person
@@ -722,7 +743,7 @@ class AgentSessionTracker:
             return None, "missing 'session_id'"
         ts = _utc_now_iso()
         with self._lock:
-            open_count = sum(1 for d in self._deliveries if d.get("state") not in DELIVERY_FINISHED)
+            open_count = sum(1 for d in self._deliveries if _can_still_be_submitted(d))
             if open_count >= DELIVERIES_MAX_OPEN:
                 return None, f"{DELIVERIES_MAX_OPEN} prompts are already waiting in this workspace"
             sess = self._sessions.get(session_id)
@@ -775,7 +796,7 @@ class AgentSessionTracker:
         dropped). Returns the delivery after the move, or ``None`` and why
         not. A refusal carries the delivery as it now stands, so a caller that
         lost a race learns what won."""
-        allowed = {"sending": ("waiting",), "started": ("sending",), "dropped": ("sending",)}
+        allowed = {"sending": ("waiting",), "started": ("sending", "dropped"), "dropped": ("sending",)}
         if to not in allowed:
             return None, f"unknown step {to!r}"
         ts = _utc_now_iso()
@@ -783,13 +804,17 @@ class AgentSessionTracker:
             d = self._find_delivery_locked(did)
             if d is None:
                 return None, "no such delivery"
-            if d.get("state") not in allowed[to]:
+            late = to == "started" and d.get("state") == "dropped"
+            if d.get("state") not in allowed[to] or (late and d.get("reason") != DELIVERY_REASON_UNCONFIRMED):
                 return dict(d), f"the delivery is {d.get('state')}, not {' or '.join(allowed[to])}"
             d["state"] = to
             d["updated"] = ts
             if to == "dropped":
                 d["reason"] = reason or "the session refused it"
             if to == "started":
+                # A turn confirmed after its session was given up on: the
+                # report wins, because the prompt did run.
+                d.pop("reason", None)
                 d["started_at"] = started_at or ts
                 if turn_id:
                     d["turn_id"] = turn_id
@@ -802,7 +827,8 @@ class AgentSessionTracker:
         """Withdraw a delivery the plugin has not claimed (TASK-0657).
 
         ``held``, ``waiting`` and ``dropped`` become ``cancelled``, and the
-        note's dispatch history records it. A ``sending`` delivery is already
+        note's dispatch history records it: as cancelled for a prompt that
+        never left, as removed, with the reason, for a dropped one. A ``sending`` delivery is already
         on its way into the session and cannot be withdrawn; a ``started`` one
         has its turn running. Both are refused, with the delivery as it stands,
         so the caller can say which. Under the lock, a cancel and a claim
@@ -819,6 +845,9 @@ class AgentSessionTracker:
                 return dict(d), "too late: it is being submitted to Claude"
             if state == "started":
                 return dict(d), "too late: its turn has started"
+            # A dropped prompt reached Claude, or may have: removing it is
+            # not a cancel "before it reached the session" (TASK-0662).
+            removed = state == "dropped"
             d["state"] = "cancelled"
             d["cancelled_at"] = ts
             d["updated"] = ts
@@ -826,8 +855,13 @@ class AgentSessionTracker:
             if sess is not None:
                 rec: dict[str, Any] = {
                     "id": d["id"], "ts": ts, "agent": "claude",
-                    "cancelled": True, "delivery": d["did"],
+                    "delivery": d["did"],
                 }
+                if removed:
+                    rec["removed"] = True
+                    rec["reason"] = d.get("reason") or "not delivered"
+                else:
+                    rec["cancelled"] = True
                 if d.get("verb"):
                     rec["verb"] = d["verb"]
                 sess.setdefault("dispatches", []).append(rec)
@@ -880,7 +914,7 @@ class AgentSessionTracker:
                         # A cancelled dispatch never reached the session, so
                         # it is not live work there (the re-dispatch guard).
                         entry = {**d, "session_id": sid,
-                                 "live": is_live and not d.get("cancelled")}
+                                 "live": is_live and not d.get("cancelled") and not d.get("removed")}
                         cost = sess.get("cost")
                         if isinstance(cost, dict) and isinstance(
                             cost.get("total_cost_usd"), (int, float)
