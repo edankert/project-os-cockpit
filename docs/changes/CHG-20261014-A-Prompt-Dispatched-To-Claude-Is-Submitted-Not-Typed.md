@@ -35,7 +35,8 @@ Codex sessions, and terminals with no running agent, work as before.
 - **A dispatch while Claude is busy waits in the cockpit, not in the terminal.** The `queued` chip counts it, and its row in the queue list says "Waiting for Claude to finish its turn". When the turn ends, the prompt starts, the row leaves the list, and the status line says "Delivered".
 - **A prompt waiting when you press Esc follows your next message.** After Esc, Claude Code takes no prompt from a plugin until you send it something, so the plugin holds the prompt until your own next turn has ended. Meanwhile its row says "Waiting for you: Claude was stopped, so this follows your next message to it". The session shows "interrupted — waiting for your input" instead of busy, as a Codex session already did (TASK-0658, TASK-0659).
 - **Each waiting row has a `×` that cancels it.** The status line says "Cancelled". "Clear all" cancels them all.
-- **A prompt nothing will submit is shown, not hidden.** One example is a Claude session started with the kill switch on. The chip turns amber and says `1 not delivered`, and the row says why. Its `×` removes it.
+- **A prompt nothing will submit is shown, not hidden.** An example is a Claude session the cockpit has heard of through the external hook, but which runs without the cockpit plugin. The chip turns amber and says `1 not delivered`, and the row says why. Its `×` removes it.
+- **The kill switch still types.** With `COCKPIT_NO_INSTRUMENT=1`, nothing reports a Claude session: the plugin is not loaded, and the external hook stops too. The cockpit then types `claude '<prompt>'` into the terminal, as it always has for a terminal with no session, and with Claude running the text lands in its prompt box. Edwin accepted this on 2026-10-14 (TST-0095 step 9).
 - **The note's dispatch history** shows the time Claude started the turn, or "cancelled" with the time.
 - **The fleet view's queue depth** counts these prompts too.
 
