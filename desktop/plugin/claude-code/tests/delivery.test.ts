@@ -133,6 +133,27 @@ describe('a waiting prompt is submitted while the session is idle', () => {
   })
 })
 
+describe('after the person stops a turn with Esc', () => {
+  test('a waiting prompt is held until the person has sent input and that turn ended', async ($, on) => {
+    mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })
+    const clock = mock.clock(on, { now: 0 })
+    const w = world(on)
+    await startSession($)
+    await $.turn.start({ text: 'their own work', turnId: 'turn-0' })
+    await $.turn.complete({ answer: '', durationMs: 5, isAborted: true, turnId: 'turn-0', reason: 'aborted' } as any)
+    // Claude Code would refuse a plugin's prompt now, so none is submitted.
+    await clock.advance(5000)
+    expect(w.submitted).toEqual([])
+    // The person types; that turn runs and ends.
+    await $.turn.start({ text: 'continue', turnId: 'turn-1' })
+    await clock.advance(1000)
+    expect(w.submitted).toEqual([])
+    await $.turn.complete({ answer: 'ok', durationMs: 5, isAborted: false, turnId: 'turn-1', reason: 'completed' } as any)
+    await clock.advance(1000)
+    expect(w.submitted).toEqual(['implement TASK-0001'])
+  })
+})
+
 describe('what is not submitted', () => {
   test('a refused claim submits nothing', async ($, on) => {
     mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })

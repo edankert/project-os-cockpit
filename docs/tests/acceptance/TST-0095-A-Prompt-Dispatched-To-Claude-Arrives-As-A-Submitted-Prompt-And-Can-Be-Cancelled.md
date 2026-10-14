@@ -40,7 +40,7 @@ Set to `active` on 2026-10-14, when the feature started. All four tasks were bui
 
 ## Setup
 
-The desktop application rebuilt from these sources (`npm run build` in `desktop/`) and restarted. A project whose cockpit terminal is new (closed with the terminal's restart button after the restart), so it loads the plugin. A note in that project with a verb button, for example a task's "Work on".
+The desktop application rebuilt from these sources (`npm run build` in `desktop/`) and restarted. A project whose cockpit terminal is new (closed with the terminal's restart button after the restart), so it loads the plugin. A note in that project with a verb button, for example "Implement" or "Review" (the buttons depend on the note's status).
 
 ## Steps
 
@@ -66,6 +66,14 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 - In step 8 the prompt arrives in the cockpit's Claude session as in step 2, not typed.
 - In step 9 nothing is typed into the terminal. (This relies on the external hook in your `~/.claude/settings.json`, which tells the cockpit a Claude session is running. Without it, the cockpit sees no session at all under the kill switch, and falls back to running `claude '<prompt>'` in the shell, as it always has for a terminal with no session.) The chip turns amber and says `1 not delivered`, and the row says "Not delivered: this Claude session has no cockpit plugin". Its `×` removes it.
 - In step 10 the prompt is pasted into Codex and submitted, as before this change.
+
+## Run on 2026-10-14 (in progress)
+
+Edwin ran it in project-os-deck after the application was rebuilt and restarted at 15:20 (local), in a new Claude session (`94462501`), started 15:41.
+
+- Steps 1 and 2 passed. Implement on TASK-0084 at 14:44:46.76 UTC; the plugin submitted it and the turn started at 14:44:47.64. The prompt appeared under "Prompt from the project-os-cockpit plugin", and Claude worked on it as its own request.
+- Step 3 passed (Edwin: "yep"). The ledger entry is on session `94462501`, timed 14:44:47.636, `delivered_by: submit`, with the turn's ID.
+- Step 4 waited as it should: the second Implement, at 14:48:06, was held as `waiting`. Then Edwin pressed Esc, on the agent's suggestion. The plugin submitted the waiting prompt at 14:49:03, and Claude Code refused it ("the session was stopped and nobody has sent input since"), so it was recorded as `dropped`. That is a defect, fixed by [[TASK-0658-A-Waiting-Prompt-Survives-The-Person-Pressing-Esc]]. Steps 4 and 5 are to be run again in a session started after that fix.
 
 ## Not this check
 

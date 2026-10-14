@@ -171,7 +171,16 @@ type Sending = { did: string; text: string; candidateTurn?: string; reported: bo
 const isoNow = async ($: EngineInterface): Promise<string> => new Date(await $.clock.now()).toISOString()
 
 /** The session's delivery state; one Claude session per load. */
-type DeliveryState = { poll?: Timer; mainTurnRunning: boolean; polling: boolean; sending?: Sending }
+type DeliveryState = {
+  poll?: Timer
+  mainTurnRunning: boolean
+  /** The person stopped the last main-loop turn with Esc. Claude Code then
+   *  refuses a plugin's prompt until the person sends input, so a waiting
+   *  prompt is held until their next turn has run (TST-0095, 2026-10-14). */
+  interrupted: boolean
+  polling: boolean
+  sending?: Sending
+}
 
 /** Tell the sidecar the prompt's turn started, once. */
 function reportStarted($: EngineInterface, st: DeliveryState, s: Sending, turnId: string): void {
@@ -185,14 +194,14 @@ function reportStarted($: EngineInterface, st: DeliveryState, s: Sending, turnId
 
 /** One look at the sidecar: claim and submit the oldest waiting prompt. */
 async function deliverOne($: EngineInterface, st: DeliveryState): Promise<void> {
-  if (st.polling || st.mainTurnRunning || st.sending) return
+  if (st.polling || st.mainTurnRunning || st.interrupted || st.sending) return
   st.polling = true
   try {
     const sessionId = await $.session.id()
     const listed = await sidecarCall($, `/api/cockpit/deliveries?session=${encodeURIComponent(sessionId)}`)
     const deliveries = (listed?.json.deliveries ?? []) as Delivery[]
     const next = deliveries.find(d => d.state === 'waiting')
-    if (!next || st.mainTurnRunning) return
+    if (!next || st.mainTurnRunning || st.interrupted) return
     const claim = await sidecarCall($, '/api/cockpit/deliveries/claim', { did: next.did })
     // A refused claim means something else moved it first, a cancel among them.
     if (!claim || claim.status !== 200) return
@@ -223,7 +232,7 @@ function ensurePoll($: EngineInterface, st: DeliveryState): void {
 }
 
 export const register: Register = on => {
-  const st: DeliveryState = { mainTurnRunning: false, polling: false }
+  const st: DeliveryState = { mainTurnRunning: false, interrupted: false, polling: false }
 
   on('session.start', ($, e, next) => {
     ensurePoll($, st)
@@ -235,6 +244,9 @@ export const register: Register = on => {
     // whether the session is idle.
     if (e.agentId === undefined) {
       st.mainTurnRunning = true
+      // A turn the plugin did not start is the person's input: after an
+      // interruption, that is what lets a plugin's prompt in again.
+      if (!st.sending) st.interrupted = false
       const s = st.sending
       if (s && !s.reported) {
         if (e.text === s.text || s.resolved) reportStarted($, st, s, e.turnId)
@@ -247,6 +259,7 @@ export const register: Register = on => {
   on('turn.complete', ($, e, next) => {
     if (e.agentId === undefined) {
       st.mainTurnRunning = false
+      if (e.isAborted) st.interrupted = true
       ensurePoll($, st)
     }
     return next(e)
