@@ -47,6 +47,7 @@ After [[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]], pressing A
 - The plugin calls `next(e)` first and changes only an `ask`, so a refusal by the person's own rules or PreToolUse hooks is final. A fault in the hook leaves the verdict beneath.
 - The plugin offers only real calls, never a question or plan approval, never a call whose organization ceiling is `ask`, and never an input over 16 KB.
 - A wait of 0 turns cockpit answering off for a workspace.
+- **Built 2026-10-14.** The secret: [[TASK-0664-The-Sidecar-Requires-The-Shells-Secret-To-Answer-A-Prompt-Or-Deliver-One]]. The plugin's rules, plus one the live run added: an ask is offered only in manual (`default`) or `acceptEdits` mode, where a person would be asked anyway ([[TASK-0665-The-Plugin-Asks-The-Cockpit-Before-The-Terminal-And-Never-Widens-A-Deny]]). The main process as the only answerer, with the person's account as actor: [[TASK-0666-The-Needs-You-Card-Answers-A-Permission-Prompt]]. Each guard is shown to fail its test when removed, and a real PreToolUse deny was checked in a live session: [[TASK-0667-Tests-Prove-A-Deny-Survives-And-An-Answer-Without-The-Secret-Is-Refused]] (`tests/test_answerable_approval_promises.py`, `desktop/plugin/claude-code/tests/approval.test.ts`).
 
 ## Triggers
 

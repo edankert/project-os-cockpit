@@ -93,6 +93,30 @@ describe('what the plugin never changes', () => {
   })
 })
 
+describe('a deny from the person\'s own PreToolUse hook (TASK-0667)', () => {
+  // A real classic PreToolUse hook of the user's kind, raised by `$.tool.call`
+  // as a session raises it, with a sidecar that grants every approval at
+  // once. Claude Code refuses the call before any permission check, so the
+  // plugin is never asked. The case where the deny reaches `tool.check`
+  // folded into its verdict is 'a deny from a PreToolUse hook survives a
+  // cockpit that would grant', above; that one fails without the plugin's
+  // own check.
+  test('refuses the call, and nothing is offered to the cockpit', async ($, on) => {
+    mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })
+    mock.clock(on, { now: 0 })
+    const s = world(on, { decision: 'ask' }, { status: 'granted' })
+    on('classic.PreToolUse', () => ({ deny: 'blocked by your hook' }))
+    let ran = false
+    on('tool.call', () => { ran = true; return { result: { text: 'ran' } } as any })
+    await inMode($, 'default')
+    const result = await $.tool.call({ tool: 'Bash', input: { command: 'rm -rf build' } } as any) as { isError?: boolean; text?: string }
+    expect(result.isError).toBe(true)
+    expect(result.text).toBe('blocked by your hook')
+    expect(ran).toBe(false)
+    expect(approvalCalls(s)).toEqual([])
+  })
+})
+
 describe('an ask that is not offered', () => {
   const cases: [string, Record<string, unknown>, Beneath][] = [
     ['a query, which has no tool call', { tool: 'Bash', input: { command: 'ls' } }, { decision: 'ask' }],

@@ -40,7 +40,9 @@ related:
 
 # A permission prompt is answered from the cockpit
 
-**Started on 2026-10-14, nothing built yet.** Edwin chose to start it after [[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]] was done, and answered its three open questions (below, "Decisions"). It no longer waits on [[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]]: this feature builds the secret that issue's open half asks for, for two routes. The plan is `plan/PLAN.md`, the acceptance check is [[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]], and the new hazard is [[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]].
+**Built on 2026-10-14; all four tasks are done** ([[CHG-20261014-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]). It stays `doing` until Edwin walks [[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]] after a desktop rebuild and restart, and the independent review approves it. Two things changed while building, both from live runs in a real Claude session: an ask is offered only in manual or acceptEdits mode, because in auto mode every classified call waited 5 s for nothing; and a session's records also close when its main-loop turn ends or the person sends the next prompt, because a refusal in the terminal reports nothing. One question is still Edwin's: whether the card should offer no buttons while the app runs with a Chrome debugging port (plan, "Open question").
+
+*As started:*  Edwin chose to start it after [[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]] was done, and answered its three open questions (below, "Decisions"). It no longer waits on [[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]]: this feature builds the secret that issue's open half asks for, for two routes. The plan is `plan/PLAN.md`, the acceptance check is [[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]], and the new hazard is [[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]].
 
 ## Tasks, in order
 
