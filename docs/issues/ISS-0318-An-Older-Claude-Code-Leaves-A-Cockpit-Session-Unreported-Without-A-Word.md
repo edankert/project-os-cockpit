@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0318
 aliases: ["ISS-0318"]
 title: "A Claude Code older than 2.1.287 ignores the cockpit plugin, and the session goes unreported without any warning"
-status: open
+status: declined
 phase: []
 owner: user:edwin
 created: 2026-10-14
@@ -34,3 +34,8 @@ On 2026-10-14 the installed Claude Code is 2.1.299, and CI tests the plugin on t
 
 - A way to learn the installed version without slowing every shell start: for example, the main process runs `claude --version` once per application start, with the login shell's PATH.
 - A place to say it: a line in the cockpit terminal at start, as `deathHint` does in `ipc/terminal.ts`, or a mark on the rail.
+
+## Decision, 2026-10-14
+
+Declined by Edwin: "There is no need to create that check, by the time this is made available everybody uses 2.1.299 or newer." No warning is built. The plugin's CI step already pins 2.1.299.
+
