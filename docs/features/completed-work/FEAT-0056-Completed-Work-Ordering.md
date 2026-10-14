@@ -16,6 +16,7 @@ tasks:
   - "[[TASK-0268-Groups-With-Open-Work-Sort-First]]"
   - "[[TASK-0269-The-Context-Pane-Stops-Filtering]]"
   - "[[TASK-0270-Folding-Keyed-On-Length]]"
+  - "[[TASK-0669-Open-Unattached-Tasks-Sort-With-The-Work-In-Flight]]"
 release: ""
 related: ["[[DES-0004-Attention-In-The-Squares]]", "[[FEAT-0043-Overview-Rework]]", "[[ISS-0023-Status-Vocabulary-Drift]]"]
 reviewed_by: model:claude-opus-5

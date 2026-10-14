@@ -2056,3 +2056,48 @@ def test_one_definition_of_which_phase_statuses_are_active() -> None:
     assert "phaseIsActiveStatus" in ts, (
         "the renderer no longer asks the shared predicate which phases are active"
     )
+
+
+def test_an_open_unattached_task_sorts_with_the_work_in_flight(tmp_path: Path) -> None:
+    """TASK-0669. A task whose parent is an issue joins the "Unattached
+    tasks" group, which used to be appended after every finished phase and
+    listed by ID. Synthetic, because the live corpus has an open unattached
+    task only now and then, and a guard that needs one passes without one.
+    """
+    docs = tmp_path / "docs"
+    _note(docs / "phases" / "PHASE-001-Now.md", """
+type: "[[phase]]"
+id: PHASE-001
+title: "Now"
+status: active
+order: 1
+""")
+    _note(docs / "phases" / "PHASE-002-Then.md", """
+type: "[[phase]]"
+id: PHASE-002
+title: "Then"
+status: done
+order: 2
+""")
+    for fid, status, phase in (("FEAT-0001", "doing", "PHASE-001-Now"),
+                               ("FEAT-0002", "done", "PHASE-002-Then")):
+        _note(docs / "features" / fid / f"{fid}-x.md", f"""
+type: "[[feature]]"
+id: {fid}
+title: "x"
+status: {status}
+phase: "[[{phase}]]"
+""")
+    _note(docs / "issues" / "ISS-0001-x.md", 'type: "[[issue]]"\nid: ISS-0001\ntitle: "x"\nstatus: open')
+    # The done task has the LOWER ID, so ID order and open-first disagree.
+    _note(docs / "tasks" / "TASK-0001-done.md",
+          'type: "[[task]]"\nid: TASK-0001\ntitle: "done"\nstatus: done\nparent: "[[ISS-0001]]"')
+    _note(docs / "tasks" / "TASK-0002-open.md",
+          'type: "[[task]]"\nid: TASK-0002\ntitle: "open"\nstatus: doing\nparent: "[[ISS-0001]]"')
+
+    groups = cockpit._features_groups(Index.build(docs))
+    keys = [g["key"] for g in groups]
+    assert keys.index("unattached-tasks") < keys.index("PHASE-002"), keys
+    assert keys.index("PHASE-001") < keys.index("unattached-tasks"), keys
+    [tasks] = [g for g in groups if g["key"] == "unattached-tasks"]
+    assert [i["id"] for i in tasks["items"]] == ["TASK-0002", "TASK-0001"]

@@ -3303,7 +3303,12 @@ def _features_groups(
     )
 
     out: list[dict[str, Any]] = []
+    # Each phase group's band, so the unattached tasks can join the right one.
+    out_ranks: list[int] = []
     for _order, target, records in sortable:
+        out_ranks.append(
+            _phase_group_rank(_resolve_phase(index, target) if target else None, records)
+        )
         phase_record = _resolve_phase(index, target) if target else None
         phase_id = phase_record.note_id if phase_record else None
         phase_title = (
@@ -3364,15 +3369,21 @@ def _features_groups(
 
     task_orphans = [r for r in all_tasks if r.path not in attached_task_paths]
     if task_orphans:
-        task_orphans.sort(key=lambda x: (x.note_id or "", x.rel_path))
-        out.append(
+        # Open first, and banded like a phase group with no phase note: an
+        # open task whose parent is an issue sat below every finished phase
+        # (TASK-0669).
+        task_orphans = _open_first(task_orphans)
+        rank = _phase_group_rank(None, task_orphans)
+        at = sum(1 for r in out_ranks if r <= rank)
+        out.insert(
+            at,
             {
                 "key": "unattached-tasks",
                 "label": "Unattached tasks",
                 "url": None,
                 "status": None,
                 "items": [_task_child_item(index, r) for r in task_orphans],
-            }
+            },
         )
 
     orphans = [r for r in requirements if r.path not in attached_req_paths]
