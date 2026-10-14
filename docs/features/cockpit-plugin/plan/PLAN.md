@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Delivery plan: Claude sessions report through the cockpit plugin"
-status: active
+status: done
 owner: user:edwin
 created: 2026-10-14
 updated: 2026-10-14

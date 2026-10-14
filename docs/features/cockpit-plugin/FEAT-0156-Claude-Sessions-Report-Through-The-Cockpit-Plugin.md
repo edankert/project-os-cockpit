@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0156
 aliases: ["FEAT-0156"]
 title: "Claude Code sessions report to the cockpit through a plugin the shell loads, instead of through generated shell files and the status line"
-status: doing
+status: done
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-08
@@ -23,9 +23,9 @@ release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]]"
 design: ""
-reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, A)", "model:claude-opus-5-5 (independent-reviewer, B)"]
+reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)", "model:claude-opus-5-5 (independent-reviewer, round 2)"]
 review_date: 2026-10-14
-review_verdict: changes-requested
+review_verdict: approved
 related:
   - "[[FEAT-0019-Agent-Hook-Ingestion]]"
   - "[[FEAT-0027]]"
@@ -42,7 +42,7 @@ related:
 
 ## State on 2026-10-14
 
-**Accepted; in round 2 of its independent review.** All four tasks are done. Edwin walked [[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]] in the running app, and all seven steps passed (ledger: pass on macOS). Its step 7, the kill switch, found [[ISS-0319-Every-Cockpit-Terminal-Inherits-The-Environment-Of-The-Claude-Session-That-Started-Tmux]]: the cockpit's tmux server handed every new terminal another Claude session's variables. [[TASK-0652-A-New-Cockpit-Terminal-Starts-Without-Another-Sessions-Variables]] fixed it inside this feature. Round 1 requested changes, which [[TASK-0653-The-First-Reviews-Findings-Are-Fixed]] made. The feature stays `doing` until round 2 returns. What changed is in [[CHG-20261014-Claude-Sessions-Report-Through-The-Cockpit-Plugin]] and [[CHG-20261014-New-Cockpit-Terminals-No-Longer-Inherit-Another-Claude-Session]].
+**Done.** All four tasks are done. Edwin walked [[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]] in the running app, and all seven steps passed (ledger: pass on macOS). Its step 7, the kill switch, found [[ISS-0319-Every-Cockpit-Terminal-Inherits-The-Environment-Of-The-Claude-Session-That-Started-Tmux]]: the cockpit's tmux server handed every new terminal another Claude session's variables. [[TASK-0652-A-New-Cockpit-Terminal-Starts-Without-Another-Sessions-Variables]] fixed it inside this feature. Its independent review requested changes in round 1, which [[TASK-0653-The-First-Reviews-Findings-Are-Fixed]] made, and approved them in round 2. What changed is in [[CHG-20261014-Claude-Sessions-Report-Through-The-Cockpit-Plugin]] and [[CHG-20261014-New-Cockpit-Terminals-No-Longer-Inherit-Another-Claude-Session]].
 
 ## Verification
 
@@ -109,6 +109,18 @@ Full runs on 2026-10-14, after the round-1 fixes ([[TASK-0653-The-First-Reviews-
 - *TST-0094's step 7 expectation was reworded after the run* (B). It was. The original said the session would not appear in the cockpit at all. That was wrong whenever the user's own `~/.claude/settings.json` registers the external hook, which reports every Claude session on the machine. The run log records the evidence: no plugin mark, no cost figures, prompt only.
 - *The node tests load `desktop/dist/`* (B). The author's counts came after `npm run build`; the review packet does not show that.
 - *`claude plugin test` refuses the `claude --dangerously-skip-permissions` alias* (B). Run it as `command claude`.
+
+**Round 2, 2026-10-14: `approved`.** One `independent-reviewer` subagent in a fresh context, 10 tool calls, on the diff since `f08f3b6`. It worked on copies of the files and changed nothing in the repository.
+
+| # | Round-1 finding | Answer | Evidence |
+|---|---|---|---|
+| 1 | Five events untested | fixed | Each of the five registrations removed in turn; each removal failed "the other five events are posted with what the sidecar reads" (12 pass, 1 fail). |
+| 2a | SessionEnd's one-second limit untested | fixed | The race replaced with `await posting`: both new SessionEnd tests failed. The wait doubled: the one-second test failed. |
+| 2b | A failed sleep removed the limit | fixed | The old fallback restored: "a clock that cannot sleep ends the wait at once" failed. |
+| 3 | An event the external hook posts first is counted twice | fixed | The mark put back into the comparison, the claim from a dropped copy removed, and a post remembered before the claim check: the new pytest failed each time. Checked against the real source: a claimed session drops the external hook's copy of a new prompt and keeps the plugin's. |
+| 4 | The comment miscounts the events | fixed | It now says eight go through `forward` and SessionEnd is the ninth. |
+
+**One observation, not a finding:** the `catch` branch in `postWithin`, taken only if `$.clock.sleep` throws before returning a promise, is not tested. Changing it to wait for the post leaves all 13 tests passing. The engine turns a throwing sleep handler into a rejected promise, which the tested branch covers, and nothing shows the sleep can throw directly. Left as it is.
 
 ## Goal
 
