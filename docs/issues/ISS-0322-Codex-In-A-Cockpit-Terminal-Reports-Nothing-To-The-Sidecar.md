@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0322
 aliases: ["ISS-0322"]
 title: "A Codex session in project-os-deck's cockpit terminal reported nothing to the sidecar, so a dispatch was typed as a shell command into Codex"
-status: open
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-10-14
@@ -59,3 +59,7 @@ Both parts are built and tested, on 2026-10-14: [[TASK-0660-A-Dispatch-Checks-Wh
 - Not done, on purpose: no experiment that trusts a new hook command. The trust entries in `~/.codex/config.toml` are keyed by event alone, so trusting a scratch command could replace the cockpit's own trusted hash in Edwin's config.
 - Not done, on purpose: no test hook POSTed to the deck sidecar. It would put a made-up Codex session into Edwin's running cockpit.
 - Six guessed hash formats matched nothing at first; the identity Codex really hashes was then read from its source and matched deck's ten commands.
+
+## Verified, 2026-10-14
+
+TST-0095 steps 9 and 10 passed in the running application after TASK-0660 and TASK-0661. An unprompted Codex in project-os-deck got the dispatch pasted and submitted, and the dispatch history named `codex` although the Agent menu was not touched. A Codex started in your-trainer after the fix went straight to its prompt, without a hook review.

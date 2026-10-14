@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0321
 aliases: ["ISS-0321"]
 title: "Which agent a verb button dispatches to is a hand-set menu choice per project, instead of following the agent running in the project's terminal"
-status: open
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-10-14
@@ -37,3 +37,7 @@ How the cockpit should know which agent is running when no hook reports one. The
 ## Fix, 2026-10-14
 
 [[TASK-0660-A-Dispatch-Checks-What-Runs-In-The-Terminal-Before-Typing]] answers the open question: the cockpit reads the terminal's foreground program through tmux. A dispatch now goes to the agent that is running, whatever the Agent menu says, and the dispatch history names that agent. The menu decides only which agent a plain shell starts. The issue stays open until TST-0095 step 10 shows it in the running application.
+
+## Verified, 2026-10-14
+
+TST-0095 steps 9 and 10 passed in the running application after TASK-0660 and TASK-0661. An unprompted Codex in project-os-deck got the dispatch pasted and submitted, and the dispatch history named `codex` although the Agent menu was not touched. A Codex started in your-trainer after the fix went straight to its prompt, without a hook review.
