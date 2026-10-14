@@ -100,7 +100,7 @@ focus:
   # 2026-09-25, later: Edwin re-ran TST-0011 live and all 13 rows passed. TASK-0633/0634/0635 are done, ISS-0312 is fixed, and every PHASE-007 exit criterion is ticked. FEAT-0019 and FEAT-0027 are in their shared independent review; the handoff is in the FEAT-0019 note. No task is in flight.
   # 2026-09-25, review: the FEAT-0019/FEAT-0027 shared review returned changes-requested; TASK-0638 fixes the findings.
   # 2026-09-25, close: FEAT-0019 and FEAT-0027 are done after a two-round shared review, and PHASE-007 is closed. No task is in flight; the next choice is Edwin's.
-  task: "TASK-0656"
+  task: "TASK-0657"
   # TASK-0631 ran the actual walk in isolated Electron on copied Your Trainer docs and ledgers: Android survey, step advance, reload, blocked action, interrupted timer and uploaded PNG comparison worked. Review results now lists all 39 owed Android checks instead of hiding ten expired prior-release excuses. The iOS route loads 327 owed rows but has no open release id. Eighty focused renderer tests, the full desktop suite, 47 Python walk tests and docs gates pass; human and full iOS walks remain open.
   # TASK-0629 is correcting a full Electron walk finding: the session-wide readiness list stays expanded and repeats the current warning, and Walk options lacks a direct step picker. The isolated browser uses copied Your Trainer docs and ledgers.
   # TASK-0629 moved occasional walk navigation under Walk options and sitting state/equipment into required setup. The focused renderer suite passes 77 cases, and standalone Chrome rendered the current Android payload at desktop and narrow widths. Full Electron and Edwin walks remain open.
@@ -961,7 +961,7 @@ items:
       phase: "[[PHASE-046]]"
     TASK-0656:
       file: docs/features/submitted-dispatch/plan/tasks/TASK-0656-The-Shell-Sends-A-Claude-Dispatch-To-The-Sidecar-And-Types-Nothing.md
-      status: backlog
+      status: done
       parent: FEAT-0158
       phase: "[[PHASE-046]]"
     TASK-0657:
@@ -3727,7 +3727,7 @@ metrics:
     features_total: 159
     features_done: 135
     tasks_total: 651
-    tasks_done: 610
+    tasks_done: 611
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

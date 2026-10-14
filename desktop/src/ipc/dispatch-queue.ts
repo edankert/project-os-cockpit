@@ -8,8 +8,12 @@
 //
 // Flow:
 //   renderer → dispatch:execute {workspaceId, item}
+//     live Claude session    → hand to the sidecar as a delivery; the
+//                              cockpit plugin in that session submits it
+//                              once the session is idle (FEAT-0158).
+//                              Nothing is typed into a Claude terminal.
 //     busy/needs-input      → enqueue (persisted) + broadcast
-//     waiting + live session → type raw prompt into the REPL
+//     waiting + live Codex  → paste the prompt into the REPL
 //     otherwise             → run `<agent> '<prompt>'` in the shell
 //   poller/SSE-poke state transition (waiting|idle) → deliver next.
 //
@@ -38,8 +42,22 @@ export interface DispatchItem {
 
 interface ExecuteResult {
   queued: boolean;
-  delivered?: 'shell' | 'repl';
+  /** `submit`: handed to the sidecar for the cockpit plugin to submit. */
+  delivered?: 'shell' | 'repl' | 'submit';
+  /** The sidecar's delivery, when `delivered` is `submit`. */
+  delivery?: Delivery;
   warning?: string;
+}
+
+/** A dispatched prompt the sidecar holds for one Claude session (FEAT-0158). */
+export interface Delivery {
+  did: string;
+  id: string;
+  verb?: string;
+  prompt: string;
+  session_id: string;
+  state: string;
+  reason?: string;
 }
 
 const QUEUE_MAX = 20;
@@ -139,6 +157,28 @@ function fetchJson(url: string, timeoutMs = 2000): Promise<unknown | null> {
   });
 }
 
+/** POST JSON and read the answer; null when the sidecar did not answer. */
+function postJsonResult(url: string, body: unknown, timeoutMs = 2000): Promise<{ status: number; json: any } | null> {
+  return new Promise((resolve) => {
+    const data = Buffer.from(JSON.stringify(body), 'utf-8');
+    const u = new URL(url);
+    const req = http.request({
+      hostname: u.hostname, port: u.port, path: u.pathname, method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': data.length },
+      timeout: timeoutMs,
+    }, (res) => {
+      let text = '';
+      res.on('data', (chunk: Buffer) => { text += chunk.toString('utf-8'); });
+      res.on('end', () => {
+        try { resolve({ status: res.statusCode ?? 0, json: JSON.parse(text) }); } catch { resolve(null); }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.end(data);
+  });
+}
+
 function postJson(url: string, body: unknown): void {
   const data = Buffer.from(JSON.stringify(body), 'utf-8');
   const u = new URL(url);
@@ -151,52 +191,109 @@ function postJson(url: string, body: unknown): void {
   req.end(data);
 }
 
-async function liveSessionInfo(
-  workspaceId: string,
-): Promise<{ live: boolean; agent: string | null }> {
+export interface LiveSession {
+  live: boolean;
+  agent: string | null;
+  sessionId: string | null;
+}
+
+async function liveSessionInfo(workspaceId: string): Promise<LiveSession> {
   const base = sidecarUrlFor(workspaceId);
-  if (!base) return { live: false, agent: null };
+  if (!base) return { live: false, agent: null, sessionId: null };
   const snap = await fetchJson(`${base}/api/cockpit/state`) as
-    { session?: { live?: boolean; agent?: string | null } | null } | null;
+    { session?: { live?: boolean; agent?: string | null; session_id?: string | null } | null } | null;
   const session = snap?.session;
   return {
     live: session?.live === true,
     agent: (session?.agent as string | undefined) ?? null,
+    sessionId: (session?.session_id as string | undefined) ?? null,
   };
+}
+
+/** How a dispatch reaches a workspace (FEAT-0158). A live Claude session is
+ *  always handed to the sidecar, busy or not, because the cockpit plugin
+ *  waits for the session to be idle itself; nothing is typed into it. */
+export function routeFor(
+  session: LiveSession, state: string,
+): 'submit' | 'queue' | 'repl' | 'shell' | 'hold' {
+  if (session.live && session.agent === 'claude' && session.sessionId) return 'submit';
+  if (state === 'busy' || state === 'needs-input') return 'queue';
+  if (state === 'waiting' && session.live) {
+    // A live REPL other than Codex has no way in: hold rather than type.
+    return session.agent === 'codex' ? 'repl' : 'hold';
+  }
+  return 'shell';
 }
 
 function recordLedger(workspaceId: string, item: DispatchItem): void {
   const base = sidecarUrlFor(workspaceId);
   if (!base) return;
   postJson(`${base}/api/cockpit/dispatch`, {
-    id: item.id, verb: item.verb, agent: item.agent,
+    // A typed dispatch is stamped when it is written, not when a turn starts;
+    // a submitted one is stamped by the sidecar at its turn's start.
+    id: item.id, verb: item.verb, agent: item.agent, delivered_by: 'typed',
   });
+}
+
+function requeueFront(workspaceId: string, item: DispatchItem): void {
+  const q = queueOf(workspaceId);
+  q.unshift(item);
+  q.splice(QUEUE_MAX);
+  persistSoon();
+  broadcastQueue(workspaceId);
+}
+
+/** Hand a dispatch for a live Claude session to the sidecar, which keeps it
+ *  until the cockpit plugin in that session submits it (FEAT-0158). */
+async function handToSidecar(
+  workspaceId: string, item: DispatchItem, session: LiveSession,
+): Promise<ExecuteResult> {
+  const base = sidecarUrlFor(workspaceId);
+  const res = base
+    ? await postJsonResult(`${base}/api/cockpit/deliveries`, { ...item, session_id: session.sessionId })
+    : null;
+  if (!res || res.status !== 200 || !res.json?.delivery) {
+    // The sidecar did not take it: keep it here, and the next state
+    // transition tries again. Never fall back to typing it.
+    requeueFront(workspaceId, item);
+    const why = res?.json?.error ? String(res.json.error) : "the cockpit's server did not answer";
+    return { queued: true, warning: `${why} — queued` };
+  }
+  const delivery = res.json.delivery as Delivery;
+  let warning: string | undefined;
+  if (item.agent !== 'claude') warning = `live session is claude — sent there instead of ${item.agent}`;
+  if (delivery.state === 'held') warning = `not delivered: ${delivery.reason ?? 'held'}`;
+  return { queued: false, delivered: 'submit', delivery, warning };
 }
 
 // ---- delivery state machine ----
 
 async function deliver(
   workspaceId: string, item: DispatchItem, state: string,
+  known?: LiveSession,
 ): Promise<ExecuteResult> {
-  const session = await liveSessionInfo(workspaceId);
-  const mode: 'shell' | 'repl' =
-    state === 'waiting' && session.live ? 'repl' : 'shell';
+  const session = known ?? await liveSessionInfo(workspaceId);
+  const route = routeFor(session, state);
+  if (route === 'submit') return handToSidecar(workspaceId, item, session);
+  if (route === 'queue' || route === 'hold') {
+    requeueFront(workspaceId, item);
+    return route === 'hold'
+      ? { queued: true, warning: `a live ${session.agent ?? 'agent'} session cannot take a dispatch — queued` }
+      : { queued: true };
+  }
+  const mode: 'shell' | 'repl' = route;
   let warning: string | undefined;
   if (mode === 'repl' && session.agent && session.agent !== item.agent) {
     warning = `live session is ${session.agent} — delivered there instead of ${item.agent}`;
   }
-  const codexRepl = mode === 'repl' && session.agent === 'codex';
-  const data = mode === 'repl'
-    ? codexRepl ? `\x1b[200~${item.prompt}\x1b[201~` : item.prompt + '\r'
+  const codexRepl = mode === 'repl';
+  const data = codexRepl
+    ? `\x1b[200~${item.prompt}\x1b[201~`
     : `${item.agent} ${shellEscapeSingle(item.prompt)}\r`;
   if (!writeToPty(workspaceId, data)) {
     // No terminal for this workspace yet — hold in the queue; the next
     // state transition (or terminal open + transition) retries.
-    const q = queueOf(workspaceId);
-    q.unshift(item);
-    q.splice(QUEUE_MAX);
-    persistSoon();
-    broadcastQueue(workspaceId);
+    requeueFront(workspaceId, item);
     return { queued: true, warning: 'no terminal open — queued' };
   }
   if (codexRepl) {
@@ -207,11 +304,7 @@ async function deliver(
       // The terminal closed between the paste and its Return, so nothing
       // was submitted. Put the item back rather than drop it (FEAT-0019
       // review, 2026-09-25), exactly as when no terminal is open.
-      const q = queueOf(workspaceId);
-      q.unshift(item);
-      q.splice(QUEUE_MAX);
-      persistSoon();
-      broadcastQueue(workspaceId);
+      requeueFront(workspaceId, item);
       return { queued: true, warning: 'terminal closed before Codex submission — queued again' };
     }
   }
@@ -224,7 +317,8 @@ export async function executeDispatch(
   workspaceId: string, item: DispatchItem,
 ): Promise<ExecuteResult> {
   const state = lastKnownState.get(workspaceId) ?? 'idle';
-  if (state === 'busy' || state === 'needs-input') {
+  const session = await liveSessionInfo(workspaceId);
+  if (routeFor(session, state) === 'queue') {
     const q = queueOf(workspaceId);
     q.push(item);
     q.splice(QUEUE_MAX);
@@ -232,7 +326,7 @@ export async function executeDispatch(
     broadcastQueue(workspaceId);
     return { queued: true };
   }
-  return deliver(workspaceId, item, state);
+  return deliver(workspaceId, item, state, session);
 }
 
 let delivering = false;

@@ -227,3 +227,23 @@ def test_a_session_payload_says_whether_the_plugin_speaks_for_it(tmp_path: Path)
     tracker.ingest({"hook_event_name": "SessionStart", "session_id": "s-b", "agent": "claude"})
     assert tracker.snapshot()["session"]["session_id"] == "s-b"
     assert tracker.snapshot()["session"]["plugin_claimed"] is False
+
+
+def test_a_typed_dispatch_is_marked_typed_in_the_ledger(tmp_path: Path):
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    tracker.ingest({"hook_event_name": "SessionStart", "session_id": "s-c", "agent": "codex"})
+    rec = tracker.record_dispatch("TASK-0002", verb="implement", agent="codex", delivered_by="typed")
+    assert rec["delivered_by"] == "typed"
+    assert tracker._sessions["s-c"]["dispatches"][-1]["delivered_by"] == "typed"
+    assert "delivered_by" not in tracker.record_dispatch("TASK-0003", delivered_by="other")
+
+
+def test_the_state_payload_counts_open_deliveries(tmp_path: Path):
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    first, _ = tracker.add_delivery(_item("one"), "s-a")
+    tracker.add_delivery(_item("two"), "s-a")
+    assert tracker.snapshot()["deliveries_open"] == 2
+    tracker.move_delivery(first["did"], "sending")
+    tracker.move_delivery(first["did"], "started", turn_id="t")
+    assert tracker.snapshot()["deliveries_open"] == 1

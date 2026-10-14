@@ -1873,11 +1873,13 @@ def _make_handler(
             verb = body.get("verb")
             agent = body.get("agent")
             enqueue = bool(body.get("enqueue"))
+            delivered_by = body.get("delivered_by")
             rec = tracker.record_dispatch(
                 note_id.strip().upper(),
                 verb=str(verb) if verb else None,
                 agent=str(agent) if agent else None,
                 enqueue=enqueue,
+                delivered_by=delivered_by if isinstance(delivered_by, str) else None,
             )
             if enqueue:
                 bus.publish(ControlEvent("cockpit:dispatch-request", rec))

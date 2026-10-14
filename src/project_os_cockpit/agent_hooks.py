@@ -620,12 +620,17 @@ class AgentSessionTracker:
     def record_dispatch(
         self, note_id: str, verb: str | None = None,
         agent: str | None = None, *, enqueue: bool = False,
+        delivered_by: str | None = None,
     ) -> dict[str, Any]:
         rec: dict[str, Any] = {"id": note_id, "ts": _utc_now_iso()}
         if verb:
             rec["verb"] = str(verb)
         if agent:
             rec["agent"] = str(agent)
+        # `typed`: the shell wrote it into the terminal, and `ts` is when.
+        # A submitted prompt is stamped by `_stamp_delivered_locked` instead.
+        if delivered_by in ("typed", "submit"):
+            rec["delivered_by"] = delivered_by
         with self._lock:
             live = self._live_session_locked()
             if live is not None:
@@ -1001,6 +1006,12 @@ class AgentSessionTracker:
                 "session": self._slim(live, live=True) if live else None,
                 "last_session": (
                     self._slim(last, live=False) if last is not None else None
+                ),
+                # Prompts on their way to a Claude session here, for the
+                # fleet view's queue depth (FEAT-0158).
+                "deliveries_open": sum(
+                    1 for d in self._deliveries
+                    if d.get("state") not in DELIVERY_FINISHED
                 ),
             }
             lrl = self._latest_rate_limits_locked()

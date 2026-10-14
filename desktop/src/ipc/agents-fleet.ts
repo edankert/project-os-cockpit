@@ -83,6 +83,9 @@ async function buildRow(ws: { id: string; name: string; root: string }): Promise
   if (!url) return row;
   const snap = await fetchState(url);
   if (!snap) return row;
+  // Prompts the sidecar holds for a Claude session count as queued too
+  // (FEAT-0158): they wait for the plugin, not for this process.
+  if (typeof snap.deliveries_open === 'number') row.queueDepth += snap.deliveries_open;
   const activity = snap.activity as { state?: string } | null | undefined;
   const liveSession = snap.session as Record<string, any> | null | undefined;
   const sess = liveSession ?? (snap.last_session as Record<string, any> | null | undefined);

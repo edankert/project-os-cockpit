@@ -62,6 +62,13 @@ interface AgentStatePayload {
   attention?: { state: string; ts: string; agent?: string; message?: string; session_id?: string }[];
 }
 
+/** A dispatched prompt the sidecar holds for one Claude session, until the
+ *  cockpit plugin in it submits it (FEAT-0158). */
+interface Delivery {
+  did: string; id: string; verb?: string; prompt: string;
+  session_id: string; state: string; reason?: string;
+}
+
 interface QueuedDispatch {
   id: string; rel: string; verb?: string;
   /** Agent id from the served registry (ISS-0032). A string, not a closed
@@ -163,7 +170,7 @@ interface CockpitApi {
     set: (patch: Record<string, unknown>) => Promise<{ ok: boolean; error?: string; settings: { externalHook: boolean; externalCodexHook: boolean } }>;
   };
   dispatch: {
-    execute: (workspaceId: string, item: unknown) => Promise<{ queued: boolean; delivered?: string; warning?: string; error?: string }>;
+    execute: (workspaceId: string, item: unknown) => Promise<{ queued: boolean; delivered?: string; delivery?: Delivery; warning?: string; error?: string }>;
     list: (workspaceId: string) => Promise<QueuedDispatch[]>;
     remove: (workspaceId: string, index: number) => Promise<QueuedDispatch[]>;
     clear: (workspaceId: string) => Promise<QueuedDispatch[]>;
@@ -1093,6 +1100,7 @@ cockpitApi.sidecar.onEvent((ev) => {
       void loadAgentActions();
       void loadAgentRegistry();
       void refreshQueueItems();
+      void refreshDeliveries();
       void drainDispatchRequests();
       // Reopen the console if it was open when the app last closed.
       restoreTerminalPanel();
@@ -15442,6 +15450,12 @@ function attachSidecarEventStream(baseUrl: string): void {
       }
     } catch { /* ignore */ }
   });
+  // A dispatched prompt moving towards its Claude session (FEAT-0158).
+  es.addEventListener('cockpit:delivery', (e) => {
+    try {
+      applyDeliveryEvent(JSON.parse((e as MessageEvent).data) as Delivery);
+    } catch { /* ignore malformed */ }
+  });
   // CLI `cockpit dispatch` requests (FEAT-0025 / TASK-0136).
   es.addEventListener('cockpit:dispatch-request', (e) => {
     try {
@@ -17305,7 +17319,7 @@ window.addEventListener('blur', () => {
 });
 
 document.getElementById('agent-strip-queue')?.addEventListener('click', (e) => {
-  if (activeQueueItems.length === 0) return;
+  if (activeQueueItems.length === 0 && !activeDeliveries.some(deliveryIsOpen)) return;
   if (!queuePopover.hidden) { queuePopover.hidden = true; return; }
   renderQueuePopover();
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -17447,16 +17461,74 @@ function dispatchPrompt(id: string, rel: string): string {
 // dispatch:execute, and renders queue state.
 
 let activeQueueItems: QueuedDispatch[] = [];
+/** The active workspace's unfinished deliveries, from the sidecar. */
+let activeDeliveries: Delivery[] = [];
+
+const deliveryIsOpen = (d: Delivery): boolean => d.state !== 'started' && d.state !== 'cancelled';
+const deliveryNotDelivered = (d: Delivery): boolean => d.state === 'held' || d.state === 'dropped';
+
+/** What a delivery's row says: the FEAT-0158 plan's state table. */
+function deliveryRowText(d: Delivery): string {
+  switch (d.state) {
+    case 'held': return `Not delivered: ${d.reason ?? 'nothing will submit it'}`;
+    case 'waiting': return 'Waiting for Claude to finish its turn';
+    case 'sending': return 'Sending';
+    case 'cancelling': return 'Cancelling';
+    case 'dropped': return `Not delivered: ${d.reason ?? 'the session refused it'}`;
+    default: return d.state;
+  }
+}
 
 function updateQueueChip(): void {
   const chip = document.getElementById('agent-strip-queue');
   if (!chip) return;
-  chip.hidden = activeQueueItems.length === 0;
-  chip.textContent = `queued ${activeQueueItems.length}`;
-  chip.title = activeQueueItems
-    .map((d) => `${d.verb ?? 'default'} ${d.id}`).join('\n') + '\n(click to manage)';
-  if (activeQueueItems.length > 0) agentStrip.hidden = false;
+  const open = activeDeliveries.filter(deliveryIsOpen);
+  const notDelivered = open.filter(deliveryNotDelivered).length;
+  const total = activeQueueItems.length + open.length;
+  chip.hidden = total === 0;
+  // A prompt nothing will submit must not pass for one that is merely waiting.
+  chip.classList.toggle('is-undelivered', notDelivered > 0);
+  chip.textContent = notDelivered > 0
+    ? `${notDelivered} not delivered${total > notDelivered ? ` · queued ${total - notDelivered}` : ''}`
+    : `queued ${total}`;
+  chip.title = [
+    ...activeQueueItems.map((d) => `${d.verb ?? 'default'} ${d.id}`),
+    ...open.map((d) => `${d.verb ?? 'default'} ${d.id}: ${deliveryRowText(d)}`),
+  ].join('\n') + '\n(click to manage)';
+  if (total > 0) agentStrip.hidden = false;
   if (!queuePopover.hidden) renderQueuePopover();
+}
+
+async function refreshDeliveries(): Promise<void> {
+  if (!sidecarBaseUrl) { activeDeliveries = []; updateQueueChip(); return; }
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/deliveries`);
+    if (resp.ok) {
+      const data = await resp.json() as { deliveries?: Delivery[] };
+      activeDeliveries = data.deliveries ?? [];
+    }
+  } catch { /* sidecar not up yet: the next event or switch refreshes */ }
+  updateQueueChip();
+}
+
+/** One `cockpit:delivery` event: update the list, and say when a prompt
+ *  reached its turn or will not. "Delivered" means its turn started. */
+function applyDeliveryEvent(d: Delivery): void {
+  if (!d || typeof d.did !== 'string') return;
+  const at = activeDeliveries.findIndex((x) => x.did === d.did);
+  if (deliveryIsOpen(d)) {
+    if (at >= 0) activeDeliveries[at] = d; else activeDeliveries.push(d);
+  } else if (at >= 0) {
+    activeDeliveries.splice(at, 1);
+  }
+  const label = `${d.verb ?? 'default'} ${d.id}`;
+  if (d.state === 'started') {
+    showStatus(`Delivered ${label}: its turn started`);
+    void refreshAgentSnapshot();
+  } else if (deliveryNotDelivered(d)) {
+    showStatus(`Not delivered ${label}: ${d.reason ?? d.state}`, 'error');
+  }
+  updateQueueChip();
 }
 
 async function refreshQueueItems(): Promise<void> {
@@ -17524,6 +17596,13 @@ async function dispatchToAgent(
     return;
   }
   const label = `${item.verb ?? 'default'} ${id}`;
+  if (res.delivered === 'submit' && res.delivery) {
+    applyDeliveryEvent(res.delivery);
+    if (res.delivery.state !== 'held') {
+      showStatus(`Sent ${label} to Claude: it starts when Claude is idle${res.warning ? ` — ${res.warning}` : ''}`);
+    }
+    return;
+  }
   if (res.queued) {
     showStatus(`Queued ${label}${res.warning ? ` — ${res.warning}` : ''}`);
   } else {
@@ -17541,7 +17620,24 @@ document.body.appendChild(queuePopover);
 
 function renderQueuePopover(): void {
   queuePopover.replaceChildren();
-  if (activeQueueItems.length === 0) { queuePopover.hidden = true; return; }
+  const deliveries = activeDeliveries.filter(deliveryIsOpen);
+  if (activeQueueItems.length === 0 && deliveries.length === 0) { queuePopover.hidden = true; return; }
+  // Prompts the sidecar holds for Claude, each with where it has got to.
+  for (const d of deliveries) {
+    const row = document.createElement('div');
+    row.className = 'queue-row queue-row-delivery';
+    row.dataset.state = d.state;
+    const label = document.createElement('span');
+    label.className = 'queue-row-label';
+    label.textContent = `${d.verb ?? 'default'} · ${d.id}`;
+    label.title = d.prompt;
+    const state = document.createElement('span');
+    state.className = 'queue-row-state';
+    state.textContent = deliveryRowText(d);
+    row.append(label, state);
+    queuePopover.appendChild(row);
+  }
+  if (activeQueueItems.length === 0) return;
   activeQueueItems.forEach((d, idx) => {
     const row = document.createElement('div');
     row.className = 'queue-row';

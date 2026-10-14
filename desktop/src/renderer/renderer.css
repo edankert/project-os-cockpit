@@ -3957,6 +3957,11 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   cursor: pointer;
 }
 .agent-strip-queue:hover { background: var(--accent-soft); }
+/* A prompt nothing will submit (FEAT-0158): amber, not the link colour. */
+.agent-strip-queue.is-undelivered {
+  border-color: var(--severity-medium);
+  color: var(--severity-medium);
+}
 /* Dispatch runtime (FEAT-0025) + verb polish (FEAT-0026) */
 .queue-popover {
   position: fixed;
@@ -3989,6 +3994,15 @@ a.scoped-feat-name:hover { color: var(--accent-link); text-decoration: underline
   min-width: 0;
   flex: 1;
 }
+.queue-row-state {
+  flex: none;
+  max-width: 60%;
+  font-size: 11px;
+  color: var(--text-faint);
+  white-space: normal;
+}
+.queue-row-delivery[data-state="held"] .queue-row-state,
+.queue-row-delivery[data-state="dropped"] .queue-row-state { color: var(--severity-medium); }
 .queue-row-remove {
   flex: none;
   background: transparent;
