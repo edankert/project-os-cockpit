@@ -15,6 +15,7 @@ component: sidecar
 parent: ""
 related: ["[[ADR-0042-What-May-Be-Framed]]", "[[RISK-0008-The-Sandbox-Is-The-Only-Boundary]]", "[[FEAT-0148-One-HTML-Viewer]]", "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]"]
 tests: []
+tasks: ["[[TASK-0668]]"]
 ---
 
 # A page shown in the viewer can change your notes through the sidecar

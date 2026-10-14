@@ -2067,6 +2067,9 @@ def _make_handler(
             kind = raw.split(";", 1)[0].strip().lower()
             if kind == "application/json":
                 return True
+            # The body is unread: close, or it is parsed as the next request
+            # on a kept-alive connection (TASK-0668).
+            self.close_connection = True
             self._respond_json(
                 {"ok": False,
                  "error": ("a write must say Content-Type: application/json; "
@@ -2146,6 +2149,7 @@ def _make_handler(
             """
             if self._is_loopback():
                 return True
+            self.close_connection = True  # the body is unread (TASK-0668)
             self._respond_json(
                 {"ok": False, "error": "%s are loopback-only" % what},
                 status=HTTPStatus.FORBIDDEN,

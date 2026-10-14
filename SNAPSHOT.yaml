@@ -79,7 +79,7 @@ counters:
   # A place in the product a check's area: names (TASK-0514).
   SUR: 6
   REL: 1
-  TASK: 667
+  TASK: 669
   TST: 96
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -803,7 +803,7 @@ items:
       title: "Open work sorts first, long lists fold, and the context pane never filters — so a corpus that is 99% complete reads without a switch that empties it"
       status: done
       phase: "[[PHASE-022-Completed-Work-Gets-Quieter]]"
-      tasks: [TASK-0267, TASK-0268, TASK-0269, TASK-0270]
+      tasks: [TASK-0267, TASK-0268, TASK-0269, TASK-0270, TASK-0669]
       note: "At 99% lifecycle completion a state filter is not a filter. Each view groups on a different axis — status, severity, phase, type — and state is orthogonal to all four, which is why a global switch got invented instead of ordering."
     FEAT-0055:
       file: "docs/features/git-assist/FEAT-0055-Git-Assist.md"
@@ -3786,8 +3786,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 159
     features_done: 136
-    tasks_total: 661
-    tasks_done: 619
+    tasks_total: 663
+    tasks_done: 621
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

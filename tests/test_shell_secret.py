@@ -246,14 +246,14 @@ def test_a_refusal_closes_a_kept_alive_connection_cleanly(tmp_path: Path):
     _server, httpd, port = _spin_up(docs, shell_secret=SECRET)
     try:
         body = json.dumps({"approval_id": "x", "decision": "granted", "actor": "user:edwin"})
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
         for _ in range(2):
-            conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
             conn.request("POST", "/api/cockpit/approve", body=body,
                          headers={"Content-Type": "application/json"})
             resp = conn.getresponse()
             resp.read()
             assert resp.status == 403
             assert resp.getheader("Connection") == "close"
-            conn.close()
+        conn.close()
     finally:
         httpd.shutdown()

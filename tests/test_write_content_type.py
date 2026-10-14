@@ -169,3 +169,21 @@ def test_no_guarded_write_route_still_reads_a_plain_text_body(port: int) -> None
     assert not leaked, (
         "these write routes still read a body a browser sends cross-origin "
         "with no preflight: " + ", ".join(f"{p} -> {s}" for p, s in leaked))
+
+
+def test_two_refused_writes_on_one_connection_are_both_refused(port):
+    """The refusal comes before the body is read, so the unread body is still
+    on the socket. Without `Connection: close` a kept-alive client's second
+    request was parsed from that body and answered 501 (TASK-0668)."""
+    import http.client
+
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+    try:
+        for _ in range(2):
+            conn.request("POST", "/api/cockpit/review-request", body='{"kind":"bogus"}',
+                         headers={"Content-Type": "text/plain"})
+            resp = conn.getresponse()
+            resp.read()
+            assert resp.status == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+    finally:
+        conn.close()
