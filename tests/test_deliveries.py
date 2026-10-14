@@ -438,3 +438,18 @@ def test_prompts_nobody_will_submit_do_not_fill_the_cap(tmp_path: Path):
                     "agent": "claude", "_cockpit_plugin": True})
     # Thirty held for an ended session no longer block a new dispatch.
     assert tracker.add_delivery(_item("new"), "s-b")[1] is None
+
+
+def test_a_removed_prompt_is_not_live_work_in_a_live_session(tmp_path: Path):
+    """The re-dispatch guard reads `live`. A prompt Claude refused, removed
+    from the queue list while its session still runs, is not live work there
+    (TASK-0662; round 2 found the term untested)."""
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    d, _ = tracker.add_delivery(_item(), "s-a")
+    tracker.move_delivery(d["did"], "sending")
+    tracker.move_delivery(d["did"], "dropped", reason="refused")
+    tracker.cancel_delivery(d["did"])
+    [entry] = tracker.dispatch_history("TASK-0001")
+    assert entry.get("removed") is True
+    assert entry["live"] is False

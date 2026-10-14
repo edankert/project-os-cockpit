@@ -1,7 +1,7 @@
 ---
 type: "[[plan]]"
 title: "Delivery plan: a dispatched prompt is submitted, not typed"
-status: active
+status: done
 owner: user:edwin
 created: 2026-10-14
 updated: 2026-10-14

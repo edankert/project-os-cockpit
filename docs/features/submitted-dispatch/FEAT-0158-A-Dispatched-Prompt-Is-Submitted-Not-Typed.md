@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0158
 aliases: ["FEAT-0158"]
 title: "A prompt dispatched from the cockpit reaches a Claude session as a submitted prompt, confirmed when its turn starts, instead of as typed keystrokes"
-status: doing
+status: done
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-08
@@ -29,10 +29,10 @@ release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Submitted-Prompt-And-Can-Be-Cancelled]]"
 design: ""
-reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)"]
+reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)", "model:claude-opus-5-5 (independent-reviewer, round 2)"]
 review_date: 2026-10-14
-review_verdict: changes-requested
-review_round: 1
+review_verdict: approved
+review_round: 2
 related:
   - "[[FEAT-0025]]"
   - "[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]]"
@@ -56,7 +56,7 @@ The acceptance check is [[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Su
 
 ## State on 2026-10-14
 
-**Built and accepted; waiting for the independent review.** All eight tasks are done. TST-0095 passed all ten steps on 2026-10-14 (ledger: pass on macOS, Edwin). Running it produced four of the tasks: TASK-0658 and TASK-0659 (a prompt waiting when the person presses Esc is held until their next message, and the cockpit says so), TASK-0660 (a dispatch reads the terminal's foreground program before typing, so it never types a shell command into a running agent; fixes ISS-0322 and ISS-0321) and TASK-0661 (every project's Codex hooks run one command, so one trust in Codex covers them all). What changed is in [[CHG-20261014-A-Prompt-Dispatched-To-Claude-Is-Submitted-Not-Typed]].
+**Done, 2026-10-14.** All nine tasks are done, TST-0095 passed all ten steps (ledger: pass on macOS, Edwin), and the independent review approved it in round 2. Running TST-0095 produced four of the tasks: TASK-0658 and TASK-0659 (a prompt waiting when the person presses Esc is held until their next message, and the cockpit says so), TASK-0660 (a dispatch reads the terminal's foreground program before typing; fixes ISS-0322 and ISS-0321) and TASK-0661 (one Codex hook command for every project). The review produced TASK-0662. What changed is in [[CHG-20261014-A-Prompt-Dispatched-To-Claude-Is-Submitted-Not-Typed]].
 
 One finding changed the cancel design. A plugin's own `prompt.submit` hook never sees its own submission, so a prompt the plugin has handed to Claude cannot be withdrawn. Cancel works until the plugin claims the prompt; after that, the cockpit says it is too late. In the live run, that window was about 100 ms.
 
@@ -92,6 +92,8 @@ After the round 1 fixes (TASK-0662): pytest 2171 passed, 11 skipped; desktop 214
 | T | TST-0095 guards the behaviour | holds as a manual check | Both said its record was stale. The status stays `active`: an acceptance check's verdict is in the release ledger, not on the note (STATUSES.md, "`level: acceptance`"), and the ledger has it. The "(in progress)" heading and the missing tasks were fixed. |
 | A1 | Never a shell command into a non-shell foreground | holds | Both, same mutation as 6. A noted the terminal is read once, up to 3 s before typing. |
 | A2 | Identical Codex hook commands, stale launchers included | holds | Both; tests for both halves pass. |
+
+**Round 2, 2026-10-14: `approved`.** One `independent-reviewer` on `review-packet.py FEAT-0158 --round 2 --since e1dabc3`, 13 of 15 calls, same model as the author. Criteria 3 and 7 *fixed*: putting the old hold back fails 4 tests, removing `dropped` from `started`'s allowed states fails 2, removing the reason check fails 1, and `removed = False` fails the removal test. Gaps 2 and 9 *fixed*: `asUser: false` and the queue-depth line removed each fail a test. The cap observation *fixed*. Its one observation, that the `not removed` term of the history's `live` flag had no test of its own, was acted on: `test_a_removed_prompt_is_not_live_work_in_a_live_session` fails without the term.
 
 **The packet left out two central commits**, `ac251c2` (TASK-0655) and `3d02c05` (TASK-0656), because their subjects name no ID the packet searched for. Both reviewers read them from git. Round 2's packet uses `--since`.
 
