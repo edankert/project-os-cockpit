@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0676
 aliases: ["TASK-0676"]
 title: "FEAT-0157's promises are proved with tests that fail when their guard is removed, the register and RISK-0004 are current, the change note is written, and TST-0097 is ready to walk"
-status: backlog
+status: doing
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-14

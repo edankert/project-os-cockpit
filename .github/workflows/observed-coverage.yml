@@ -72,7 +72,7 @@ jobs:
       # Neither command needs a login.
       - name: Validate and test the Claude Code plugin on the version it declares
         run: |
-          npm install -g @anthropic-ai/claude-code@2.1.299
+          npm install -g @anthropic-ai/claude-code@2.1.300
           claude plugin validate desktop/plugin/claude-code
           claude plugin test desktop/plugin/claude-code
       # The steps above supply the full history, the template repo and the built

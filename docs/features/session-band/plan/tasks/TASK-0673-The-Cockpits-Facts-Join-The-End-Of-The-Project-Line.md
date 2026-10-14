@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0673
 aliases: ["TASK-0673"]
 title: "In a cockpit terminal, the project line above the Claude prompt ends with what needs the person here, what needs them in the other projects when that is above zero, and an Open in cockpit button"
-status: backlog
+status: done
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-14
@@ -26,16 +26,27 @@ After this task, a Claude session in a cockpit terminal shows the cockpit's fact
 
 ## Definition of Done
 
-- [ ] `register.ts` hooks `ui.render` on `AbovePrompt` under the contract's rules: `next(e)` first; pass a survey through; build a row Box keyed `segment:cockpit`; if the tree beneath has an element keyed `project-os:line`, append the segment as its last child and return the tree; otherwise return the segment alone.
-- [ ] The facts are read in the background, never while drawing: `GET /api/cockpit/line` through `sidecarCall`, and `needs-elsewhere.json` through `$.fs.read` from `$COCKPIT_INSTRUMENT_DIR`. Every 10 seconds and after each `turn.complete`. `$.ui.invalidate("ui.render")` only when the segment's text changes.
-- [ ] The text follows plan/PLAN.md exactly: this project's count only when above zero; the other projects' sum only when above zero, from known counts under 24 hours old, in a file written within 2 minutes, with a plus when any project is unknown or too old; the button whenever the line route answered.
-- [ ] Nothing is drawn when `COCKPIT_NO_INSTRUMENT` is set or no sidecar address is known.
-- [ ] `claude plugin test` cases: joined to a fake `project-os:line` when the plugin is outer; returned alone when nothing is beneath; survey passes through; zero here draws no count; a stale file draws no other-projects count; an unknown project adds the plus; a failed line route draws no count and no button.
-- [ ] Seen live in a cockpit terminal with the project-os mod loaded (after project-os-dev TASK-0203, or with the template's plugin folder on `CLAUDE_CODE_PLUGIN_DIRS`).
-- [ ] Capability register: `shell.agents.claude-plugin` gains a dated line; `shell.agents.project-line` is new.
+- [x] `register.ts` hooks `ui.render` on `AbovePrompt` under the contract's rules: `next(e)` first; pass a survey through; build a row Box keyed `segment:cockpit`; if the tree beneath has an element keyed `project-os:line`, append the segment as its last child and return the tree; otherwise return the segment alone.
+- [x] The facts are read in the background, never while drawing: `GET /api/cockpit/line` through `sidecarCall`, and `needs-elsewhere.json` through `$.fs.read` from `$COCKPIT_INSTRUMENT_DIR`. Every 10 seconds and after each `turn.complete`. `$.ui.invalidate("ui.render")` only when the segment's text changes.
+- [x] The text follows plan/PLAN.md exactly: this project's count only when above zero; the other projects' sum only when above zero, from known counts under 24 hours old, in a file written within 2 minutes, with a plus when any project is unknown or too old; the button whenever the line route answered.
+- [x] Nothing is drawn when `COCKPIT_NO_INSTRUMENT` is set or no sidecar address is known.
+- [x] `claude plugin test` cases: joined to a fake `project-os:line` when the plugin is outer; returned alone when nothing is beneath; survey passes through; zero here draws no count; a stale file draws no other-projects count; an unknown project adds the plus; a failed line route draws no count and no button.
+- [x] Seen live in a cockpit terminal with the project-os mod loaded (after project-os-dev TASK-0203, or with the template's plugin folder on `CLAUDE_CODE_PLUGIN_DIRS`).
+- [x] Capability register: `shell.agents.claude-plugin` gains a dated line; `shell.agents.project-line` is new.
 
 ## Steps
 
-- [ ] The background readers and their cache.
-- [ ] The render hook and the join.
-- [ ] Tests, live look, register.
+- [x] The background readers and their cache.
+- [x] The render hook and the join.
+- [x] Tests, live look, register.
+
+## Result (2026-10-14)
+
+Live check, Claude Code 2.1.300, in this repository: a session with the project-os plugin from the repo, the cockpit plugin on `CLAUDE_CODE_PLUGIN_DIRS`, and an instrument folder of its own. Its `hook-env` named a sidecar running this code on a temporary worktree, so the running app's sidecar and `.cockpit/url` were untouched. Its `needs-elsewhere.json` was written by the shell's built `needs-count.js` and `needs-elsewhere-file.js` from the other projects' live sidecars. The band read, as one line: `TASK-0675 doing · PHASE-046 · 0 validator errors · 11 review-stale · route: implement here · 6 need you · 340+ in other projects [ Open in cockpit ]`. The 340 was too high because the hand-made folder counted several instrument folders whose `hook-env` pointed at the same sidecar; the shell counts from its list of workspaces instead.
+
+Two things the live look changed:
+
+- **A Button must carry an `onPress`.** Without one, Claude Code skips the whole drawing ("returned a Button without an onPress function"). The button carries an empty one; the press is answered by the `ui.press` hook, by key, without `next()`, so the empty one never runs. The test world caught this before the live look did.
+- **With a pane docked, both halves of the line were cut** (`11 review… · 6 need you · 340…`), against the contract's rule that project-os's facts come first. The segment's Box now has `flexShrink: 1000`, so it gives way first: the same band then read `… route: implement here[ Open in`, with project-os's facts whole.
+
+Tests: `tests/line.test.ts`, nine cases for the segment's facts and its drawing (joined to a fake `project-os:line`, drawn alone, a survey passed through, a failed route drawing no count and no button, zero here, a stale file, the plus). Removing the join, or the two-minute freshness check, each turns one red. The plugin's existing 44 cases pass unchanged. `plugin.json` and the CI step now say Claude Code 2.1.300.

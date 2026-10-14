@@ -1,5 +1,5 @@
 {
   "name": "project-os-cockpit",
   "version": "0.1.0",
-  "description": "Reports a Claude Code session started in a project-os cockpit terminal to that workspace's cockpit sidecar (FEAT-0156). Tested on Claude Code 2.1.299."
+  "description": "Connects a Claude Code session started in a project-os cockpit terminal to that workspace's cockpit: reports it (FEAT-0156), submits dispatched prompts (FEAT-0158), offers permission prompts (FEAT-0159), and adds the cockpit's facts and an Open in cockpit button to the project line, with /cockpit-needs and /cockpit-release (FEAT-0157). Tested on Claude Code 2.1.300."
 }

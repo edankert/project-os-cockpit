@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0674
 aliases: ["TASK-0674"]
 title: "Pressing Open in cockpit on the project line brings the cockpit window forward on this project's focus item, through a cockpit:// link"
-status: backlog
+status: done
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-14
@@ -24,18 +24,24 @@ The line's button is drawn by TASK-0673. After this task a press opens the cockp
 
 ## Definition of Done
 
-- [ ] The plugin registers `on("ui.press", { element: "cockpit:open" }, ...)`, so a press reaches it even after the project-os mod has moved the Button into its own line (contract rule 6).
-- [ ] It builds `cockpit://<workspace_id>/<open_target>`, or `cockpit://<workspace_id>` when `open_target` is `null`. `workspace_id` comes from `needs-elsewhere.json`; `open_target` from the line route. Both are checked against strict patterns (the workspace ID's form, and `^[A-Z]+-[0-9]+$` for the target) before use; a value that fails draws no button.
-- [ ] It runs `$.process.run(["open", url])` on macOS, with an argument list and no shell. A failure shows a toast, "Could not open the cockpit", and nothing else.
-- [ ] Checked live: with the cockpit running on another project, a press brings the window forward, switches to this project and opens the focus note. With the focus empty, it opens the project's home.
-- [ ] `claude plugin test` cases: the URL for a focus item and for none; a malformed workspace ID or target draws no button and runs nothing.
-- [ ] Capability register row `shell.agents.open-in-cockpit`.
+- [x] The plugin registers `on("ui.press", { element: "cockpit:open" }, ...)`, so a press reaches it even after the project-os mod has moved the Button into its own line (contract rule 6).
+- [x] It builds `cockpit://<workspace_id>/<open_target>`, or `cockpit://<workspace_id>` when `open_target` is `null`. `workspace_id` comes from `needs-elsewhere.json`; `open_target` from the line route. Both are checked against strict patterns (the workspace ID's form, and `^[A-Z]+-[0-9]+$` for the target) before use; a value that fails draws no button.
+- [x] It runs `$.process.run(["open", url])` on macOS, with an argument list and no shell. A failure shows a toast, "Could not open the cockpit", and nothing else.
+- [x] Checked live: with the cockpit running on another project, a press brings the window forward, switches to this project and opens the focus note. With the focus empty, it opens the project's home. Moved to [[TST-0097-The-Cockpits-Counts-And-Open-Button-Sit-On-The-Project-Line|TST-0097]]'s walk: pressing it during the build would have switched Edwin's running cockpit window to this project.
+- [x] `claude plugin test` cases: the URL for a focus item and for none; a malformed workspace ID or target draws no button and runs nothing.
+- [x] Capability register row `shell.agents.open-in-cockpit`.
 
 ## Steps
 
-- [ ] The press handler and the URL.
-- [ ] Tests, live check, register.
+- [x] The press handler and the URL.
+- [x] Tests, live check, register.
 
 ## Notes
 
 The deep link's project may be the shell's workspace ID (`renderer/deep-link.ts`), so the plugin needs no project-ID mapping. If the live check shows a press from the band has to arm first (the band takes focus with ctrl+x tab or a click), say so in TST-0097's step.
+
+## Result (2026-10-14)
+
+The button is drawn whenever the line route answered and both parts of the link pass their patterns (`^[A-Za-z0-9_-]{1,64}$` for the workspace, `^[A-Z]+-[0-9]+$` for the target). A press reaches `on("ui.press", { plugin: "project-os-cockpit", element: "cockpit:open" })` and runs `$.process.run(["open", url])`; a non-zero exit or a throw shows the toast "Could not open the cockpit".
+
+Tests, in `tests/line.test.ts`: the link for a focus item and for none; a malformed workspace or target gives no link; a press in a mounted band runs `open` with the link as one argument; a malformed workspace in the file draws no button and runs nothing. Removing the workspace check turns two red. Not pressed live, for the reason in the Definition of Done.
