@@ -78,6 +78,8 @@ PLUGIN_MARK = "_cockpit_plugin"
 #   held       nothing will submit it: no plugin claims the session yet, or
 #              the session ended (``reason`` says which)
 #   waiting    the plugin will submit it once the session is idle
+#              (``waiting_for: "you"`` while the person has stopped the
+#              session with Esc: it follows their next message, TASK-0659)
 #   sending    the plugin called ``$.prompt.submit``; the turn has not started
 #   cancelling unused: a prompt being submitted cannot be withdrawn, because a
 #              plugin's own `prompt.submit` hook never sees its own
@@ -463,6 +465,7 @@ class AgentSessionTracker:
                 # this stamp are "in flight for the current prompt".
                 sess["prompt_started"] = ts
                 sess.pop("interrupted", None)
+                self._mark_waiting_for_person_locked(sid, False, ts)
                 state = "busy"
             elif event in ("PreToolUse", "PostToolUse"):
                 tool = body.get("tool_name")
@@ -510,13 +513,16 @@ class AgentSessionTracker:
                     else "needs permission"
                 )
                 state = "needs-input"
-            elif event == "Interrupt" and agent == "codex":
+            elif event == "Interrupt":
                 # Cancellation requires a new user decision. Using waiting
                 # would immediately release queued prompts after the user
-                # deliberately stopped the agent.
+                # deliberately stopped the agent. Codex sends this itself;
+                # for Claude the cockpit plugin sends it, because Claude Code
+                # fires no Stop for a turn stopped with Esc (TASK-0659).
                 state = "needs-input"
                 sess["interrupted"] = True
                 message = "interrupted — waiting for your input"
+                self._mark_waiting_for_person_locked(sid, True, ts)
             elif event == "Notification":
                 ntype = body.get("notification_type")
                 raw_msg = body.get("message")
@@ -595,7 +601,7 @@ class AgentSessionTracker:
 
             # Background tools can finish after Escape. Hold the interruption
             # until a new prompt or session exit, including a late Stop event.
-            if agent == "codex" and sess.get("interrupted") and event != "SessionEnd":
+            if sess.get("interrupted") and event != "SessionEnd":
                 state = "needs-input"
                 message = "interrupted — waiting for your input"
             self._refresh_undocumented_locked(sess)
@@ -671,6 +677,23 @@ class AgentSessionTracker:
                 d["updated"] = ts
                 self._delivery_changes.append(dict(d))
 
+    def _mark_waiting_for_person_locked(self, sid: str, on: bool, ts: str) -> None:
+        """Mark, or unmark, the prompts waiting for a session the person
+        stopped with Esc. Claude Code takes no plugin prompt until the person
+        sends input, so the plugin holds them; the mark lets the queue list
+        say so instead of "waiting for Claude" (TASK-0659)."""
+        for d in self._deliveries:
+            if d.get("session_id") != sid or d.get("state") != "waiting":
+                continue
+            if on == (d.get("waiting_for") == "you"):
+                continue
+            if on:
+                d["waiting_for"] = "you"
+            else:
+                d.pop("waiting_for", None)
+            d["updated"] = ts
+            self._delivery_changes.append(dict(d))
+
     def _prune_deliveries_locked(self) -> None:
         finished = [d for d in self._deliveries if d.get("state") in DELIVERY_FINISHED]
         drop = {id(d) for d in finished[:-DELIVERIES_KEEP_FINISHED]} if len(finished) > DELIVERIES_KEEP_FINISHED else set()
@@ -720,6 +743,8 @@ class AgentSessionTracker:
                 rec["state"], rec["reason"] = "held", DELIVERY_REASON_ENDED
             elif sess is not None and sess.get("plugin_claimed"):
                 rec["state"] = "waiting"
+                if sess.get("interrupted"):
+                    rec["waiting_for"] = "you"
             else:
                 rec["state"], rec["reason"] = "held", DELIVERY_REASON_UNCLAIMED
             self._deliveries.append(rec)

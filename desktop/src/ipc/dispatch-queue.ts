@@ -58,6 +58,8 @@ export interface Delivery {
   session_id: string;
   state: string;
   reason?: string;
+  /** `you` while the person has stopped the session with Esc (TASK-0659). */
+  waiting_for?: string;
 }
 
 const QUEUE_MAX = 20;

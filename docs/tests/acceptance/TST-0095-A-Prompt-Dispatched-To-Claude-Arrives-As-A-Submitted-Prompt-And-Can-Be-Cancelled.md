@@ -59,7 +59,7 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 
 - In step 2 the prompt box never fills with the prompt character by character. The prompt appears in the transcript as a message, under a line Claude Code draws, "Prompt from the project-os-cockpit plugin", and Claude starts on it. Claude reads it as your words: its answer does not mention a plugin sending a message.
 - In step 3 the newest dispatch names this session, and its time is when Claude started the turn, not earlier.
-- In step 4 the row says "Waiting for Claude to finish its turn". Nothing is typed into the terminal.
+- In step 4 the row says "Waiting for Claude to finish its turn". Nothing is typed into the terminal. If you press Esc while it waits, the session shows "interrupted — waiting for your input", and the row says "Waiting for you: Claude was stopped, so this follows your next message to it". Type anything; when that turn ends, the prompt starts (TASK-0658, TASK-0659).
 - In step 5 the waiting prompt starts as soon as Claude finishes, the row leaves the list, and the status line says "Delivered".
 - In step 6 the row disappears when cancelled, and the status line says "Cancelled".
 - In step 7 the cancelled prompt never appears in the session.
@@ -74,6 +74,13 @@ Edwin ran it in project-os-deck after the application was rebuilt and restarted 
 - Steps 1 and 2 passed. Implement on TASK-0084 at 14:44:46.76 UTC; the plugin submitted it and the turn started at 14:44:47.64. The prompt appeared under "Prompt from the project-os-cockpit plugin", and Claude worked on it as its own request.
 - Step 3 passed (Edwin: "yep"). The ledger entry is on session `94462501`, timed 14:44:47.636, `delivered_by: submit`, with the turn's ID.
 - Step 4 waited as it should: the second Implement, at 14:48:06, was held as `waiting`. Then Edwin pressed Esc, on the agent's suggestion. The plugin submitted the waiting prompt at 14:49:03, and Claude Code refused it ("the session was stopped and nobody has sent input since"), so it was recorded as `dropped`. That is a defect, fixed by [[TASK-0658-A-Waiting-Prompt-Survives-The-Person-Pressing-Esc]]. Steps 4 and 5 are to be run again in a session started after that fix.
+
+Second session, after the fix: Claude session `864823b6`, started 14:54:58 UTC, in project-os-deck. The fix was committed at 14:50.
+
+- Steps 1 to 3 passed again (Edwin: "I have done steps 3/4"). Implement on TASK-0084 at 14:55:14.56 UTC. The ledger entry is on session `864823b6`, timed 14:55:14.598, `delivered_by: submit`, delivery `d562989c0091`, with the turn's ID.
+- Step 4 passed. Edwin pressed Implement again at 14:55:21.52, while Claude was working on the first prompt. The sidecar holds it as delivery `3582b92ac54c`, state `waiting`, and the session is `busy`. This time the long question was the first dispatched prompt itself, not a separate one.
+- Step 5 did not run as written, because the running turn was stopped. Claude's transcript records `[Request interrupted by user]` at 14:55:28.95, seven seconds after the second Implement. The shell sends no Esc to a Claude session, so the stop came from the keyboard. From then on the plugin held the waiting prompt, as TASK-0658 makes it do. At 14:58:47 it was still `waiting`, and Edwin reported it as "stalled". Two things on screen were wrong while it was held. The row still said "Waiting for Claude to finish its turn", though Claude was waiting for Edwin. The sidecar still showed the session as `busy`, because Claude Code fires no `Stop` hook for a turn stopped with Esc.
+- Step 5 then passed, through the path TASK-0658 added. Edwin typed "stop here, don't continue" at 15:02:10.37. When that turn ended, the plugin submitted the held prompt, and its turn started at 15:02:18.02. The ledger entry is on session `864823b6`, timed 15:02:18.056, `delivered_by: submit`, delivery `3582b92ac54c`. The queue was empty afterwards. Edwin: "it went through after I typed something". The two wrong things on screen are fixed by [[TASK-0659-A-Prompt-Held-After-Esc-Says-Claude-Is-Waiting-For-You]]; seeing them needs a session started after that fix and the window reloaded.
 
 ## Not this check
 

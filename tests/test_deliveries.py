@@ -335,3 +335,37 @@ def test_the_cancel_route(tmp_path: Path):
         assert published == ["waiting", "cancelled", "waiting", "sending"], "a refused cancel publishes nothing"
     finally:
         httpd.shutdown()
+
+
+def test_a_claude_session_stopped_with_esc_waits_for_the_person(tmp_path: Path):
+    """TASK-0659: Claude Code fires no Stop for a turn stopped with Esc, so the
+    plugin sends ``Interrupt``. The session then waits for the person, and so
+    does every prompt waiting for it, until the person's next prompt."""
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    first, _ = tracker.add_delivery(_item("one"), "s-a")
+    tracker.add_delivery(_item("other session"), "s-b")
+    tracker.take_delivery_changes()
+
+    def send(event: str, **fields) -> dict:
+        return tracker.ingest({"hook_event_name": event, "session_id": "s-a",
+                               "agent": "claude", "_cockpit_plugin": True, **fields})
+
+    assert send("UserPromptSubmit", prompt="long work")["state"] == "busy"
+    out = send("Interrupt")
+    assert (out["state"], out["message"]) == ("needs-input", "interrupted — waiting for your input")
+    [marked] = tracker.list_deliveries("s-a")
+    assert (marked["did"], marked["state"], marked["waiting_for"]) == (first["did"], "waiting", "you")
+    assert [c["did"] for c in tracker.take_delivery_changes()] == [first["did"]], "published once"
+    assert "waiting_for" not in tracker.list_deliveries("s-b")[0], "another session's prompt is untouched"
+
+    # A prompt dispatched while it is stopped starts marked; a late tool event
+    # does not make the session look busy again.
+    late, _ = tracker.add_delivery(_item("two"), "s-a")
+    assert late["waiting_for"] == "you"
+    assert send("PostToolUse", tool_name="Read")["state"] == "needs-input"
+
+    # The person's next prompt ends the wait, and the marks go with it.
+    assert send("UserPromptSubmit", prompt="continue")["state"] == "busy"
+    assert all("waiting_for" not in d for d in tracker.list_deliveries("s-a"))
+    assert sorted(c["prompt"] for c in tracker.take_delivery_changes()) == ["one", "two"]

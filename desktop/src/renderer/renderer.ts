@@ -67,6 +67,9 @@ interface AgentStatePayload {
 interface Delivery {
   did: string; id: string; verb?: string; prompt: string;
   session_id: string; state: string; reason?: string;
+  /** `you` while the person has stopped the session with Esc: Claude takes
+   *  no plugin prompt until they send it something (TASK-0659). */
+  waiting_for?: string;
 }
 
 interface QueuedDispatch {
@@ -17475,7 +17478,9 @@ const deliveryNotDelivered = (d: Delivery): boolean => d.state === 'held' || d.s
 function deliveryRowText(d: Delivery): string {
   switch (d.state) {
     case 'held': return `Not delivered: ${d.reason ?? 'nothing will submit it'}`;
-    case 'waiting': return 'Waiting for Claude to finish its turn';
+    case 'waiting': return d.waiting_for === 'you'
+      ? 'Waiting for you: Claude was stopped, so this follows your next message to it'
+      : 'Waiting for Claude to finish its turn';
     case 'sending': return 'Sending';
     case 'cancelling': return 'Cancelling';
     case 'dropped': return `Not delivered: ${d.reason ?? 'the session refused it'}`;

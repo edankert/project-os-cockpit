@@ -225,6 +225,17 @@ async function deliverOne($: EngineInterface, st: DeliveryState): Promise<void> 
   }
 }
 
+/** Tell the sidecar the person stopped the turn: the `Interrupt` event a
+ *  Codex session already sends. The session then shows as waiting for the
+ *  person until their next prompt. */
+async function reportInterrupt($: EngineInterface): Promise<void> {
+  try {
+    await post($, { hook_event_name: 'Interrupt', session_id: await $.session.id(), cwd: await $.session.cwd() })
+  } catch {
+    // No session id: nothing to say it about.
+  }
+}
+
 /** Starts the poll once. A plugin reloaded mid-session hears no
  *  session.start, so the end of a main-loop turn starts it too. */
 function ensurePoll($: EngineInterface, st: DeliveryState): void {
@@ -259,7 +270,12 @@ export const register: Register = on => {
   on('turn.complete', ($, e, next) => {
     if (e.agentId === undefined) {
       st.mainTurnRunning = false
-      if (e.isAborted) st.interrupted = true
+      if (e.isAborted) {
+        st.interrupted = true
+        // Claude Code fires no Stop hook for a turn stopped with Esc, so
+        // without this the cockpit shows the session busy (TASK-0659).
+        void reportInterrupt($)
+      }
       ensurePoll($, st)
     }
     return next(e)

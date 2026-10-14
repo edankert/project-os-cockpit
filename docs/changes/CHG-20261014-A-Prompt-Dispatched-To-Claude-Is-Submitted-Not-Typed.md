@@ -6,10 +6,10 @@ status: merged
 owner: user:edwin
 created: 2026-10-14
 updated: 2026-10-14
-source: ["[[TASK-0654-The-Sidecar-Keeps-A-List-Of-Prompts-Addressed-To-A-Claude-Session]]", "[[TASK-0655-The-Plugin-Submits-A-Waiting-Prompt-And-Confirms-When-Its-Turn-Starts]]", "[[TASK-0656-The-Shell-Sends-A-Claude-Dispatch-To-The-Sidecar-And-Types-Nothing]]", "[[TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts]]"]
+source: ["[[TASK-0654-The-Sidecar-Keeps-A-List-Of-Prompts-Addressed-To-A-Claude-Session]]", "[[TASK-0655-The-Plugin-Submits-A-Waiting-Prompt-And-Confirms-When-Its-Turn-Starts]]", "[[TASK-0656-The-Shell-Sends-A-Claude-Dispatch-To-The-Sidecar-And-Types-Nothing]]", "[[TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts]]", "[[TASK-0658-A-Waiting-Prompt-Survives-The-Person-Pressing-Esc]]", "[[TASK-0659-A-Prompt-Held-After-Esc-Says-Claude-Is-Waiting-For-You]]"]
 commit: ""
 pr: ""
-impacts: ["src/project_os_cockpit/agent_hooks.py", "src/project_os_cockpit/server.py", "desktop/plugin/claude-code/hooks/register.ts", "desktop/plugin/claude-code/tests/delivery.test.ts", "desktop/src/ipc/dispatch-queue.ts", "desktop/src/ipc/agents-fleet.ts", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/renderer.css", "desktop/tests/submitted-dispatch.test.mjs", "tests/test_deliveries.py", "tests/test_remote_peer_refusal.py", "docs/reference/cockpit-capability-register.md"]
+impacts: ["src/project_os_cockpit/agent_hooks.py", "src/project_os_cockpit/server.py", "desktop/plugin/claude-code/hooks/register.ts", "desktop/plugin/claude-code/tests/delivery.test.ts", "desktop/src/ipc/dispatch-queue.ts", "desktop/src/ipc/agents-fleet.ts", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/renderer.css", "desktop/tests/submitted-dispatch.test.mjs", "desktop/tests/delivery-row.test.mjs", "tests/test_deliveries.py", "tests/test_remote_peer_refusal.py", "docs/reference/cockpit-capability-register.md"]
 platforms: [macos]
 issues: []
 features: ["[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"]
@@ -33,6 +33,7 @@ Codex sessions, and terminals with no running agent, work as before.
 
 - **The prompt box no longer fills up by itself.** The prompt appears in the transcript under a line Claude Code draws, "Prompt from the project-os-cockpit plugin". Claude reads it as your own words.
 - **A dispatch while Claude is busy waits in the cockpit, not in the terminal.** The `queued` chip counts it, and its row in the queue list says "Waiting for Claude to finish its turn". When the turn ends, the prompt starts, the row leaves the list, and the status line says "Delivered".
+- **A prompt waiting when you press Esc follows your next message.** After Esc, Claude Code takes no prompt from a plugin until you send it something, so the plugin holds the prompt until your own next turn has ended. Meanwhile its row says "Waiting for you: Claude was stopped, so this follows your next message to it". The session shows "interrupted — waiting for your input" instead of busy, as a Codex session already did (TASK-0658, TASK-0659).
 - **Each waiting row has a `×` that cancels it.** The status line says "Cancelled". "Clear all" cancels them all.
 - **A prompt nothing will submit is shown, not hidden.** One example is a Claude session started with the kill switch on. The chip turns amber and says `1 not delivered`, and the row says why. Its `×` removes it.
 - **The note's dispatch history** shows the time Claude started the turn, or "cancelled" with the time.
