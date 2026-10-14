@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0672
 aliases: ["TASK-0672"]
 title: "GET /api/cockpit/line answers, in one loopback request, this project's needs-you total with its kinds and the note the Open in cockpit button should open"
-status: backlog
+status: done
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-14
@@ -24,14 +24,18 @@ The plugin could piece the line together from the obligations route and the snap
 
 ## Definition of Done
 
-- [ ] `GET /api/cockpit/line` in `server.py`, loopback only, returning the shape plan/PLAN.md gives: `schema_version`, `needs_you.total`, `needs_you.kinds` (kind, count, verb, noun), and `open_target`.
-- [ ] `needs_you.total` comes from `obligations.badges_payload` and equals its `total` for the same index. `kinds` sums the breakdown across views, with the verb and noun from the same payload, singular or plural by count.
-- [ ] `open_target` is `focus.task`, else `focus.issue`, else `focus.feature`, else `focus.phase`, else `null`, read the way the sidecar already reads the snapshot.
-- [ ] A failure while computing returns 500 with an error, never a zero count.
-- [ ] Python tests that fail when: the total differs from `/api/cockpit/obligations`'s; a non-loopback request is answered; an empty focus gives anything but `null`; a computing error returns 200.
-- [ ] Capability register row `api.read.line`.
+- [x] `GET /api/cockpit/line` in `server.py`, loopback only, returning the shape plan/PLAN.md gives: `schema_version`, `needs_you.total`, `needs_you.kinds` (kind, count, verb, noun), and `open_target`.
+- [x] `needs_you.total` comes from `obligations.badges_payload` and equals its `total` for the same index. `kinds` sums the breakdown across views, with the verb and noun from the same payload, singular or plural by count.
+- [x] `open_target` is `focus.task`, else `focus.issue`, else `focus.feature`, else `focus.phase`, else `null`, read the way the sidecar already reads the snapshot.
+- [x] A failure while computing returns 500 with an error, never a zero count.
+- [x] Python tests that fail when: the total differs from `/api/cockpit/obligations`'s; a non-loopback request is answered; an empty focus gives anything but `null`; a computing error returns 200.
+- [x] Capability register row `api.read.line`.
 
 ## Steps
 
-- [ ] The route and its function.
-- [ ] Tests and register row.
+- [x] The route and its function.
+- [x] Tests and register row.
+
+## Result (2026-10-14)
+
+`GET /api/cockpit/line` in `server.py`, with `cockpit.line_payload` beside `focus_block`, which it uses for the target. `kinds` lists only kinds with a count above zero, largest first. `tests/test_line_route.py` has four tests, one per promise in the Definition of Done; removing the loopback guard, or answering a failure with a zero, each turns one red. The running sidecar does not serve the route until it restarts on this code.

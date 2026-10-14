@@ -954,6 +954,22 @@ def _make_handler(
                 self._respond_json(_obligations.badges_payload(index))
                 return
 
+            # The cockpit's half of the project line above the Claude prompt
+            # (FEAT-0157 / TASK-0672). Loopback-only like every route the
+            # plugin calls; a failure is a 500, never a zero, because the line
+            # leaves out a number it could not read.
+            if path == "/api/cockpit/line":
+                if not self._require_loopback("line reads"):
+                    return
+                try:
+                    payload = cockpit.line_payload(index)
+                except Exception as exc:  # noqa: BLE001 -- any failure is "not read"
+                    self._respond_json({"ok": False, "error": "line not computed: %s" % exc},
+                                       status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                    return
+                self._respond_json(payload)
+                return
+
             # What one view owes, with the rows (FEAT-0092 / TASK-0387). The
             # badge's own numbers, plus what they count — the pairing the
             # badge could not make on its own.

@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0671
 aliases: ["TASK-0671"]
 title: "The shell keeps a small file in each project's instrument folder saying what needs the person in every other project, counted by the same code as the home window"
-status: backlog
+status: doing
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-14
