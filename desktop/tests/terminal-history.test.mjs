@@ -57,7 +57,7 @@ async function terminalHarness() {
     if (name === 'node-pty') return {
       spawn: () => ({ onData() {}, onExit(cb) { ptyExit = cb; }, write() {}, resize() {}, kill() {} }),
     };
-    if (name === './agent-instrument') return { ensureInstrumentation: () => null };
+    if (name === './agent-instrument') return { ensureInstrumentation: () => null, claudePluginDir: () => undefined };
     throw new Error(`Unexpected import: ${name}`);
   };
   const module = { exports: {} };

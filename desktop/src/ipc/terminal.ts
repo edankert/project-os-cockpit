@@ -30,7 +30,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import * as pty from 'node-pty';
 
-import { ensureInstrumentation } from './agent-instrument';
+import { claudePluginDir, ensureInstrumentation } from './agent-instrument';
 
 const BACKLOG_MAX_BYTES = 256 * 1024;  // 256 KB scrollback per workspace
 
@@ -104,6 +104,106 @@ function ensureTmuxConf(): string {
   return conf;
 }
 
+// ---- inherited environment (ISS-0319 / TASK-0652) ----
+//
+// The app may itself be started from a Claude session in a cockpit
+// terminal. Its environment then carries that session's identity and that
+// terminal's instrumentation, and a tmux server started by it copies them
+// into its global environment and hands them to every session it creates
+// afterwards, for as long as the server lives. Every Claude started in a
+// cockpit terminal was then told it was the other session's child, and
+// with COCKPIT_NO_INSTRUMENT=1 a new terminal still loaded another
+// workspace's generated .zshrc, plugin included.
+
+/** What Claude Code sets for its own child processes (observed on
+ * 2.1.292: a session started from a clean shell passed exactly these). */
+const CLAUDE_SESSION_VARIABLES = new Set([
+  'CLAUDECODE',
+  'CLAUDE_PID',
+  'CLAUDE_EFFORT',
+  'CLAUDE_CODE_ENTRYPOINT',
+  'CLAUDE_CODE_CHILD_SESSION',
+  'CLAUDE_CODE_SESSION_ID',
+  'CLAUDE_CODE_SESSION_ATTENDED',
+  'CLAUDE_CODE_EXECPATH',
+  'CLAUDE_CODE_MAX_OUTPUT_TOKENS',
+  'CLAUDE_CODE_MESSAGING_SOCKET',
+  'CLAUDE_CODE_MESSAGING_TOKEN',
+  'AI_AGENT',
+]);
+
+/**
+ * What an inherited variable should become in a new terminal: `undefined`
+ * to drop it, otherwise the value to keep. Drops a Claude session's
+ * variables, tmux's own, and instrumentation that points into the
+ * cockpit's instrument folder; removes only the cockpit plugin from
+ * CLAUDE_CODE_PLUGIN_DIRS, keeping the person's own entries.
+ */
+export function inheritedValue(
+  name: string,
+  value: string,
+  instrumentRoot: string,
+  pluginDir: string | undefined,
+): string | undefined {
+  if (CLAUDE_SESSION_VARIABLES.has(name)) return undefined;
+  if (name === 'TMUX' || name === 'TMUX_PANE') return undefined;
+  if ((name === 'ZDOTDIR' || name === 'COCKPIT_INSTRUMENT_DIR')
+    && (value === instrumentRoot || value.startsWith(instrumentRoot + path.sep))) return undefined;
+  if (name === 'CLAUDE_CODE_PLUGIN_DIRS' && pluginDir) {
+    const kept = value.split(':').filter((entry) => entry && entry !== pluginDir);
+    return kept.length > 0 ? kept.join(':') : undefined;
+  }
+  return value;
+}
+
+function instrumentRoot(): string {
+  return path.join(app.getPath('userData'), 'instrument');
+}
+
+/** The app's environment with another session's variables removed. */
+function cleanEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const root = instrumentRoot();
+  const plugin = claudePluginDir();
+  const out: Record<string, string> = {};
+  for (const [name, value] of Object.entries(env)) {
+    if (value === undefined) continue;
+    const kept = inheritedValue(name, value, root, plugin);
+    if (kept !== undefined) out[name] = kept;
+  }
+  return out;
+}
+
+/**
+ * Remove the same variables from a running tmux server's global
+ * environment. Only sessions created afterwards see the change; sessions
+ * already running keep what they started with. No server, no-op.
+ */
+function cleanTmuxServerEnv(tmux: string): void {
+  let listing: string;
+  try {
+    listing = execFileSync(tmux, ['-L', TMUX_SOCKET, 'show-environment', '-g'],
+      { encoding: 'utf-8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch {
+    return; // no server yet: the cleaned spawn env starts it clean
+  }
+  const root = instrumentRoot();
+  const plugin = claudePluginDir();
+  for (const line of listing.split('\n')) {
+    const eq = line.indexOf('=');
+    if (eq <= 0 || line.startsWith('-')) continue;
+    const name = line.slice(0, eq);
+    const value = line.slice(eq + 1);
+    const kept = inheritedValue(name, value, root, plugin);
+    if (kept === value) continue;
+    const args = kept === undefined
+      ? ['-L', TMUX_SOCKET, 'set-environment', '-g', '-u', name]
+      : ['-L', TMUX_SOCKET, 'set-environment', '-g', name, kept];
+    try {
+      execFileSync(tmux, args, { timeout: 3000, stdio: 'ignore' });
+    } catch { /* best effort: the session still gets -e overrides */ }
+  }
+}
+
 /** Resume hint (TASK-0145): fallback spawns only — if the workspace's
  * session index shows a recent session with no SessionEnd, the shell
  * it ran in died with us. Fan a display-only line to the renderer;
@@ -170,7 +270,7 @@ function spawnPty(window: BrowserWindow, opts: SpawnOpts): PtyRecord {
     ? ensureInstrumentation(opts.workspaceId)
     : null;
   const env = {
-    ...process.env,
+    ...cleanEnv(process.env),
     TERM: 'xterm-256color',
     ...(instrument ? instrument.env : {}),
   };
@@ -182,6 +282,7 @@ function spawnPty(window: BrowserWindow, opts: SpawnOpts): PtyRecord {
     // and COCKPIT_HOOK_URL flows through the hook-env file re-sourced
     // per event, so surviving sessions re-target the new sidecar port
     // after an app restart on their own.
+    cleanTmuxServerEnv(tmux);
     const args = [
       '-L', TMUX_SOCKET, '-f', ensureTmuxConf(),
       'new-session', '-A',

@@ -17,6 +17,7 @@ tasks:
   - "[[TASK-0649-The-Cockpit-Plugin-Posts-Every-Claude-Event-To-The-Sidecar]]"
   - "[[TASK-0650-The-Shell-Loads-The-Plugin-And-Stops-Generating-Claude-Files]]"
   - "[[TASK-0651-The-Sidecar-Prefers-The-Plugin-And-CI-Checks-It]]"
+  - "[[TASK-0652-A-New-Cockpit-Terminal-Starts-Without-Another-Sessions-Variables]]"
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]]"
