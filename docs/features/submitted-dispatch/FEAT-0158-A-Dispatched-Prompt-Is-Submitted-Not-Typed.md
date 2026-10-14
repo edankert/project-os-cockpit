@@ -51,20 +51,21 @@ The acceptance check is [[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Su
 
 ## State on 2026-10-14
 
-**Built; waiting for Edwin's acceptance run.** All six tasks are done. TASK-0658 and TASK-0659 came from TST-0095's runs: a prompt waiting when the person presses Esc is held until their next message, and the cockpit now says so. What changed is in [[CHG-20261014-A-Prompt-Dispatched-To-Claude-Is-Submitted-Not-Typed]]. The plugin's part was tried in a real interactive Claude session against a stand-in sidecar. The queue list and its buttons have not been seen in the running application. [[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Submitted-Prompt-And-Can-Be-Cancelled]] is Edwin's to run after `npm run build` in `desktop/` and a restart; the independent review comes after it.
+**Built and accepted; waiting for the independent review.** All eight tasks are done. TST-0095 passed all ten steps on 2026-10-14 (ledger: pass on macOS, Edwin). Running it produced four of the tasks: TASK-0658 and TASK-0659 (a prompt waiting when the person presses Esc is held until their next message, and the cockpit says so), TASK-0660 (a dispatch reads the terminal's foreground program before typing, so it never types a shell command into a running agent; fixes ISS-0322 and ISS-0321) and TASK-0661 (every project's Codex hooks run one command, so one trust in Codex covers them all). What changed is in [[CHG-20261014-A-Prompt-Dispatched-To-Claude-Is-Submitted-Not-Typed]].
 
 One finding changed the cancel design. A plugin's own `prompt.submit` hook never sees its own submission, so a prompt the plugin has handed to Claude cannot be withdrawn. Cancel works until the plugin claims the prompt; after that, the cockpit says it is too late. In the live run, that window was about 100 ms.
 
 ## Verification
 
-Full runs on 2026-10-14, after all four tasks:
+Full runs on 2026-10-14 at 3e8eab5, after all eight tasks:
 
-- `python3 -m pytest -q -p no:randomly`: 2166 passed, 11 skipped.
-- `node --test desktop/tests/*.test.mjs`, after `npm run build`: 202 passed.
+- `.venv/bin/python -m pytest -q -p no:randomly`: 2168 passed, 10 skipped.
+- `node --test desktop/tests/*.test.mjs`, after `npm run build`: 211 passed.
 - `npx tsc --noEmit` in `desktop/`: clean.
-- `command claude plugin test desktop/plugin/claude-code` with Claude Code 2.1.299 and an empty HOME: 20 passed.
+- `command claude plugin test desktop/plugin/claude-code` with Claude Code 2.1.299: 22 passed.
 - `command claude plugin validate desktop/plugin/claude-code`: passed with warnings.
 - `bash tools/scripts/validate-docs.sh`: OK.
+- [[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Submitted-Prompt-And-Can-Be-Cancelled]]: pass, all ten steps, Edwin, macOS.
 
 ## Decisions, 2026-10-14
 
@@ -79,7 +80,7 @@ Full runs on 2026-10-14, after all four tasks:
 3. The dispatch ledger records it as delivered only when the session's turn has started, on that session, with the turn's start time.
 4. A prompt dispatched while the session is busy is submitted after the running turn ends, and never during it.
 5. A prompt dispatched to a Claude session no plugin claims is held, shown as not delivered, and never typed.
-6. Codex sessions and the plain-shell branch receive exactly what they do today.
+6. Codex sessions and the plain-shell branch receive exactly what they do today. *Amended 2026-10-14 by TASK-0660 (Edwin: "yes, implement both parts"):* the cockpit reads the terminal's foreground program before typing. A shell receives `<agent> '<prompt>'` exactly as before; a running Codex receives the prompt pasted with a separate Return, as before, now also when it has not yet reported to the cockpit; anything else, including a Claude the cockpit cannot reach, is held and never typed into.
 7. The person can cancel a dispatch at any stage before its turn starts at which the plan says it can be withdrawn, and a cancelled prompt never starts a turn. A cancel that arrives after the turn started says so, with the time, and does not stop the turn.
 8. The new sidecar routes refuse a request that does not come from this machine or is not JSON.
 9. The fleet view's queue depth counts dispatches waiting in the sidecar as well as those in the shell's queue.
