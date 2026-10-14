@@ -30,14 +30,20 @@ Found in TST-0095 step 10 on 2026-10-14. Edwin started `codex` in a new project-
 - Codex's log has a `hooks/list` and a hooks `config/batchWrite` at 16:48:39–41, which is Codex's hook review.
 - `~/.codex/config.toml` has a trust entry for all ten session-flag hooks, keyed only by event (`/<session-flags>/config.toml:session_start:0:0`, …) with one hash each. Each project's hook command names that project's own instrument folder.
 
-## Possible causes, not confirmed
+## Cause, verified 2026-10-14
 
-1. Codex runs `SessionStart` only when the first turn starts, not when the TUI opens. Then a Codex session nobody has prompted is invisible to the cockpit whatever the trust state.
-2. A trust problem, below. All ten events have a trust entry; whether one covers another project's command is unknown.
+**Codex runs its `SessionStart` hook when the first turn starts, not when it opens.** In Codex 0.162.1 the only caller of `run_pending_session_start_hooks` is `run_turn` (`codex-rs/core/src/session/turn.rs`, lines 322 and 643, tag `rust-v0.162.1`). Nobody had prompted the deck Codex, so no hook had run, and the sidecar had no session. `routeFor` in `desktop/src/ipc/dispatch-queue.ts` treats "no session" as "a shell is waiting", so it typed `codex '<prompt>'` into Codex.
 
-Astra (Codex's model) is reviewing both on 2026-10-14.
+**The hooks were trusted, so trust is not the cause here.** Codex hashes a hook as sha256 over sorted, compact JSON of `{event_name, hooks: [{command, timeout, type}]}` (`codex-rs/hooks/src/engine/discovery.rs`, `hook_hash`; `codex-rs/config/src/fingerprint.rs`, `version_for_toml`). Reproduced here: all ten trusted hashes in `~/.codex/config.toml` match deck's commands (`instrument/1713681131ab04b9`), and no other project's. Astra found the same.
 
-If Codex's trust hash covers the command text, a trust given in one project does not match another project's command, and Codex skips the hooks there without reporting it. This has not been verified. Next step: start `codex` in a cockpit terminal in a project, and compare its hook review with the trusted hashes; or check whether `your-applications.com`, whose terminal also runs Codex, reports to its sidecar.
+**A second defect follows from that hash.** The trust entry is keyed by event alone, but each project's command names its own folder. So trusting Codex's hooks in one project marks them `Modified` in every other project, and Codex excludes them there until the person reviews them again. Right now Codex hooks are trusted only in project-os-deck.
+
+Found with Astra (`gpt-6-astra`, read-only `codex exec`), whose answer was checked against the Codex source above before it was written here.
+
+## Proposed fix (Astra's recommendation, not yet agreed with Edwin)
+
+1. Before typing a shell command, the shell asks tmux what is in the foreground of that project's terminal (`#{pane_current_command}`). It reads `codex` for Codex and Claude Code's version number, `2.1.299`, for Claude. Only a recognised shell gets a shell command. A running Codex gets the prompt pasted with a separate Return. Anything else is held and shown as not delivered. This is the same check ISS-0321 needs.
+2. Every project uses one identical Codex hook command. The forwarder finds the project's sidecar through `COCKPIT_INSTRUMENT_DIR`, which every cockpit terminal already has. One trust then covers every project. Files: `desktop/src/ipc/agent-instrument.ts`.
 
 ## Next Actions
 
@@ -52,4 +58,4 @@ In flight on 2026-10-14, about 17:05 local. Edwin: "look into ISS-0322 first you
 - Ruled out: the address file and the forwarder. `hook-env` names the right sidecar and the forwarder reads it on every call.
 - Not done, on purpose: no experiment that trusts a new hook command. The trust entries in `~/.codex/config.toml` are keyed by event alone, so trusting a scratch command could replace the cockpit's own trusted hash in Edwin's config.
 - Not done, on purpose: no test hook POSTed to the deck sidecar. It would put a made-up Codex session into Edwin's running cockpit.
-- Six guessed hash formats over each project's hook command matched none of the trusted hashes, so the hash input is unknown.
+- Six guessed hash formats matched nothing at first; the identity Codex really hashes was then read from its source and matched deck's ten commands.
