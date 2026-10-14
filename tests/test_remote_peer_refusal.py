@@ -234,7 +234,12 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
     #: `/api/design/capture` and `/api/notes/choose-variant`. A design's Accept
     #: and Decline now go through `/api/notes/decide`, which was already
     #: guarded and already knows a design's vocabulary.
-    assert (len(guarded), len(open_)) == (27, 5), (
+    #: **27 -> 31 on 2026-10-14**, deliberately: [[FEAT-0158]]'s delivery
+    #: routes, `/api/cockpit/deliveries` and its `claim`, `started` and
+    #: `dropped`. Each puts or moves a prompt on its way into a Claude
+    #: session ([[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]),
+    #: so each is loopback-only, and the sweep below drives all four.
+    assert (len(guarded), len(open_)) == (31, 5), (
         f"the dispatch split moved: {len(guarded)} guarded / {len(open_)} open. "
         "That is not automatically wrong — but it must be a deliberate edit here."
     )
@@ -306,7 +311,10 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
     #: 30 -> 34 on 2026-09-08, deliberately: [[FEAT-0145]]'s four release write
     #: handlers, one `_require_loopback` each.
     # 34 -> 29 with the design bench's five write paths (TASK-0615).
-    assert sites == 29, f"expected 29 guard call sites, found {sites}"
+    # 29 -> 34 on 2026-10-14, deliberately: [[FEAT-0158]]'s four delivery
+    # write handlers, and its delivery list, which is loopback-only because it
+    # returns prompt text.
+    assert sites == 34, f"expected 34 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:
@@ -469,3 +477,15 @@ def test_the_client_makes_exactly_one_post() -> None:
         "surface (ADR-0010) and every write belongs behind REQ-0034's "
         "authenticated path"
     )
+
+
+def test_the_delivery_list_refuses_a_remote_peer(remote_server) -> None:
+    """`GET /api/cockpit/deliveries` returns the text of prompts on their way
+    into a Claude session (FEAT-0158), so a tablet on the LAN may not read it."""
+    req = urllib.request.Request(f"{remote_server}/api/cockpit/deliveries", method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            status = resp.status
+    except urllib.error.HTTPError as exc:
+        status = exc.code
+    assert status == HTTPStatus.FORBIDDEN

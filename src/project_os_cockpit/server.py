@@ -761,6 +761,18 @@ def _make_handler(
             if path == "/api/cockpit/dispatch":
                 self._serve_cockpit_dispatch()
                 return
+            if path == "/api/cockpit/deliveries":
+                self._serve_delivery_add()
+                return
+            if path == "/api/cockpit/deliveries/claim":
+                self._serve_delivery_claim()
+                return
+            if path == "/api/cockpit/deliveries/started":
+                self._serve_delivery_started()
+                return
+            if path == "/api/cockpit/deliveries/dropped":
+                self._serve_delivery_dropped()
+                return
             if path == "/api/cockpit/review-request":
                 self._serve_review_request()
                 return
@@ -1301,6 +1313,9 @@ def _make_handler(
             if path == "/api/cockpit/dispatch-requests":
                 self._serve_dispatch_requests()
                 return
+            if path == "/api/cockpit/deliveries":
+                self._serve_deliveries_list(parsed.query)
+                return
 
             if path == "/api/render":
                 self._serve_render(parsed.query)
@@ -1806,6 +1821,10 @@ def _make_handler(
                 )
                 return
             outcome = tracker.ingest(body)
+            # A session the plugin just claimed, or one that ended, moves the
+            # prompts addressed to it (FEAT-0158).
+            for delivery in tracker.take_delivery_changes():
+                bus.publish(ControlEvent("cockpit:delivery", delivery))
             if not outcome.get("ok"):
                 self._respond_json(
                     {"ok": False, "error": outcome.get("error", "rejected")},
@@ -1863,6 +1882,88 @@ def _make_handler(
             if enqueue:
                 bus.publish(ControlEvent("cockpit:dispatch-request", rec))
             self._respond_json({"ok": True, "recorded": rec})
+
+        # ---- deliveries: a dispatched prompt for one Claude session (FEAT-0158) ----
+        #
+        # The shell adds a delivery; the cockpit plugin inside that session
+        # claims it, submits it with `$.prompt.submit` once the session is idle,
+        # and reports the turn's start. Every write is loopback-only: these
+        # routes put a prompt into a Claude session (RISK-0012). The delivery
+        # id travels in the body, so each route is a fixed path the write-guard
+        # test can enumerate.
+
+        def _serve_deliveries_list(self, query: str) -> None:
+            """``GET /api/cockpit/deliveries[?session=<id>]`` — unfinished
+            deliveries, oldest first. Loopback-only: they carry prompt text."""
+            if not self._require_loopback("deliveries"):
+                return
+            session = urllib.parse.parse_qs(query).get("session", [None])[0]
+            self._respond_json({
+                "schema_version": cockpit.SCHEMA_VERSION,
+                "deliveries": tracker.list_deliveries(session or None),
+            })
+
+        def _serve_delivery_add(self) -> None:
+            """``POST /api/cockpit/deliveries`` — body: the dispatch item
+            (``id``, ``prompt``, ``verb?``, ``rel?``, ``ts?``) and
+            ``session_id``. Starts ``waiting`` when the plugin speaks for the
+            session, ``held`` otherwise."""
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            delivery, error = tracker.add_delivery(body, body.get("session_id"))
+            if delivery is None:
+                self._respond_json({"ok": False, "error": error},
+                                   status=HTTPStatus.BAD_REQUEST)
+                return
+            bus.publish(ControlEvent("cockpit:delivery", delivery))
+            self._respond_json({"ok": True, "delivery": delivery})
+
+        def _serve_delivery_claim(self) -> None:
+            """``POST /api/cockpit/deliveries/claim`` ``{did}`` — the plugin
+            takes a waiting delivery to submit it. 409 when it is no longer
+            waiting, which is how a cancel that arrived first wins."""
+            if not self._require_loopback():
+                return
+            self._delivery_step("sending")
+
+        def _serve_delivery_started(self) -> None:
+            """``POST /api/cockpit/deliveries/started`` ``{did, turn_id?,
+            started_at?}`` — the session's turn started with this prompt. The
+            ledger is stamped now, on that session."""
+            if not self._require_loopback():
+                return
+            self._delivery_step("started")
+
+        def _serve_delivery_dropped(self) -> None:
+            """``POST /api/cockpit/deliveries/dropped`` ``{did, reason?}`` —
+            ``$.prompt.submit`` refused the prompt."""
+            if not self._require_loopback():
+                return
+            self._delivery_step("dropped")
+
+        def _delivery_step(self, to: str) -> None:
+            body = self._read_json_body()
+            if body is None:
+                return
+            turn_id = body.get("turn_id")
+            started_at = body.get("started_at")
+            reason = body.get("reason")
+            delivery, error = tracker.move_delivery(
+                body.get("did"), to,
+                turn_id=turn_id if isinstance(turn_id, str) else None,
+                started_at=started_at if isinstance(started_at, str) else None,
+                reason=str(reason)[:300] if reason else None,
+            )
+            if error is not None:
+                status = HTTPStatus.NOT_FOUND if delivery is None else HTTPStatus.CONFLICT
+                self._respond_json({"ok": False, "error": error, "delivery": delivery},
+                                   status=status)
+                return
+            bus.publish(ControlEvent("cockpit:delivery", delivery))
+            self._respond_json({"ok": True, "delivery": delivery})
 
         # ---- review desk (FEAT-0041) ----
 

@@ -58,9 +58,10 @@ The sidecar makes every change of state under its lock, so two requests that rac
 1. **The sidecar keeps deliveries** ([[TASK-0654-The-Sidecar-Keeps-A-List-Of-Prompts-Addressed-To-A-Claude-Session]]). The list and its states in `agent_hooks.py`, and these routes in `server.py`:
    - `POST /api/cockpit/deliveries`: the shell adds one. Body: the dispatch item and `session_id`. Starts `waiting` when the session is plugin-claimed, else `held`.
    - `GET /api/cockpit/deliveries`: every delivery not yet finished, for the shell; `?session=<id>` gives one session's, for the plugin. Reading does not remove anything.
-   - `POST /api/cockpit/deliveries/<did>/claim`: the plugin, `waiting` to `sending`. Refused with 409 when the delivery is no longer `waiting`, which is how a cancel that arrived first wins.
-   - `POST /api/cockpit/deliveries/<did>/started` with `{turn_id}`: the plugin, `sending` or `cancelling` to `started`. The ledger entry is written now, onto that exact session, with the turn's start time and `"delivered_by": "submit"`.
-   - `POST /api/cockpit/deliveries/<did>/dropped` with `{reason}`.
+   - `POST /api/cockpit/deliveries/claim` with `{did}`: the plugin, `waiting` to `sending`. Refused with 409 when the delivery is no longer `waiting`, which is how a cancel that arrived first wins.
+   - `POST /api/cockpit/deliveries/started` with `{did, turn_id, started_at}`: the plugin, `sending` or `cancelling` to `started`. The ledger entry is written now, onto that exact session, with the turn's start time and `"delivered_by": "submit"`.
+   - `POST /api/cockpit/deliveries/dropped` with `{did, reason}`.
+   - The delivery ID travels in the body, not the path, so each route is a fixed path that the write-guard test (`test_every_note_mutating_endpoint_requires_loopback`) finds and checks. Changed from `/deliveries/<did>/claim` when TASK-0654 was built.
    - Each change is published on the sidecar's event stream as `cockpit:delivery`, so the window updates without polling.
    - The session payload (`_slim`, `/api/cockpit/state`) gains `plugin_claimed`, so the shell can tell which sessions the plugin speaks for.
    - Every POST uses `_require_loopback` and the shared JSON reader, which refuses any other `Content-Type` ([[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]]). The routes change runtime state, not notes, so they join the named allow-list in `test_every_note_mutating_endpoint_requires_loopback` ([[RISK-0005-The-Write-Surface]]).
@@ -101,7 +102,7 @@ Edwin, 2026-10-14: "implement 2 please if we can ... would be good to know what 
 | Where the dispatch is | Can it be cancelled? | How |
 | --- | --- | --- |
 | In the main-process queue (Codex, or no terminal yet) | Yes | `dispatch:remove`, as today. |
-| A delivery, `held` | Yes | `POST /api/cockpit/deliveries/<did>/cancel` sets `cancelled`. |
+| A delivery, `held` | Yes | `POST /api/cockpit/deliveries/cancel` with `{did}` sets `cancelled`. |
 | A delivery, `waiting` | Yes | The same route sets `cancelled`. If the plugin's `claim` arrives afterwards it gets 409 and submits nothing. If the claim arrived first, the delivery is already `sending`; see the next row. |
 | A delivery, `sending` | Only by the plugin's hook | The route sets `cancelling` and answers "pending". The plugin's own `prompt.submit` hook sees a submission with `origin.kind` `plugin`, this plugin's name and the text it is sending. It asks the sidecar for that delivery's state, within the hook's budget. When the state is `cancelling` it returns `{ drop: "Cancelled from the cockpit" }`, the submit promise resolves with that drop, and the plugin posts `dropped`, which the sidecar records as `cancelled`. If the hook cannot reach the sidecar in time, it lets the prompt through. |
 | A delivery, `started` | No | The route answers 409 with the turn's start time. The turn is not aborted. |

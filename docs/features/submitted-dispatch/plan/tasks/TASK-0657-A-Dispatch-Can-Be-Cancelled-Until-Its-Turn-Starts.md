@@ -24,7 +24,7 @@ Each dispatch in the queue list that has not started gets a Cancel button. Cance
 
 ## Definition of Done
 
-- [ ] `POST /api/cockpit/deliveries/<did>/cancel` (loopback, JSON): `held` or `waiting` becomes `cancelled`; `sending` becomes `cancelling` and the answer says "pending"; `started` answers 409 with the turn's start time.
+- [ ] `POST /api/cockpit/deliveries/cancel` with `{did}` (loopback, JSON): `held` or `waiting` becomes `cancelled`; `sending` becomes `cancelling` and the answer says "pending"; `started` answers 409 with the turn's start time.
 - [ ] A `started` post for a `cancelling` delivery makes it `started`, and the shell says "Too late to cancel <verb> <id>: its turn started at <time>. Press Esc in the terminal to stop it."
 - [ ] A `dropped` post for a `cancelling` delivery makes it `cancelled`.
 - [ ] If task 2's check (a) found that the plugin's `prompt.submit` hook sees its own submission: that hook returns `{ drop: "Cancelled from the cockpit" }` for this plugin's in-flight text when the sidecar says `cancelling`, asks within the hook's budget, and lets the prompt through when the sidecar does not answer. If check (a) found that it does not: `cancel` on a `sending` delivery answers "too late" at once, and this note says so.
