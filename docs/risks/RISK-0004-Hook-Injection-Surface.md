@@ -9,7 +9,7 @@ likelihood: medium
 owner: user:edwin
 created: 2026-07-05
 updated: "2026-10-14"
-related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]", "[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]]"]
+related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]", "[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]]", "[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]", "[[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]"]
 mitigation_tasks: ["[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0635]]", "[[TASK-0636]]", "[[TASK-0637]]"]
 mitigation:
   - "Per-spawn injection only for terminal instrumentation: Claude Code loads the cockpit plugin from CLAUDE_CODE_PLUGIN_DIRS (FEAT-0156) and Codex gets generated hooks files under the app's own state dir, passed via env/flags; user agent configuration is written ONLY by the explicit agent-specific settings toggle (FEAT-0027) — marker-identified entries, one-time backup, surgical uninstall."
@@ -70,3 +70,11 @@ The Codex installer preserves unrelated handlers and refuses malformed configura
 - **One condition that silently stops it.** `claude plugin validate` reports that where an organization manages Claude Code, the `classic.*` hooks of a plugin a person installs do not run. Every lifecycle event the cockpit reads is one of those. This does not apply on this machine; on a managed machine the plugin would have to be listed in managed settings.
 - **Generated files from before the change are left in place**, not deleted. A terminal opened before the update still runs `claude --settings <that file>`, and Claude Code refuses to start when the file is missing.
 - **The kill switch still holds.** With `COCKPIT_NO_INSTRUMENT=1` nothing is generated and the variable is not set; the plugin also checks the variable before every post.
+
+## The plugin starts to submit prompts — planned 2026-10-14
+
+[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]] gives the plugin its first act that is more than passing an event on: it submits a dispatched prompt with `$.prompt.submit`, and it may stop its own submission from a `prompt.submit` hook when the person cancels. It also runs a one-second `$.clock.every` poll of the sidecar. What that changes for this risk:
+
+- **More of the mods interface is depended on.** `$.prompt.submit`, `turn.start`, `turn.complete`, `prompt.submit` and `$.clock.every` join the calls CI already tests on Claude Code 2.1.299. The plugin's tests cover each one, so a change in their meaning fails the build rather than the session.
+- **The hook still never turns a `deny` into an `allow`.** Its one new answer is `{ drop }`, for this plugin's own cancelled prompt, and it lets every other prompt through unchanged.
+- **The new hazard is not here.** A sidecar route that takes prompt text is [[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]].

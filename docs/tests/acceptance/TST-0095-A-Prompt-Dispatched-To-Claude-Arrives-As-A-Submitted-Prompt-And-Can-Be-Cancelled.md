@@ -1,0 +1,73 @@
+---
+type: "[[test]]"
+id: TST-0095
+aliases: ["TST-0095"]
+title: "A prompt dispatched to a Claude session arrives as a submitted prompt, counts as delivered when its turn starts, and can be cancelled until then"
+status: active
+phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
+owner: user:edwin
+created: 2026-10-14
+updated: 2026-10-14
+source: ["[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"]
+scope: feature
+level: acceptance
+entrypoint: "A note's verb button, with a new cockpit terminal running `claude`"
+command: ""
+last_verified: ""
+covers: ["[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"]
+issues: []
+tasks: ["[[TASK-0656-The-Shell-Sends-A-Claude-Dispatch-To-The-Sidecar-And-Types-Nothing]]", "[[TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts]]"]
+artifacts: []
+adequacy: ""
+mutation_score: ""
+reviewed_by: ""
+review_date: ""
+review_verdict: ""
+review_round: ""
+related: ["[[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]]", "[[TST-0011-Live-Session-Instrumentation]]"]
+area: ""
+after: ["[[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]]"]
+tags: [test, acceptance, cockpit-plugin, dispatch, claude-code]
+---
+
+# A prompt dispatched to Claude arrives as a submitted prompt and can be cancelled
+
+## Purpose
+
+Proves that a prompt dispatched from the cockpit to a Claude session is submitted by the cockpit plugin rather than typed. It also proves that the cockpit counts it as delivered only when the session's turn starts, that a person can cancel it until then, and that Codex dispatches are unchanged.
+
+Set to `active` on 2026-10-14, when the feature started. Nothing is built yet; this check is run once the four tasks are done.
+
+## Setup
+
+The desktop application rebuilt from these sources (`npm run build` in `desktop/`) and restarted. A project whose cockpit terminal is new (closed with the terminal's restart button after the restart), so it loads the plugin. A note in that project with a verb button, for example a task's "Work on".
+
+## Steps
+
+1. In the project's terminal run `claude` and wait for the prompt. Press a note's verb button.
+2. Watch the terminal's prompt box while the dispatch arrives, then read the first line of Claude's answer.
+3. Open the note again and look at its dispatch history.
+4. Ask Claude something that takes a minute, for example to read every task note in one feature. While it works, press the verb button again. Open the queue list from the `queued` chip in the agent strip.
+5. Let Claude finish.
+6. Ask Claude another long question. While it works, press the verb button and cancel the new row in the queue list.
+7. Let Claude finish, and wait ten seconds.
+8. Run `cockpit dispatch <the note's ID>` in a plain terminal outside the cockpit.
+9. Exit Claude. Quit the application, start it from a terminal with `COCKPIT_NO_INSTRUMENT=1`, open a new terminal in the same project, run `claude`, and press the verb button.
+10. Exit Claude, quit, and start the application normally. In a project's new terminal run `codex`, and press a verb button with Codex chosen as the agent.
+
+## Expect
+
+- In step 2 the prompt box never fills with the prompt character by character. The prompt appears in the transcript as a message, and Claude starts on it. It reads the prompt as your words: it does not mention a plugin sending a message.
+- In step 3 the newest dispatch names this session, and its time is when Claude started the turn, not earlier.
+- In step 4 the row says "Waiting for Claude to finish its turn". Nothing is typed into the terminal.
+- In step 5 the waiting prompt starts as soon as Claude finishes, the row leaves the list, and the status line says "Delivered".
+- In step 6 the row disappears when cancelled, and the status line says "Cancelled".
+- In step 7 the cancelled prompt never appears in the session.
+- In step 8 the prompt arrives in the cockpit's Claude session as in step 2, not typed.
+- In step 9 nothing is typed into the terminal. The chip turns amber and says `1 not delivered`, and the row says "Not delivered: this Claude session has no cockpit plugin". Its `×` removes it.
+- In step 10 the prompt is pasted into Codex and submitted, as before this change.
+
+## Not this check
+
+- Cancelling in the moment between the plugin's submit and the turn's start. It lasts too short a time to hit by hand; the plugin's tests and the sidecar's tests cover it ([[TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts]]).
+- "Too late to cancel": a person cannot reliably press Cancel in that moment either. The sidecar's tests cover the answer, and the shell's tests cover the message.

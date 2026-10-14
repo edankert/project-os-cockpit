@@ -15,7 +15,7 @@ features:
   - "[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"
   - "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]"
 requirements: []
-tasks: ["[[TASK-0649]]", "[[TASK-0650]]", "[[TASK-0651]]", "[[TASK-0652]]", "[[TASK-0653]]"]
+tasks: ["[[TASK-0649]]", "[[TASK-0650]]", "[[TASK-0651]]", "[[TASK-0652]]", "[[TASK-0653]]", "[[TASK-0654]]", "[[TASK-0655]]", "[[TASK-0656]]", "[[TASK-0657]]"]
 issues: ["[[ISS-0319]]"]
 related:
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]]"
@@ -104,6 +104,7 @@ Run on 2026-10-08 against the features, requirements and ADRs that share these a
 ## Notes
 
 - **Order and dependencies.** FEAT-0156 first. FEAT-0157 and FEAT-0158 after it, in either order. FEAT-0159 last, after ISS-0301's secret exists (the open half of that issue).
+- **FEAT-0158 started on 2026-10-14**, after FEAT-0156 was done. Its plan and four tasks are written ([[TASK-0654]] to [[TASK-0657]]), with cancelling a dispatch before its turn starts now in scope by Edwin's decision. Its risk scan filed [[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]: the new route takes prompt text, which is the same shape of hazard as FEAT-0159's answer route, so the shell's secret planned there should guard both. FEAT-0157 and FEAT-0159 stay at `backlog`.
 - **Active since 2026-10-14**, when FEAT-0156 started (the goal set for that session: deliver FEAT-0156 up to its acceptance check). Its plan and tasks are written; FEAT-0157 to FEAT-0159 stay at `backlog`. Each feature's tasks are minted when that feature starts.
 - **Follow-ups for project-os (upstream), filed in project-os-dev on 2026-10-14:** the project-os mod, which takes over the session-marker and review-budget hooks, the shell-edit check, the wrong-model warning and the project half of the line above the prompt (leg 5, [[project-os-dev#FEAT-0041-Project-Os-Mod]]); and how that mod reaches each repo (leg 6, [[project-os-dev#ISS-0106-Project-Os-As-A-Plugin]]).
 - **[[ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit]]** could surface in FEAT-0157's band as a start-of-session warning. It is linked, not absorbed: ISS-0277 asks for a check that reads the files, and a warning is only where its answer would be shown.
