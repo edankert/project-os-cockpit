@@ -79,7 +79,7 @@ counters:
   # A place in the product a check's area: names (TASK-0514).
   SUR: 6
   REL: 1
-  TASK: 662
+  TASK: 663
   TST: 95
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -1721,7 +1721,7 @@ items:
     ISS-0320:
       file: "docs/issues/ISS-0320-A-Cockpit-Dispatch-From-The-Command-Line-Loses-The-Notes-Path.md"
       title: "A prompt sent with `cockpit dispatch` says \"Read docs/ first\" instead of naming the note's file, unless the quick switcher has been opened"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: ""
       severity: low
@@ -3087,7 +3087,7 @@ items:
       features: ["FEAT-0019", "FEAT-0020", "FEAT-0021", "FEAT-0022", "FEAT-0023", "FEAT-0024", "FEAT-0025", "FEAT-0026", "FEAT-0027", "FEAT-0081", "FEAT-0030", "FEAT-0031", "FEAT-0032", "FEAT-0033", "FEAT-0034", "FEAT-0035", "FEAT-0036", "FEAT-0037", "FEAT-0038", "FEAT-0039"]
       issues: ["ISS-0104", "ISS-0105", "ISS-0312", "ISS-0002", "ISS-0003", "ISS-0004", "ISS-0005", "ISS-0006", "ISS-0007", "ISS-0008", "ISS-0009", "ISS-0010", "ISS-0011", "ISS-0012", "ISS-0013", "ISS-0022", "ISS-0023", "ISS-0032"]
       note: "2026-09-23: Reopened for bounded Codex parity work under FEAT-0019 and FEAT-0027. PHASE-040 remains deferred; session ownership is unchanged."
-      tasks: ["TASK-0633", "TASK-0634", "TASK-0635", "TASK-0636", "TASK-0637", "TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0118", "TASK-0119", "TASK-0120", "TASK-0121", "TASK-0122", "TASK-0123", "TASK-0124", "TASK-0125", "TASK-0126", "TASK-0127", "TASK-0128", "TASK-0129", "TASK-0130", "TASK-0131", "TASK-0132", "TASK-0133", "TASK-0134", "TASK-0135", "TASK-0136", "TASK-0137", "TASK-0138", "TASK-0139", "TASK-0140", "TASK-0141", "TASK-0142", "TASK-0143", "TASK-0144", "TASK-0145", "TASK-0146", "TASK-0147", "TASK-0148", "TASK-0149", "TASK-0150", "TASK-0151", "TASK-0152", "TASK-0153", "TASK-0154", "TASK-0155", "TASK-0156", "TASK-0157", "TASK-0158", "TASK-0159", "TASK-0160", "TASK-0161", "TASK-0162", "TASK-0163", "TASK-0164", "TASK-0165", "TASK-0166", "TASK-0167", "TASK-0168", "TASK-0169", "TASK-0170", "TASK-0171", "TASK-0172", "TASK-0173", "TASK-0175", "TASK-0176", "TASK-0177", "TASK-0178", "TASK-0179", "TASK-0180", "TASK-0181", "TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192", "TASK-0193", "TASK-0194", "TASK-0195", "TASK-0196", "TASK-0197", "TASK-0198", "TASK-0213", "TASK-0343", "TASK-0344", "TASK-0345", "TASK-0346", "TASK-0347", "TASK-0348", "TASK-0349", "TASK-0350", "TASK-0351", "TASK-0352", "TASK-0353", "TASK-0354", "TASK-0355", "TASK-0356", "TASK-0628", "TASK-0638"]
+      tasks: ["TASK-0633", "TASK-0634", "TASK-0635", "TASK-0636", "TASK-0637", "TASK-0114", "TASK-0115", "TASK-0116", "TASK-0117", "TASK-0118", "TASK-0119", "TASK-0120", "TASK-0121", "TASK-0122", "TASK-0123", "TASK-0124", "TASK-0125", "TASK-0126", "TASK-0127", "TASK-0128", "TASK-0129", "TASK-0130", "TASK-0131", "TASK-0132", "TASK-0133", "TASK-0134", "TASK-0135", "TASK-0136", "TASK-0137", "TASK-0138", "TASK-0139", "TASK-0140", "TASK-0141", "TASK-0142", "TASK-0143", "TASK-0144", "TASK-0145", "TASK-0146", "TASK-0147", "TASK-0148", "TASK-0149", "TASK-0150", "TASK-0151", "TASK-0152", "TASK-0153", "TASK-0154", "TASK-0155", "TASK-0156", "TASK-0157", "TASK-0158", "TASK-0159", "TASK-0160", "TASK-0161", "TASK-0162", "TASK-0163", "TASK-0164", "TASK-0165", "TASK-0166", "TASK-0167", "TASK-0168", "TASK-0169", "TASK-0170", "TASK-0171", "TASK-0172", "TASK-0173", "TASK-0175", "TASK-0176", "TASK-0177", "TASK-0178", "TASK-0179", "TASK-0180", "TASK-0181", "TASK-0188", "TASK-0189", "TASK-0190", "TASK-0191", "TASK-0192", "TASK-0193", "TASK-0194", "TASK-0195", "TASK-0196", "TASK-0197", "TASK-0198", "TASK-0213", "TASK-0343", "TASK-0344", "TASK-0345", "TASK-0346", "TASK-0347", "TASK-0348", "TASK-0349", "TASK-0350", "TASK-0351", "TASK-0352", "TASK-0353", "TASK-0354", "TASK-0355", "TASK-0356", "TASK-0628", "TASK-0638", "TASK-0663"]
     PHASE-008:
       title: "State & review surfaces"
       status: done
@@ -3753,14 +3753,14 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 159
     features_done: 136
-    tasks_total: 656
-    tasks_done: 617
+    tasks_total: 657
+    tasks_done: 618
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 20
+    issues_open: 19
     issues_triage: 0
     risks_open: 10
     releases_total: 1

@@ -272,3 +272,26 @@ def test_review_round_trip_verbs_reach_the_ledger(tmp_path: Path) -> None:
     store.resolve(request["request_id"], "changes-requested")
     assert store.outcome_counts() == {"changes-requested": 1}
     assert store.open_requests() == []
+
+
+def test_a_cli_request_names_the_notes_file_and_writes_no_history_of_its_own(tmp_path: Path):
+    """ISS-0320. The shell built the prompt from the quick switcher's list,
+    which is empty until it is opened, so a `cockpit dispatch` prompt said
+    "Read docs/ first". The request now carries the file. It also left an
+    agentless history entry beside the one the delivery writes."""
+    docs = _make_workspace(tmp_path)
+    _server, httpd, port = _spin_up(docs)
+    try:
+        status, body = _post(port, "/api/cockpit/dispatch", {"id": "task-0001", "enqueue": True})
+        assert status == 200 and body["recorded"]["rel"] == "tasks/TASK-0001-Demo.md"
+        [request] = _get(port, "/api/cockpit/dispatch-requests")["requests"]
+        assert request["rel"] == "tasks/TASK-0001-Demo.md"
+        payload = _get(port, "/api/render?path=tasks/TASK-0001-Demo.md")
+        assert not payload.get("dispatch_history"), "the request itself is not a dispatch"
+
+        status, body = _post(port, "/api/cockpit/dispatch", {"id": "TASK-9999", "enqueue": True})
+        assert status == 404 and body["error"] == "no note with ID TASK-9999 in this project"
+        assert _get(port, "/api/cockpit/dispatch-requests")["requests"] == []
+    finally:
+        httpd.shutdown()
+        httpd.server_close()

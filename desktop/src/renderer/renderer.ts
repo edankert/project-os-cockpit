@@ -17635,7 +17635,9 @@ async function dispatchToAgent(
     )
   ) return;
   const item: QueuedDispatch = {
-    id, rel, verb: verbKey, agent: chosen,
+    // The verb used, so the history names it even when none was asked for
+    // (ISS-0320): the note type's default.
+    id, rel, verb: verbKey ?? resolveVerb(id)?.key, agent: chosen,
     prompt: resolvedPrompt(id, rel, verbKey),
     ts: new Date().toISOString(),
   };
@@ -17750,14 +17752,20 @@ function clearAllButton(deliveries: Delivery[]): HTMLButtonElement {
 
 // ---- CLI dispatch-requests (FEAT-0025 / TASK-0136) ----
 
-function handleDispatchRequest(rec: { id?: string; verb?: string; agent?: string }): void {
+/** The note's docs-relative path for a `cockpit dispatch` request. The
+ *  sidecar names it (ISS-0320); the quick switcher's list is filled only once
+ *  it has been opened, so it serves just a sidecar too old to say. */
+function dispatchRequestRel(rec: { id: string; rel?: string }, corpus: { id: string; rel: string }[]): string {
+  if (typeof rec.rel === 'string' && rec.rel) return rec.rel;
+  return corpus.find((q) => q.id.toUpperCase() === rec.id.toUpperCase())?.rel ?? '';
+}
+
+function handleDispatchRequest(rec: { id?: string; verb?: string; agent?: string; rel?: string }): void {
   if (!rec || typeof rec.id !== 'string' || !rec.id) return;
   const agent = rec.agent === 'codex' ? 'codex' as const
     : rec.agent === 'claude' ? 'claude' as const : undefined;
-  // Resolve the note's rel via the quick-switch corpus when possible;
-  // the prompt template tolerates a missing rel (falls back to the ID).
-  const hit = quickCorpus.find((q) => q.id.toUpperCase() === rec.id!.toUpperCase());
-  void dispatchToAgent(rec.id.toUpperCase(), hit?.rel || '', agent, rec.verb);
+  const id = rec.id;
+  void dispatchToAgent(id.toUpperCase(), dispatchRequestRel({ id, rel: rec.rel }, quickCorpus), agent, rec.verb);
 }
 
 async function drainDispatchRequests(): Promise<void> {
@@ -17765,7 +17773,7 @@ async function drainDispatchRequests(): Promise<void> {
   try {
     const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/dispatch-requests`);
     if (!resp.ok) return;
-    const data = await resp.json() as { requests?: Array<{ id?: string; verb?: string; agent?: string }> };
+    const data = await resp.json() as { requests?: Array<{ id?: string; verb?: string; agent?: string; rel?: string }> };
     for (const rec of data.requests || []) handleDispatchRequest(rec);
   } catch { /* requests retry on next attach */ }
 }

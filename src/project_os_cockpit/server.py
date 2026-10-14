@@ -1877,12 +1877,25 @@ def _make_handler(
             agent = body.get("agent")
             enqueue = bool(body.get("enqueue"))
             delivered_by = body.get("delivered_by")
+            rel = None
+            if enqueue:
+                # The request names the note's file, so the shell's prompt
+                # can say which one to read (ISS-0320).
+                found = index.by_id(note_id.strip().upper())
+                record = index.get(found) if found else None
+                if record is None:
+                    self._respond_json(
+                        {"ok": False, "error": f"no note with ID {note_id.strip().upper()} in this project"},
+                        status=HTTPStatus.NOT_FOUND)
+                    return
+                rel = record.rel_path
             rec = tracker.record_dispatch(
                 note_id.strip().upper(),
                 verb=str(verb) if verb else None,
                 agent=str(agent) if agent else None,
                 enqueue=enqueue,
                 delivered_by=delivered_by if isinstance(delivered_by, str) else None,
+                rel=rel,
             )
             if enqueue:
                 bus.publish(ControlEvent("cockpit:dispatch-request", rec))

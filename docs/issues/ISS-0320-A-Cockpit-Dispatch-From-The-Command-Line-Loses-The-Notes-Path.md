@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0320
 aliases: ["ISS-0320"]
 title: "A prompt sent with `cockpit dispatch` says \"Read docs/ first\" instead of naming the note's file, unless the quick switcher has been opened"
-status: open
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-10-14
@@ -33,3 +33,14 @@ This predates FEAT-0158. It is the command-line path from FEAT-0025, and FEAT-01
 ## Expected
 
 A `cockpit dispatch <ID>` prompt names the note's file exactly as the verb button does, whether or not the quick switcher has been opened.
+
+## Fix, 2026-10-14
+
+Edwin: "fix ISS-0320 ... you found this, you prioritized this, you should fix this."
+
+1. **The sidecar names the note's file.** `POST /api/cockpit/dispatch` with `enqueue` looks the ID up in the project's index and puts `rel` on the request. An ID the project does not have is refused with 404 and "no note with ID … in this project", which `cockpit dispatch` prints, instead of a prompt about nothing.
+2. **The window uses it.** `handleDispatchRequest` takes the request's `rel`, and falls back to the quick switcher's list only for an older sidecar. The misleading comment goes.
+3. **The verb is named.** `dispatchToAgent` records the verb it used, the note type's default when none was asked for, so the history no longer says "default".
+4. **One history entry per dispatch.** The request no longer writes an entry of its own: it carried no agent, and the delivery writes the real one moments later. TST-0095 step 8 showed both (15:35:24 and 15:35:32).
+
+Built and tested in [[TASK-0663-A-Cockpit-Dispatch-Request-Names-The-Notes-File]].

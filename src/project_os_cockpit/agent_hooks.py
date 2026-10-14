@@ -641,8 +641,13 @@ class AgentSessionTracker:
     def record_dispatch(
         self, note_id: str, verb: str | None = None,
         agent: str | None = None, *, enqueue: bool = False,
-        delivered_by: str | None = None,
+        delivered_by: str | None = None, rel: str | None = None,
     ) -> dict[str, Any]:
+        """A dispatch ledger entry, or with ``enqueue`` a request for the
+        desktop shell (`cockpit dispatch`). A request writes no ledger entry:
+        the shell writes the real one when it delivers, so a request used to
+        leave a second, agentless entry beside it (ISS-0320). ``rel`` is the
+        note's docs-relative path, which the request carries."""
         rec: dict[str, Any] = {"id": note_id, "ts": _utc_now_iso()}
         if verb:
             rec["verb"] = str(verb)
@@ -653,6 +658,13 @@ class AgentSessionTracker:
         if delivered_by in ("typed", "submit"):
             rec["delivered_by"] = delivered_by
         with self._lock:
+            if enqueue:
+                request = dict(rec)
+                if rel:
+                    request["rel"] = rel
+                self._dispatch_requests.append(request)
+                del self._dispatch_requests[:-REQUESTS_MAX]
+                return request
             live = self._live_session_locked()
             if live is not None:
                 # Agent already running: this dispatch belongs to the
@@ -663,9 +675,6 @@ class AgentSessionTracker:
             else:
                 self._pending_dispatches.append(dict(rec))
                 del self._pending_dispatches[:-DISPATCHES_MAX]
-            if enqueue:
-                self._dispatch_requests.append(dict(rec))
-                del self._dispatch_requests[:-REQUESTS_MAX]
         return rec
 
     # ---- deliveries (FEAT-0158 / TASK-0654) ----

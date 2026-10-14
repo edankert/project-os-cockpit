@@ -55,3 +55,12 @@ test('a removed prompt is not called cancelled before it reached the session', a
   assert.equal(text({ verb: 'implement', agent: 'codex' }, '17:00', 'session 01a13b3a'),
     'dispatched implement · codex · 17:00 → session 01a13b3a');
 });
+
+test('a cockpit dispatch request uses the file the sidecar names', async () => {
+  // ISS-0320: the quick switcher's list is empty until it is opened.
+  const rel = await extractFunction('dispatchRequestRel');
+  assert.equal(rel({ id: 'TASK-0084', rel: 'features/x/TASK-0084-A.md' }, []), 'features/x/TASK-0084-A.md');
+  assert.equal(rel({ id: 'task-0084' }, [{ id: 'TASK-0084', rel: 'from/corpus.md' }]), 'from/corpus.md',
+    'an older sidecar names no file: the list is the fallback');
+  assert.equal(rel({ id: 'TASK-0084' }, []), '');
+});
