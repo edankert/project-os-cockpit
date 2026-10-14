@@ -81,3 +81,25 @@ test('the shared forwarder posts to the sidecar of the terminal it runs in, and 
     assert.equal(run({ COCKPIT_INSTRUMENT_DIR: dirA, COCKPIT_NO_INSTRUMENT: '1' }), null, 'the kill switch posts nothing');
   } finally { fs.rmSync(userData, { recursive: true, force: true }); }
 });
+
+test('at start, every project launcher is rewritten with the shared hook command', () => {
+  // A tmux shell outlives the app and keeps calling its project's launcher,
+  // which used to be rewritten only when the cockpit opened a new terminal.
+  // TST-0095: Codex in your-applications.com still ran the old command.
+  const userData = fs.mkdtempSync(path.join(os.tmpdir(), 'cockpit-hooks-'));
+  try {
+    const root = path.join(userData, 'instrument');
+    const stale = path.join(root, 'old-project');
+    const other = path.join(root, 'not-a-project');
+    fs.mkdirSync(stale, { recursive: true });
+    fs.mkdirSync(other, { recursive: true });
+    fs.writeFileSync(path.join(stale, 'codex-launch.sh'), "#!/bin/sh\nexec codex -c 'hooks.Stop=[{hooks=[{type=\"command\",command=\"old-project/codex-hook-forward.sh\"}]}]' \"$@\"\n");
+    const g = generator(userData);
+    g.refreshCodexLaunchers();
+    const fresh = g.ensureInstrumentation('fresh-project');
+    const expected = hookFlags(path.join(path.dirname(fresh.zdotdir), 'codex-launch.sh'));
+    assert.deepEqual(hookFlags(path.join(stale, 'codex-launch.sh')), expected);
+    assert.equal(fs.existsSync(path.join(other, 'codex-launch.sh')), false, 'a folder with no launcher gets none');
+    assert.ok(fs.existsSync(path.join(root, 'codex-hook-forward.sh')));
+  } finally { fs.rmSync(userData, { recursive: true, force: true }); }
+});

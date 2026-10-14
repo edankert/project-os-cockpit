@@ -227,6 +227,30 @@ export function ensureInstrumentation(
 }
 
 /**
+ * Rewrite the shared Codex forwarder and every project's `codex-launch.sh`,
+ * at app start. A launcher is otherwise written only when the cockpit opens a
+ * new terminal, so a tmux shell that outlived an update kept starting Codex
+ * with the old hook command, and Codex asked for its review again in that
+ * project (TASK-0661, found in TST-0095). The launcher is the same in every
+ * project, so rewriting one that belongs to no open project is harmless.
+ */
+export function refreshCodexLaunchers(): void {
+  if (instrumentationDisabled()) return;
+  if (process.platform === 'win32') return;
+  try {
+    const root = instrumentRoot();
+    if (!fs.existsSync(root)) return;
+    writeExecutable(path.join(root, 'codex-hook-forward.sh'), codexHookForwardScript());
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+      const launcher = path.join(root, entry.name, 'codex-launch.sh');
+      if (entry.isDirectory() && fs.existsSync(launcher)) writeExecutable(launcher, codexLaunchScript());
+    }
+  } catch (err) {
+    console.error('[agent-instrument] Codex launcher refresh failed:', err);
+  }
+}
+
+/**
  * Publish the live sidecar URL for a workspace. The generated scripts
  * source this file, and the Claude plugin reads it, on every event, so a
  * sidecar restart on a new port transparently redirects the feed.

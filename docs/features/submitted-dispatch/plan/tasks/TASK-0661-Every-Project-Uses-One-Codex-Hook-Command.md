@@ -43,3 +43,9 @@ The first Codex start after this change shows Codex's hook review once more, bec
 - Desktop suite: 210 passed.
 
 The first Codex start in each terminal opened after this change shows Codex's hook review once, because the command changed.
+
+## Gap found in TST-0095, 2026-10-14, and fixed
+
+Starting Codex in your-applications.com after the change still showed the hook review. That Codex ran the old per-project hook command: its terminal's tmux shell predated the change, and a project's `codex-launch.sh` was rewritten only when the cockpit opened a new terminal for it. The same terminal also carried your-trainer's instrument folder, because its tmux session was created at 13:00, before ISS-0319's fix at 13:20; restarting that terminal is the cure for that.
+
+Fix: `refreshCodexLaunchers()` in `agent-instrument.ts`, called first in `main.ts`'s `whenReady`, rewrites the shared forwarder and every existing `instrument/*/codex-launch.sh`. Test: "at start, every project launcher is rewritten with the shared hook command" in `desktop/tests/codex-hook-command.test.mjs`. Desktop suite: 211 passed.

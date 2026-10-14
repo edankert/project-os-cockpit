@@ -20,6 +20,7 @@ import {
   hasPty,
   isTmuxBacked,
 } from './ipc/terminal';
+import { refreshCodexLaunchers } from './ipc/agent-instrument';
 import { registerDispatchIpc } from './ipc/dispatch-queue';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
 import { registerFleetHealthIpc, stopFleetHealth } from './ipc/fleet-health';
@@ -486,6 +487,8 @@ app.whenReady().then(() => {
   // the menu, registered every IPC handler and started the agent-state poller
   // and the url janitor before quitting (ISS-0293).
   if (!gotLock) return;
+  // Terminals outlive the app in tmux; give their next `codex` today's hooks.
+  refreshCodexLaunchers();
   buildMenu();
   registerWorkspaceIpc();
   registerSidecarIpc({ getActiveWindow: () => mainWindow });
