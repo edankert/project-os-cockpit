@@ -130,7 +130,7 @@ class ApprovalStore:
 
     def ask(
         self, *, session_id: str, tool: str, tool_input: Any, tool_use_id: str,
-        agent_id: str = "",
+        agent_id: str = "", wait_ms: int = 0,
     ) -> dict[str, Any] | None:
         """The cockpit plugin offers a permission ask (FEAT-0159 / TASK-0665).
 
@@ -154,6 +154,9 @@ class ApprovalStore:
                 "tool_use_id": str(tool_use_id),
                 "input": tool_input,
                 "prompt": summary(str(tool), tool_input),
+                # How long the plugin waits, so a card handed back to the
+                # terminal can say so in this workspace's own number.
+                "wait_ms": int(wait_ms),
                 "options": [],
                 "status": "open",
                 "ts": _now(),

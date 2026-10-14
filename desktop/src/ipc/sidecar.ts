@@ -30,6 +30,7 @@ import { getPortPromise } from 'portfinder';
 import { getWorkspace, markOpened } from './workspaces';
 import { subscribeAgentFocus, unsubscribeAgentFocus } from './agent-focus';
 import { setSidecarUrl } from './agent-instrument';
+import { unwatchApprovals, watchApprovals } from './approvals';
 import type {
   SidecarExitedPayload,
   SidecarFailedPayload,
@@ -254,6 +255,7 @@ async function spawnSidecar(
 
   child.on('exit', (code, signal) => {
     sidecars.delete(workspace.id);
+    unwatchApprovals(workspace.id);
     const target = BrowserWindow.fromId(record.windowId);
     const payload: SidecarExitedPayload = {
       workspaceId: workspace.id,
@@ -288,6 +290,9 @@ async function spawnSidecar(
   subscribeAgentFocus(window, url, workspace.id);
   // Point the instrumentation scripts (FEAT-0019) at the live sidecar.
   setSidecarUrl(workspace.id, url);
+  // Its permission prompts reach the Needs you panel whichever project is on
+  // screen (FEAT-0159).
+  watchApprovals(workspace.id, url);
   const readyPayload: SidecarReadyPayload = {
     workspaceId: workspace.id,
     port,

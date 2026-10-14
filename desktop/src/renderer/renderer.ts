@@ -194,6 +194,12 @@ interface CockpitApi {
     onQueueChanged: (cb: (ev: { workspaceId: string; items: QueuedDispatch[] }) => void) => () => void;
     onDelivered: (cb: (ev: { workspaceId: string; item: QueuedDispatch; mode: string; warning?: string }) => void) => () => void;
   };
+  approvals: {
+    list: () => Promise<Record<string, ApprovalView[]>>;
+    /** The decision only: the main process adds the secret and the actor. */
+    answer: (workspaceId: string, approvalId: string, decision: 'granted' | 'denied') => Promise<{ ok: boolean; status: number; error?: string; approval?: ApprovalView }>;
+    onChanged: (cb: (ev: { workspaceId: string; approvals: ApprovalView[] }) => void) => () => void;
+  };
   terminal: {
     spawn: (opts: { workspaceId: string; cwd?: string; cols?: number; rows?: number }) => Promise<{ ok: boolean; error?: string; viaTmux?: boolean }>;
     attach: (workspaceId: string) => Promise<{ ok: boolean; error?: string; backlog: string; viaTmux?: boolean; mouseRequested?: boolean | null }>;
@@ -259,6 +265,10 @@ interface XtermFitAddon {
 // Pull the API off `window` via a single typed cast so the rest of the
 // file is plain typed code.
 const cockpitApi = (window as unknown as { cockpit: CockpitApi }).cockpit;
+
+/** Live permission prompts by workspace (FEAT-0159); declared up here because
+ *  the Needs you panel can be painted before the code that fills it runs. */
+const approvalsByWs = new Map<string, ApprovalView[]>();
 
 // Bridge: base.css uses `[data-theme="dark"]` to activate the dark
 // palette (mode-1 cockpit.js toggles this from a UI control). Until
@@ -16585,6 +16595,10 @@ function attentionAgentCopy(
 
 function attentionEntries(): AttentionEntry[] {
   const out: AttentionEntry[] = [];
+  // A project whose session waits on a permission prompt shows that prompt's
+  // own card (FEAT-0159); its amber needs-input card would say the same thing
+  // a second time, with less in it.
+  const asking = new Set([...approvalsByWs].filter(([, list]) => list.length > 0).map(([ws]) => ws));
   const activeCost = lastAgentSnap?.session?.cost?.total_cost_usd;
   // Membership is attentionIds' answer (ISS-0110): blocked on you AND
   // still cheap to pick up. A cold entry leaves; its obligation lives on
@@ -16597,6 +16611,7 @@ function attentionEntries(): AttentionEntry[] {
       && cacheTemperature(row, Date.now()) !== 'cold') || state;
     const kind = pending.state;
     if (kind !== 'needs-input' && kind !== 'waiting') continue;
+    if (kind === 'needs-input' && asking.has(wsId)) continue;
     const ws = workspaces.find((w) => w.id === wsId);
     const copy = attentionAgentCopy(state, pending, agentLine(wsId));
     const sameSession = !pending.session_id
@@ -17232,10 +17247,149 @@ function refreshAttention(): void {
   void refreshDigests().then(() => paintAttention(attentionEntries()));
 }
 
+// ----- Permission prompts (FEAT-0159 / TASK-0666) -----------------------
+//
+// A Claude session in a cockpit terminal offers its permission asks here
+// first, for a few seconds, before its terminal shows them. The main process
+// follows every running sidecar and sends each change; this keeps the live
+// ones per workspace. Answering goes back through the main process, which
+// holds the secret and names the person: nothing here posts the answer.
+
+interface ApprovalView {
+  approval_id: string;
+  session_id: string;
+  agent?: string;
+  agent_id?: string;
+  tool: string;
+  prompt: string;
+  status: string;
+  ts?: string;
+  wait_ms?: number;
+}
+
+
+/** What one permission card says. `command` is the request in full: a person
+ *  approves exactly what they can read, so nothing here is shortened. */
+function approvalCardText(a: ApprovalView): {
+  title: string; command: string; session: string; actionable: boolean; note: string;
+} {
+  const who = a.agent_id ? 'A Claude subagent' : 'Claude';
+  const what = a.tool === 'Bash' ? 'run a command' : `use ${a.tool}`;
+  const seconds = Number(((a.wait_ms ?? 5000) / 1000).toFixed(1));
+  const actionable = a.status === 'open';
+  return {
+    title: `${who} asks to ${what}`,
+    command: a.prompt,
+    session: `session ${String(a.session_id || '').slice(0, 8)}${a.agent_id ? ` · subagent ${a.agent_id.slice(0, 8)}` : ''}`,
+    actionable,
+    note: actionable ? '' : `Answer in the terminal: the cockpit's ${seconds} s wait ran out`,
+  };
+}
+
+function liveApprovalRows(): { wsId: string; approval: ApprovalView }[] {
+  const out: { wsId: string; approval: ApprovalView }[] = [];
+  for (const [wsId, list] of approvalsByWs) for (const approval of list) out.push({ wsId, approval });
+  // Still answerable first, then oldest first: the one about to go to the
+  // terminal is the one to look at.
+  return out.sort((x, y) => Number(y.approval.status === 'open') - Number(x.approval.status === 'open')
+    || String(x.approval.ts ?? '').localeCompare(String(y.approval.ts ?? '')));
+}
+
+async function answerApproval(
+  wsId: string, a: ApprovalView, decision: 'granted' | 'denied', buttons: HTMLButtonElement[],
+): Promise<void> {
+  for (const b of buttons) b.disabled = true;
+  const ws = workspaces.find((w) => w.id === wsId);
+  const name = ws ? effectiveName(ws) : wsId;
+  const result = await cockpitApi.approvals.answer(wsId, a.approval_id, decision);
+  if (result.ok) {
+    showStatus(`${decision === 'granted' ? 'Approved' : 'Denied'} ${a.tool} in ${name}`);
+    return;
+  }
+  if (result.approval?.status === 'handed-to-terminal') {
+    showStatus(approvalCardText(result.approval).note, 'error');
+  } else {
+    showStatus(`Could not answer ${a.tool} in ${name}: ${result.error ?? result.status}`, 'error');
+    for (const b of buttons) b.disabled = false;
+  }
+}
+
+function buildApprovalRow(wsId: string, a: ApprovalView): HTMLElement {
+  const text = approvalCardText(a);
+  const ws = workspaces.find((w) => w.id === wsId);
+  const row = document.createElement('div');
+  row.className = `ws-approval-row status-${a.status}`;
+  row.dataset.wsId = wsId;
+  row.dataset.approvalId = a.approval_id;
+
+  const head = document.createElement('button');
+  head.type = 'button';
+  head.className = 'ws-approval-head';
+  head.title = 'Open this project\'s terminal';
+  const dot = document.createElement('span');
+  dot.className = 'ws-attention-dot';
+  const name = document.createElement('span');
+  name.className = 'ws-approval-name';
+  name.textContent = ws ? effectiveName(ws) : wsId;
+  const title = document.createElement('span');
+  title.className = 'ws-approval-title';
+  title.textContent = text.title;
+  head.append(dot, name, title);
+  head.addEventListener('click', () => {
+    void (async () => {
+      if (activeId !== wsId) await openWorkspace(wsId);
+      showTerminal();
+    })();
+  });
+
+  const command = document.createElement('pre');
+  command.className = 'ws-approval-cmd';
+  command.textContent = text.command;
+
+  const session = document.createElement('span');
+  session.className = 'ws-approval-session';
+  session.textContent = text.session;
+
+  row.append(head, command, session);
+  if (text.actionable) {
+    const actions = document.createElement('div');
+    actions.className = 'ws-approval-actions';
+    const approve = document.createElement('button');
+    approve.type = 'button';
+    approve.className = 'ws-approval-approve';
+    approve.textContent = 'Approve';
+    const deny = document.createElement('button');
+    deny.type = 'button';
+    deny.className = 'ws-approval-deny';
+    deny.textContent = 'Deny';
+    approve.addEventListener('click', () => { void answerApproval(wsId, a, 'granted', [approve, deny]); });
+    deny.addEventListener('click', () => { void answerApproval(wsId, a, 'denied', [approve, deny]); });
+    actions.append(approve, deny);
+    row.appendChild(actions);
+  } else {
+    const note = document.createElement('span');
+    note.className = 'ws-approval-note';
+    note.textContent = text.note;
+    row.appendChild(note);
+  }
+  return row;
+}
+
+function setApprovals(wsId: string, list: ApprovalView[]): void {
+  if (list.length) approvalsByWs.set(wsId, list); else approvalsByWs.delete(wsId);
+  refreshAttention();
+}
+
+cockpitApi.approvals.onChanged((ev) => setApprovals(ev.workspaceId, ev.approvals));
+void cockpitApi.approvals.list().then((all) => {
+  for (const [wsId, list] of Object.entries(all)) setApprovals(wsId, list);
+}).catch(() => { /* an older main process: no approvals to show */ });
+
 function paintAttention(entries: AttentionEntry[]): void {
   const finished = finishedTodayCount();
   const budget = buildBudgetBlock();
-  if (entries.length === 0 && finished === 0 && !budget) {
+  const asks = liveApprovalRows();
+  if (entries.length === 0 && asks.length === 0 && finished === 0 && !budget) {
     attentionPanel.hidden = true;
     attentionPanel.replaceChildren();
     return;
@@ -17247,11 +17401,14 @@ function paintAttention(entries: AttentionEntry[]): void {
   // exactly when its number is most worth seeing.
   const scroll = document.createElement('div');
   scroll.className = 'ws-attention-scroll';
-  if (entries.length > 0) {
+  if (entries.length > 0 || asks.length > 0) {
     const head = document.createElement('div');
     head.className = 'ws-attention-head';
     head.textContent = 'Needs you';
     scroll.appendChild(head);
+    // Permission prompts first: one of them is the only thing on this panel
+    // that will stop waiting for you on its own.
+    for (const { wsId, approval } of asks) scroll.appendChild(buildApprovalRow(wsId, approval));
     for (const entry of entries) scroll.appendChild(buildAttentionRow(entry));
   }
   if (finished > 0) {

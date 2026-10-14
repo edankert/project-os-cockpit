@@ -2689,6 +2689,7 @@ def _make_handler(
             record = approval_store.ask(
                 session_id=session_id, tool=tool, tool_input=body.get("input"),
                 tool_use_id=tool_use_id, agent_id=str(body.get("agent_id") or ""),
+                wait_ms=approval_wait_ms,
             )
             if record is None:
                 self._respond_json({"ok": True, "approval_id": None, "wait_ms": 0,

@@ -219,6 +219,18 @@ const api = {
       return () => ipcRenderer.removeListener('dispatch:delivered', handler);
     },
   },
+  // Permission prompts answered from the cockpit (FEAT-0159). `answer` names
+  // the decision only: the main process adds the secret and the actor.
+  approvals: {
+    list: () => ipcRenderer.invoke('approval:list'),
+    answer: (workspaceId: string, approvalId: string, decision: 'granted' | 'denied') =>
+      ipcRenderer.invoke('approval:answer', workspaceId, approvalId, decision),
+    onChanged: (cb: (ev: { workspaceId: string; approvals: unknown[] }) => void) => {
+      const handler = (_e: unknown, ev: { workspaceId: string; approvals: unknown[] }) => cb(ev);
+      ipcRenderer.on('approval:changed', handler);
+      return () => ipcRenderer.removeListener('approval:changed', handler);
+    },
+  },
   terminal: {
     spawn: (opts: { workspaceId: string; cwd?: string; cols?: number; rows?: number }): Promise<{ ok: boolean; error?: string; viaTmux?: boolean }> =>
       ipcRenderer.invoke('terminal:spawn', opts),

@@ -961,7 +961,7 @@ items:
       phase: "[[PHASE-046]]"
     TASK-0666:
       file: docs/features/answerable-approvals/plan/tasks/TASK-0666-The-Needs-You-Card-Answers-A-Permission-Prompt.md
-      status: backlog
+      status: done
       parent: FEAT-0159
       phase: "[[PHASE-046]]"
     TASK-0667:
@@ -3787,7 +3787,7 @@ metrics:
     features_total: 159
     features_done: 136
     tasks_total: 663
-    tasks_done: 622
+    tasks_done: 623
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

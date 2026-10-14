@@ -22,6 +22,7 @@ import {
 } from './ipc/terminal';
 import { refreshCodexLaunchers } from './ipc/agent-instrument';
 import { registerDispatchIpc } from './ipc/dispatch-queue';
+import { registerApprovalIpc } from './ipc/approvals';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
 import { registerFleetHealthIpc, stopFleetHealth } from './ipc/fleet-health';
 import { isHomeWindow, openHomeWindow, registerHomeWindowIpc } from './ipc/home-window';
@@ -494,6 +495,7 @@ app.whenReady().then(() => {
   registerSidecarIpc({ getActiveWindow: () => mainWindow });
   registerTerminalIpc({ getActiveWindow: () => mainWindow });
   registerDispatchIpc();
+  registerApprovalIpc();
   registerAgentsFleetIpc();
   // Per-workspace validator state across the fleet (FEAT-0028 / TASK-0248).
   registerFleetHealthIpc({ getAllWindows: () => Array.from(allWindows) });

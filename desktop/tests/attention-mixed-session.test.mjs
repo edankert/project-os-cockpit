@@ -22,7 +22,7 @@ async function extractFunction(name) {
   return src.slice(start, end + 1);
 }
 
-async function entriesFor(state, digest) {
+async function entriesFor(state, digest, approvals = []) {
   const label = await extractFunction('agentMessage');
   const line = await extractFunction('agentLine');
   const copy = await extractFunction('attentionAgentCopy');
@@ -44,6 +44,7 @@ async function entriesFor(state, digest) {
     alertKey: (ws, key) => `${ws}::${key}`,
     pruneDismissedAlerts: () => {},
     isAlertDismissed: () => false,
+    approvalsByWs: approvals.length ? new Map([['ws', approvals]]) : new Map(),
   };
   const names = Object.keys(deps);
   const run = new Function(...names, `${label}\n${line}\n${copy}\n${entries}\nreturn attentionEntries();`);
@@ -103,4 +104,15 @@ test('elapsed working time does not undo dismissal, but a new request does', asy
     fingerprint(card, undefined),
     fingerprint({ ...card, ts: '2026-09-16T17:01:00Z' }, undefined),
   );
+});
+
+test('a live permission prompt replaces its project\'s amber card (FEAT-0159)', async () => {
+  const state = {
+    state: 'needs-input', agent: 'claude', ts: '2026-10-14T19:00:00Z', session_id: 's-1',
+    attention: [{ state: 'needs-input', agent: 'claude', ts: '2026-10-14T19:00:00Z', session_id: 's-1' }],
+  };
+  assert.equal((await entriesFor(state)).filter((e) => e.kind === 'needs-input').length, 1);
+  const asked = await entriesFor(state, undefined, [{ approval_id: 'a-1', status: 'handed-to-terminal' }]);
+  assert.equal(asked.filter((e) => e.kind === 'needs-input').length, 0,
+    'the prompt has its own card; the amber one would say it twice');
 });
