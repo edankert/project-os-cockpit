@@ -69,6 +69,21 @@ jobs:
           for t in tools/scripts/test-*.sh; do echo "== $t"; bash "$t"; done
           python3 -B tools/scripts/test-retention.py
           python3 -B tools/scripts/test-release-test-preparation.py
+      # The project-os plugin runs inside Claude Code, against an interface that
+      # is weeks old (project-os-dev FEAT-0041, RISK-0006). Validate and test it
+      # on the version plugin.json names; raise the pin on purpose
+      # (tools/adapters/claude-code/ADAPTER.md, "Moving the tested version").
+      # Neither command needs a login.
+      - uses: actions/setup-node@v4
+        if: github.repository == 'edankert/project-os'
+        with:
+          node-version: "20"
+      - name: Validate and test the project-os plugin on the version it declares (the template repository only)
+        if: github.repository == 'edankert/project-os'
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.300
+          claude plugin validate tools/adapters/claude-code/plugin
+          claude plugin test tools/adapters/claude-code/plugin
       - name: Verify generated adapter artifacts are current
         run: |
           if [ -f tools/scripts/generate-adapters.py ]; then

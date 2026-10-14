@@ -86,5 +86,16 @@
         ]
       }
     ]
+  },
+  "extraKnownMarketplaces": {
+    "project-os-project-os-cockpit": {
+      "source": {
+        "source": "directory",
+        "path": "./"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "project-os@project-os-project-os-cockpit": true
   }
 }
