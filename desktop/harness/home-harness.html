@@ -1,0 +1,141 @@
+<!doctype html>
+<!--
+  Draft home window harness (FEAT-0160 / TASK-0648).
+
+  Loads the REAL built page (dist/renderer/home.js, home-model.js, home.css
+  and base.css) in a plain browser, with the preload bridge stubbed. The
+  page is pure DOM composition over two payloads, and the only other way to
+  see it is to restart the cockpit and open File, Home (draft).
+
+  Build first (npm run build), then serve the repo root over http and open:
+    /desktop/harness/home-harness.html          → light
+    /desktop/harness/home-harness.html#dark     → dark
+    /desktop/harness/home-harness.html#empty    → nothing owed, nothing open
+
+  The fixtures are shaped like the sidecar's landing, stats and release
+  payloads and the shell's fleet rows. They cover what the page has to get
+  right: commits that collapse to one row, a project with no sidecar, a
+  phase with nothing in progress, a release in preparation, and every agent
+  word. `window.__opened` records what a click asked the present window to
+  open.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cockpit home (draft) — harness</title>
+<link rel="stylesheet" href="../dist/renderer/base.css">
+<link rel="stylesheet" href="../dist/renderer/home.css">
+</head>
+<body class="home">
+<!-- The markup between the BOARD comments is copied from src/renderer/home.html. Keep the two alike. -->
+<!--BOARD-->
+<svg class="home-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- One mark per kind of thing owed. -->
+    <symbol id="g-decide" viewBox="0 0 12 12"><path d="M6 .8L11.2 6L6 11.2L.8 6Z"/></symbol>
+    <symbol id="g-accept" viewBox="0 0 12 12"><rect x="1.8" y="1.8" width="8.4" height="8.4" rx="1.2"/></symbol>
+    <symbol id="g-approve" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6"/></symbol>
+    <symbol id="g-run" viewBox="0 0 12 12"><path d="M2.6 1.2L11 6L2.6 10.8Z"/></symbol>
+    <symbol id="g-confirm" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.9" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="g-triage" viewBox="0 0 12 12"><path d="M1.2 2.6H10.8L6 11Z"/></symbol>
+    <symbol id="g-push" viewBox="0 0 12 12"><path d="M6 11V2M2.4 5.6L6 2L9.6 5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="g-deploy" viewBox="0 0 12 12"><path d="M6 11V4.4M2.4 8L6 4.4L9.6 8M2.4 1.6H9.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="g-other" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.4"/></symbol>
+    <!-- One mark per agent state. Shape and colour both differ. -->
+    <symbol id="a-working" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5"/></symbol>
+    <symbol id="a-needs" viewBox="0 0 14 14"><path d="M7 1.4L13 12.2H1Z"/></symbol>
+    <symbol id="a-stuck" viewBox="0 0 14 14"><path d="M3 3L11 11M11 3L3 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="a-finished" viewBox="0 0 14 14"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 2.4A4.6 4.6 0 0 1 7 11.6Z"/></symbol>
+    <symbol id="a-quiet" viewBox="0 0 14 14"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="a-closed" viewBox="0 0 14 14"><path d="M3.4 7H10.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="home-top">
+  <h1>Home <span class="home-draft">draft</span></h1>
+  <ul id="home-totals" class="home-totals" aria-label="What is owed, by kind"></ul>
+  <button id="home-refresh" type="button" title="Refresh" aria-label="Refresh">↻</button>
+</header>
+
+<main id="home-board" class="home-board" aria-label="Projects"></main>
+
+<footer class="home-foot">
+  <span class="home-key"><i class="seg seg-done"></i>done</span>
+  <span class="home-key"><i class="seg seg-now"></i>now</span>
+  <span class="home-key"><i class="seg seg-next"></i>next</span>
+  <span class="home-key"><i class="ex"></i><i class="ex ex-done"></i>exit criteria</span>
+  <span id="home-asof" class="home-asof">Loading…</span>
+</footer>
+<!--/BOARD-->
+
+<script>
+const commits = Array.from({ length: 73 }, (_, i) => ({ id: 'c' + i, title: 'commit ' + i, url: '~history', rel: '', type: 'unpushed commit', verb: 'Push' }));
+const FULL = {
+  data: { generatedAt: 0, projects: [
+    { workspaceId: 'w-trainer', project: 'your-trainer', projectId: 'your-trainer', live: true, notRead: null, owedCount: null, owedAt: null,
+      owed: [
+        { kind: 'issue', verb: 'Triage', noun: 'issues', label: 'Triage 1 issue', count: 1, items: [
+          { id: 'ISS-0482', title: 'On iOS, a ride whose upload was interrupted is never uploaded again', rel: 'issues/ISS-0482-Interrupted-Upload.md', verb: 'Triage' } ] },
+        { kind: 'unpushed commit', verb: 'Push', noun: 'commits', label: 'Push 73 commits', count: 73, items: commits },
+        { kind: 'adr', verb: 'Decide', noun: 'ADRs', label: 'Decide 1 ADR', count: 1, items: [
+          { id: 'ADR-0011', title: 'Riders pick which speed they are shown and upload — ours or their trainer\'s — but never which one they are scored on', rel: 'decisions/ADR-0011-Display-Calibration.md', verb: 'Decide' } ] },
+        { kind: 'release gate', verb: 'Run', noun: 'release gate', label: 'Run 1 release gate', count: 1, items: [
+          { id: 'REL-0017', title: '345 Tier 1/2 checks stand between 2.2.0 and shipping', rel: 'releases/REL-0017-v2.2.0.md', verb: 'Run' } ] },
+      ],
+      phases: [
+        { key: 'PHASE-019', title: 'iOS Parity — the iPhone app does what the Android one does', status: 'active', rel: 'phases/PHASE-019-iOS-Parity.md',
+          tasks: { done: 41, in_progress: 2, backlog: 28 }, waiting: 1, focus: true,
+          exit: [
+            { text: 'Every Android screen has its iOS counterpart', done: true },
+            { text: 'The first iOS release test has been walked on a real iPhone', done: false },
+            { text: 'A ride recorded on iOS uploads to Strava', done: false } ],
+          features: [
+            { id: 'FEAT-0090', title: 'Rides sync', bucket: 'done' }, { id: 'FEAT-0091', title: 'Workouts', bucket: 'done' },
+            { id: 'FEAT-0085', title: 'BLE Reliability Layer', bucket: 'in_progress' },
+            { id: 'FEAT-0127', title: 'iOS debug builds gain the four controls the first iOS release test needs', bucket: 'backlog' },
+            { id: 'FEAT-0117', title: 'A gear sweep in Developer Options', bucket: 'backlog' } ] },
+        { key: 'PHASE-021', title: 'Data-only trainers', status: 'active', rel: 'phases/PHASE-021-Data-Only.md',
+          tasks: { done: 12, in_progress: 0, backlog: 0 }, waiting: 0, exit: [ { text: 'A data-only trainer shows speed', done: true } ],
+          features: [ { id: 'FEAT-0101', title: 'Read-only trainers', bucket: 'done' } ] },
+        { key: 'PHASE-030', title: 'Later', status: 'planned', rel: 'phases/PHASE-030-Later.md', tasks: {}, features: [] },
+      ],
+      release: { id: 'REL-0017', version: '2.2.0', status: 'draft', rel: 'releases/REL-0017-v2.2.0.md', openTests: 43, toSettle: 21 } },
+    { workspaceId: 'w-cockpit', project: 'project-os-cockpit', projectId: 'project-os-cockpit', live: true, notRead: null, owedCount: null, owedAt: null,
+      owed: [
+        { kind: 'design', verb: 'Accept', noun: 'designs', label: 'Accept 1 design', count: 1, items: [
+          { id: 'DES-0016', title: 'Levels of abstraction: seven levels from the whole fleet down to the agent\'s tool calls', rel: 'designs/DES-0016-Levels-Of-Abstraction.md', verb: 'Accept' } ] },
+        { kind: 'requirement', verb: 'Approve', noun: 'requirements', label: 'Approve 1 requirement', count: 1, items: [
+          { id: 'REQ-0071', title: 'A session reports through a supported channel', rel: 'requirements/REQ-0071-Supported-Channel.md', verb: 'Approve' } ] },
+      ],
+      phases: [ { key: 'PHASE-045', title: 'The cockpit in layers', status: 'active', rel: 'phases/PHASE-045-The-Cockpit-In-Layers.md',
+        tasks: { done: 0, in_progress: 3, backlog: 0 }, waiting: 0, exit: null, features: [
+          { id: 'FEAT-0160', title: 'A draft window shows what needs you', bucket: 'in_progress' },
+          { id: 'FEAT-0152', title: 'Home first', bucket: 'backlog' } ] } ],
+      release: null },
+    { workspaceId: 'w-sudoku', project: 'your-sudoku', projectId: 'your-sudoku', live: true, notRead: null, owed: [], owedCount: null, owedAt: null, phases: [], release: null },
+    { workspaceId: 'w-legal', project: 'your-apps-legal', projectId: 'your-apps-legal', live: false, notRead: 'it is not open in the cockpit', owed: [], owedCount: 3, owedAt: '2026-10-13T09:00:00Z', phases: [], release: null },
+  ] },
+  fleet: { generatedAt: 0, rows: [
+    { workspaceId: 'w-trainer', name: 'your-trainer', state: 'needs-input', live: true, message: 'Allow running the iOS build script?', queueDepth: 2 },
+    { workspaceId: 'w-cockpit', name: 'project-os-cockpit', state: 'busy', live: true, lastPrompt: 'Add the draft home window' },
+    { workspaceId: 'w-sudoku', name: 'your-sudoku', state: 'waiting', live: true },
+    { workspaceId: 'w-health', name: 'your-health', state: 'error', live: true, message: 'The session exited with an error.' },
+    { workspaceId: 'w-dev', name: 'project-os-dev', state: 'idle', live: true },
+    { workspaceId: 'w-legal', name: 'your-apps-legal', state: null, live: false },
+  ] },
+};
+const EMPTY = { data: { generatedAt: 0, projects: [] }, fleet: { generatedAt: 0, rows: [] } };
+const fixture = location.hash === '#empty' ? EMPTY : FULL;
+if (location.hash === '#dark') { try { localStorage.setItem('cockpit:theme', 'dark'); } catch (e) {} }
+else { try { localStorage.setItem('cockpit:theme', 'light'); } catch (e) {} }
+window.__opened = [];
+window.cockpitHome = {
+  data: async () => fixture.data,
+  fleet: async () => fixture.fleet,
+  open: async (target) => { window.__opened.push(target); console.log('open', JSON.stringify(target)); return true; },
+};
+</script>
+<script src="../dist/renderer/home-model.js"></script>
+<script src="../dist/renderer/home.js"></script>
+</body>
+</html>

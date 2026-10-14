@@ -3,18 +3,19 @@ type: "[[phase]]"
 id: PHASE-045
 aliases: ["PHASE-045"]
 title: "The cockpit in layers — the first screen shows the least a person needs, and every flow shows more only on request"
-status: planned
+status: active
 order: 45
 owner: user:edwin
 created: 2026-09-17
-updated: 2026-09-27
+updated: 2026-10-13
 goal: "A person opening a project sees what needs them, what is in flight and how far the work has travelled on one screen of a few kilobytes, and reaches the design, build, verification and issue flows one layer at a time, with the record behind a fold. Opened as a place to refine that idea, not as a commitment to build it."
 features:
   - "[[FEAT-0152-Home-First]]"
   - "[[FEAT-0153-Flows-As-Views]]"
   - "[[FEAT-0154-Subject-Threads]]"
+  - "[[FEAT-0160-A-Draft-Window-Shows-What-Needs-You]]"
 requirements: []
-tasks: []
+tasks: ["[[TASK-0646]]", "[[TASK-0647]]", "[[TASK-0648]]"]
 issues: []
 related:
   - "[[DES-0015-The-Cockpit-In-Layers]]"
@@ -41,7 +42,9 @@ tags: [layers, overview, navigation, design]
 
 A person opening a project sees four facts and one sentence: what needs them, what is in flight, whether an agent is working, and how far the work has travelled. Everything else sits one layer down, reached one click at a time, and the raw record sits behind a fold. The four flows the project already runs (design and review, implementation, verification, issue triage) keep their subjects, their verbs and their write paths; what changes is how much of each flow is on screen at once.
 
-The design is [[DES-0015-The-Cockpit-In-Layers]], offered on 2026-09-17 and not yet accepted. **This phase exists so that design can be refined over time.** Edwin, 2026-09-17: *"I am not fully convinced, so document it in such a way that we can refine over time."* So the phase is `planned`, its features are `backlog`, and its exit criteria are about decisions being made and recorded, not about screens being built. It becomes `active` when Edwin accepts the design, or one revision of it, and picks a first feature.
+The design is [[DES-0015-The-Cockpit-In-Layers]], offered on 2026-09-17 and not yet accepted. **This phase exists so that design can be refined over time.** Edwin, 2026-09-17: *"I am not fully convinced, so document it in such a way that we can refine over time."* So its three option features are `backlog`, and its exit criteria are about decisions being made and recorded, not about screens being built.
+
+**The phase is `active` since 2026-10-13 for one draft, and no design is accepted.** Edwin asked for a draft window beside the present one ([[FEAT-0160-A-Draft-Window-Shows-What-Needs-You]]). That is the route "How to refine this" calls trying one option without committing to the model. Both designs stay `proposed`, every decision in the table below stays open, and the three option features stay `backlog` until Edwin accepts a design and picks one.
 
 **Why a phase.** The goal is stated without listing its parts, and the exit criteria are not "the tasks are done" (CLAUDE.md, "When to open a phase"). Three earlier phases shaped this surface and each answered one question: [[PHASE-016-The-Overview-Answers-Questions]] made every number lead somewhere, [[PHASE-026-The-Returning-Human]] gave the person who was away a digest, and [[PHASE-030-Obligations-Go-Home]] put every obligation in the view that owns its subject. This phase asks the question none of them did: how much should be on the screen at all.
 
@@ -57,6 +60,8 @@ Three features, one per option in the design, in the order the design recommends
 - [[FEAT-0153-Flows-As-Views]] (option A): L2. The navigator's modes become Home, Design, Build, Verify and Issues, each ordered by state with terminal groups folded and fetched on demand. Reopens part of [[ADR-0028-Work-Has-Three-Phases]] (see D2 below), so it opens on a decision.
 - [[FEAT-0154-Subject-Threads]] (option B): L3. A subject page with a header card, a timeline and folded agent sessions; the sidebar lists subjects by recency and need. The largest renderer change, and possibly Deck's to build rather than this repository's.
 
+- [[FEAT-0160-A-Draft-Window-Shows-What-Needs-You]] (a draft, none of the three options): a second window on the same sidecars with three areas, Needs you across all projects, Where we are for a phase, and The AIs. It is cut by who has to act, changes no page of the present window and performs no act; a row opens the present window. Planned 2026-10-13 on Edwin's decision of that day.
+
 Refining the design is in scope: a revision of [[DES-0015-The-Cockpit-In-Layers]] or [[DES-0016-Levels-Of-Abstraction]] is a commit against the note and its plates, logged in its Revisions section and in the refinement log below.
 
 **A second design now sits beside the first.** [[DES-0016-Levels-Of-Abstraction]], offered 2026-09-20, cuts the same material by reader instead of by payload size: seven levels from the portfolio of thirteen projects down to the agent's tool calls, with A0 (portfolio), A4 (the ticket in full), A5 (evidence) and A6 (trace) added to DES-0015's five. It does not replace the three features; it adds a level above them and two below, plus a drill-down contract and an altitude control. Which of the two designs is the model is decision D6.
@@ -64,7 +69,7 @@ Refining the design is in scope: a revision of [[DES-0015-The-Cockpit-In-Layers]
 ## Out of Scope
 
 - Any new status, any new write path, any verdict written by a machine. Every button the design draws is a registry verb that exists.
-- The panel and window architecture, the 2D desk and the glass field ([[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]). This phase changes payloads and pages, not the pane grammar.
+- The panel and window architecture, the 2D desk and the glass field ([[project-os-deck#REFERENCE-SURFACE-ARCHITECTURE-OPTIONS]]). This phase changes payloads and pages, not the pane grammar. One exception, by Edwin's decision of 2026-10-13: the draft window of [[FEAT-0160-A-Draft-Window-Shows-What-Needs-You]] is a new window. The panes of the present window stay out of scope.
 - The sidecar's own tablet HTML (mode 1). [[ADR-0010]] gates its parity on an authenticated write path.
 - The Obsidian vault profile ([[ISS-0279]]).
 - Repairing the record. Home will say "no run recorded" and "no surface note" where those are true; making them false is data work under [[ISS-0306]] and its kin, not presentation.
@@ -115,6 +120,8 @@ Written so the phase can close on a refusal as honestly as on a build.
 - **To give up on it**, cancel the design and close this phase as `deferred` or `superseded`; the measurements in the design stay true either way.
 
 ## Refinement log
+
+- 2026-10-13 — Edwin, after the cockpit's capabilities were sorted by who has to act ([[project-os-dev#REFERENCE-COCKPIT-SIMPLIFICATION-SORT]]): *"a new window beside the present one, keep the sidecar ... can we do this as a draft solution for now and probably best to do this in the cockpit project for now."* [[FEAT-0160-A-Draft-Window-Shows-What-Needs-You]] is planned with three tasks, and the phase moves to `active` for it. No design is accepted and no decision D1 to D16 is made. The draft bears on D1 (it sits beside the overview, in its own window), on D8 and D14 (it gives all projects a screen of their own) and on the Out of Scope line about windows, which now names the exception. Several sessions per project, a branch or copy per session and the runner are later steps, not work in this phase yet.
 
 - 2026-09-27 — Edwin reviewed DES-0015 and raised three concerns: *"the terminology is shifting from what was defined initially and I am not sure I am fully happy with or know exactly what is going anymore"*; *"some of the functionality would be removed if we would implement this, for instance the opportunity to read none project-os type tickets stored in the docs area"*; and *"a lot of the layers can do with a little more changes to the graphics to make them more easily to digest"*. He then asked whether the fleet could live in the left pane's Needs you panel, whether the project view is a kanban board, and whether the left pane could hold the high-level view with more detail to the right. Recorded as D11 to D16. A vocabulary proposal was added to [[GLOSSARY]] and the inventory [[REFERENCE-COCKPIT-LEVELS-INVENTORY]] written; it found four real losses (Library with its pins, Publication, the platform filter, backlinks under option B) and six things neither design mentions. It also corrects the first review: the shell shows seven view buttons, not nine. The designs and their plates are not revised yet; that waits for D11. The phase's own goal and headings still say "layer" for the same reason.
 

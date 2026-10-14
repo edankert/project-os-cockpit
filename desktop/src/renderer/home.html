@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:">
+<title>Cockpit home (draft)</title>
+<link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="home.css">
+</head>
+<body class="home">
+<!--BOARD-->
+<svg class="home-defs" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- One mark per kind of thing owed. -->
+    <symbol id="g-decide" viewBox="0 0 12 12"><path d="M6 .8L11.2 6L6 11.2L.8 6Z"/></symbol>
+    <symbol id="g-accept" viewBox="0 0 12 12"><rect x="1.8" y="1.8" width="8.4" height="8.4" rx="1.2"/></symbol>
+    <symbol id="g-approve" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.6"/></symbol>
+    <symbol id="g-run" viewBox="0 0 12 12"><path d="M2.6 1.2L11 6L2.6 10.8Z"/></symbol>
+    <symbol id="g-confirm" viewBox="0 0 12 12"><circle cx="6" cy="6" r="3.9" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="g-triage" viewBox="0 0 12 12"><path d="M1.2 2.6H10.8L6 11Z"/></symbol>
+    <symbol id="g-push" viewBox="0 0 12 12"><path d="M6 11V2M2.4 5.6L6 2L9.6 5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="g-deploy" viewBox="0 0 12 12"><path d="M6 11V4.4M2.4 8L6 4.4L9.6 8M2.4 1.6H9.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="g-other" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.4"/></symbol>
+    <!-- One mark per agent state. Shape and colour both differ. -->
+    <symbol id="a-working" viewBox="0 0 14 14"><circle cx="7" cy="7" r="5"/></symbol>
+    <symbol id="a-needs" viewBox="0 0 14 14"><path d="M7 1.4L13 12.2H1Z"/></symbol>
+    <symbol id="a-stuck" viewBox="0 0 14 14"><path d="M3 3L11 11M11 3L3 11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="a-finished" viewBox="0 0 14 14"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 2.4A4.6 4.6 0 0 1 7 11.6Z"/></symbol>
+    <symbol id="a-quiet" viewBox="0 0 14 14"><circle cx="7" cy="7" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="a-closed" viewBox="0 0 14 14"><path d="M3.4 7H10.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="home-top">
+  <h1>Home <span class="home-draft">draft</span></h1>
+  <ul id="home-totals" class="home-totals" aria-label="What is owed, by kind"></ul>
+  <button id="home-refresh" type="button" title="Refresh" aria-label="Refresh">↻</button>
+</header>
+
+<main id="home-board" class="home-board" aria-label="Projects"></main>
+
+<footer class="home-foot">
+  <span class="home-key"><i class="seg seg-done"></i>done</span>
+  <span class="home-key"><i class="seg seg-now"></i>now</span>
+  <span class="home-key"><i class="seg seg-next"></i>next</span>
+  <span class="home-key"><i class="ex"></i><i class="ex ex-done"></i>exit criteria</span>
+  <span id="home-asof" class="home-asof">Loading…</span>
+</footer>
+<!--/BOARD-->
+
+<script src="home-model.js"></script>
+<script src="home.js"></script>
+</body>
+</html>

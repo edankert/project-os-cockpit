@@ -1,0 +1,96 @@
+/* The draft home window (FEAT-0160). A board to read at a glance: one row per
+   project, a mark per thing owed, a bar per active phase. Colours and fonts
+   come from base.css, the tokens the present window uses. */
+
+body.home {
+  background: var(--bg);
+  color: var(--text);
+  font: 12px/1.35 var(--font-sans);
+  user-select: none;
+}
+.home-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: 1px; }
+
+/* Top: the totals double as the key to the marks. */
+.home-top {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.home-top h1 { margin: 0; font-size: 13px; font-weight: 650; white-space: nowrap; }
+.home-draft { margin-left: 4px; padding: 0 5px; border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 10px; font-weight: 500; color: var(--text-muted); }
+.home-totals { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none; }
+.home-totals li { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--text-muted); }
+.home-totals b { color: var(--text); font-weight: 650; font-variant-numeric: tabular-nums; }
+#home-refresh { flex: none; width: 24px; height: 24px; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); cursor: pointer; font-size: 14px; line-height: 1; }
+
+.home-board { flex: 1; min-height: 0; overflow-y: auto; }
+.home-empty { padding: 14px 12px; color: var(--text-muted); }
+
+/* One project. */
+.hr { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 4px 8px; padding: 9px 12px; border-bottom: 1px solid var(--border); }
+.hr.is-unread { opacity: 0.6; }
+.hr-agent { grid-row: 1; align-self: center; width: 16px; height: 16px; }
+.hr-head { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; min-width: 0; }
+.hr-name { padding: 0; border: 0; background: none; font-weight: 650; font-size: 13px; cursor: pointer; text-align: left; overflow-wrap: anywhere; }
+.hr-name:hover { color: var(--accent-link); }
+.hr-owed { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+.hr-phases { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.hr-note { grid-column: 2; color: var(--text-muted); }
+
+/* Marks. */
+.glyph { width: 13px; height: 13px; display: block; fill: currentColor; }
+.hr-agent .glyph { width: 16px; height: 16px; }
+.tok { display: inline-flex; align-items: center; gap: 1px; height: 17px; min-width: 17px; padding: 0 2px; border: 0; border-radius: 3px; background: none; cursor: pointer; font-size: 10px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tok:hover { background: var(--surface-2); }
+/* The colour is on the mark itself, so a count beside it keeps the text colour. */
+.g-decide > .glyph, .g-accept > .glyph, .g-approve > .glyph, .g-confirm > .glyph { color: var(--accent-link); }
+.g-run > .glyph { color: var(--status-active); }
+.g-triage > .glyph { color: var(--warn-fg); }
+.g-push > .glyph, .g-deploy > .glyph, .g-other > .glyph { color: var(--text-muted); }
+.tok { color: var(--text-muted); }
+.tok-more { color: var(--text-muted); font-weight: 500; padding: 0 3px; }
+
+.a-working { color: var(--status-active); }
+.a-needs, .a-stuck { color: var(--status-blocked); }
+.a-finished { color: var(--warn-fg); }
+.a-quiet, .a-closed { color: var(--text-faint); }
+@media (prefers-reduced-motion: no-preference) {
+  .a-working .glyph { animation: home-breathe 1.6s ease-in-out infinite; }
+  .a-needs .glyph { animation: home-breathe 0.9s ease-in-out infinite; }
+}
+@keyframes home-breathe { 50% { opacity: 0.35; } }
+
+/* One phase: its features as marks, then its exit criteria. */
+.hp { display: inline-flex; align-items: center; gap: 5px; }
+.hp-key { padding: 0 3px; border: 0; border-radius: 3px; background: none; cursor: pointer; font: 10px var(--font-mono); color: var(--text-muted); }
+.hp-key:hover { background: var(--surface-2); color: var(--text); }
+.hp.is-focus .hp-key { color: var(--text); font-weight: 700; }
+.hp-segs, .hp-exit { display: inline-flex; align-items: center; gap: 2px; }
+.seg { display: inline-block; box-sizing: border-box; width: 8px; height: 13px; padding: 0; border: 1.5px solid var(--status-done); border-radius: 2px; background: none; }
+button.seg { cursor: pointer; }
+.seg-done { background: var(--status-done); }
+.seg-now { border-color: var(--accent-focus); background: repeating-linear-gradient(135deg, var(--accent-focus) 0 2px, transparent 2px 4px); }
+.seg-next { border-color: var(--border-strong); }
+button.seg:hover { transform: scaleY(1.25); }
+.hp-bar { display: inline-flex; width: 96px; height: 13px; border-radius: 2px; overflow: hidden; border: 0; padding: 0; background: none; cursor: pointer; }
+.hp-bar i { display: block; min-width: 2px; }
+.hp-bar .seg-done, .hp-bar .seg-now, .hp-bar .seg-next { width: auto; height: auto; border-radius: 0; }
+.hp-num { font-size: 10px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.hp-flag { width: 1px; height: 15px; background: var(--border-strong); }
+.ex { display: inline-block; box-sizing: border-box; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--text-muted); }
+.ex-done { background: var(--status-done); border-color: var(--status-done); }
+.ex-unread { border-style: dotted; }
+.hp-rel { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; height: 17px; border: 1px solid var(--border-strong); border-radius: 9px; background: none; cursor: pointer; font-size: 10px; font-variant-numeric: tabular-nums; }
+.hp-rel:hover { background: var(--surface-2); }
+.hp-rel b { font-weight: 650; }
+
+/* Foot: the key to the bars, and when this was read. */
+.home-foot { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; padding: 6px 12px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 10px; }
+.home-key { display: inline-flex; align-items: center; gap: 4px; }
+.home-key .seg { height: 10px; }
+.home-asof { margin-left: auto; }

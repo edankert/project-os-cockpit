@@ -23,6 +23,7 @@ import {
 import { registerDispatchIpc } from './ipc/dispatch-queue';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
 import { registerFleetHealthIpc, stopFleetHealth } from './ipc/fleet-health';
+import { isHomeWindow, openHomeWindow, registerHomeWindowIpc } from './ipc/home-window';
 import { registerClipboardIpc } from './ipc/clipboard';
 import { registerGitIpc } from './ipc/git';
 import { attachContextMenu } from './ipc/context-menu';
@@ -343,6 +344,13 @@ function buildMenu(): void {
           accelerator: isMac ? 'Cmd+N' : 'Ctrl+N',
           click: () => { createWindow(); },
         },
+        // The draft home window (FEAT-0160): a different kind of window,
+        // not a second copy of this one. It never becomes `mainWindow`.
+        {
+          label: 'Home (draft)',
+          accelerator: isMac ? 'Cmd+Shift+H' : 'Ctrl+Shift+H',
+          click: () => { openHomeWindow(); },
+        },
         { type: 'separator' },
         {
           label: 'Rescan workspaces',
@@ -377,7 +385,13 @@ function buildMenu(): void {
         {
           label: 'Copy',
           accelerator: 'CmdOrCtrl+C',
-          click: () => {
+          click: (_item, focused) => {
+            // The draft home window (FEAT-0160) has only ordinary page text,
+            // so the plain copy is right there and the routed one is wrong.
+            if (focused instanceof BrowserWindow && isHomeWindow(focused)) {
+              focused.webContents.copy();
+              return;
+            }
             if (mainWindow && !mainWindow.isDestroyed()) {
               mainWindow.webContents.send('menu:edit', { action: 'copy' });
             }
@@ -480,6 +494,16 @@ app.whenReady().then(() => {
   registerAgentsFleetIpc();
   // Per-workspace validator state across the fleet (FEAT-0028 / TASK-0248).
   registerFleetHealthIpc({ getAllWindows: () => Array.from(allWindows) });
+  // The draft home window (FEAT-0160) performs no act: a row it is asked to
+  // open goes to the present window as an ordinary cockpit:// link. With no
+  // present window open, one is made first and gets the link once it has loaded.
+  registerHomeWindowIpc({
+    openInMain: (url) => {
+      if (mainWindow) { handleDeepLink(url); return; }
+      const win = createWindow();
+      win.webContents.once('did-finish-load', () => { handleDeepLink(url); });
+    },
+  });
   registerSettingsIpc();
   // One clipboard path for the whole app (FEAT-0054 / TASK-0261).
   registerClipboardIpc();

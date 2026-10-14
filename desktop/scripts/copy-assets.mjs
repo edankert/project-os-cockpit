@@ -23,7 +23,7 @@ const nodeModules = path.join(root, 'node_modules');
 await mkdir(rendererDst, { recursive: true });
 
 // Our own renderer assets.
-for (const file of ['index.html', 'renderer.css']) {
+for (const file of ['index.html', 'renderer.css', 'home.html', 'home.css']) {
   await cp(path.join(rendererSrc, file), path.join(rendererDst, file));
 }
 
