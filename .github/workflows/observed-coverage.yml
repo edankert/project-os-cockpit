@@ -66,6 +66,15 @@ jobs:
       - name: Build the renderer
         working-directory: desktop
         run: npm ci && npm run build
+      # The cockpit's Claude Code plugin runs inside Claude Code, against an
+      # interface that is weeks old (FEAT-0156, RISK-0004). Validate and test
+      # it against the version it was written on; raise the pin on purpose.
+      # Neither command needs a login.
+      - name: Validate and test the Claude Code plugin on the version it declares
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.299
+          claude plugin validate desktop/plugin/claude-code
+          claude plugin test desktop/plugin/claude-code
       # The steps above supply the full history, the template repo and the built
       # renderer. This promise turns a test's "skip, it is missing" into a
       # failure here, so a broken step above cannot quietly turn those guards

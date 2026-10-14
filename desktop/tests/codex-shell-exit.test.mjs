@@ -32,7 +32,7 @@ test('exiting Codex returns to the same cockpit shell', { skip: !fs.existsSync('
       module,
       exports: module.exports,
       require: (name) => name === 'electron'
-        ? { app: { getPath: () => temporary } }
+        ? { app: { getPath: () => temporary, getAppPath: () => path.join(here, '..') } }
         : requireBuiltin(name),
       process,
       console,

@@ -3,20 +3,23 @@ type: "[[feature]]"
 id: FEAT-0156
 aliases: ["FEAT-0156"]
 title: "Claude Code sessions report to the cockpit through a plugin the shell loads, instead of through generated shell files and the status line"
-status: backlog
+status: doing
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-08
-updated: 2026-10-08
+updated: 2026-10-14
 source:
   - "Edwin 2026-10-08: 'Plan the implementation in a new phase.' (Claude Code mods shipped in v2.1.287)"
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]], 'What it would change for the cockpit'"
 goal: "A Claude session in a cockpit terminal reports its lifecycle, cost, context and rate limits to the sidecar through a plugin Claude Code loads, so the shell stops generating Claude settings and hook scripts and stops taking over the user's status line."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0649-The-Cockpit-Plugin-Posts-Every-Claude-Event-To-The-Sidecar]]"
+  - "[[TASK-0650-The-Shell-Loads-The-Plugin-And-Stops-Generating-Claude-Files]]"
+  - "[[TASK-0651-The-Sidecar-Prefers-The-Plugin-And-CI-Checks-It]]"
 release: ""
 acceptance_exception: ""
-acceptance: ""
+acceptance: "[[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]]"
 design: ""
 related:
   - "[[FEAT-0019-Agent-Hook-Ingestion]]"
@@ -30,7 +33,11 @@ related:
 
 # Claude sessions report through the cockpit plugin
 
-**Not started.** Filed at `backlog` in the planned [[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]. It is the first of the phase's four features, and the other three need the plugin it creates.
+**Started 2026-10-14.** The first of [[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]'s four features; the other three need the plugin it creates. The plan, with the event mapping checked against Claude Code 2.1.299, is `plan/PLAN.md` beside this note. The work is three tasks: [[TASK-0649-The-Cockpit-Plugin-Posts-Every-Claude-Event-To-The-Sidecar]] (the plugin), [[TASK-0650-The-Shell-Loads-The-Plugin-And-Stops-Generating-Claude-Files]] (the shell) and [[TASK-0651-The-Sidecar-Prefers-The-Plugin-And-CI-Checks-It]] (the sidecar, CI and the record). The acceptance check is [[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]].
+
+## State on 2026-10-14
+
+**Built; waiting for Edwin's acceptance run.** All three tasks are done. The plugin was tried in a real headless and a real interactive Claude session against a stand-in sidecar, and the sidecar read its posts exactly as it read the scripts'. It has not been run inside the cockpit application. [[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]] is `active` and is Edwin's to run after `npm run build` in `desktop/` and a restart. The feature stays `doing` until that check passes and its independent review is done. What changed is in [[CHG-20261014-Claude-Sessions-Report-Through-The-Cockpit-Plugin]].
 
 ## Goal
 
@@ -58,6 +65,8 @@ A Claude session started in a cockpit terminal shows the same rail dots, agent r
 7. Run `claude plugin validate` and `claude plugin test` in CI against the pinned version; extend RISK-0004's `~/.claude` mtime test to the plugin path.
 
 ## Open questions
+
+**Answered 2026-10-14, each with the note's own recommendation** (the reasons are in the plan): (1) option (b), the plugin marks its posts and the sidecar ignores an unmarked Claude post for a session the plugin claimed, and the two-second window stays for terminals opened before the change; (2) no fallback, and the warning for an older Claude Code is a follow-up issue; (3) `desktop/plugin/claude-code/`.
 
 1. **What happens to the dedup window, given FEAT-0027's user hook?** Options: (a) keep the window; (b) the plugin marks its posts, and the sidecar ignores a user-hook post for a session the plugin has already claimed; (c) FEAT-0027's toggle installs the plugin user-wide instead of a command hook, which writes to `~/.claude` under the same consent gate it uses today. Recommendation: (b), because it removes the duplicate without changing what the user consented to.
 2. **What if Claude Code is older than the pinned version?** Options: fall back to the shell-script path, or start the session uninstrumented with a visible warning. A fallback keeps two paths alive, which is what the phase is removing. Recommendation: no fallback; warn on the rail.

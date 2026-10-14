@@ -3,7 +3,7 @@ type: "[[phase]]"
 id: PHASE-046
 aliases: ["PHASE-046"]
 title: "A Claude session talks to the cockpit through a plugin — no generated shell files, no hijacked status line, no typed keystrokes"
-status: planned
+status: active
 order: 46
 owner: user:edwin
 created: 2026-10-08
@@ -15,7 +15,7 @@ features:
   - "[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"
   - "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]"
 requirements: []
-tasks: []
+tasks: ["[[TASK-0649]]", "[[TASK-0650]]", "[[TASK-0651]]"]
 issues: []
 related:
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]]"
@@ -104,6 +104,6 @@ Run on 2026-10-08 against the features, requirements and ADRs that share these a
 ## Notes
 
 - **Order and dependencies.** FEAT-0156 first. FEAT-0157 and FEAT-0158 after it, in either order. FEAT-0159 last, after ISS-0301's secret exists (the open half of that issue).
-- **No focus is set.** This phase is `planned`, and writing these notes needed no focus item because HC-001 exempts `docs/` and `SNAPSHOT.yaml`. Set `focus.phase` and `focus.feature` when FEAT-0156 starts, and run the feature-scaffold checklist for it then.
+- **Active since 2026-10-14**, when FEAT-0156 started (the goal set for that session: deliver FEAT-0156 up to its acceptance check). Its plan and tasks are written; FEAT-0157 to FEAT-0159 stay at `backlog`. Each feature's tasks are minted when that feature starts.
 - **Follow-ups for project-os (upstream), filed in project-os-dev on 2026-10-14:** the project-os mod, which takes over the session-marker and review-budget hooks, the shell-edit check, the wrong-model warning and the project half of the line above the prompt (leg 5, [[project-os-dev#FEAT-0041-Project-Os-Mod]]); and how that mod reaches each repo (leg 6, [[project-os-dev#ISS-0106-Project-Os-As-A-Plugin]]).
 - **[[ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit]]** could surface in FEAT-0157's band as a start-of-session warning. It is linked, not absorbed: ISS-0277 asks for a check that reads the files, and a warning is only where its answer would be shown.

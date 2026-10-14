@@ -302,6 +302,35 @@ def test_double_capture_is_deduped(tmp_path: Path):
         httpd.server_close()
 
 
+def test_plugin_session_ignores_the_external_hooks_second_capture(tmp_path: Path):
+    """Once the cockpit plugin has posted for a session, an unmarked Claude
+    post for that session is the external hook's copy and is dropped, even
+    when it differs from the plugin's post (FEAT-0156, open question 1)."""
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    marked = {"hook_event_name": "UserPromptSubmit", "session_id": "s-p",
+              "prompt": "build it", "agent": "claude", "_cockpit_plugin": True}
+    unmarked = {k: v for k, v in marked.items() if k != "_cockpit_plugin"}
+
+    # Before the plugin claims the session, the external hook's post lands.
+    before = tracker.ingest(dict(unmarked, prompt="first"))
+    assert before["ignored"] is False and before["state"] == "busy"
+
+    assert tracker.ingest(marked)["state"] == "busy"
+    copy = tracker.ingest(unmarked)
+    assert copy["ignored"] is True and copy["state"] is None
+    later = tracker.ingest(dict(unmarked, hook_event_name="Stop", prompt=None))
+    assert later["ignored"] is True, "every later unmarked post is dropped, not only identical ones"
+    assert tracker.ingest(dict(marked, hook_event_name="Stop"))["state"] == "waiting"
+    assert [p["text"] for p in tracker._sessions["s-p"]["prompts"]] == ["first", "build it"]
+
+    # Another session, and Codex, are not affected by the claim.
+    other = tracker.ingest(dict(unmarked, session_id="s-other"))
+    assert other["ignored"] is False
+    codex = tracker.ingest({"hook_event_name": "UserPromptSubmit", "session_id": "s-p",
+                            "agent": "codex", "prompt": "x"})
+    assert codex["ignored"] is False
+
+
 def test_last_session_retains_files_after_end(tmp_path: Path):
     """After a session ends, snapshot.last_session still carries the
     files it touched — the data the persistent agent strip renders."""

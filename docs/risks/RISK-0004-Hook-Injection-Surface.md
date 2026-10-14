@@ -8,14 +8,14 @@ severity: medium
 likelihood: medium
 owner: user:edwin
 created: 2026-07-05
-updated: "2026-10-08"
+updated: "2026-10-14"
 related: ["[[FEAT-0019-Agent-Hook-Ingestion]]", "[[PHASE-007-Agent-Instrumentation]]", "[[RISK-0001-Terminal-Exposure]]", "[[ISS-0312]]", "[[CHG-20260916-Show-Codex-session-state-and-temperature-in-cockpit]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]", "[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]]"]
 mitigation_tasks: ["[[TASK-0633]]", "[[TASK-0634]]", "[[TASK-0635]]", "[[TASK-0636]]", "[[TASK-0637]]"]
 mitigation:
-  - "Per-spawn injection only for terminal instrumentation: generated settings/hooks files live under the app's own state dir and are passed via env/flags; user agent configuration is written ONLY by the explicit agent-specific settings toggle (FEAT-0027) — marker-identified entries, one-time backup, surgical uninstall."
+  - "Per-spawn injection only for terminal instrumentation: Claude Code loads the cockpit plugin from CLAUDE_CODE_PLUGIN_DIRS (FEAT-0156) and Codex gets generated hooks files under the app's own state dir, passed via env/flags; user agent configuration is written ONLY by the explicit agent-specific settings toggle (FEAT-0027) — marker-identified entries, one-time backup, surgical uninstall."
   - "Treat /api/agent-hook payloads as untrusted: validate shape, cap size, never render content as HTML, rate-limit per source."
   - "Bind the ingestion endpoint loopback-only (same boundary as the terminal endpoint, see RISK-0001)."
-  - "Version-pin against hook schema drift: tolerate unknown events/fields, log-and-drop rather than error."
+  - "Version-pin against hook schema drift: tolerate unknown events/fields, log-and-drop rather than error; CI validates and tests the Claude plugin on the Claude Code version it declares (2.1.299)."
   - "Honest UX for the Codex one-time trust prompt — never auto-approve trust on the user's behalf."
   - "Kill switch: a single setting disables all injection, reverting to voluntary cockpit-signal behaviour."
 ---
@@ -59,3 +59,14 @@ The external hook exception applies only when the person deliberately enables th
 ## September 23 mitigation evidence
 
 The Codex installer preserves unrelated handlers and refuses malformed configuration; tests use disposable homes. Normal hook trust was observed in real embedded and external Codex launches. Interruption stays held after a real late background tool completion, and child events preserve parent identity. Duplicate embedded/external forwarding is covered by the ingestion fixture. Production user configuration was not changed. The remaining live and shared-parser checks are recorded under ISS-0312.
+
+## Claude sessions report through a plugin — 2026-10-14
+
+[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]] replaced the Claude half of the generated files with a plugin, `desktop/plugin/claude-code/`, that Claude Code loads from `CLAUDE_CODE_PLUGIN_DIRS`. What that changes for this risk:
+
+- **Nothing is written under `~/.claude` to load it.** The variable is set by the cockpit terminal's generated `.zshrc`, appended to any value the user set. `desktop/tests/claude-plugin-shell.test.mjs` runs the generated startup files in a real zsh with a stand-in HOME and asserts that HOME's `.claude` folder has the same bytes and modification times afterwards. That is this risk's verification test, now run on every node suite.
+- **The plugin runs inside Claude Code's process, with no sandbox.** Every hook in it passes its event on unchanged and decides nothing. It reads two environment variables and one file (`hook-env`), and posts only to a loopback address; any other address in `hook-env` is refused. `claude plugin validate` lists exactly these calls.
+- **A version pin against interface drift.** The mods interface shipped in v2.1.287 and may change between releases. The plugin is tested on Claude Code 2.1.299; the `observed-coverage` workflow installs that version and runs `claude plugin validate` and `claude plugin test`, failing the build on either. A Claude Code older than 2.1.287 ignores the plugin, and the session is simply not instrumented (filed as a follow-up for a visible warning).
+- **One condition that silently stops it.** `claude plugin validate` reports that where an organization manages Claude Code, the `classic.*` hooks of a plugin a person installs do not run. Every lifecycle event the cockpit reads is one of those. This does not apply on this machine; on a managed machine the plugin would have to be listed in managed settings.
+- **Generated files from before the change are left in place**, not deleted. A terminal opened before the update still runs `claude --settings <that file>`, and Claude Code refuses to start when the file is missing.
+- **The kill switch still holds.** With `COCKPIT_NO_INSTRUMENT=1` nothing is generated and the variable is not set; the plugin also checks the variable before every post.

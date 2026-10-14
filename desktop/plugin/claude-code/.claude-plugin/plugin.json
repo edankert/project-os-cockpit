@@ -1,0 +1,5 @@
+{
+  "name": "project-os-cockpit",
+  "version": "0.1.0",
+  "description": "Reports a Claude Code session started in a project-os cockpit terminal to that workspace's cockpit sidecar (FEAT-0156). Tested on Claude Code 2.1.299."
+}

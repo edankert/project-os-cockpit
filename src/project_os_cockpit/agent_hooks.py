@@ -66,6 +66,12 @@ PERSIST_INTERVAL_SECONDS = 5.0
 # (session, event, payload) within this window is that double-capture,
 # not two real events — drop the second (TASK-0152).
 DEDUP_WINDOW_SECONDS = 2.0
+# The cockpit's Claude plugin (FEAT-0156) marks every post with this key.
+# Once a session has sent a marked post, an unmarked Claude post for it is
+# the opt-in external hook (FEAT-0027) capturing the same event a second
+# time, and is dropped. The window above still catches a terminal opened
+# before the plugin, whose shell runs the old generated hooks.
+PLUGIN_MARK = "_cockpit_plugin"
 
 # Notification subtypes that mean "a human must act now" — the agent is
 # blocked mid-work. idle_prompt is deliberately excluded (see below):
@@ -360,6 +366,15 @@ class AgentSessionTracker:
                         k: v for k, v in self._recent_events.items()
                         if v > cutoff
                     }
+            if agent == "claude":
+                claimed = self._sessions.get(sid, {}).get("plugin_claimed")
+                if body.get(PLUGIN_MARK) is True:
+                    if not claimed:
+                        self._session_locked(sid, agent, ts)["plugin_claimed"] = True
+                elif claimed:
+                    return {"ok": True, "state": None, "message": None,
+                            "activity": None, "ignored": True,
+                            "duplicate": True}
             sess = self._session_locked(sid, agent, ts)
             if agent == "codex" and body.get("_cockpit_notify"):
                 if sess.get("native_codex_hook_seen"):
