@@ -61,7 +61,7 @@ Models are pinned to lifecycle phases via subagents (FEAT-0039, upstreamed as pr
 
 Watch out on resume: a resumed session keeps the model its transcript was saved with, *regardless* of the `model` pin above. Resuming a Fable session leaves you on Fable. That is a **routing** surprise, not a review problem — per ADR-0013 the reviewer's model is not the gate, so sharing a model with the reviewer breaks nothing. Check with `/model` after resuming, or start a fresh session to get the pinned default.
 
-Canonical ownership of these files is upstream in `~/Dev/repos/project-os/`: the hook is a hand-written adapter hook under `tools/adapters/claude-code/hooks/`, and both agent files are emitted by upstream's `tools/scripts/generate-adapters.py`. Edit them upstream, not here. The copies here are byte-identical to upstream's, but note that `sync-project-os.sh` copies `tools/` and never touches `.claude/`, and this repo carries no generator — so the agent files can only be refreshed by re-copying them, and nothing here detects drift.
+Canonical ownership of these files is upstream in `~/Dev/repos/project-os/`: the hook is a hand-written adapter hook under `tools/adapters/claude-code/hooks/`, and both agent files are emitted by upstream's `tools/scripts/generate-adapters.py`. Edit them upstream, not here. The copies here are regenerated, not copied by hand. After every template sync, `sync-project-os.sh` runs this repo's own copy of `tools/scripts/generate-adapters.py`, which rewrites `.claude/agents/` and `.claude/skills/` and registers the hooks in `.claude/settings.json`. `python3 tools/scripts/generate-adapters.py --check` reports a generated file that has drifted (all 69 were current on 2026-10-14).
 
 ## When to open a phase — and when not to (ISS-0077)
 
