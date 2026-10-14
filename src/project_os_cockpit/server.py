@@ -18,6 +18,7 @@ import atexit
 import collections
 import datetime as _dt
 import base64
+import hmac
 import binascii
 import json
 import re
@@ -463,6 +464,8 @@ class DocsServer:
     def __init__(
         self, *, docs_root: Path, bind: str, port: int,
         shell_assets: Path | None = None,
+        shell_secret: str | None = None,
+        approval_wait_ms: int = 5000,
     ) -> None:
         self.docs_root = docs_root.resolve(strict=True)
         if not self.docs_root.is_dir():
@@ -473,6 +476,11 @@ class DocsServer:
         # `None` in mode-1, which has no Electron build at all — so this is
         # an optional capability, never a dependency.
         self.shell_assets = shell_assets.resolve() if shell_assets else None
+        # The desktop shell's secret, read from standard input at spawn
+        # (FEAT-0159 / TASK-0664). `None` when started from a terminal: the
+        # two routes that need it then refuse every request.
+        self.shell_secret = shell_secret or None
+        self.approval_wait_ms = approval_wait_ms
         self.bus: EventBus = EventBus()
         self.index: Index = Index.build(self.docs_root)
         # Index subscribes for invalidation; the SSE channel (TASK-0006) and
@@ -555,6 +563,8 @@ class DocsServer:
             status_tracker=self.status_tracker,
             shell_assets=self.shell_assets,
             watermark=self.watermark,
+            shell_secret=self.shell_secret,
+            approval_wait_ms=self.approval_wait_ms,
         )
         self.watcher.start()
         # SNAPSHOT.yaml sits above the docs root — the validation runner
@@ -671,6 +681,8 @@ def _make_handler(
     status_tracker: "StatusTracker | None" = None,
     shell_assets: Path | None = None,
     watermark: Watermark | None = None,
+    shell_secret: str | None = None,
+    approval_wait_ms: int = 5000,
 ) -> type[BaseHTTPRequestHandler]:
     """Build a request handler class with the per-server collaborators baked in."""
     marker = watermark or Watermark(docs_root.parent)
@@ -1925,8 +1937,11 @@ def _make_handler(
             """``POST /api/cockpit/deliveries`` — body: the dispatch item
             (``id``, ``prompt``, ``verb?``, ``rel?``, ``ts?``) and
             ``session_id``. Starts ``waiting`` when the plugin speaks for the
-            session, ``held`` otherwise."""
+            session, ``held`` otherwise. Needs the shell's secret: it turns
+            prompt text into a Claude turn (RISK-0012, TASK-0664)."""
             if not self._require_loopback():
+                return
+            if not self._require_json_content_type() or not self._require_shell_secret():
                 return
             body = self._read_json_body()
             if body is None:
@@ -2057,6 +2072,35 @@ def _make_handler(
                  "error": ("a write must say Content-Type: application/json; "
                            "this one said %r" % (raw or "nothing"))},
                 status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            )
+            return False
+
+        def _require_shell_secret(self) -> bool:
+            """Refuse a request that does not carry the desktop shell's secret
+            (FEAT-0159 / TASK-0664).
+
+            Two routes call this: the one that answers a permission prompt,
+            and the one that hands a prompt to a Claude session. Either one
+            makes a Claude session act, so "it came from this machine" is not
+            enough: the agent in that session is on this machine too, and so
+            is a page the viewer frames (ISS-0301). The shell makes the
+            secret at spawn and writes it to this process's standard input;
+            the agent's terminal, the plugin and the renderer never see it.
+
+            A server started without one refuses every request, and the
+            message never says whether the header was missing or wrong.
+            """
+            given = self.headers.get("X-Cockpit-Secret") or ""
+            if shell_secret and hmac.compare_digest(
+                    given.encode("utf-8"), shell_secret.encode("utf-8")):
+                return True
+            # Refused before the body is read: on a kept-alive connection the
+            # unread body would be parsed as the next request.
+            self.close_connection = True
+            self._respond_json(
+                {"ok": False,
+                 "error": "this route needs the desktop shell's secret"},
+                status=HTTPStatus.FORBIDDEN,
             )
             return False
 
@@ -2535,6 +2579,8 @@ def _make_handler(
             larger thing than editing a note.
             """
             if not self._require_loopback():
+                return
+            if not self._require_json_content_type() or not self._require_shell_secret():
                 return
             body = self._read_json_body()
             if body is None:
@@ -4337,6 +4383,10 @@ def _make_handler(
             )
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-cache")
+            if self.close_connection:
+                # Say so, or a keep-alive client sends its next request down
+                # a socket this side is about to close.
+                self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(data)
 

@@ -39,7 +39,7 @@ test('queued Codex work pastes then submits, and an interruption holds the next 
         };
         if (name === './terminal') return { hasPty: () => true, foregroundCommand: async () => 'codex',
           writeToPty: (ws, text) => { writes.push({ ws, text }); return true; } };
-        if (name === './sidecar') return { sidecarUrlFor: () => 'http://127.0.0.1:1234' };
+        if (name === './sidecar') return { sidecarUrlFor: () => 'http://127.0.0.1:1234', sidecarSecretFor: () => null };
         if (name === 'node:http') return fakeHttp;
         return require(name);
       },
@@ -96,7 +96,7 @@ test('a Codex prompt whose Return cannot be written goes back in the queue', asy
         };
         if (name === './terminal') return { hasPty: () => true, foregroundCommand: async () => 'codex',
           writeToPty: (ws, text) => { writes.push({ ws, text }); return text !== '\r'; } };
-        if (name === './sidecar') return { sidecarUrlFor: () => 'http://127.0.0.1:1234' };
+        if (name === './sidecar') return { sidecarUrlFor: () => 'http://127.0.0.1:1234', sidecarSecretFor: () => null };
         if (name === 'node:http') return fakeHttp;
         return require(name);
       },

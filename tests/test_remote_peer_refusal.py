@@ -154,11 +154,20 @@ def remote_server(tmp_path):
         httpd.server_close()
 
 
-def _post(base: str, path: str, payload: dict) -> tuple[int, str]:
+#: The desktop shell's secret, sent by the loopback mirror test. Two routes
+#: need it as well as a loopback peer (FEAT-0159 / TASK-0664); without it they
+#: would answer 403 for a reason this file is not about.
+SHELL_SECRET = "s" * 64
+
+
+def _post(base: str, path: str, payload: dict, secret: str | None = None) -> tuple[int, str]:
+    headers = {"Content-Type": "application/json", "Connection": "close"}
+    if secret:
+        headers["X-Cockpit-Secret"] = secret
     req = urllib.request.Request(
         base + path,
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Connection": "close"},
+        headers=headers,
         method="POST",
     )
     try:
@@ -373,6 +382,7 @@ def test_a_loopback_peer_is_not_refused(tmp_path) -> None:
             server.docs_root, server.index, server.bus,
             cockpit_state=server.cockpit_state,
             agent_tracker=server.agent_tracker,
+            shell_secret=SHELL_SECRET,
         ),
     )
     port = httpd.server_address[1]
@@ -382,7 +392,7 @@ def test_a_loopback_peer_is_not_refused(tmp_path) -> None:
         guarded, _ = _split()
         refused = [
             p for p in sorted(guarded)
-            if _post(base, p, {})[0] == HTTPStatus.FORBIDDEN
+            if _post(base, p, {}, SHELL_SECRET)[0] == HTTPStatus.FORBIDDEN
         ]
         assert not refused, (
             f"loopback callers were refused by {refused} — the guard is not "

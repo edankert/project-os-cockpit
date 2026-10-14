@@ -29,7 +29,7 @@ import * as http from 'node:http';
 import * as path from 'node:path';
 
 import { foregroundCommand, hasPty, writeToPty } from './terminal';
-import { sidecarUrlFor } from './sidecar';
+import { sidecarSecretFor, sidecarUrlFor } from './sidecar';
 
 export interface DispatchItem {
   id: string;
@@ -163,13 +163,17 @@ function fetchJson(url: string, timeoutMs = 2000): Promise<unknown | null> {
 }
 
 /** POST JSON and read the answer; null when the sidecar did not answer. */
-function postJsonResult(url: string, body: unknown, timeoutMs = 2000): Promise<{ status: number; json: any } | null> {
+export function postJsonResult(
+  url: string, body: unknown, timeoutMs = 2000, secret: string | null = null,
+): Promise<{ status: number; json: any } | null> {
   return new Promise((resolve) => {
     const data = Buffer.from(JSON.stringify(body), 'utf-8');
     const u = new URL(url);
+    const headers: Record<string, string | number> = { 'Content-Type': 'application/json', 'Content-Length': data.length };
+    if (secret) headers['X-Cockpit-Secret'] = secret;
     const req = http.request({
       hostname: u.hostname, port: u.port, path: u.pathname, method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Content-Length': data.length },
+      headers,
       timeout: timeoutMs,
     }, (res) => {
       let text = '';
@@ -279,7 +283,9 @@ async function handToSidecar(
 ): Promise<ExecuteResult> {
   const base = sidecarUrlFor(workspaceId);
   const res = base
-    ? await postJsonResult(`${base}/api/cockpit/deliveries`, { ...item, session_id: session.sessionId })
+    // The route needs the sidecar's secret (FEAT-0159 / TASK-0664).
+    ? await postJsonResult(`${base}/api/cockpit/deliveries`, { ...item, session_id: session.sessionId },
+      2000, sidecarSecretFor(workspaceId))
     : null;
   if (!res || res.status !== 200 || !res.json?.delivery) {
     // The sidecar did not take it: keep it here, and the next state

@@ -23,7 +23,7 @@ function load(state) {
       if (name === 'node:path') return path;
       if (name === './workspaces') return { getAllWorkspaces: () => [] };
       if (name === './agent-state-poller') return { getLastAgentPayloads: () => new Map() };
-      if (name === './sidecar') return { sidecarUrlFor: () => 'http://127.0.0.1:9' };
+      if (name === './sidecar') return { sidecarUrlFor: () => 'http://127.0.0.1:9', sidecarSecretFor: () => null };
       if (name === './dispatch-queue') return { queueDepthFor: () => 1 };
       if (name === './codex-usage') return { getCodexUsage: () => null };
       throw new Error(`unexpected import ${name}`);

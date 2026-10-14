@@ -32,6 +32,13 @@ export interface Workspace {
   userEmoji?: string;
   /** Hex / hsl colour for the identicon tint. */
   userColor?: string;
+  /**
+   * How long a Claude session's plugin waits for a cockpit answer to a
+   * permission prompt before the terminal shows its own (FEAT-0159). Edited
+   * in workspaces.json; absent means 5000, 0 turns cockpit answering off.
+   * Read when the sidecar is spawned.
+   */
+  approvalWaitMs?: number;
 }
 
 export interface SidecarReadyPayload {

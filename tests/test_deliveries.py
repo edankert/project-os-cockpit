@@ -17,7 +17,7 @@ from project_os_cockpit.agent_hooks import (
     AgentSessionTracker,
 )
 
-from test_agent_hooks import _get, _make_workspace, _post, _spin_up
+from test_agent_hooks import SECRET, _get, _make_workspace, _post, _spin_up
 
 
 def _claim(tracker: AgentSessionTracker, sid: str) -> None:
@@ -189,11 +189,11 @@ def test_a_delivery_needs_a_prompt_a_note_and_a_session(tmp_path: Path):
 
 def test_the_routes_move_a_delivery_and_publish_each_change(tmp_path: Path):
     docs = _make_workspace(tmp_path)
-    server, httpd, port = _spin_up(docs)
+    server, httpd, port = _spin_up(docs, shell_secret=SECRET)
     events: list[tuple[str, dict]] = []
     server.bus.subscribe(lambda e: events.append((getattr(e, "event_type", ""), getattr(e, "data", None))))
     try:
-        status, body = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-h"})
+        status, body = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-h"}, SECRET)
         assert status == 200 and body["delivery"]["state"] == "held"
         did = body["delivery"]["did"]
 
@@ -318,19 +318,19 @@ def test_a_cancelled_dispatch_is_in_the_notes_history_and_not_live(tmp_path: Pat
 
 def test_the_cancel_route(tmp_path: Path):
     docs = _make_workspace(tmp_path)
-    server, httpd, port = _spin_up(docs)
+    server, httpd, port = _spin_up(docs, shell_secret=SECRET)
     events: list[tuple[str, dict]] = []
     server.bus.subscribe(lambda e: events.append((getattr(e, "event_type", ""), getattr(e, "data", None))))
     try:
         _post(port, "/api/agent-hook", {"hook_event_name": "SessionStart", "session_id": "s-c",
                                         "agent": "claude", "_cockpit_plugin": True})
-        did = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-c"})[1]["delivery"]["did"]
+        did = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-c"}, SECRET)[1]["delivery"]["did"]
         status, body = _post(port, "/api/cockpit/deliveries/cancel", {"did": did})
         assert status == 200 and body["delivery"]["state"] == "cancelled"
         assert _post(port, "/api/cockpit/deliveries/claim", {"did": did})[0] == 409
         assert _post(port, "/api/cockpit/deliveries/cancel", {"did": "nope"})[0] == 404
 
-        did2 = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-c"})[1]["delivery"]["did"]
+        did2 = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-c"}, SECRET)[1]["delivery"]["did"]
         _post(port, "/api/cockpit/deliveries/claim", {"did": did2})
         status, body = _post(port, "/api/cockpit/deliveries/cancel", {"did": did2})
         assert status == 409 and body["delivery"]["state"] == "sending"

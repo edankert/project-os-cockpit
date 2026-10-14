@@ -26,7 +26,7 @@ async function sidecar(session) {
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
       const json = body ? JSON.parse(body) : null;
-      received.push({ method: req.method, path: req.url, body: json });
+      received.push({ method: req.method, path: req.url, body: json, secret: req.headers['x-cockpit-secret'] });
       res.setHeader('Content-Type', 'application/json');
       if (req.url === '/api/cockpit/state') {
         res.end(JSON.stringify({ session }));
@@ -66,7 +66,7 @@ function load(sidecarUrl, foreground = 'zsh') {
         writeToPty: (_ws, data) => { writes.push(data); return true; },
         foregroundCommand: async () => foreground,
       };
-      if (name === './sidecar') return { sidecarUrlFor: () => sidecarUrl };
+      if (name === './sidecar') return { sidecarUrlFor: () => sidecarUrl, sidecarSecretFor: () => 'shell-secret' };
       throw new Error(`unexpected import ${name}`);
     },
   }, { filename: built });
@@ -93,6 +93,7 @@ test('a live Claude session gets a delivery, busy or not, and nothing is typed',
     assert.equal(posted.length, 3);
     assert.equal(posted[0].body.session_id, 's-1');
     assert.equal(posted[0].body.prompt, 'implement TASK-0001');
+    assert.ok(posted.every((r) => r.secret === 'shell-secret'), 'each delivery carries the shell secret (TASK-0664)');
     assert.equal(s.received.some((r) => r.path === '/api/cockpit/dispatch'), false,
       'a submitted prompt is stamped by the sidecar at its turn, not here');
   } finally { s.close(); }

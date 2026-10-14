@@ -20,6 +20,7 @@
 
 import { BrowserWindow, app, ipcMain } from 'electron';
 import { ChildProcess, spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import * as http from 'node:http';
 import * as path from 'node:path';
@@ -43,6 +44,10 @@ interface SidecarRecord {
   port: number;
   url: string;
   stderrTail: string[];
+  /** The secret this sidecar requires to answer a permission prompt or to
+   *  hand a prompt to a Claude session (FEAT-0159 / TASK-0664). Made per
+   *  spawn, written to the child's stdin, held here only. */
+  secret: string;
 }
 
 // workspaceId → record. Sidecars are per-workspace, not per-window:
@@ -195,6 +200,7 @@ async function spawnSidecar(
   const port = await getPortPromise({ port: 8765, stopPort: 8865 });
   const py = pythonExecutable();
   const docsDir = path.join(workspace.root, 'docs');
+  const secret = randomBytes(32).toString('hex');
 
   const child = spawn(
     py,
@@ -204,6 +210,7 @@ async function spawnSidecar(
       '--port', String(port),
       '--bind', '127.0.0.1',
       '--no-open',
+      '--secret-stdin',
       ...(shellAssetsPath() ? ['--shell-assets', shellAssetsPath() as string] : []),
     ],
     {
@@ -213,9 +220,13 @@ async function spawnSidecar(
         COCKPIT_DESKTOP: '1',
         PYTHONUNBUFFERED: '1',
       },
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     },
   );
+  // One line, then EOF: the secret travels on stdin, never in argv or the
+  // environment, which another process of the same user can read.
+  child.stdin?.on('error', () => { /* the child died first; 'exit' reports it */ });
+  child.stdin?.end(shellLine(secret, workspace.approvalWaitMs));
 
   const stderrTail: string[] = [];
   child.stderr?.on('data', (data: Buffer) => {
@@ -234,6 +245,7 @@ async function spawnSidecar(
     port,
     url,
     stderrTail,
+    secret,
   };
 
   // Register before health check so a window-close during the poll
@@ -282,6 +294,27 @@ async function spawnSidecar(
     url,
   };
   send(window, { kind: 'ready', payload: readyPayload });
+}
+
+/** The approval wait the sidecar is given: 5000 ms unless the workspace says
+ *  otherwise, clamped to 0..30000 (FEAT-0159). */
+export function approvalWaitMs(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return 5000;
+  return Math.max(0, Math.min(30000, Math.round(value)));
+}
+
+/** The one line the shell writes to a sidecar's stdin at spawn (TASK-0664). */
+export function shellLine(secret: string, waitMs: unknown): string {
+  return JSON.stringify({ secret, approval_wait_ms: approvalWaitMs(waitMs) }) + '\n';
+}
+
+/** The secret of a workspace's live sidecar, for a request from the main
+ *  process only. Never sent to a renderer, a terminal or the plugin. */
+export function sidecarSecretFor(workspaceId: string): string | null {
+  const rec = sidecars.get(workspaceId);
+  if (!rec) return null;
+  if (rec.process.exitCode != null || rec.process.signalCode != null) return null;
+  return rec.secret;
 }
 
 /** Live sidecar base URL for a workspace, or null (FEAT-0025). */

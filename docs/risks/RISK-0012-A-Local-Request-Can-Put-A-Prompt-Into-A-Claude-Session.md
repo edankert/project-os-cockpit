@@ -13,7 +13,8 @@ impact: high
 mitigation:
   - "[[TASK-0654-The-Sidecar-Keeps-A-List-Of-Prompts-Addressed-To-A-Claude-Session]]: loopback-only and JSON-only on every new route"
   - "[[TASK-0655-The-Plugin-Submits-A-Waiting-Prompt-And-Confirms-When-Its-Turn-Starts]]: the plugin submits only deliveries addressed to its own session"
-related: ["[[RISK-0005-The-Write-Surface]]", "[[RISK-0007-Remote-Workspace-Trust-Boundary]]", "[[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]]", "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]", "[[REQ-0027-Every-Write-Guarded]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"]
+  - "[[TASK-0664-The-Sidecar-Requires-The-Shells-Secret-To-Answer-A-Prompt-Or-Deliver-One]] (planned): POST /api/cockpit/deliveries requires the shell's secret"
+related: ["[[RISK-0005-The-Write-Surface]]", "[[RISK-0007-Remote-Workspace-Trust-Boundary]]", "[[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]]", "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]", "[[REQ-0027-Every-Write-Guarded]]", "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]", "[[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]]"]
 ---
 
 # A local request can put a prompt into a Claude session
@@ -34,6 +35,7 @@ Until now, prompt text reached the terminal only over the app's internal IPC. Th
 - The plugin submits only deliveries addressed to its own session ID.
 - Hooks and the transcript still name the plugin as the prompt's origin, so the person's own hooks can tell it from typing.
 - When [[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]] adds a secret the shell holds, `POST /api/cockpit/deliveries` should require it too. The secret is planned there because an answer route that approves commands has the same shape of hazard.
+- **Planned, 2026-10-14:** [[TASK-0664-The-Sidecar-Requires-The-Shells-Secret-To-Answer-A-Prompt-Or-Deliver-One]] makes `POST /api/cockpit/deliveries` require the shell's secret (Edwin's decision). Only the shell's main process sends it. `cockpit dispatch` still works without it, because it posts a note ID and a verb to `/api/cockpit/dispatch`, never prompt text. The related hazard of a forged permission answer is [[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]].
 
 ## Triggers
 

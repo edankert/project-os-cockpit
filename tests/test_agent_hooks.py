@@ -41,7 +41,12 @@ def _make_workspace(tmp_path: Path) -> Path:
     return docs
 
 
-def _spin_up(docs: Path, tracker: AgentSessionTracker | None = None):
+#: The shell's secret in tests that start a server with one (TASK-0664).
+SECRET = "s" * 64
+
+
+def _spin_up(docs: Path, tracker: AgentSessionTracker | None = None,
+             shell_secret: str | None = None):
     server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
     httpd = _NoDNSThreadingHTTPServer(
         ("127.0.0.1", 0),
@@ -49,6 +54,7 @@ def _spin_up(docs: Path, tracker: AgentSessionTracker | None = None):
             server.docs_root, server.index, server.bus,
             cockpit_state=server.cockpit_state,
             agent_tracker=tracker or server.agent_tracker,
+            shell_secret=shell_secret,
         ),
     )
     port = httpd.server_address[1]
@@ -57,13 +63,14 @@ def _spin_up(docs: Path, tracker: AgentSessionTracker | None = None):
     return server, httpd, port
 
 
-def _post(port: int, path: str, body: dict[str, Any] | bytes) -> tuple[int, dict]:
+def _post(port: int, path: str, body: dict[str, Any] | bytes,
+          secret: str | None = None) -> tuple[int, dict]:
     url = f"http://127.0.0.1:{port}{path}"
     data = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=data, method="POST",
-        headers={"Content-Type": "application/json"},
-    )
+    headers = {"Content-Type": "application/json"}
+    if secret is not None:
+        headers["X-Cockpit-Secret"] = secret
+    req = urllib.request.Request(url, data=data, method="POST", headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=3) as resp:
             return resp.status, json.loads(resp.read())

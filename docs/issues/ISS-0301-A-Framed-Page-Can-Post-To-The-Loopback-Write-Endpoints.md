@@ -7,7 +7,7 @@ status: open
 phase: ""
 owner: user:edwin
 created: 2026-09-12
-updated: "2026-10-08"
+updated: "2026-10-14"
 reported_by: review
 source: ["Independent review of FEAT-0147/FEAT-0148, 2026-09-12, finding 9: 'the sandbox denies reads, not writes ... a framed page has allow-scripts, knows its sidecar URL from location, and originates on the machine, so _require_loopback passes; it cannot read the reply and does not need to'"]
 severity: medium
@@ -123,3 +123,9 @@ Edwin reads the above, runs the curl if he wants to, and says so. Then the statu
 ## A planned feature now depends on the secret (2026-10-08)
 
 [[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]] would let a click in the cockpit approve a Claude Code permission prompt, including a Bash command. With only the loopback check, any request from this machine that claims to be a person could then run a command. So FEAT-0159 cannot start until the approval answer route requires a secret the shell holds and the agent cannot read. That is the second, unstarted half of this issue, applied to one route first.
+
+## FEAT-0159 builds the secret for two routes (2026-10-14)
+
+[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]] started today. Its first task, [[TASK-0664-The-Sidecar-Requires-The-Shells-Secret-To-Answer-A-Prompt-Or-Deliver-One]], builds the secret this issue's second half asks for, on two routes only: `POST /api/cockpit/approve` and `POST /api/cockpit/deliveries`. That was Edwin's decision. The shell makes the secret per sidecar, gives it on the sidecar's standard input, and sends it in an `X-Cockpit-Secret` header from its main process; the renderer never holds it.
+
+**This issue stays open.** Every other write route still has only the loopback check and the `Content-Type` refusal, so a framed page can still post to them. Extending the secret to them is this issue's remaining work; the mechanism will exist once TASK-0664 is done.
