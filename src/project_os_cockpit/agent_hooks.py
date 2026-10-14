@@ -79,9 +79,11 @@ PLUGIN_MARK = "_cockpit_plugin"
 #              the session ended (``reason`` says which)
 #   waiting    the plugin will submit it once the session is idle
 #   sending    the plugin called ``$.prompt.submit``; the turn has not started
-#   cancelling cancelled while sending; the plugin has not answered (TASK-0657)
+#   cancelling unused: a prompt being submitted cannot be withdrawn, because a
+#              plugin's own `prompt.submit` hook never sees its own
+#              submission (TASK-0655's live run), so there is nothing to ask
 #   started    the session's turn started with it: delivered
-#   cancelled  withdrawn before its turn started (TASK-0657)
+#   cancelled  withdrawn before the plugin claimed it (TASK-0657)
 #   dropped    ``$.prompt.submit`` refused it; ``reason`` says why
 DELIVERY_FINISHED = frozenset({"started", "cancelled"})
 DELIVERIES_MAX_OPEN = 30       # unfinished deliveries kept per workspace
@@ -771,6 +773,44 @@ class AgentSessionTracker:
             self._persist_locked(force=True)
             return dict(d), None
 
+    def cancel_delivery(self, did: Any) -> tuple[dict[str, Any] | None, str | None]:
+        """Withdraw a delivery the plugin has not claimed (TASK-0657).
+
+        ``held``, ``waiting`` and ``dropped`` become ``cancelled``, and the
+        note's dispatch history records it. A ``sending`` delivery is already
+        on its way into the session and cannot be withdrawn; a ``started`` one
+        has its turn running. Both are refused, with the delivery as it stands,
+        so the caller can say which. Under the lock, a cancel and a claim
+        cannot both win."""
+        ts = _utc_now_iso()
+        with self._lock:
+            d = self._find_delivery_locked(did)
+            if d is None:
+                return None, "no such delivery"
+            state = d.get("state")
+            if state == "cancelled":
+                return dict(d), None
+            if state == "sending":
+                return dict(d), "too late: it is being submitted to Claude"
+            if state == "started":
+                return dict(d), "too late: its turn has started"
+            d["state"] = "cancelled"
+            d["cancelled_at"] = ts
+            d["updated"] = ts
+            sess = self._sessions.get(d.get("session_id"))
+            if sess is not None:
+                rec: dict[str, Any] = {
+                    "id": d["id"], "ts": ts, "agent": "claude",
+                    "cancelled": True, "delivery": d["did"],
+                }
+                if d.get("verb"):
+                    rec["verb"] = d["verb"]
+                sess.setdefault("dispatches", []).append(rec)
+                del sess["dispatches"][:-DISPATCHES_MAX]
+            self._prune_deliveries_locked()
+            self._persist_locked(force=True)
+            return dict(d), None
+
     def _stamp_delivered_locked(self, d: dict[str, Any]) -> None:
         """The ledger entry for a delivered prompt: on its own session, at the
         time its turn started (FEAT-0025's ledger, ``delivered_by: submit``)."""
@@ -812,7 +852,10 @@ class AgentSessionTracker:
                 )
                 for d in reversed(sess.get("dispatches") or []):
                     if d["id"] == note_id:
-                        entry = {**d, "session_id": sid, "live": is_live}
+                        # A cancelled dispatch never reached the session, so
+                        # it is not live work there (the re-dispatch guard).
+                        entry = {**d, "session_id": sid,
+                                 "live": is_live and not d.get("cancelled")}
                         cost = sess.get("cost")
                         if isinstance(cost, dict) and isinstance(
                             cost.get("total_cost_usd"), (int, float)

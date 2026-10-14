@@ -966,7 +966,7 @@ items:
       phase: "[[PHASE-046]]"
     TASK-0657:
       file: docs/features/submitted-dispatch/plan/tasks/TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts.md
-      status: backlog
+      status: done
       parent: FEAT-0158
       phase: "[[PHASE-046]]"
     TASK-0652:
@@ -3727,7 +3727,7 @@ metrics:
     features_total: 159
     features_done: 135
     tasks_total: 651
-    tasks_done: 611
+    tasks_done: 612
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

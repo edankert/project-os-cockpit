@@ -36,7 +36,7 @@ tags: [test, acceptance, cockpit-plugin, dispatch, claude-code]
 
 Proves that a prompt dispatched from the cockpit to a Claude session is submitted by the cockpit plugin rather than typed. It also proves that the cockpit counts it as delivered only when the session's turn starts, that a person can cancel it until then, and that Codex dispatches are unchanged.
 
-Set to `active` on 2026-10-14, when the feature started. Nothing is built yet; this check is run once the four tasks are done.
+Set to `active` on 2026-10-14, when the feature started. All four tasks were built the same day; this check is Edwin's to run after a rebuild and restart.
 
 ## Setup
 
@@ -57,14 +57,14 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 
 ## Expect
 
-- In step 2 the prompt box never fills with the prompt character by character. The prompt appears in the transcript as a message, and Claude starts on it. It reads the prompt as your words: it does not mention a plugin sending a message.
+- In step 2 the prompt box never fills with the prompt character by character. The prompt appears in the transcript as a message, under a line Claude Code draws, "Prompt from the project-os-cockpit plugin", and Claude starts on it. Claude reads it as your words: its answer does not mention a plugin sending a message.
 - In step 3 the newest dispatch names this session, and its time is when Claude started the turn, not earlier.
 - In step 4 the row says "Waiting for Claude to finish its turn". Nothing is typed into the terminal.
 - In step 5 the waiting prompt starts as soon as Claude finishes, the row leaves the list, and the status line says "Delivered".
 - In step 6 the row disappears when cancelled, and the status line says "Cancelled".
 - In step 7 the cancelled prompt never appears in the session.
 - In step 8 the prompt arrives in the cockpit's Claude session as in step 2, not typed.
-- In step 9 nothing is typed into the terminal. The chip turns amber and says `1 not delivered`, and the row says "Not delivered: this Claude session has no cockpit plugin". Its `×` removes it.
+- In step 9 nothing is typed into the terminal. (This relies on the external hook in your `~/.claude/settings.json`, which tells the cockpit a Claude session is running. Without it, the cockpit sees no session at all under the kill switch, and falls back to running `claude '<prompt>'` in the shell, as it always has for a terminal with no session.) The chip turns amber and says `1 not delivered`, and the row says "Not delivered: this Claude session has no cockpit plugin". Its `×` removes it.
 - In step 10 the prompt is pasted into Codex and submitted, as before this change.
 
 ## Not this check

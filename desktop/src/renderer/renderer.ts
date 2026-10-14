@@ -1166,6 +1166,8 @@ interface RenderResponse {
     id: string; verb?: string; agent?: string; ts: string;
     session_id: string | null; live: boolean; pending?: boolean;
     total_cost_usd?: number;
+    /** Withdrawn before it reached the session (FEAT-0158). */
+    cancelled?: boolean;
   }>;
 }
 
@@ -1634,7 +1636,9 @@ async function navigateToInner(
       : d.session_id
         ? `session ${d.session_id.slice(0, 8)}${d.live ? ' (live)' : ''}${typeof d.total_cost_usd === 'number' ? ` · $${d.total_cost_usd.toFixed(2)}` : ''}`
         : '';
-    prov.textContent = `dispatched ${d.verb ?? 'default'} · ${d.agent ?? 'agent'}${when ? ` · ${when}` : ''}${sess ? ` → ${sess}` : ''}`;
+    prov.textContent = d.cancelled
+      ? `dispatched ${d.verb ?? 'default'} · ${d.agent ?? 'agent'} · cancelled${when ? ` ${when}` : ''}, before it reached the session`
+      : `dispatched ${d.verb ?? 'default'} · ${d.agent ?? 'agent'}${when ? ` · ${when}` : ''}${sess ? ` → ${sess}` : ''}`;
     docView.prepend(prov);
   }
   // CHG provenance (FEAT-0022 / TASK-0126): cockpit-side enrichment,
@@ -17511,6 +17515,39 @@ async function refreshDeliveries(): Promise<void> {
   updateQueueChip();
 }
 
+/** Withdraw a prompt the sidecar holds (FEAT-0158's plan, "Cancel"; TASK-0657). One
+ *  being submitted, or whose turn started, cannot be: say so, and how to stop
+ *  the turn instead. */
+async function cancelDelivery(d: Delivery): Promise<void> {
+  if (!sidecarBaseUrl) return;
+  const label = `${d.verb ?? 'default'} ${d.id}`;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/deliveries/cancel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ did: d.did }),
+    });
+    const data = await resp.json() as { ok?: boolean; error?: string; delivery?: Delivery & { started_at?: string } };
+    if (resp.ok && data.delivery) {
+      applyDeliveryEvent(data.delivery);
+      showStatus(`Cancelled ${label}`);
+      return;
+    }
+    const now = data.delivery;
+    if (now?.state === 'started') {
+      const at = now.started_at ? new Date(now.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+      showStatus(`Too late to cancel ${label}: its turn started${at ? ` at ${at}` : ''}. Press Esc in the terminal to stop it.`, 'error');
+    } else if (now?.state === 'sending') {
+      showStatus(`Too late to cancel ${label}: it is being submitted to Claude. Press Esc in the terminal to stop its turn.`, 'error');
+    } else {
+      showStatus(`Could not cancel ${label}: ${data.error ?? resp.status}`, 'error');
+    }
+    if (now) applyDeliveryEvent(now);
+  } catch {
+    showStatus(`Could not cancel ${label}: the cockpit's server did not answer`, 'error');
+  }
+}
+
 /** One `cockpit:delivery` event: update the list, and say when a prompt
  *  reached its turn or will not. "Delivered" means its turn started. */
 function applyDeliveryEvent(d: Delivery): void {
@@ -17634,10 +17671,20 @@ function renderQueuePopover(): void {
     const state = document.createElement('span');
     state.className = 'queue-row-state';
     state.textContent = deliveryRowText(d);
-    row.append(label, state);
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'queue-row-remove';
+    cancel.textContent = '×';
+    // Nothing is on its way for a held or refused prompt: it is removed, not cancelled.
+    cancel.title = deliveryNotDelivered(d) ? 'Remove' : 'Cancel';
+    cancel.addEventListener('click', () => { void cancelDelivery(d); });
+    row.append(label, state, cancel);
     queuePopover.appendChild(row);
   }
-  if (activeQueueItems.length === 0) return;
+  if (activeQueueItems.length === 0) {
+    queuePopover.appendChild(clearAllButton(deliveries));
+    return;
+  }
   activeQueueItems.forEach((d, idx) => {
     const row = document.createElement('div');
     row.className = 'queue-row';
@@ -17661,19 +17708,25 @@ function renderQueuePopover(): void {
     row.append(label, remove);
     queuePopover.appendChild(row);
   });
+  queuePopover.appendChild(clearAllButton(deliveries));
+}
+
+/** "Clear all": empties the main queue and cancels every delivery that has
+ *  not started. One already being submitted says it is too late. */
+function clearAllButton(deliveries: Delivery[]): HTMLButtonElement {
   const clear = document.createElement('button');
   clear.type = 'button';
   clear.className = 'queue-clear';
   clear.textContent = 'Clear all';
   clear.addEventListener('click', () => {
     if (!activeId) return;
+    for (const d of deliveries) void cancelDelivery(d);
     void cockpitApi.dispatch.clear(activeId).then(() => {
       activeQueueItems = [];
       updateQueueChip();
-      queuePopover.hidden = true;
     });
   });
-  queuePopover.appendChild(clear);
+  return clear;
 }
 
 // ---- CLI dispatch-requests (FEAT-0025 / TASK-0136) ----

@@ -247,3 +247,91 @@ def test_the_state_payload_counts_open_deliveries(tmp_path: Path):
     tracker.move_delivery(first["did"], "sending")
     tracker.move_delivery(first["did"], "started", turn_id="t")
     assert tracker.snapshot()["deliveries_open"] == 1
+
+
+# ---- cancel (TASK-0657) ----
+
+def test_a_waiting_or_held_delivery_is_cancelled_and_never_claimed(tmp_path: Path):
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    waiting, _ = tracker.add_delivery(_item("one"), "s-a")
+    cancelled, error = tracker.cancel_delivery(waiting["did"])
+    assert error is None and cancelled["state"] == "cancelled" and cancelled["cancelled_at"]
+    # The plugin's claim, arriving after the cancel, loses.
+    after, error = tracker.move_delivery(waiting["did"], "sending")
+    assert error and after["state"] == "cancelled"
+    assert tracker.list_deliveries() == []
+
+    held, _ = tracker.add_delivery(_item("two"), "s-unclaimed")
+    assert tracker.cancel_delivery(held["did"])[0]["state"] == "cancelled"
+    # Cancelling twice is not an error.
+    assert tracker.cancel_delivery(held["did"])[1] is None
+
+
+def test_a_prompt_being_submitted_or_started_cannot_be_cancelled(tmp_path: Path):
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    d, _ = tracker.add_delivery(_item(), "s-a")
+    tracker.move_delivery(d["did"], "sending")
+    now, error = tracker.cancel_delivery(d["did"])
+    assert "being submitted" in error and now["state"] == "sending"
+    # The turn then starts, untouched by the refused cancel.
+    started, error = tracker.move_delivery(d["did"], "started", turn_id="t-1",
+                                           started_at="2026-10-14T14:02:00+00:00")
+    assert error is None and started["state"] == "started"
+    now, error = tracker.cancel_delivery(d["did"])
+    assert "turn has started" in error
+    assert (now["state"], now["started_at"], now["turn_id"]) == ("started", "2026-10-14T14:02:00+00:00", "t-1")
+    assert [e.get("cancelled") for e in tracker._sessions["s-a"]["dispatches"]] == [None]
+
+
+def test_a_cancel_and_a_start_end_in_one_state(tmp_path: Path):
+    """Whichever arrives first wins, and the loser is told; the delivery never
+    ends up both cancelled and delivered."""
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    first, _ = tracker.add_delivery(_item("cancel first"), "s-a")
+    tracker.cancel_delivery(first["did"])
+    assert tracker.move_delivery(first["did"], "started", turn_id="t")[1]
+    second, _ = tracker.add_delivery(_item("claim first"), "s-a")
+    tracker.move_delivery(second["did"], "sending")
+    assert tracker.cancel_delivery(second["did"])[1]
+    tracker.move_delivery(second["did"], "started", turn_id="t-2")
+    states = {d["prompt"]: d["state"] for d in tracker._deliveries}
+    assert states == {"cancel first": "cancelled", "claim first": "started"}
+    history = tracker.dispatch_history("TASK-0001")
+    assert [(h.get("cancelled", False), h.get("delivered_by")) for h in history] == [(False, "submit"), (True, None)]
+
+
+def test_a_cancelled_dispatch_is_in_the_notes_history_and_not_live(tmp_path: Path):
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    _claim(tracker, "s-a")
+    d, _ = tracker.add_delivery(_item(), "s-a")
+    tracker.cancel_delivery(d["did"])
+    [entry] = tracker.dispatch_history("TASK-0001")
+    assert entry["cancelled"] is True and entry["live"] is False
+    assert entry["session_id"] == "s-a" and entry["verb"] == "implement" and entry["ts"]
+
+
+def test_the_cancel_route(tmp_path: Path):
+    docs = _make_workspace(tmp_path)
+    server, httpd, port = _spin_up(docs)
+    events: list[tuple[str, dict]] = []
+    server.bus.subscribe(lambda e: events.append((getattr(e, "event_type", ""), getattr(e, "data", None))))
+    try:
+        _post(port, "/api/agent-hook", {"hook_event_name": "SessionStart", "session_id": "s-c",
+                                        "agent": "claude", "_cockpit_plugin": True})
+        did = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-c"})[1]["delivery"]["did"]
+        status, body = _post(port, "/api/cockpit/deliveries/cancel", {"did": did})
+        assert status == 200 and body["delivery"]["state"] == "cancelled"
+        assert _post(port, "/api/cockpit/deliveries/claim", {"did": did})[0] == 409
+        assert _post(port, "/api/cockpit/deliveries/cancel", {"did": "nope"})[0] == 404
+
+        did2 = _post(port, "/api/cockpit/deliveries", {**_item(), "session_id": "s-c"})[1]["delivery"]["did"]
+        _post(port, "/api/cockpit/deliveries/claim", {"did": did2})
+        status, body = _post(port, "/api/cockpit/deliveries/cancel", {"did": did2})
+        assert status == 409 and body["delivery"]["state"] == "sending"
+        published = [data["state"] for kind, data in events if kind == "cockpit:delivery"]
+        assert published == ["waiting", "cancelled", "waiting", "sending"], "a refused cancel publishes nothing"
+    finally:
+        httpd.shutdown()

@@ -239,7 +239,8 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
     #: `dropped`. Each puts or moves a prompt on its way into a Claude
     #: session ([[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]),
     #: so each is loopback-only, and the sweep below drives all four.
-    assert (len(guarded), len(open_)) == (31, 5), (
+    #: **31 -> 32 the same day**: `/api/cockpit/deliveries/cancel` (TASK-0657).
+    assert (len(guarded), len(open_)) == (32, 5), (
         f"the dispatch split moved: {len(guarded)} guarded / {len(open_)} open. "
         "That is not automatically wrong — but it must be a deliberate edit here."
     )
@@ -314,7 +315,8 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
     # 29 -> 34 on 2026-10-14, deliberately: [[FEAT-0158]]'s four delivery
     # write handlers, and its delivery list, which is loopback-only because it
     # returns prompt text.
-    assert sites == 34, f"expected 34 guard call sites, found {sites}"
+    # 34 -> 35 the same day: the delivery cancel route (TASK-0657).
+    assert sites == 35, f"expected 35 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:

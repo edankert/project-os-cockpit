@@ -773,6 +773,9 @@ def _make_handler(
             if path == "/api/cockpit/deliveries/dropped":
                 self._serve_delivery_dropped()
                 return
+            if path == "/api/cockpit/deliveries/cancel":
+                self._serve_delivery_cancel()
+                return
             if path == "/api/cockpit/review-request":
                 self._serve_review_request()
                 return
@@ -1945,6 +1948,25 @@ def _make_handler(
             if not self._require_loopback():
                 return
             self._delivery_step("dropped")
+
+        def _serve_delivery_cancel(self) -> None:
+            """``POST /api/cockpit/deliveries/cancel`` ``{did}`` — withdraw a
+            prompt the plugin has not claimed (TASK-0657). 409 with the
+            delivery when it is being submitted or its turn has started; the
+            turn itself is never touched."""
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            delivery, error = tracker.cancel_delivery(body.get("did"))
+            if error is not None:
+                status = HTTPStatus.NOT_FOUND if delivery is None else HTTPStatus.CONFLICT
+                self._respond_json({"ok": False, "error": error, "delivery": delivery},
+                                   status=status)
+                return
+            bus.publish(ControlEvent("cockpit:delivery", delivery))
+            self._respond_json({"ok": True, "delivery": delivery})
 
         def _delivery_step(self, to: str) -> None:
             body = self._read_json_body()
