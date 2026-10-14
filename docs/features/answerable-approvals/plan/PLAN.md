@@ -136,3 +136,10 @@ While a prompt waits, the plugin makes one loopback GET every 250 ms, at most 20
 - Write a keystroke into a Claude terminal to answer a prompt.
 - Require the secret on any route other than the two named.
 - Write anything under `~/.claude` ([[RISK-0004-Hook-Injection-Surface]]).
+
+## Changed while building TASK-0665 (2026-10-14)
+
+A live run in a real Claude session changed two steps of the flow above. Details are in [[TASK-0665-The-Plugin-Asks-The-Cockpit-Before-The-Terminal-And-Never-Widens-A-Deny]].
+
+- **Step 3 gains a condition: the permission mode.** An ask is offered only in `default` (shown as "manual mode") or `acceptEdits`. In auto mode the classifier settles an ask, so offering it made every classified call wait 5 s for nothing. The plugin reads the mode from the classic events it already forwards.
+- **Step 9 gains three closing events.** Esc on the terminal's dialog sends no hook event, so a refused prompt was never closed. A session's main-loop records now also close on `Stop`, `Interrupt` and the person's next `UserPromptSubmit`.

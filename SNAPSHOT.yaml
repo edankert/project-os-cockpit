@@ -956,7 +956,7 @@ items:
       phase: "[[PHASE-046]]"
     TASK-0665:
       file: docs/features/answerable-approvals/plan/tasks/TASK-0665-The-Plugin-Asks-The-Cockpit-Before-The-Terminal-And-Never-Widens-A-Deny.md
-      status: backlog
+      status: done
       parent: FEAT-0159
       phase: "[[PHASE-046]]"
     TASK-0666:
@@ -3787,7 +3787,7 @@ metrics:
     features_total: 159
     features_done: 136
     tasks_total: 663
-    tasks_done: 621
+    tasks_done: 622
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

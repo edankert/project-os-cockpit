@@ -249,7 +249,10 @@ def test_every_guarded_endpoint_refuses_a_remote_peer(remote_server) -> None:
     #: session ([[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]),
     #: so each is loopback-only, and the sweep below drives all four.
     #: **31 -> 32 the same day**: `/api/cockpit/deliveries/cancel` (TASK-0657).
-    assert (len(guarded), len(open_)) == (32, 5), (
+    #: **32 -> 34 the same day**: [[FEAT-0159]]'s `/api/cockpit/approvals/ask`
+    #: and `/api/cockpit/approvals/handed-back`, through which the cockpit
+    #: plugin offers a Claude permission ask and gives it back to the terminal.
+    assert (len(guarded), len(open_)) == (34, 5), (
         f"the dispatch split moved: {len(guarded)} guarded / {len(open_)} open. "
         "That is not automatically wrong — but it must be a deliberate edit here."
     )
@@ -325,7 +328,9 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
     # write handlers, and its delivery list, which is loopback-only because it
     # returns prompt text.
     # 34 -> 35 the same day: the delivery cancel route (TASK-0657).
-    assert sites == 35, f"expected 35 guard call sites, found {sites}"
+    # 35 -> 38 the same day: [[FEAT-0159]]'s ask and handed-back routes, and
+    # the approval list, loopback-only because it returns command text.
+    assert sites == 38, f"expected 38 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:
@@ -501,3 +506,16 @@ def test_the_delivery_list_refuses_a_remote_peer(remote_server) -> None:
     except urllib.error.HTTPError as exc:
         status = exc.code
     assert status == HTTPStatus.FORBIDDEN
+
+
+def test_the_approval_list_refuses_a_remote_peer(remote_server) -> None:
+    """`GET /api/cockpit/approvals` returns the command a Claude session asks
+    to run (FEAT-0159), so a tablet on the LAN may not read it."""
+    for path in ("/api/cockpit/approvals", "/api/cockpit/approvals?approval_id=x"):
+        req = urllib.request.Request(f"{remote_server}{path}", method="GET")
+        try:
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                status = resp.status
+        except urllib.error.HTTPError as exc:
+            status = exc.code
+        assert status == HTTPStatus.FORBIDDEN, path

@@ -36,6 +36,15 @@
 // with `$.prompt.submit` as the person's own words, and reports the turn that
 // starts with it. Nothing is typed into the terminal. The states and routes
 // are in docs/features/submitted-dispatch/plan/PLAN.md.
+//
+// And it lets the person answer a permission prompt from the cockpit
+// (FEAT-0159). When Claude Code's own rules, mode and PreToolUse hooks answer
+// `ask`, the plugin offers the call to the sidecar and waits for the
+// workspace's wait (5 s unless set) for a click. A grant or a denial there is
+// the answer; otherwise the terminal shows its own prompt as before. An
+// `allow` or a `deny` from beneath is never changed. The plugin never holds
+// the shell's secret: it offers and reads, it does not answer. The flow is in
+// docs/features/answerable-approvals/plan/PLAN.md.
 
 import type { EngineInterface, Register, SessionMeasureInput, Timer } from 'claude-code'
 
@@ -142,6 +151,7 @@ export function statuslinePayload(
 
 /** Starts the post of a hook's stdin JSON and passes the event on. */
 const forward = <E, R>($: EngineInterface, e: E, next: (e: E) => R): R => {
+  noteMode(e)
   void post($, e as unknown as Payload)
   return next(e)
 }
@@ -157,6 +167,92 @@ async function preToolUsePayload($: EngineInterface, e: Payload): Promise<Payloa
     tool_use_id: toolUseId,
     tool_input: input,
   }
+}
+
+/** How often the plugin reads an offered approval while it waits. */
+const APPROVAL_POLL_MS = 250
+
+/** Tools whose ask a hook can only tighten: a question put to the person and
+ *  a plan to approve. A hook's allow does not dismiss their dialog, so they
+ *  are never offered to the cockpit. */
+const PERSON_ONLY = new Set(['AskUserQuestion', 'ExitPlanMode'])
+
+type Verdict = { decision: 'allow' | 'ask' | 'deny'; reason?: string; decider?: string }
+
+/** The answer a person gave in the cockpit, or undefined while there is none. */
+export function cockpitVerdict(record: unknown): Verdict | undefined {
+  const r = (record ?? {}) as { status?: unknown; decided_by?: unknown }
+  const who = typeof r.decided_by === 'string' && r.decided_by ? r.decided_by : 'a person'
+  if (r.status === 'granted') return { decision: 'allow', reason: `Approved in the cockpit by ${who}.` }
+  if (r.status === 'denied') return { decision: 'deny', reason: `Denied in the cockpit by ${who}.` }
+  return undefined
+}
+
+/** The permission modes in which an ask is put to the person in the
+ *  terminal. In `auto` the classifier settles it, in `dontAsk` nobody is
+ *  asked, and in `plan` a hook can only tighten; offering those would make
+ *  every such call wait for nothing (live run, 2026-10-14). */
+const PERSON_ASKED_MODES = new Set(['default', 'acceptEdits'])
+
+/** The session's permission mode, from the last classic event that carried
+ *  one. Unknown until the first, and an unknown mode offers nothing. */
+const session: { mode?: string } = {}
+
+/** Remember the mode a classic event reports. */
+function noteMode(e: unknown): void {
+  const mode = (e as { permission_mode?: unknown } | null)?.permission_mode
+  if (typeof mode === 'string' && mode) session.mode = mode
+}
+
+/** Whether an ask from beneath may be offered to the cockpit at all. */
+export function offerable(
+  e: { tool: string; tool_use_id?: string; ceiling?: string }, asked: Verdict, mode: string | undefined,
+): boolean {
+  if (asked.decision !== 'ask') return false
+  if (!mode || !PERSON_ASKED_MODES.has(mode)) return false
+  // A `$.tool.check` query has no call to wait on.
+  if (!e.tool_use_id) return false
+  if (PERSON_ONLY.has(e.tool)) return false
+  // The organization's ceiling is ask: an allow from a hook cannot stand.
+  if (e.ceiling === 'ask') return false
+  // A hosted session's program answers its asks, not a dialog here.
+  if (asked.decider === 'host') return false
+  return true
+}
+
+/** Offer the call, wait for a click, and hand it back when none comes.
+ *  Returns the cockpit's answer, or `asked` unchanged. */
+async function askCockpit(
+  $: EngineInterface,
+  e: { tool: string; input: unknown; tool_use_id?: string; agentId?: string },
+  asked: Verdict,
+  signal: AbortSignal,
+): Promise<Verdict> {
+  const offer = await sidecarCall($, '/api/cockpit/approvals/ask', {
+    session_id: await $.session.id(),
+    tool: e.tool,
+    input: e.input,
+    tool_use_id: e.tool_use_id,
+    agent_id: e.agentId,
+  })
+  const id = offer?.status === 200 ? offer.json.approval_id : undefined
+  const waitMs = Number(offer?.json.wait_ms ?? 0)
+  if (typeof id !== 'string' || !id || !(waitMs > 0)) return asked
+  try {
+    const until = (await $.clock.now()) + waitMs
+    while ((await $.clock.now()) < until) {
+      await $.clock.sleep(APPROVAL_POLL_MS, { signal })
+      const read = await sidecarCall($, `/api/cockpit/approvals?approval_id=${encodeURIComponent(id)}`)
+      const answer = cockpitVerdict(read?.json.approval)
+      if (answer) return answer
+    }
+  } catch {
+    // Interrupted, or the clock failed: fall through and give it back.
+  }
+  // The sidecar decides under its lock: a click that landed first comes back
+  // as the answer; an approval still open goes to the terminal.
+  const back = await sidecarCall($, '/api/cockpit/approvals/handed-back', { approval_id: id })
+  return cockpitVerdict(back?.json.approval) ?? asked
 }
 
 /** How often the plugin asks the sidecar for prompts addressed to its session. */
@@ -314,9 +410,23 @@ export const register: Register = on => {
   })
 
   on('classic.SessionEnd', async ($, e, next) => {
+    noteMode(e)
     await postWithin($, e as unknown as Payload, SESSION_END_WAIT_MS)
     return next(e)
   })
+
+  // A permission ask, offered to the cockpit before the terminal (FEAT-0159).
+  // Claude Code's own verdict comes first; only its `ask` is ever replaced,
+  // and only by the person's answer. A fault anywhere returns that verdict.
+  on('tool.check', async ($, e, next) => {
+    const asked = await next(e)
+    if (!offerable(e, asked, session.mode)) return asked
+    try {
+      return await askCockpit($, e, asked, next.signal)
+    } catch {
+      return asked
+    }
+  }).catch(($, e, next) => next(e))
 
   on('session.measure', ($, e, next) => {
     void (async () => {

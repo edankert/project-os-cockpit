@@ -46,7 +46,7 @@ SECRET = "s" * 64
 
 
 def _spin_up(docs: Path, tracker: AgentSessionTracker | None = None,
-             shell_secret: str | None = None):
+             shell_secret: str | None = None, **handler: Any):
     server = DocsServer(docs_root=docs, bind="127.0.0.1", port=0)
     httpd = _NoDNSThreadingHTTPServer(
         ("127.0.0.1", 0),
@@ -55,6 +55,7 @@ def _spin_up(docs: Path, tracker: AgentSessionTracker | None = None,
             cockpit_state=server.cockpit_state,
             agent_tracker=tracker or server.agent_tracker,
             shell_secret=shell_secret,
+            **handler,
         ),
     )
     port = httpd.server_address[1]

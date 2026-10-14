@@ -51,6 +51,7 @@ from . import inbox as inbox_mod
 from .watermark import Watermark
 from . import obligations as _obligations
 from . import review
+from . import approvals as approvals_mod
 from .approvals import ApprovalStore
 from . import escalation
 from .review import ReviewStore
@@ -815,6 +816,12 @@ def _make_handler(
             if path == "/api/cockpit/approve":
                 self._serve_approve()
                 return
+            if path == "/api/cockpit/approvals/ask":
+                self._serve_approval_ask()
+                return
+            if path == "/api/cockpit/approvals/handed-back":
+                self._serve_approval_handed_back()
+                return
 
             if path == "/api/notes/attach":
                 self._serve_note_attach()
@@ -1045,9 +1052,23 @@ def _make_handler(
             # Permission prompts as durable state (ISS-0094) — so they can be
             # answered from here and counted by the same clock as the queue.
             if path == "/api/cockpit/approvals":
+                # Loopback-only: a record carries the command it asks to run
+                # (FEAT-0159). With `approval_id`, that one record: the
+                # plugin's poll while it waits for the person.
+                if not self._require_loopback("approvals"):
+                    return
+                wanted = (urllib.parse.parse_qs(parsed.query).get("approval_id") or [""])[0]
+                if wanted:
+                    record = approval_store.get(wanted)
+                    if record is None:
+                        self._respond_json({"ok": False, "error": "no such approval"},
+                                           status=HTTPStatus.NOT_FOUND)
+                    else:
+                        self._respond_json({"ok": True, "approval": record})
+                    return
                 open_prompts = approval_store.open_prompts()
                 self._respond_json({
-                    "approvals": open_prompts,
+                    "approvals": approval_store.live_prompts(),
                     # The escalation state per prompt, so the surface shows the
                     # clock rather than only the amber.
                     "escalation": escalation.sweep(open_prompts)["counts"],
@@ -1840,6 +1861,23 @@ def _make_handler(
             # prompts addressed to it (FEAT-0158).
             for delivery in tracker.take_delivery_changes():
                 bus.publish(ControlEvent("cockpit:delivery", delivery))
+            # A call that ran, a main-loop turn that ended or began, or a
+            # session that ended leaves no permission prompt to answer
+            # (FEAT-0159). A prompt refused with Esc in the terminal sends no
+            # Stop and no Interrupt (live run, 2026-10-14), so the person's
+            # next prompt is what closes it.
+            event_name = body.get("hook_event_name")
+            if event_name == "PostToolUse":
+                closed = approval_store.close(tool_use_id=str(body.get("tool_use_id") or ""))
+            elif event_name in ("Stop", "Interrupt", "UserPromptSubmit", "SessionEnd"):
+                closed = approval_store.close(
+                    session_id=str(body.get("session_id") or ""),
+                    main_loop_only=event_name != "SessionEnd",
+                )
+            else:
+                closed = []
+            for record in closed:
+                bus.publish(ControlEvent("cockpit:approval", record))
             if not outcome.get("ok"):
                 self._respond_json(
                     {"ok": False, "error": outcome.get("error", "rejected")},
@@ -2597,7 +2635,7 @@ def _make_handler(
                 )
                 return
             try:
-                result = approval_store.answer(
+                result, answered = approval_store.answer_open(
                     str(body.get("approval_id") or ""),
                     decision=str(body.get("decision") or ""),
                     actor=str(body.get("actor") or ""),
@@ -2610,8 +2648,73 @@ def _make_handler(
                 self._respond_json({"ok": False, "error": "no such approval"},
                                    status=HTTPStatus.NOT_FOUND)
                 return
+            if not answered:
+                # The plugin gave up waiting, the call ran, or someone answered
+                # first (FEAT-0159).
+                error = (approvals_mod.HANDED_BACK
+                         if result.get("status") == "handed-to-terminal"
+                         else "this permission prompt is no longer waiting for an answer")
+                self._respond_json({"ok": False, "error": error, "approval": result},
+                                   status=HTTPStatus.CONFLICT)
+                return
             bus.publish(ControlEvent("cockpit:approval", result))
             self._respond_json({"ok": True, "result": result})
+
+        def _serve_approval_ask(self) -> None:
+            """``POST /api/cockpit/approvals/ask`` — the cockpit plugin offers a
+            Claude permission ask for the person to answer here (FEAT-0159).
+
+            Body ``{session_id, tool, input, tool_use_id, agent_id?}``. Answers
+            ``{approval_id, wait_ms}``: how long the plugin waits before the
+            terminal shows its own prompt. ``wait_ms`` 0 and no record when the
+            workspace turned this off or the input is too long to show whole.
+            No secret: an ask grants nothing.
+            """
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            session_id = body.get("session_id")
+            tool = body.get("tool")
+            tool_use_id = body.get("tool_use_id")
+            if not all(isinstance(v, str) and v for v in (session_id, tool, tool_use_id)):
+                self._respond_json(
+                    {"ok": False, "error": "an ask needs session_id, tool and tool_use_id"},
+                    status=HTTPStatus.BAD_REQUEST)
+                return
+            if approval_wait_ms <= 0:
+                self._respond_json({"ok": True, "approval_id": None, "wait_ms": 0})
+                return
+            record = approval_store.ask(
+                session_id=session_id, tool=tool, tool_input=body.get("input"),
+                tool_use_id=tool_use_id, agent_id=str(body.get("agent_id") or ""),
+            )
+            if record is None:
+                self._respond_json({"ok": True, "approval_id": None, "wait_ms": 0,
+                                    "reason": "too long to show in full"})
+                return
+            bus.publish(ControlEvent("cockpit:approval", record))
+            self._respond_json({"ok": True, "approval_id": record["approval_id"],
+                                "wait_ms": approval_wait_ms})
+
+        def _serve_approval_handed_back(self) -> None:
+            """``POST /api/cockpit/approvals/handed-back`` ``{approval_id}`` —
+            the plugin's wait ran out. An open approval goes to the terminal; the
+            record comes back whatever its status, so a click that landed first
+            is the answer the plugin uses."""
+            if not self._require_loopback():
+                return
+            body = self._read_json_body()
+            if body is None:
+                return
+            record = approval_store.hand_back(str(body.get("approval_id") or ""))
+            if record is None:
+                self._respond_json({"ok": False, "error": "no such approval"},
+                                   status=HTTPStatus.NOT_FOUND)
+                return
+            bus.publish(ControlEvent("cockpit:approval", record))
+            self._respond_json({"ok": True, "approval": record})
 
         def _serve_note_attach(self) -> None:
             """``POST /api/notes/attach`` — file a capture as evidence (TASK-0297).
