@@ -55,6 +55,20 @@ test('a long command is not cut', () => {
   assert.doesNotMatch(rule, /ellipsis|nowrap/);
 });
 
+test('a prompt is a plain row with its answer as two words, not a bordered box with buttons', () => {
+  // TASK-0670: Edwin did not want the box or the full-width buttons.
+  const sheet = fs.readFileSync(css, 'utf8');
+  const row = sheet.match(/\.ws-approval-row \{[^}]*\}/)?.[0] ?? '';
+  assert.notEqual(row, '');
+  assert.doesNotMatch(row, /border:|background:/);
+  const buttons = sheet.match(/\.ws-approval-actions button \{[^}]*\}/)?.[0] ?? '';
+  assert.match(buttons, /border: none/);
+  assert.doesNotMatch(buttons, /flex: 1/);
+  const build = extractFunction('buildApprovalRow');
+  assert.match(build.toString(), /meta\.appendChild\(actions\)/,
+    'Approve and Deny sit on the session line');
+});
+
 test('a prompt handed to the terminal offers no answer, and says why in its own number', () => {
   const text = extractFunction('approvalCardText');
   const card = text({ ...open, status: 'handed-to-terminal' });

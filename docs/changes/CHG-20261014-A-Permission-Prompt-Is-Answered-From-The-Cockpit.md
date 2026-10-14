@@ -6,7 +6,7 @@ status: merged
 owner: user:edwin
 created: 2026-10-14
 updated: 2026-10-14
-source: ["[[TASK-0664-The-Sidecar-Requires-The-Shells-Secret-To-Answer-A-Prompt-Or-Deliver-One]]", "[[TASK-0665-The-Plugin-Asks-The-Cockpit-Before-The-Terminal-And-Never-Widens-A-Deny]]", "[[TASK-0666-The-Needs-You-Card-Answers-A-Permission-Prompt]]", "[[TASK-0667-Tests-Prove-A-Deny-Survives-And-An-Answer-Without-The-Secret-Is-Refused]]"]
+source: ["[[TASK-0664-The-Sidecar-Requires-The-Shells-Secret-To-Answer-A-Prompt-Or-Deliver-One]]", "[[TASK-0665-The-Plugin-Asks-The-Cockpit-Before-The-Terminal-And-Never-Widens-A-Deny]]", "[[TASK-0666-The-Needs-You-Card-Answers-A-Permission-Prompt]]", "[[TASK-0667-Tests-Prove-A-Deny-Survives-And-An-Answer-Without-The-Secret-Is-Refused]]", "[[TASK-0670-A-Permission-Prompt-Sits-In-The-Needs-You-List-Like-Its-Other-Rows]]"]
 commit: ""
 pr: ""
 impacts: ["src/project_os_cockpit/__main__.py", "src/project_os_cockpit/approvals.py", "src/project_os_cockpit/server.py", "desktop/plugin/claude-code/hooks/register.ts", "desktop/src/ipc/sidecar.ts", "desktop/src/ipc/approvals.ts", "desktop/src/ipc/dispatch-queue.ts", "desktop/src/main.ts", "desktop/src/preload.ts", "desktop/src/renderer/renderer.ts", "desktop/src/renderer/renderer.css", "desktop/src/types.ts"]
@@ -31,7 +31,7 @@ Codex sessions, and Claude sessions in auto mode, work as before.
 
 ## What a person notices
 
-- **A card for each permission prompt**, red-bordered, above the other Needs you cards. It names the project, says "Claude asks to run a command" (or "to use Write", or "A Claude subagent asks…"), shows the command or path in full in a block that wraps and scrolls, names the session, and has Approve and Deny.
+- **A row for each permission prompt**, with a red dot, above the other Needs you rows. It names the project, says "Claude asks to run a command" (or "to use Write", or "A Claude subagent asks…"), shows the command or path in full in a block that wraps and scrolls, and names the session. "Approve · Deny" are two coloured words at the right end of the session line. (The first build drew a red-bordered box with two full-width buttons; Edwin did not want either, and TASK-0670 made it a plain row the same evening.)
 - **Approve or Deny answers the session.** The command runs, or the model is told "Denied in the cockpit by user:edwin." The status line says "Approved Bash in project-os-cockpit".
 - **A 5 second delay before the terminal's own prompt**, in manual or acceptEdits mode, while the cockpit waits for a click. When it runs out, the card loses its buttons and says "Answer in the terminal: the cockpit's 5 s wait ran out". A click after that is refused with the same sentence. The wait is `approvalWaitMs` on the project's entry in `workspaces.json` (0 turns the card off; the most is 30 s); a change applies when the project's server next starts.
 - **The project's amber "needs your input" card is not drawn beside a permission card**, because it would say the same thing with less in it.

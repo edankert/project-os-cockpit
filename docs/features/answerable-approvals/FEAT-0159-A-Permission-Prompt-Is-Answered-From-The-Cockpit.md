@@ -19,6 +19,7 @@ tasks:
   - "[[TASK-0665-The-Plugin-Asks-The-Cockpit-Before-The-Terminal-And-Never-Widens-A-Deny]]"
   - "[[TASK-0666-The-Needs-You-Card-Answers-A-Permission-Prompt]]"
   - "[[TASK-0667-Tests-Prove-A-Deny-Survives-And-An-Answer-Without-The-Secret-Is-Refused]]"
+  - "[[TASK-0670-A-Permission-Prompt-Sits-In-The-Needs-You-List-Like-Its-Other-Rows]]"
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]]"

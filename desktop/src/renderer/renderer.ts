@@ -17350,22 +17350,30 @@ function buildApprovalRow(wsId: string, a: ApprovalView): HTMLElement {
   session.className = 'ws-approval-session';
   session.textContent = text.session;
 
-  row.append(head, command, session);
+  // The answer is two words at the end of the session line, not two buttons
+  // under the card (TASK-0670, Edwin on the first walk of TST-0096).
+  const meta = document.createElement('div');
+  meta.className = 'ws-approval-meta';
+  meta.appendChild(session);
+  row.append(head, command, meta);
   if (text.actionable) {
-    const actions = document.createElement('div');
+    const actions = document.createElement('span');
     actions.className = 'ws-approval-actions';
     const approve = document.createElement('button');
     approve.type = 'button';
     approve.className = 'ws-approval-approve';
     approve.textContent = 'Approve';
+    const sep = document.createElement('span');
+    sep.className = 'ws-approval-sep';
+    sep.textContent = '·';
     const deny = document.createElement('button');
     deny.type = 'button';
     deny.className = 'ws-approval-deny';
     deny.textContent = 'Deny';
     approve.addEventListener('click', () => { void answerApproval(wsId, a, 'granted', [approve, deny]); });
     deny.addEventListener('click', () => { void answerApproval(wsId, a, 'denied', [approve, deny]); });
-    actions.append(approve, deny);
-    row.appendChild(actions);
+    actions.append(approve, sep, deny);
+    meta.appendChild(actions);
   } else {
     const note = document.createElement('span');
     note.className = 'ws-approval-note';

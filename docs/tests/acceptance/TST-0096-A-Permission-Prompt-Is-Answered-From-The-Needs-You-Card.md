@@ -66,6 +66,17 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 - In step 8 `curl` gets 403 and the card is still there, waiting. The request did not answer it.
 - In step 9 the prompt arrives in Claude as in TST-0095 step 8. `cockpit dispatch` still works without the secret.
 
+## First run on 2026-10-14: steps 1, 2 and 4 pass; the rest not yet run
+
+Edwin rebuilt the application at 21:33 local and restarted it at 21:34, after the last FEAT-0159 commit (21:31). The app ran without a debugging port. Every sidecar reported `sidecar_stale: false`. The walk ran in this repository's own cockpit terminal, in the Claude session that was guiding it (`3c410600`), not in deck as Setup suggests. The records are in `.cockpit/approvals.json` in this repository.
+
+- The session was first in bypass permissions mode, and then in plan mode. In both, commands ran without a card and without any approval record, which is the intended behaviour outside manual and acceptEdits mode. `ls -la` was never tried in manual mode, so whether it asks there is still unknown. The probes used `touch /tmp/tst-0096-*.txt` instead, which does ask.
+- Steps 1 and 2 pass. In manual mode, eleven calls (Bash, Write and Edit) were approved from the card by `user:edwin`, each 1 to 4 s after its offer, for example approval `302e609311bc` at 20:46:16 to 20:46:17 UTC. None of them showed a terminal dialog. Edwin: "It all works".
+- Step 4 passes, three times. `touch /tmp/tst-0096-2.txt` was offered at 20:46:01, handed to the terminal at 20:46:06, answered there, and closed at 20:46:13. The same happened at 20:50:16 to 20:50:28 and at 20:54:45 to 20:55.
+- Step 3 has not run. Both attempts to Deny ended without a deny: `touch /tmp/tst-0096-3.txt` was granted (approval `6488c88d8a71`, 20:46:35), and `tst-0096-3c` ran out the 5 s wait.
+- On the first sight of the card, Edwin did not like the full-width buttons or the bordered box. [[TASK-0670-A-Permission-Prompt-Sits-In-The-Needs-You-List-Like-Its-Other-Rows]] made it a plain row with "Approve · Deny" on the session line. Edwin saw it after a window reload and approved it ("I have seen it, all good for now!"). Approve on the new row works (approval `f97dfde3bdd1`, 20:54:57 to 20:54:59).
+- Not yet run: steps 3, 5, 6, 7, 8 and 9. The step 7 deny hook was put in `project-os-deck/.claude/settings.local.json` for this run and removed when the walk paused, so it has to be added again before step 7.
+
 ## Not this check
 
 The tests in [[TASK-0667-Tests-Prove-A-Deny-Survives-And-An-Answer-Without-The-Secret-Is-Refused]] cover the cases that are hard to walk by hand: every wrong form of the secret, an agent actor, and the secret not appearing in any file or environment. This check is what a person sees.
