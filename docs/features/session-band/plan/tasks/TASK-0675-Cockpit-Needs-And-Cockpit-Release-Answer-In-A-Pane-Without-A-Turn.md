@@ -3,7 +3,7 @@ type: "[[task]]"
 id: TASK-0675
 aliases: ["TASK-0675"]
 title: "/cockpit-needs and /cockpit-release, typed at the Claude prompt in a cockpit terminal, answer from the sidecar in a pane without starting a Claude turn"
-status: backlog
+status: doing
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-14

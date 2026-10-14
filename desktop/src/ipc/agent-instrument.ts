@@ -71,6 +71,18 @@ function instrumentDirFor(workspaceId: string): string {
   return path.join(instrumentRoot(), safeDirName(workspaceId));
 }
 
+/** The workspace's instrument folder when it exists, else null. It exists
+ *  once a terminal in that workspace has been opened; a file meant for that
+ *  terminal's agents is pointless before then (FEAT-0157). */
+export function existingInstrumentDir(workspaceId: string): string | null {
+  const dir = instrumentDirFor(workspaceId);
+  try {
+    return fs.statSync(dir).isDirectory() ? dir : null;
+  } catch {
+    return null;
+  }
+}
+
 function writeExecutable(filePath: string, content: string): void {
   fs.writeFileSync(filePath, content, { encoding: 'utf-8', mode: 0o755 });
 }

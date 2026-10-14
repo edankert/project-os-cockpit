@@ -30,6 +30,7 @@ import { getPortPromise } from 'portfinder';
 import { getWorkspace, markOpened } from './workspaces';
 import { subscribeAgentFocus, unsubscribeAgentFocus } from './agent-focus';
 import { setSidecarUrl } from './agent-instrument';
+import { refreshNeedsElsewhere } from './needs-elsewhere';
 import { unwatchApprovals, watchApprovals } from './approvals';
 import type {
   SidecarExitedPayload,
@@ -184,6 +185,7 @@ async function spawnSidecar(
     existing.windowId = window.id;
     subscribeAgentFocus(window, existing.url, workspace.id);
     setSidecarUrl(workspace.id, existing.url);
+    refreshNeedsElsewhere();
     void markOpened(workspace.id);
     send(window, {
       kind: 'ready',
@@ -255,6 +257,7 @@ async function spawnSidecar(
 
   child.on('exit', (code, signal) => {
     sidecars.delete(workspace.id);
+    refreshNeedsElsewhere();
     unwatchApprovals(workspace.id);
     const target = BrowserWindow.fromId(record.windowId);
     const payload: SidecarExitedPayload = {
@@ -290,6 +293,9 @@ async function spawnSidecar(
   subscribeAgentFocus(window, url, workspace.id);
   // Point the instrumentation scripts (FEAT-0019) at the live sidecar.
   setSidecarUrl(workspace.id, url);
+  // Every terminal's count of the other projects now includes this one live
+  // (FEAT-0157).
+  refreshNeedsElsewhere();
   // Its permission prompts reach the Needs you panel whichever project is on
   // screen (FEAT-0159).
   watchApprovals(workspace.id, url);

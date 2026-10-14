@@ -62,6 +62,7 @@ function load(workspace) {
       if (name === './workspaces') return { getWorkspace: () => workspace, markOpened: async () => {} };
       if (name === './agent-focus') return { subscribeAgentFocus() {}, unsubscribeAgentFocus() {} };
       if (name === './agent-instrument') return { setSidecarUrl() {} };
+      if (name === './needs-elsewhere') return { refreshNeedsElsewhere() {} };
       if (name === './approvals') return { watchApprovals() {}, unwatchApprovals() {} };
       throw new Error(`unexpected import ${name}`);
     },

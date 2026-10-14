@@ -16,13 +16,15 @@ import * as path from 'node:path';
 import { getAllWorkspaces } from './workspaces';
 import { fleetHealth, liveSidecarUrl } from './fleet-health';
 import { HomePhase, HomeRelease, trimCriteria, trimPhases, trimRelease } from './home-payload';
+import { coldCount, liveCount } from './needs-count';
 
 export interface HomeProject {
   workspaceId: string;
   project: string;
   projectId: string;
   /** False when no sidecar answers for this project. Then `owed` is empty
-   *  and `owedCount` carries the number from the last cold pass, if any. */
+   *  and `owedCount` carries the number from the last cold pass, if any.
+   *  When live, `owedCount` is the sidecar's obligations total. */
   live: boolean;
   /** Why this project could not be read, or null when it was. A project
    *  that was not read is named as such; it is never shown as owing nothing. */
@@ -63,7 +65,7 @@ async function getJson(url: string): Promise<Record<string, unknown> | null> {
   }
 }
 
-async function owedGroups(base: string): Promise<unknown[] | null> {
+async function owedGroups(base: string): Promise<{ groups: unknown[]; total: number | null } | null> {
   const ob = await getJson(`${base}/api/cockpit/obligations`);
   if (!ob) return null;
   const views = (ob?.views ?? {}) as Record<string, unknown>;
@@ -77,7 +79,9 @@ async function owedGroups(base: string): Promise<unknown[] | null> {
     if (!landing || !Array.isArray(landing.groups)) return null;
     groups.push(...(landing.groups as unknown[]));
   }
-  return groups;
+  // The same count the project line's file carries for this project
+  // (needs-count.ts), so the two never disagree (FEAT-0157).
+  return { groups, total: liveCount(ob, Date.now()).count };
 }
 
 async function buildProject(
@@ -91,8 +95,8 @@ async function buildProject(
   if (!base) {
     // No sidecar: say what the last cold pass counted, and when. A number
     // with its date is honest; a list this shell cannot fetch would not be.
-    const cold = fleetHealth().rows.find((r) => r.workspaceId === ws.id)?.digest;
-    if (cold) { row.owedCount = cold.needsYou; row.owedAt = cold.computedAt; }
+    const cold = coldCount(fleetHealth().rows.find((r) => r.workspaceId === ws.id)?.digest);
+    if (cold.source === 'cold') { row.owedCount = cold.count; row.owedAt = cold.asOf; }
     row.notRead = 'it is not open in the cockpit';
     return row;
   }
@@ -108,7 +112,8 @@ async function buildProject(
     return row;
   }
   row.live = true;
-  row.owed = owed;
+  row.owed = owed.groups;
+  row.owedCount = owed.total;
   row.phases = trimPhases(stats);
   row.release = trimRelease(release);
   // What still stands between an active phase and finished is its unticked

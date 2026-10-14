@@ -26,6 +26,7 @@ import { registerApprovalIpc } from './ipc/approvals';
 import { registerAgentsFleetIpc } from './ipc/agents-fleet';
 import { registerFleetHealthIpc, stopFleetHealth } from './ipc/fleet-health';
 import { isHomeWindow, openHomeWindow, registerHomeWindowIpc } from './ipc/home-window';
+import { startNeedsElsewhere } from './ipc/needs-elsewhere';
 import { registerClipboardIpc } from './ipc/clipboard';
 import { registerGitIpc } from './ipc/git';
 import { attachContextMenu } from './ipc/context-menu';
@@ -490,6 +491,9 @@ app.whenReady().then(() => {
   if (!gotLock) return;
   // Terminals outlive the app in tmux; give their next `codex` today's hooks.
   refreshCodexLaunchers();
+  // Each terminal's Claude plugin reads the other projects' counts from its
+  // instrument folder; keep that file current (FEAT-0157).
+  startNeedsElsewhere();
   buildMenu();
   registerWorkspaceIpc();
   registerSidecarIpc({ getActiveWindow: () => mainWindow });
