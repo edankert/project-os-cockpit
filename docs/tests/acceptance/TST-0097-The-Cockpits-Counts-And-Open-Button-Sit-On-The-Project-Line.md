@@ -50,9 +50,10 @@ Confirms what FEAT-0157 promises a person in a cockpit Claude terminal: the cock
 4. Quit the desktop app, leaving the terminal running (a tmux terminal survives), and wait 2 minutes. **Expect:** the other-projects count disappears. This project's count and the button disappear when the sidecar stops answering.
 5. Restart the app. With a focus item set, press `[ Open in cockpit ]` (click it, or ctrl+x tab then its key). **Expect:** the cockpit window comes forward on this project with the focus item's note open.
 6. Type `/cockpit-needs`. **Expect:** a pane with this project's owed kinds and each other project's count and source; no Claude turn starts, and nothing about it appears in the transcript. Esc closes it.
-7. Type `/cockpit-release`. **Expect:** a pane with the open release's state, matching the cockpit's release page; no Claude turn.
+7. Type `/cockpit-release`. **Expect:** a pane with the release's name and whether it is prepared, its item count since the last release, whether manual checks block it and how many, and what is still owed. These agree with the cockpit's release page; the page's other parts (settle, coverage, confidence) are not in the pane. No Claude turn.
 8. Open a plain macOS Terminal in the same repo and start `claude`. **Expect:** the project-os line without the cockpit's segment, and `/cockpit-needs` is not a known command.
 9. In a cockpit terminal with `COCKPIT_NO_INSTRUMENT=1` exported before `claude`. **Expect:** no cockpit segment.
+10. Narrow the terminal until the line no longer fits, or open `/cockpit-needs` so its pane docks beside the transcript. **Expect:** the cockpit's segment is cut first; project-os's facts stay whole until the segment is gone.
 
 ## Expected result
 

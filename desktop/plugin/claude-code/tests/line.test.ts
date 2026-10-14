@@ -90,6 +90,10 @@ describe("the segment's facts (TASK-0673)", () => {
     expect(f.url).toBe('cockpit://ws-7/FEAT-0157')
   })
 
+  test('no file draws no other-projects count', () => {
+    expect(segmentFacts(lineAnswer(LINE), undefined, NOW).others).toBeUndefined()
+  })
+
   test('a file the shell stopped refreshing draws no other-projects count', () => {
     const stale = { ...ELSEWHERE, written_at: iso(3 * 60_000) }
     expect(segmentFacts(lineAnswer(LINE), stale as any, NOW).others).toBeUndefined()
@@ -119,6 +123,9 @@ describe('the segment on the band (TASK-0673)', () => {
     const lineEl = await ui.find({ key: 'project-os:line' })
     expect(lineEl!.text).toMatch(/^FEAT-0157 doing · PHASE-046 · 3 need you · 5 in other projects/)
     expect(await ui.find({ key: 'cockpit:open' })).toBeDefined()
+    // One segment, inside the line: the cockpit draws no line of its own.
+    expect(await ui.findAll({ key: 'segment:cockpit' })).toHaveLength(1)
+    expect(lineEl!.text).toContain('Open in cockpit')
   })
 
   test('with nothing beneath it is drawn on its own', async ($, on) => {

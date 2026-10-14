@@ -78,3 +78,12 @@ The Codex installer preserves unrelated handlers and refuses malformed configura
 - **More of the mods interface is depended on.** `$.prompt.submit`, `turn.start`, `turn.complete`, `prompt.submit` and `$.clock.every` join the calls CI already tests on Claude Code 2.1.299. The plugin's tests cover each one, so a change in their meaning fails the build rather than the session.
 - **The hook still never turns a `deny` into an `allow`.** Its one new answer is `{ drop }`, for this plugin's own cancelled prompt, and it lets every other prompt through unchanged.
 - **The new hazard is not here.** A sidecar route that takes prompt text is [[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]].
+
+## The plugin draws on the project line — 2026-10-14
+
+[[FEAT-0157-The-Project-State-Sits-Above-The-Claude-Prompt]] made the plugin draw: a segment on the project line, a button, and two panes. What that changes for this risk:
+
+- **One more file in the instrument folder.** The shell writes `needs-elsewhere.json` beside `hook-env` in each workspace's instrument folder, under the app's own data folder. It holds project names and counts only. Nothing is written under `~/.claude`; `claude-plugin-shell.test.mjs`, this risk's verification test, still passes. With `COCKPIT_NO_INSTRUMENT=1` the shell writes no file, and the plugin reads none and draws nothing of the cockpit's.
+- **The plugin now runs one command.** The Open in cockpit button runs `open cockpit://<workspace>/<note>` through `$.process.run`, as an argument list with no shell. Both parts are checked against strict patterns first, and a value that fails draws no button (`tests/line.test.ts`).
+- **Something else does write under `~/.claude` now, and it is not the cockpit.** The project-os template's own plugin (project-os-dev FEAT-0041) is declared in this repository's `.claude/settings.json`, and Claude Code records that marketplace once per machine in `~/.claude/plugins/known_marketplaces.json`. That is Claude Code honouring the repo's settings, as it does in every synced repo, inside a cockpit terminal or not. This risk's rule is about what the cockpit writes, and it still writes nothing there.
+- **The version pin moved to Claude Code 2.1.300**, where the drawing, the button and the commands were tested.

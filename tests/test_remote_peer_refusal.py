@@ -330,7 +330,9 @@ def test_no_guard_call_has_its_answer_discarded() -> None:
     # 34 -> 35 the same day: the delivery cancel route (TASK-0657).
     # 35 -> 38 the same day: [[FEAT-0159]]'s ask and handed-back routes, and
     # the approval list, loopback-only because it returns command text.
-    assert sites == 38, f"expected 38 guard call sites, found {sites}"
+    # 38 -> 39 the same day: [[FEAT-0157]]'s line route (TASK-0672), a read
+    # kept loopback-only like every route the cockpit plugin calls.
+    assert sites == 39, f"expected 39 guard call sites, found {sites}"
 
 
 def test_the_refusal_says_why(remote_server) -> None:
