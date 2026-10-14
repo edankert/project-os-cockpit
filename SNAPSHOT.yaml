@@ -72,7 +72,7 @@ counters:
     last_date: 20260916
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 160
-  ISS: 320
+  ISS: 322
   PHASE: 46
   REQ: 72
   RISK: 12
@@ -1700,6 +1700,24 @@ items:
       severity: high
       component: desktop-renderer
       note: "2026-09-12, reported by Edwin within the hour of the viewer landing: renderViewerPage adds `viewer-page` (overflow: hidden, right for a framed file) and nothing removes it, so every later page stops scrolling. Ten other page classes are cleared by the next render; this one was added to none of those lists. No test walks AWAY from a page, which is why nothing caught it."
+    ISS-0321:
+      file: "docs/issues/ISS-0321-The-Dispatch-Agent-Is-Chosen-By-Hand-Not-From-The-Running-Agent.md"
+      title: "Which agent a verb button dispatches to is a hand-set menu choice per project, instead of following the agent running in the project's terminal"
+      status: open
+      owner: user:edwin
+      phase: ""
+      severity: medium
+      component: desktop
+      note: "Edwin 2026-10-14, TST-0095 step 10. Open question: how the cockpit knows the running agent when no hook reports one."
+    ISS-0322:
+      file: "docs/issues/ISS-0322-Codex-In-A-Cockpit-Terminal-Reports-Nothing-To-The-Sidecar.md"
+      title: "A Codex session in project-os-deck's cockpit terminal reported nothing to the sidecar, so a dispatch was typed as a shell command into Codex"
+      status: open
+      owner: user:edwin
+      phase: ""
+      severity: medium
+      component: desktop
+      note: "TST-0095 step 10, 2026-10-14. Wrapper flags and hook-env are right; no event arrived. Likeliest, unconfirmed: Codex's per-event trust hash does not match another project's hook command."
     ISS-0320:
       file: "docs/issues/ISS-0320-A-Cockpit-Dispatch-From-The-Command-Line-Loses-The-Notes-Path.md"
       title: "A prompt sent with `cockpit dispatch` says \"Read docs/ first\" instead of naming the note's file, unless the quick switcher has been opened"
@@ -3742,7 +3760,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 20
+    issues_open: 22
     issues_triage: 0
     risks_open: 10
     releases_total: 1
