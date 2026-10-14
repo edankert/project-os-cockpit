@@ -3,7 +3,7 @@ type: "[[feature]]"
 id: FEAT-0157
 aliases: ["FEAT-0157"]
 title: "The cockpit's facts join the project line above the Claude Code prompt, and cockpit commands answer there without spending tokens"
-status: backlog
+status: doing
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-08
@@ -12,26 +12,35 @@ source:
   - "Edwin 2026-10-08: 'Plan the implementation in a new phase.'"
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]], 'Advisory hooks would stop paying context rent'"
   - "Edwin 2026-10-14, in project-os-dev, on which mod uses belong in project-os and which in the cockpit: 'yes, file them and update FEAT-0157'"
+  - "Edwin 2026-10-14: 'Can we first implement the rest of the features in this phase and then test!', and his answers that day: 'Build FEAT-0041 too' (project-os's mod and its line upstream first, then this feature, then test) and 'Only when non-zero' for the other projects' count"
 goal: "A person working in a cockpit Claude session sees, on the project line above the prompt, what the cockpit knows and the repo cannot: what needs them in this project and in the others, with a button that opens it in the cockpit. Commands typed at the prompt ask the cockpit a question without the model reading the answer."
 requirements: []
-tasks: []
+tasks:
+  - "[[TASK-0671-The-Shell-Keeps-A-File-Saying-What-Needs-You-In-The-Other-Projects]]"
+  - "[[TASK-0672-The-Sidecar-Answers-What-The-Line-Needs-In-One-Request]]"
+  - "[[TASK-0673-The-Cockpits-Facts-Join-The-End-Of-The-Project-Line]]"
+  - "[[TASK-0674-Open-In-Cockpit-Brings-The-Cockpit-Forward-On-The-Focus-Item]]"
+  - "[[TASK-0675-Cockpit-Needs-And-Cockpit-Release-Answer-In-A-Pane-Without-A-Turn]]"
+  - "[[TASK-0676-The-Lines-Promises-Are-Proved-And-The-Register-Updated]]"
 release: ""
 acceptance_exception: ""
-acceptance: ""
+acceptance: "[[TST-0097-The-Cockpits-Counts-And-Open-Button-Sit-On-The-Project-Line]]"
 design: ""
 related:
   - "[[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]]"
   - "[[project-os-dev#FEAT-0041-Project-Os-Mod]]"
+  - "[[project-os-dev#REFERENCE-PROJECT-LINE-CONTRACT]]"
   - "[[project-os-dev#ISS-0106-Project-Os-As-A-Plugin]]"
   - "[[FEAT-0160-A-Draft-Window-Shows-What-Needs-You]]"
   - "[[DES-0015-The-Cockpit-In-Layers]]"
   - "[[PHASE-045-The-Cockpit-In-Layers]]"
   - "[[ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit]]"
+  - "[[RISK-0004-Hook-Injection-Surface]]"
 ---
 
 # The cockpit's facts join the project line above the Claude prompt
 
-**Not started.** Filed at `backlog` in the planned [[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]. It needs the plugin from [[FEAT-0156-Claude-Sessions-Report-Through-The-Cockpit-Plugin]], and the project line from [[project-os-dev#FEAT-0041-Project-Os-Mod]].
+**Started 2026-10-14.** The project line itself is built first, upstream, by [[project-os-dev#FEAT-0041-Project-Os-Mod]]; Edwin chose that order ("Build FEAT-0041 too"). The delivery plan is `plan/PLAN.md`; the acceptance check is [[TST-0097-The-Cockpits-Counts-And-Open-Button-Sit-On-The-Project-Line|TST-0097]].
 
 ## Goal
 
@@ -41,41 +50,40 @@ One line above the Claude Code prompt shows where the project stands. Its projec
 
 **In this feature (the cockpit's half):**
 
-- The needs-you count for this project, and the count for every other open project, from the sidecar's obligations breakdown.
+- The needs-you count for this project, from the sidecar's obligations total.
+- The count for the other projects, shown only when it is above zero and fresh. A sidecar knows only its own project, so the shell, which sees every project, writes this number to a file the plugin reads.
 - An "Open in cockpit" button that brings the cockpit forward on this project's focus item.
-- Prefixed commands that answer from the sidecar, drawn in a pane: what is owed across projects (`/cockpit-needs`), and where a release stands (`/cockpit-release`). These are the two questions the `cockpit` CLI cannot answer today, per the 2026-10-13 sort note in project-os-dev.
+- Two commands that answer from the sidecar, drawn in a pane: what is owed across projects (`/cockpit-needs`), and where a release stands (`/cockpit-release`). These are the two questions the `cockpit` CLI cannot answer today, per the 2026-10-13 sort note in project-os-dev.
 
-**Moved to project-os on 2026-10-14 ([[project-os-dev#FEAT-0041-Project-Os-Mod]]):**
+**In project-os ([[project-os-dev#FEAT-0041-Project-Os-Mod]]):**
 
-- The focus item, its status and phase, and the validator's error and REVIEW-STALE counts. All of these are read from the repo.
-- The `session.start` check that the session's model matches the pin. A resumed session on the wrong model happens outside cockpit terminals too.
-- The routing hint (HC-008) on the line instead of in the model's context. The hook is owned by project-os.
-- Commands that only run a repo's own scripts (`/pos-q <ID>`, `/pos-validate`, `/pos-where`).
+- The line itself, the focus item, its status and phase, and the validator's error and REVIEW-STALE counts.
+- The `session.start` check that the session's model matches the pin.
+- The routing hint (HC-008) on the line.
+- Commands that only run a repo's own scripts (`/pos-q <ID>`, `/pos-validate`, `/pos-where`), later.
 
 ## Findings
 
-- **One line, drawn once.** The project-os mod draws the line. When the session runs in a cockpit terminal, the mod also asks the sidecar for the cockpit's facts and adds them. The shell already sets `COCKPIT_HOOK_URL` in the terminal, which names the sidecar. Two mods each drawing a line above the prompt would give the person two bands to read, so this feature does not draw its own band.
-- **What this feature has to deliver, then.** It does not draw. It provides a sidecar answer shaped for the line (the counts and the button's target), the commands, and the button's action. Whether the commands live in the cockpit's plugin or are served to the project-os mod is open question 1.
-- **Where the numbers come from.** The sidecar already serves them: needs-you from the obligations breakdown, release state from `/release`. The draft home window ([[FEAT-0160-A-Draft-Window-Shows-What-Needs-You]]) reads the same answers for every project, so the line and the window show the same numbers.
+- **One line, drawn once, joined in the drawing.** The project-os mod draws the line. The cockpit plugin adds its segment to the end of it through Claude Code's drawing chain: each `ui.render` hook gets the tree drawn beneath it from `next(e)` and can add to it. Whichever plugin's hook is outer joins the two, so their order does not matter. project-os never names the cockpit, its service or its variables. The rules are [[project-os-dev#REFERENCE-PROJECT-LINE-CONTRACT]].
+- **Why not have the mod call the sidecar.** The cockpit plugin reads the sidecar's address from `$COCKPIT_INSTRUMENT_DIR/hook-env` on every call, because the sidecar can restart on a new port; it refuses any address not on this machine, and honours `COCKPIT_NO_INSTRUMENT` (`desktop/plugin/claude-code/hooks/register.ts`, `sidecarUrl`). The mod would have had to repeat all of that in another repository.
+- **Where the numbers come from.** This project's count is the sidecar's obligations `total` (`GET /api/cockpit/obligations`, `obligations.badges_payload`), the same number the cockpit's badges show. No sidecar route covers the fleet. The only code that gathers every project's count is the shell's draft home window (`desktop/src/ipc/home-window.ts`, `buildProject`): live sidecars first, then the cold digest's `needsYou` with its `computedAt` from `fleetHealth()`. The line's number for the other projects must come from the same code, so the window and the line agree.
+- **How the shell hands the number over.** The shell already writes `hook-env` into each workspace's instrument folder, and the plugin reads it with `$.fs.read` (`desktop/src/ipc/agent-instrument.ts`, `setSidecarUrl`). A second small file beside it carries the other projects' counts.
 - **Commands.** `$.command.register` with `immediate: true` runs a command with no Claude turn. Built-in names such as `/focus` are reserved, so the names carry a prefix. A command that returns `{}` and draws in a `Pane` keeps its output away from the model. A command's answer is computed by code, not by the AI, so its counts can be trusted.
-- **This is DES-0015's first layer inside Claude Code.** [[DES-0015-The-Cockpit-In-Layers]] calls it L0, the glance. That design is not accepted ([[PHASE-045-The-Cockpit-In-Layers]]), so the line uses whichever facts PHASE-045 settles on.
-- **The vendored cockpit.** [[ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit]] has no check today. If one is built, the line is a good place to show its result at session start. This feature does not build the check.
+- **The button.** The shell already handles `cockpit://<project>/<target>` links, where the project may be the shell's workspace ID and the target a note ID (`desktop/src/main.ts`, `handleDeepLink`; `desktop/src/renderer/deep-link.ts`). On macOS `open cockpit://...` brings the running app forward. The plugin can run it with `$.process.run`.
+- **This is DES-0015's first layer inside Claude Code.** [[DES-0015-The-Cockpit-In-Layers]] calls it L0, the glance. That design is not accepted ([[PHASE-045-The-Cockpit-In-Layers]]), so the line uses today's obligations count.
+- **The vendored cockpit.** [[ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit]] has no check today. This feature does not build one.
 - **Drawing appears only in the terminal and the Desktop app's Code tab.** Other front ends see nothing. That is acceptable, because the cockpit's windows show every fact on the line.
 
-### Candidate tasks, minted when this feature starts
+## Decisions
 
-1. A sidecar answer shaped for the line: this project's needs-you count, the other projects' counts, and the button's target.
-2. The "Open in cockpit" action.
-3. `/cockpit-needs` and `/cockpit-release`, drawn in a pane.
-
-## Open questions
-
-1. **Where do the cockpit commands live?** In the cockpit's own plugin from FEAT-0156, which loads only in cockpit terminals, or in the project-os mod, which calls the sidecar when `COCKPIT_HOOK_URL` is set? Recommendation: the cockpit's plugin, so project-os never names a cockpit command.
-2. **What does "Open in cockpit" do?** It could bring the shell window forward through a `cockpit://` link, or through a sidecar call the shell listens to. The plan settles which one exists or is cheapest.
-3. **Do the other projects' counts belong on the line at all?** They help when the person works in one project while another waits on them. They also put a second project's business in this one's terminal. Edwin decides.
+1. **The cockpit commands live in the cockpit's own plugin** (`desktop/plugin/claude-code/`), which loads only in cockpit terminals. project-os never names a cockpit command. Settled 2026-10-14 by the coordinating session, on this note's recommendation.
+2. **"Open in cockpit" uses a `cockpit://` link**, which the shell already handles (`desktop/src/main.ts`, TASK-0064, ISS-0293). Settled 2026-10-14 by the coordinating session; no new sidecar call is needed.
+3. **The other projects' count is on the line only when it is above zero** (Edwin, 2026-10-14: "Only when non-zero"). It is also left out when the shell's file is missing or old. It is never shown as 0.
+4. **The cockpit joins the line through the drawing, not through a call from the project-os mod** (coordinating session, 2026-10-14), so project-os stays free of cockpit knowledge, for the same reason as decision 1.
 
 ## Links
 
 - Phase: [[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]
 - The project half: [[project-os-dev#FEAT-0041-Project-Os-Mod]]
-- Code: `src/project_os_cockpit/obligations.py`, `desktop/src/ipc/home-window.ts` (the draft window's reads)
+- The contract: [[project-os-dev#REFERENCE-PROJECT-LINE-CONTRACT]]
+- Code: `desktop/plugin/claude-code/hooks/register.ts`, `desktop/src/ipc/agent-instrument.ts`, `desktop/src/ipc/home-window.ts`, `src/project_os_cockpit/obligations.py`, `src/project_os_cockpit/server.py`
