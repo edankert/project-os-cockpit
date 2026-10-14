@@ -63,8 +63,12 @@ function safeDirName(workspaceId: string): string {
   return workspaceId.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
 
+function instrumentRoot(): string {
+  return path.join(app.getPath('userData'), 'instrument');
+}
+
 function instrumentDirFor(workspaceId: string): string {
-  return path.join(app.getPath('userData'), 'instrument', safeDirName(workspaceId));
+  return path.join(instrumentRoot(), safeDirName(workspaceId));
 }
 
 function writeExecutable(filePath: string, content: string): void {
@@ -85,13 +89,20 @@ export function claudePluginDir(): string | undefined {
   return fs.existsSync(path.join(dir, '.claude-plugin', 'plugin.json')) ? dir : undefined;
 }
 
+/** One forwarder for every project (TASK-0661). Codex trusts a hook by a
+ *  hash of its command but keeps one trust entry per event, so a command that
+ *  named each project's own folder was trusted in one project at a time
+ *  (ISS-0322). The project is found from the terminal's environment instead:
+ *  Codex hands a hook its session's environment, and every cockpit terminal
+ *  sets COCKPIT_INSTRUMENT_DIR. */
 function codexHookForwardScript(): string {
   return `#!/bin/sh
-# project-os-cockpit (FEAT-0019): forward an agent hook JSON blob
-# (stdin) to the workspace sidecar. Never blocks the agent, never fails
-# the hook — worst case the event is dropped.
-DIR="$(cd "$(dirname "$0")" && pwd)"
-[ -f "$DIR/hook-env" ] && . "$DIR/hook-env"
+# project-os-cockpit (FEAT-0019, TASK-0661): forward an agent hook JSON
+# blob (stdin) to the sidecar of the project whose terminal runs Codex.
+# Never blocks the agent, never fails the hook — worst case the event is
+# dropped.
+COCKPIT_HOOK_URL=""
+[ -n "$COCKPIT_INSTRUMENT_DIR" ] && [ -f "$COCKPIT_INSTRUMENT_DIR/hook-env" ] && . "$COCKPIT_INSTRUMENT_DIR/hook-env"
 if [ -z "$COCKPIT_HOOK_URL" ] || [ -n "$COCKPIT_NO_INSTRUMENT" ]; then
   cat >/dev/null 2>&1
   printf '{}\\n'
@@ -112,8 +123,9 @@ function shellQuotePath(p: string): string {
   return `'${p.replace(/'/g, `'\\''`)}'`;
 }
 
-function codexHookArgs(dir: string): string {
-  const forward = path.join(dir, 'codex-hook-forward.sh');
+function codexHookArgs(): string {
+  // The same command in every project, so one trust covers them all.
+  const forward = path.join(instrumentRoot(), 'codex-hook-forward.sh');
   // Codex's session-flag layer adds these hooks alongside user and project
   // layers. One handler per event avoids copying and double-running either.
   // Keep commands stable so Codex's normal hook trust review can remember them.
@@ -126,11 +138,11 @@ function codexHookArgs(dir: string): string {
   }).join(' ');
 }
 
-function codexLaunchScript(dir: string): string {
+function codexLaunchScript(): string {
   return `#!/bin/sh
 # The parent zsh can outlive a cockpit rebuild in tmux. Keep its function
 # stable and load fresh Codex flags from this regenerated file each launch.
-exec codex --no-alt-screen ${codexHookArgs(dir)} "$@"
+exec codex --no-alt-screen ${codexHookArgs()} "$@"
 `;
 }
 
@@ -180,8 +192,8 @@ export function ensureInstrumentation(
     const dir = instrumentDirFor(workspaceId);
     const zdotdir = path.join(dir, 'zdotdir');
     fs.mkdirSync(zdotdir, { recursive: true });
-    writeExecutable(path.join(dir, 'codex-hook-forward.sh'), codexHookForwardScript());
-    writeExecutable(path.join(dir, 'codex-launch.sh'), codexLaunchScript(dir));
+    writeExecutable(path.join(instrumentRoot(), 'codex-hook-forward.sh'), codexHookForwardScript());
+    writeExecutable(path.join(dir, 'codex-launch.sh'), codexLaunchScript());
     // hook-env is owned by setSidecarUrl; create an empty placeholder
     // so the scripts' `. hook-env` never trips before the sidecar is up,
     // and the plugin finds no address rather than a missing file.

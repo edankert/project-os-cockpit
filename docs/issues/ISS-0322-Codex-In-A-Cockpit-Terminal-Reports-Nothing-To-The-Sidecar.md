@@ -40,18 +40,18 @@ Found in TST-0095 step 10 on 2026-10-14. Edwin started `codex` in a new project-
 
 Found with Astra (`gpt-6-astra`, read-only `codex exec`), whose answer was checked against the Codex source above before it was written here.
 
-## Proposed fix (Astra's recommendation, not yet agreed with Edwin)
+## Fix (Astra's recommendation; Edwin: "yes, implement both parts")
 
 1. Before typing a shell command, the shell asks tmux what is in the foreground of that project's terminal (`#{pane_current_command}`). It reads `codex` for Codex and Claude Code's version number, `2.1.299`, for Claude. Only a recognised shell gets a shell command. A running Codex gets the prompt pasted with a separate Return. Anything else is held and shown as not delivered. This is the same check ISS-0321 needs.
 2. Every project uses one identical Codex hook command. The forwarder finds the project's sidecar through `COCKPIT_INSTRUMENT_DIR`, which every cockpit terminal already has. One trust then covers every project. Files: `desktop/src/ipc/agent-instrument.ts`.
 
 ## Next Actions
 
-In flight on 2026-10-14, about 17:05 local. Edwin: "look into ISS-0322 first you can use the codex (astra) model to review and suggest the correct solution."
+Both parts are built and tested, on 2026-10-14: [[TASK-0660-A-Dispatch-Checks-What-Runs-In-The-Terminal-Before-Typing]] and [[TASK-0661-Every-Project-Uses-One-Codex-Hook-Command]]. The issue stays open until TST-0095 steps 9 and 10 pass in the running application:
 
-1. Astra (`gpt-6-astra`) is reviewing this issue from a read-only brief through `codex exec -s read-only`. The brief asks four things: when Codex 0.162.1's TUI runs `SessionStart`, how session-flag hook trust is hashed and whether it spans projects, the actual cause here, and the right fix. The brief and its answer are in the session's scratchpad, which is not durable; if the session is lost, rerun the review from this section.
-2. Verify Astra's answer before acting on it. A claim about Codex's behaviour needs evidence: source, docs, or an experiment that posts only to a temporary file.
-3. Bring the recommended fix to Edwin; then write a task and fix it. Step 10 of TST-0095 is rerun afterwards.
+1. Restart the cockpit, so its main process loads the new dispatch code and writes the shared forwarder.
+2. Step 9 again, under the kill switch: the dispatch is held, nothing typed.
+3. Step 10 again: in a new terminal, run `codex`, answer its hook review once (trust), and press a verb button without prompting Codex first. The prompt is pasted and submitted, and the dispatch history names `codex`.
 
 ## Notes
 

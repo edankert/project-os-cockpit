@@ -391,6 +391,28 @@ export function hasPty(workspaceId: string): boolean {
   return ptys.has(workspaceId);
 }
 
+/** The program in the foreground of a workspace's terminal, as tmux names
+ *  it (`zsh`, `codex`, or Claude Code's version number), or node-pty's
+ *  process name without tmux. Null when there is no terminal or it cannot
+ *  be read. A dispatch reads this before typing (TASK-0660): a hook reports
+ *  a session only once it has run, and Codex's first hook waits for the
+ *  first turn. */
+export function foregroundCommand(workspaceId: string): Promise<string | null> {
+  const record = ptys.get(workspaceId);
+  if (!record) return Promise.resolve(null);
+  const tmux = tmuxBinary();
+  if (!record.viaTmux || !tmux) {
+    try { return Promise.resolve(record.pty.process || null); } catch { return Promise.resolve(null); }
+  }
+  return new Promise((resolve) => {
+    execFile(tmux,
+      ['-L', TMUX_SOCKET, 'display-message', '-p', '-t', tmuxSessionName(workspaceId),
+        '#{pane_current_command}'],
+      { timeout: 3000 },
+      (err, stdout) => resolve(err ? null : (String(stdout).trim() || null)));
+  });
+}
+
 /** True when the workspace terminal survives app death (quit-guard
  * input, TASK-0145). */
 export function isTmuxBacked(workspaceId: string): boolean {

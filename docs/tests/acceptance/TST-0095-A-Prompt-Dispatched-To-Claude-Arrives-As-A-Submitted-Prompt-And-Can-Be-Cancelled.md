@@ -53,7 +53,7 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 7. Let Claude finish, and wait ten seconds.
 8. In a plain terminal outside the cockpit, in the project's folder, run `~/Dev/repos/project-os-cockpit/.venv/bin/cockpit dispatch <the note's ID>`. (`cockpit` alone is on the PATH only inside a cockpit terminal.)
 9. Exit Claude. Quit the application, start it from a terminal with `COCKPIT_NO_INSTRUMENT=1`, open a new terminal in the same project, run `claude`, and press the verb button.
-10. Exit Claude, quit, and start the application normally. In a project's new terminal run `codex`, and press a verb button with Codex chosen as the agent.
+10. Exit Claude, quit, and start the application normally. In a project's new terminal run `codex`, wait for its prompt, and press a verb button. The Agent menu does not need to say Codex.
 
 ## Expect
 
@@ -64,8 +64,8 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 - In step 6 the row disappears when cancelled, and the status line says "Cancelled".
 - In step 7 the cancelled prompt never appears in the session.
 - In step 8 the prompt arrives in the cockpit's Claude session as in step 2, not typed.
-- In step 9 the cockpit sees no Claude session, so nothing goes through the plugin and no delivery is made. Under the kill switch nothing reports a session: the plugin is not loaded, and the external hook in `~/.claude/settings.json` stops when `COCKPIT_NO_INSTRUMENT` is set. The cockpit therefore does what it does for a terminal with no session, as before FEAT-0158: it types `claude '<prompt>'` into the terminal. With Claude already running there, that text lands in Claude's prompt box. Clear it with Ctrl+C rather than sending it. (Edwin decided on 2026-10-14 to accept this rather than have the cockpit check what is running in the terminal.)
-- In step 10 the prompt is pasted into Codex and submitted, as before this change.
+- In step 9 the cockpit sees no Claude session: under the kill switch the plugin is not loaded, and the external hook stops too. Since TASK-0660 it checks what runs in the terminal before typing, finds Claude, and types nothing. The status line says "Claude is running in this terminal but the cockpit cannot reach it — queued", and the prompt waits in the queue list, where its `×` removes it. (Before TASK-0660 the cockpit typed `claude '<prompt>'` into Claude's prompt box. Edwin first accepted that, then chose the terminal check on 2026-10-14 with ISS-0322's fix.)
+- In step 10 the prompt is pasted into Codex and submitted with a separate Return, even when Codex has not been prompted yet and so has not reported to the cockpit (TASK-0660). The note's dispatch history names `codex`, whatever the Agent menu says. The first Codex start after TASK-0661 shows Codex's hook review once; trust the hooks, and later Codex starts in any project do not ask again.
 
 ## Run on 2026-10-14 (in progress)
 

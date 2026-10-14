@@ -22,6 +22,8 @@ tasks:
   - "[[TASK-0657-A-Dispatch-Can-Be-Cancelled-Until-Its-Turn-Starts]]"
   - "[[TASK-0658-A-Waiting-Prompt-Survives-The-Person-Pressing-Esc]]"
   - "[[TASK-0659-A-Prompt-Held-After-Esc-Says-Claude-Is-Waiting-For-You]]"
+  - "[[TASK-0660-A-Dispatch-Checks-What-Runs-In-The-Terminal-Before-Typing]]"
+  - "[[TASK-0661-Every-Project-Uses-One-Codex-Hook-Command]]"
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0095-A-Prompt-Dispatched-To-Claude-Arrives-As-A-Submitted-Prompt-And-Can-Be-Cancelled]]"

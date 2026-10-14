@@ -13,8 +13,11 @@
 //                              once the session is idle (FEAT-0158).
 //                              Nothing is typed into a Claude terminal.
 //     busy/needs-input      → enqueue (persisted) + broadcast
-//     waiting + live Codex  → paste the prompt into the REPL
-//     otherwise             → run `<agent> '<prompt>'` in the shell
+//   otherwise, by what runs in the terminal's foreground (TASK-0660):
+//     Codex                 → paste the prompt, then Return
+//     a shell               → run `<agent> '<prompt>'`
+//     Claude, unreachable   → hold in the queue
+//     anything else         → hold in the queue
 //   poller/SSE-poke state transition (waiting|idle) → deliver next.
 //
 // Prompts are single-quote shell-escaped ('\'' splice) so `$(…)`,
@@ -25,7 +28,7 @@ import * as fs from 'node:fs';
 import * as http from 'node:http';
 import * as path from 'node:path';
 
-import { hasPty, writeToPty } from './terminal';
+import { foregroundCommand, hasPty, writeToPty } from './terminal';
 import { sidecarUrlFor } from './sidecar';
 
 export interface DispatchItem {
@@ -212,19 +215,43 @@ async function liveSessionInfo(workspaceId: string): Promise<LiveSession> {
   };
 }
 
-/** How a dispatch reaches a workspace (FEAT-0158). A live Claude session is
- *  always handed to the sidecar, busy or not, because the cockpit plugin
- *  waits for the session to be idle itself; nothing is typed into it. */
+/** What runs in the foreground of a workspace's terminal. */
+export type Foreground = 'shell' | 'codex' | 'claude' | 'other' | 'unknown';
+
+const SHELLS = new Set(['zsh', 'bash', 'sh', 'fish', 'dash', 'ksh', 'tcsh', 'csh']);
+
+/** Name tmux (or node-pty) gives the foreground program, as a kind. Claude
+ *  Code names its process after its version, e.g. `2.1.299`. */
+export function classifyForeground(name: string | null): Foreground {
+  if (!name) return 'unknown';
+  const base = (name.split('/').pop() ?? '').replace(/^-/, '').toLowerCase();
+  if (SHELLS.has(base)) return 'shell';
+  if (base === 'codex' || base.startsWith('codex-')) return 'codex';
+  if (base === 'claude' || /^\d+\.\d+\.\d+$/.test(base)) return 'claude';
+  return 'other';
+}
+
+/** How a dispatch reaches a workspace (FEAT-0158, TASK-0660). A live Claude
+ *  session is always handed to the sidecar, busy or not, because the cockpit
+ *  plugin waits for the session to be idle itself; nothing is typed into it.
+ *  Otherwise the terminal's foreground program decides, not the sidecar: a
+ *  hook reports a session only once it has run, and Codex's first hook waits
+ *  for the first turn, so "no session" does not mean "a shell". */
 export function routeFor(
-  session: LiveSession, state: string,
+  session: LiveSession, state: string, foreground: Foreground,
 ): 'submit' | 'queue' | 'repl' | 'shell' | 'hold' {
   if (session.live && session.agent === 'claude' && session.sessionId) return 'submit';
   if (state === 'busy' || state === 'needs-input') return 'queue';
-  if (state === 'waiting' && session.live) {
-    // A live REPL other than Codex has no way in: hold rather than type.
-    return session.agent === 'codex' ? 'repl' : 'hold';
-  }
-  return 'shell';
+  if (foreground === 'codex') return 'repl';
+  if (foreground === 'shell') return 'shell';
+  return 'hold';
+}
+
+/** Why a dispatch is held, in the words the status line shows. */
+function holdReason(workspaceId: string, foreground: Foreground, name: string | null): string {
+  if (foreground === 'claude') return 'Claude is running in this terminal but the cockpit cannot reach it — queued';
+  if (foreground === 'other' && name) return `${name} is running in this terminal — queued`;
+  return hasPty(workspaceId) ? 'could not tell what is running in this terminal — queued' : 'no terminal open — queued';
 }
 
 function recordLedger(workspaceId: string, item: DispatchItem): void {
@@ -262,32 +289,39 @@ async function handToSidecar(
     return { queued: true, warning: `${why} — queued` };
   }
   const delivery = res.json.delivery as Delivery;
-  let warning: string | undefined;
-  if (item.agent !== 'claude') warning = `live session is claude — sent there instead of ${item.agent}`;
-  if (delivery.state === 'held') warning = `not delivered: ${delivery.reason ?? 'held'}`;
+  // A dispatch goes to the agent that is running, whatever the Agent menu
+  // says (ISS-0321), so that is not worth a warning.
+  const warning = delivery.state === 'held' ? `not delivered: ${delivery.reason ?? 'held'}` : undefined;
   return { queued: false, delivered: 'submit', delivery, warning };
 }
 
 // ---- delivery state machine ----
 
+interface Terminal { foreground: Foreground; name: string | null }
+
+async function readTerminal(workspaceId: string): Promise<Terminal> {
+  const name = await foregroundCommand(workspaceId);
+  return { foreground: classifyForeground(name), name };
+}
+
 async function deliver(
-  workspaceId: string, item: DispatchItem, state: string,
-  known?: LiveSession,
+  workspaceId: string, queued: DispatchItem, state: string,
+  known?: LiveSession, knownTerminal?: Terminal,
 ): Promise<ExecuteResult> {
   const session = known ?? await liveSessionInfo(workspaceId);
-  const route = routeFor(session, state);
-  if (route === 'submit') return handToSidecar(workspaceId, item, session);
+  const terminal = knownTerminal ?? await readTerminal(workspaceId);
+  const route = routeFor(session, state, terminal.foreground);
+  if (route === 'submit') return handToSidecar(workspaceId, queued, session);
   if (route === 'queue' || route === 'hold') {
-    requeueFront(workspaceId, item);
+    requeueFront(workspaceId, queued);
     return route === 'hold'
-      ? { queued: true, warning: `a live ${session.agent ?? 'agent'} session cannot take a dispatch — queued` }
+      ? { queued: true, warning: holdReason(workspaceId, terminal.foreground, terminal.name) }
       : { queued: true };
   }
   const mode: 'shell' | 'repl' = route;
-  let warning: string | undefined;
-  if (mode === 'repl' && session.agent && session.agent !== item.agent) {
-    warning = `live session is ${session.agent} — delivered there instead of ${item.agent}`;
-  }
+  // A running Codex takes the prompt whatever the Agent menu says, and the
+  // ledger names the agent that got it (ISS-0321).
+  const item = mode === 'repl' ? { ...queued, agent: 'codex' } : queued;
   const codexRepl = mode === 'repl';
   const data = codexRepl
     ? `\x1b[200~${item.prompt}\x1b[201~`
@@ -295,7 +329,7 @@ async function deliver(
   if (!writeToPty(workspaceId, data)) {
     // No terminal for this workspace yet — hold in the queue; the next
     // state transition (or terminal open + transition) retries.
-    requeueFront(workspaceId, item);
+    requeueFront(workspaceId, queued);
     return { queued: true, warning: 'no terminal open — queued' };
   }
   if (codexRepl) {
@@ -306,13 +340,13 @@ async function deliver(
       // The terminal closed between the paste and its Return, so nothing
       // was submitted. Put the item back rather than drop it (FEAT-0019
       // review, 2026-09-25), exactly as when no terminal is open.
-      requeueFront(workspaceId, item);
+      requeueFront(workspaceId, queued);
       return { queued: true, warning: 'terminal closed before Codex submission — queued again' };
     }
   }
   recordLedger(workspaceId, item);
-  broadcast('dispatch:delivered', { workspaceId, item, mode, warning });
-  return { queued: false, delivered: mode, warning };
+  broadcast('dispatch:delivered', { workspaceId, item, mode });
+  return { queued: false, delivered: mode };
 }
 
 export async function executeDispatch(
@@ -320,7 +354,8 @@ export async function executeDispatch(
 ): Promise<ExecuteResult> {
   const state = lastKnownState.get(workspaceId) ?? 'idle';
   const session = await liveSessionInfo(workspaceId);
-  if (routeFor(session, state) === 'queue') {
+  const terminal = await readTerminal(workspaceId);
+  if (routeFor(session, state, terminal.foreground) === 'queue') {
     const q = queueOf(workspaceId);
     q.push(item);
     q.splice(QUEUE_MAX);
@@ -328,7 +363,7 @@ export async function executeDispatch(
     broadcastQueue(workspaceId);
     return { queued: true };
   }
-  return deliver(workspaceId, item, state, session);
+  return deliver(workspaceId, item, state, session, terminal);
 }
 
 let delivering = false;

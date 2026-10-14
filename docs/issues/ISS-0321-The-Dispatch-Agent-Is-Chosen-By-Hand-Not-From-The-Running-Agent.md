@@ -33,3 +33,7 @@ When the cockpit knows a session is live, `routeFor` in `desktop/src/ipc/dispatc
 ## Open question
 
 How the cockpit should know which agent is running when no hook reports one. The terminal's tmux pane names its foreground program (`codex`, or Claude Code's version number, `2.1.299`). On 2026-10-14 Edwin declined a check of that kind for the kill-switch case ("Accept it, fix the check"); this request may change that.
+
+## Fix, 2026-10-14
+
+[[TASK-0660-A-Dispatch-Checks-What-Runs-In-The-Terminal-Before-Typing]] answers the open question: the cockpit reads the terminal's foreground program through tmux. A dispatch now goes to the agent that is running, whatever the Agent menu says, and the dispatch history names that agent. The menu decides only which agent a plain shell starts. The issue stays open until TST-0095 step 10 shows it in the running application.

@@ -87,7 +87,7 @@ test('exiting Codex returns to the same cockpit shell', { skip: !fs.existsSync('
     const hookCommand = JSON.parse(encodedCommand);
     const hook = spawnSync('/bin/sh', ['-c', hookCommand], {
       input: event,
-      env: { ...process.env, PATH: `${bin}:${process.env.PATH ?? ''}`, CURL_ARGV_FILE: curlArgvFile, CURL_BODY_FILE: curlBodyFile },
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH ?? ''}`, CURL_ARGV_FILE: curlArgvFile, CURL_BODY_FILE: curlBodyFile, COCKPIT_INSTRUMENT_DIR: instrumentDir },
       encoding: 'utf-8', timeout: 5000,
     });
     assert.equal(hook.status, 0, hook.stderr);

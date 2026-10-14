@@ -112,7 +112,9 @@ test('no Claude settings, hook or status-line file is written, and an old one is
     const instrument = load(state).ensureInstrumentation('ws');
     assert.ok(instrument);
     const files = fs.readdirSync(dir).sort();
-    assert.deepEqual(files, ['claude-settings.json', 'codex-hook-forward.sh', 'codex-launch.sh', 'hook-env', 'zdotdir']);
+    assert.deepEqual(files, ['claude-settings.json', 'codex-launch.sh', 'hook-env', 'zdotdir']);
+    assert.ok(fs.existsSync(path.join(state, 'instrument', 'codex-hook-forward.sh')),
+      'one Codex forwarder serves every project (TASK-0661)');
     assert.equal(fs.readFileSync(path.join(dir, 'claude-settings.json'), 'utf-8'), '{"old":true}',
       'a terminal opened before the update still runs claude --settings on this file');
     const zshrc = fs.readFileSync(path.join(dir, 'zdotdir', '.zshrc'), 'utf-8');
