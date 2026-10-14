@@ -24,10 +24,9 @@ Each dispatch in the queue list that has not started gets a Cancel button. Cance
 
 ## Definition of Done
 
-- [ ] `POST /api/cockpit/deliveries/cancel` with `{did}` (loopback, JSON): `held` or `waiting` becomes `cancelled`; `sending` becomes `cancelling` and the answer says "pending"; `started` answers 409 with the turn's start time.
-- [ ] A `started` post for a `cancelling` delivery makes it `started`, and the shell says "Too late to cancel <verb> <id>: its turn started at <time>. Press Esc in the terminal to stop it."
-- [ ] A `dropped` post for a `cancelling` delivery makes it `cancelled`.
-- [ ] If task 2's check (a) found that the plugin's `prompt.submit` hook sees its own submission: that hook returns `{ drop: "Cancelled from the cockpit" }` for this plugin's in-flight text when the sidecar says `cancelling`, asks within the hook's budget, and lets the prompt through when the sidecar does not answer. If check (a) found that it does not: `cancel` on a `sending` delivery answers "too late" at once, and this note says so.
+- [ ] `POST /api/cockpit/deliveries/cancel` with `{did}` (loopback, JSON): `held` or `waiting` becomes `cancelled`; `sending` answers 409 at once, saying the prompt is being submitted; `started` answers 409 with the turn's start time.
+- [ ] A cancel refused because the turn started, or is about to, makes the shell say "Too late to cancel <verb> <id>: its turn started at <time>. Press Esc in the terminal to stop it."
+- [ ] Check (a) found that the plugin's `prompt.submit` hook does **not** see its own submission (TASK-0655, live run, 2026-10-14), so a `sending` delivery cannot be withdrawn: `cancel` answers "too late" at once. The `cancelling` state stays unused, and this note says so in its result.
 - [ ] Each row that has not started has a `×` labelled "Cancel" (or "Remove" on a held or dropped row). "Clear all" cancels every row that has not started. A cancelled row disappears and the status line says "Cancelled <verb> <id>".
 - [ ] The note's dispatch history lists a cancelled dispatch as cancelled, with the time.
 - [ ] Tests that fail when: a cancelled delivery is still submitted after a late claim; a cancel on a started delivery stops or changes the turn; a cancel and a `started` racing leave the delivery in two states; the hook drops a prompt that was not cancelled.

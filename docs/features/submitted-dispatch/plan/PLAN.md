@@ -109,7 +109,7 @@ Edwin, 2026-10-14: "implement 2 please if we can ... would be good to know what 
 
 **Why a started turn is not aborted.** `$.turn.abort` could stop it, but the turn may already have edited files, and an abort leaves the work half done without saying where. That is a different act from withdrawing a request, and Esc in the terminal already does it with the person watching. It can be added later if wanted.
 
-**If the plugin's hook does not see its own submission.** Then the `sending` row cannot be cancelled, and the route answers "too late" for it. The window is short in practice: the plugin calls submit only when it has seen the session go idle, so `sending` lasts from that call to the turn's start. Task 2 finds out which case holds, and task 4 builds the one that does and records it in its note.
+**Checked on 2026-10-14 ([[TASK-0655-The-Plugin-Submits-A-Waiting-Prompt-And-Confirms-When-Its-Turn-Starts]], live run): it does not.** In a real session the plugin's own `prompt.submit` hook saw a prompt typed by hand, and never the plugin's own submission. So the `sending` row above cannot be cancelled, and `cancel` answers "too late" for it. The window measured in that run was about 100 ms, from the claim to the turn's start. **If the plugin's hook does not see its own submission.** Then the `sending` row cannot be cancelled, and the route answers "too late" for it. The window is short in practice: the plugin calls submit only when it has seen the session go idle, so `sending` lasts from that call to the turn's start. Task 2 finds out which case holds, and task 4 builds the one that does and records it in its note.
 
 ## The decisions the plan made
 

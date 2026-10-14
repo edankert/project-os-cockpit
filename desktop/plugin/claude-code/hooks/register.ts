@@ -29,8 +29,15 @@
 //
 // The event mapping, and what the status line carried that this cannot, is
 // in docs/features/cockpit-plugin/plan/PLAN.md.
+//
+// It also delivers prompts dispatched from the cockpit (FEAT-0158). Once a
+// second it asks the sidecar for deliveries addressed to its own session.
+// While no main-loop turn runs, it claims the oldest waiting one, submits it
+// with `$.prompt.submit` as the person's own words, and reports the turn that
+// starts with it. Nothing is typed into the terminal. The states and routes
+// are in docs/features/submitted-dispatch/plan/PLAN.md.
 
-import type { EngineInterface, Register, SessionMeasureInput } from 'claude-code'
+import type { EngineInterface, Register, SessionMeasureInput, Timer } from 'claude-code'
 
 /** How long SessionEnd may hold the exiting session for its post. */
 const SESSION_END_WAIT_MS = 1000
@@ -58,6 +65,22 @@ async function sidecarUrl($: EngineInterface): Promise<string | undefined> {
   // not ours to post a session's prompts and file paths to.
   if (!url || !/^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/.test(url)) return undefined
   return url.replace(/\/$/, '')
+}
+
+/** One request to a sidecar route; its JSON body, or undefined on any failure. */
+async function sidecarCall(
+  $: EngineInterface, path: string, body?: Payload,
+): Promise<{ status: number; json: Payload } | undefined> {
+  try {
+    const url = await sidecarUrl($)
+    if (!url) return undefined
+    const response = await $.http.fetch(`${url}${path}`, body === undefined
+      ? { method: 'GET' }
+      : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    return { status: response.status, json: JSON.parse(response.text || '{}') as Payload }
+  } catch {
+    return undefined
+  }
 }
 
 /** POST one payload to the sidecar. Resolves either way; never throws. */
@@ -136,7 +159,100 @@ async function preToolUsePayload($: EngineInterface, e: Payload): Promise<Payloa
   }
 }
 
+/** How often the plugin asks the sidecar for prompts addressed to its session. */
+const DELIVERY_POLL_MS = 1000
+
+/** A delivery as the sidecar lists it; only what the plugin reads. */
+type Delivery = { did: string; prompt: string; state: string }
+
+/** The prompt between its claim and the report of its turn's start. */
+type Sending = { did: string; text: string; candidateTurn?: string; reported: boolean; resolved: boolean }
+
+const isoNow = async ($: EngineInterface): Promise<string> => new Date(await $.clock.now()).toISOString()
+
+/** The session's delivery state; one Claude session per load. */
+type DeliveryState = { poll?: Timer; mainTurnRunning: boolean; polling: boolean; sending?: Sending }
+
+/** Tell the sidecar the prompt's turn started, once. */
+function reportStarted($: EngineInterface, st: DeliveryState, s: Sending, turnId: string): void {
+  if (s.reported) return
+  s.reported = true
+  void isoNow($)
+    .then(startedAt => sidecarCall($, '/api/cockpit/deliveries/started', { did: s.did, turn_id: turnId, started_at: startedAt }))
+    .catch(() => undefined)
+    .finally(() => { if (st.sending === s) st.sending = undefined })
+}
+
+/** One look at the sidecar: claim and submit the oldest waiting prompt. */
+async function deliverOne($: EngineInterface, st: DeliveryState): Promise<void> {
+  if (st.polling || st.mainTurnRunning || st.sending) return
+  st.polling = true
+  try {
+    const sessionId = await $.session.id()
+    const listed = await sidecarCall($, `/api/cockpit/deliveries?session=${encodeURIComponent(sessionId)}`)
+    const deliveries = (listed?.json.deliveries ?? []) as Delivery[]
+    const next = deliveries.find(d => d.state === 'waiting')
+    if (!next || st.mainTurnRunning) return
+    const claim = await sidecarCall($, '/api/cockpit/deliveries/claim', { did: next.did })
+    // A refused claim means something else moved it first, a cancel among them.
+    if (!claim || claim.status !== 200) return
+    const s: Sending = { did: next.did, text: next.prompt, reported: false, resolved: false }
+    st.sending = s
+    const result = await $.prompt.submit({ text: next.prompt, asUser: true })
+    s.resolved = true
+    if (result.drop !== undefined) {
+      st.sending = undefined
+      await sidecarCall($, '/api/cockpit/deliveries/dropped', { did: s.did, reason: String(result.drop) })
+      return
+    }
+    // The submit resolves once its turn started. A turn heard while it ran
+    // whose text did not match is still the likeliest one; without any, the
+    // next main-loop turn is reported (turn.start below).
+    if (!s.reported && s.candidateTurn) reportStarted($, st, s, s.candidateTurn)
+  } catch {
+    // The sidecar is gone or the session refused: try again next tick.
+  } finally {
+    st.polling = false
+  }
+}
+
+/** Starts the poll once. A plugin reloaded mid-session hears no
+ *  session.start, so the end of a main-loop turn starts it too. */
+function ensurePoll($: EngineInterface, st: DeliveryState): void {
+  if (!st.poll) st.poll = $.clock.every(DELIVERY_POLL_MS, () => { void deliverOne($, st) })
+}
+
 export const register: Register = on => {
+  const st: DeliveryState = { mainTurnRunning: false, polling: false }
+
+  on('session.start', ($, e, next) => {
+    ensurePoll($, st)
+    return next(e)
+  })
+
+  on('turn.start', ($, e, next) => {
+    // A subagent's turn runs inside the main loop's and says nothing about
+    // whether the session is idle.
+    if (e.agentId === undefined) {
+      st.mainTurnRunning = true
+      const s = st.sending
+      if (s && !s.reported) {
+        if (e.text === s.text || s.resolved) reportStarted($, st, s, e.turnId)
+        else s.candidateTurn ??= e.turnId
+      }
+    }
+    return next(e)
+  })
+
+  on('turn.complete', ($, e, next) => {
+    if (e.agentId === undefined) {
+      st.mainTurnRunning = false
+      ensurePoll($, st)
+    }
+    return next(e)
+  })
+
+
   // Eight of the nine events whose input is already the stdin JSON;
   // SessionEnd, the ninth, is below. The engine reads each event name only
   // as a literal at the call site.
