@@ -72,7 +72,7 @@ counters:
     last_date: 20260916
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
   FEAT: 160
-  ISS: 319
+  ISS: 320
   PHASE: 46
   REQ: 72
   RISK: 12
@@ -1700,6 +1700,15 @@ items:
       severity: high
       component: desktop-renderer
       note: "2026-09-12, reported by Edwin within the hour of the viewer landing: renderViewerPage adds `viewer-page` (overflow: hidden, right for a framed file) and nothing removes it, so every later page stops scrolling. Ten other page classes are cleared by the next render; this one was added to none of those lists. No test walks AWAY from a page, which is why nothing caught it."
+    ISS-0320:
+      file: "docs/issues/ISS-0320-A-Cockpit-Dispatch-From-The-Command-Line-Loses-The-Notes-Path.md"
+      title: "A prompt sent with `cockpit dispatch` says \"Read docs/ first\" instead of naming the note's file, unless the quick switcher has been opened"
+      status: open
+      owner: user:edwin
+      phase: ""
+      severity: low
+      component: desktop
+      note: "Found in TST-0095 step 8, 2026-10-14. handleDispatchRequest looks the path up in quickCorpus, which is filled only when the quick switcher opens. Predates FEAT-0158."
     ISS-0301:
       file: "docs/issues/ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints.md"
       title: "A web page shown in the cockpit's viewer can change your notes through the sidecar, because the sidecar accepts any request that comes from this machine"
@@ -3733,7 +3742,7 @@ metrics:
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 19
+    issues_open: 20
     issues_triage: 0
     risks_open: 10
     releases_total: 1

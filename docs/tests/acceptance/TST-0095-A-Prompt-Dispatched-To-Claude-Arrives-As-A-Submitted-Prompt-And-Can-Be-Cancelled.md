@@ -51,7 +51,7 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 5. Let Claude finish.
 6. Ask Claude another long question. While it works, press the verb button and cancel the new row in the queue list.
 7. Let Claude finish, and wait ten seconds.
-8. Run `cockpit dispatch <the note's ID>` in a plain terminal outside the cockpit.
+8. In a plain terminal outside the cockpit, in the project's folder, run `~/Dev/repos/project-os-cockpit/.venv/bin/cockpit dispatch <the note's ID>`. (`cockpit` alone is on the PATH only inside a cockpit terminal.)
 9. Exit Claude. Quit the application, start it from a terminal with `COCKPIT_NO_INSTRUMENT=1`, open a new terminal in the same project, run `claude`, and press the verb button.
 10. Exit Claude, quit, and start the application normally. In a project's new terminal run `codex`, and press a verb button with Codex chosen as the agent.
 
@@ -86,7 +86,10 @@ Third session, after TASK-0659 and a full restart of the application at 16:18 lo
 
 - Implement on TASK-0084 was submitted, and its turn started at 15:26:42.09. Edwin pressed Implement again at 15:26:51.40; the sidecar held it as delivery `93762972b3b4`, `waiting`. Edwin then pressed Esc.
 - At 15:26:54.92 the plugin's `Interrupt` arrived. The sidecar set the session to `needs-input` with "interrupted — waiting for your input", and marked the waiting prompt `waiting_for: you`. Both were unchanged at 15:28:18. Edwin confirmed the window showed both: the agent strip said "interrupted — waiting for your input", and the queue row said "Waiting for you: Claude was stopped, so this follows your next message to it" (Edwin: "1. yes").
-- Edwin typed "stop this current step" at 15:30:02.64. When that turn ended, the held prompt was submitted, and its turn started at 15:30:08.37. The ledger entry is on session `922ebef6`, timed 15:30:08.414, `delivered_by: submit`, delivery `93762972b3b4`, and the queue was empty at 15:30:51. Steps 4 and 5 pass, including the Esc path. Step 6 is next.
+- Edwin typed "stop this current step" at 15:30:02.64. When that turn ended, the held prompt was submitted, and its turn started at 15:30:08.37. The ledger entry is on session `922ebef6`, timed 15:30:08.414, `delivered_by: submit`, delivery `93762972b3b4`, and the queue was empty at 15:30:51. Steps 4 and 5 pass, including the Esc path.
+- Step 6 passed. Implement at 15:31:58 started a turn at once (delivery `1569ce516380`, `delivered_by: submit`), and that turn was the long work. A second Implement while it ran was held, and Edwin cancelled it from the queue list. The sidecar recorded delivery `6b4bf2a6e33c` as cancelled at 15:32:12.77, and the session's dispatch history has it with `cancelled: true`. Edwin: "cancelled it, row disappeared and status said Cancelled".
+- Step 7 passed. Claude's turn ended at 15:32:23.8. At 15:32:37 the session was idle and the queue empty. The session's prompts after 15:31 are the Implement at 15:31:58, Edwin's own "cancel" at 15:32:04 and a background task's notice at 15:32:19; the cancelled prompt is not among them.
+- Step 8 passed. `cockpit` is not on the PATH of a plain macOS terminal, so Edwin ran `~/Dev/repos/project-os-cockpit/.venv/bin/cockpit dispatch TASK-0084` from `project-os-deck`. The request was recorded at 15:35:24.63 UTC. The plugin submitted the prompt, and its turn started at 15:35:31.96 (delivery `c50f1d9ab12a`, `delivered_by: submit`). Edwin: "it arrived as a submitted prompt". The prompt said "Read docs/ first" instead of naming the note's file; that is [[ISS-0320-A-Cockpit-Dispatch-From-The-Command-Line-Loses-The-Notes-Path]], which predates this feature.
 
 ## Not this check
 
