@@ -6,7 +6,7 @@ status: merged
 owner: user:edwin
 created: 2026-10-14
 updated: 2026-10-14
-source: ["[[TASK-0649-The-Cockpit-Plugin-Posts-Every-Claude-Event-To-The-Sidecar]]", "[[TASK-0650-The-Shell-Loads-The-Plugin-And-Stops-Generating-Claude-Files]]", "[[TASK-0651-The-Sidecar-Prefers-The-Plugin-And-CI-Checks-It]]"]
+source: ["[[TASK-0653-The-First-Reviews-Findings-Are-Fixed]]", "[[TASK-0649-The-Cockpit-Plugin-Posts-Every-Claude-Event-To-The-Sidecar]]", "[[TASK-0650-The-Shell-Loads-The-Plugin-And-Stops-Generating-Claude-Files]]", "[[TASK-0651-The-Sidecar-Prefers-The-Plugin-And-CI-Checks-It]]"]
 commit: ""
 pr: ""
 impacts: ["desktop/plugin/claude-code/.claude-plugin/plugin.json", "desktop/plugin/claude-code/hooks/hooks.json", "desktop/plugin/claude-code/hooks/register.ts", "desktop/plugin/claude-code/tests/cockpit.test.ts", "desktop/plugin/claude-code/tsconfig.json", "desktop/src/ipc/agent-instrument.ts", "desktop/tests/claude-plugin-shell.test.mjs", "desktop/tests/codex-shell-exit.test.mjs", "src/project_os_cockpit/agent_hooks.py", "tests/test_agent_hooks.py", "tests/test_agent_instrument.py", ".github/workflows/observed-coverage.yml", "docs/reference/cockpit-capability-register.md"]
@@ -64,3 +64,11 @@ Each test was shown to fail when the code it guards is broken:
 - **Sidecar, one breakage:** the claim's drop removed. The new test failed.
 
 The tests also found one defect, fixed before this note: SessionEnd's one-second limit ended at once when Claude Code's clock could not start a sleep, so the post was never awaited.
+
+## After the first review, 2026-10-14
+
+[[TASK-0653-The-First-Reviews-Findings-Are-Fixed]] changed two behaviours:
+
+- **An event is counted once, whichever copy arrives first.** With the external hook (FEAT-0027) installed, a cockpit Claude session's events reach the sidecar twice: from the plugin and from the hook. The sidecar dropped the hook's copy only when the plugin's arrived first. It now also drops the plugin's copy when the hook's arrived first, and still treats the session as the plugin's.
+- **SessionEnd never holds an exiting session past one second.** If Claude Code's clock cannot time the wait, SessionEnd now stops waiting at once, where it used to wait for the post with no limit. In that case the cockpit may not see the session end.
+

@@ -18,10 +18,14 @@ tasks:
   - "[[TASK-0650-The-Shell-Loads-The-Plugin-And-Stops-Generating-Claude-Files]]"
   - "[[TASK-0651-The-Sidecar-Prefers-The-Plugin-And-CI-Checks-It]]"
   - "[[TASK-0652-A-New-Cockpit-Terminal-Starts-Without-Another-Sessions-Variables]]"
+  - "[[TASK-0653-The-First-Reviews-Findings-Are-Fixed]]"
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]]"
 design: ""
+reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, A)", "model:claude-opus-5-5 (independent-reviewer, B)"]
+review_date: 2026-10-14
+review_verdict: changes-requested
 related:
   - "[[FEAT-0019-Agent-Hook-Ingestion]]"
   - "[[FEAT-0027]]"
@@ -38,7 +42,73 @@ related:
 
 ## State on 2026-10-14
 
-**Built; waiting for Edwin's acceptance run.** All three tasks are done. The plugin was tried in a real headless and a real interactive Claude session against a stand-in sidecar, and the sidecar read its posts exactly as it read the scripts'. It has not been run inside the cockpit application. [[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]] is `active` and is Edwin's to run after `npm run build` in `desktop/` and a restart. The feature stays `doing` until that check passes and its independent review is done. What changed is in [[CHG-20261014-Claude-Sessions-Report-Through-The-Cockpit-Plugin]].
+**Accepted; in round 2 of its independent review.** All four tasks are done. Edwin walked [[TST-0094-A-Claude-Session-In-A-Cockpit-Terminal-Reports-Through-The-Plugin]] in the running app, and all seven steps passed (ledger: pass on macOS). Its step 7, the kill switch, found [[ISS-0319-Every-Cockpit-Terminal-Inherits-The-Environment-Of-The-Claude-Session-That-Started-Tmux]]: the cockpit's tmux server handed every new terminal another Claude session's variables. [[TASK-0652-A-New-Cockpit-Terminal-Starts-Without-Another-Sessions-Variables]] fixed it inside this feature. Round 1 requested changes, which [[TASK-0653-The-First-Reviews-Findings-Are-Fixed]] made. The feature stays `doing` until round 2 returns. What changed is in [[CHG-20261014-Claude-Sessions-Report-Through-The-Cockpit-Plugin]] and [[CHG-20261014-New-Cockpit-Terminals-No-Longer-Inherit-Another-Claude-Session]].
+
+## Verification
+
+Full runs on 2026-10-14, after the round-1 fixes ([[TASK-0653-The-First-Reviews-Findings-Are-Fixed]]):
+
+- `python3 -m pytest -q -p no:randomly`: 2144 passed, 11 skipped.
+- `node --test desktop/tests/*.test.mjs`, after `npm run build`: 196 passed.
+- `npm run typecheck` in `desktop/`: clean.
+- `command claude plugin validate desktop/plugin/claude-code` with Claude Code 2.1.299 and an empty HOME: passed with warnings. They name the environment variables `register.ts` reads, the managed-settings limitation RISK-0004 records, and "gating hook without .catch" for each `classic.*` hook.
+- `command claude plugin test desktop/plugin/claude-code`: 13 passed.
+- `bash tools/scripts/validate-docs.sh`: OK.
+- TST-0094: pass on macOS, walked by Edwin, 12:38 to 13:19.
+
+## Acceptance Criteria
+
+*Written on 2026-10-14 at the start of the independent review. The note had none: they restate the Goal, the plan's event table and its "must not do" list as checkable statements.*
+
+1. Each of the ten Claude events in the plan's table reaches `/api/agent-hook` from the plugin, with the fields the sidecar reads. PreToolUse is rebuilt into the stdin shape, with `tool_input.file_path`.
+2. Cost, context and rate limits reach the sidecar as the existing `Statusline` payload, built from `session.measure`.
+3. The plugin reads the sidecar's address from the workspace's `hook-env` on every post, so a sidecar respawned on a new port still receives the next post.
+4. A failed or slow post never blocks or fails a Claude hook; only SessionEnd is awaited, for at most one second.
+5. Every hook passes the event on unchanged: the plugin never answers, denies or rewrites anything in the session.
+6. A new cockpit terminal appends the plugin's folder to `CLAUDE_CODE_PLUGIN_DIRS` once, after the user's own `.zshrc`, keeping any value the user set.
+7. The shell no longer writes `claude-settings.json`, the Claude `hook-forward.sh` or `statusline.sh`, and the generated `.zshrc` has no `claude` wrapper. The user's own status line is not replaced.
+8. Codex is unchanged: the zdotdir, `hook-env`, `codex-hook-forward.sh` and `codex-launch.sh` are written as before.
+9. With `COCKPIT_NO_INSTRUMENT=1` in the app's environment, a new terminal has no `CLAUDE_CODE_PLUGIN_DIRS` entry for the plugin, and the plugin posts nothing if it is loaded anyway.
+10. A new cockpit terminal carries none of another Claude session's variables, whether they came from the app's own environment or from a running tmux server's global environment.
+11. Once the sidecar has accepted a plugin-marked post for a session, it ignores an unmarked Claude post for that session; Codex posts and other sessions are unaffected.
+12. Nothing is written under `~/.claude`.
+13. CI runs `claude plugin validate` and `claude plugin test` against Claude Code 2.1.299 and fails the build when either fails.
+
+## Review
+
+**Round 1, 2026-10-14: `changes-requested`.** Two `independent-reviewer` subagents ran on the same packet, each in a fresh context, with 31 and 35 tool calls. Both ran on the same model as the author. A refutation with evidence from either reviewer stands.
+
+| # | Criterion | Combined verdict | Evidence |
+|---|---|---|---|
+| 1 | The ten events reach the sidecar; PreToolUse is rebuilt | **refuted** (tests) | Wiring holds: `claude plugin validate` lists all ten `classic.*` hooks. But reviewer A removed the registrations of PostToolUse, Notification, PermissionRequest, SubagentStart and SubagentStop, and `claude plugin test` still passed 10 of 10. Reviewer B: no test raises those five events. |
+| 2 | Cost, context and rate limits as the `Statusline` payload | holds | Both: the status-line test passes; B checked the rate-limit kinds against the generated types and `agent_hooks.py`. |
+| 3 | The address is re-read on every post | holds | Both: the test moves the port from 8766 to 9100 between posts. |
+| 4 | A post never blocks a hook; SessionEnd waits at most one second | **refuted** (tests and one path) | Reviewer A replaced the one-second race with `await posting`, and all 10 plugin tests passed. Reviewer B: when `$.clock.sleep` rejects, `postWithin` falls back to waiting for the post with no limit. |
+| 5 | Every hook passes its event on unchanged | holds | Both: every handler returns `next(e)` with the original event. |
+| 6 | The plugin is appended once, after the user's `.zshrc` | holds | B broke the `case` guard in the built `.zshrc` and the nested-shell test failed. |
+| 7 | No Claude files are generated; the user's status line is kept | holds | Both: the shell test asserts the exact file list; TST-0094 step 4 passed. |
+| 8 | Codex is unchanged | holds | Both expanded the old Codex template by hand and found it identical to the new one. |
+| 9 | The kill switch, in the terminal and in the plugin | holds | Both: the kill-switch tests on each side pass; TST-0094 step 7 passed. |
+| 10 | No other session's variables, from the app or the tmux server | holds | B disabled the variable check in the built `terminal.js` and both tests failed. Both: the list matches the variables a 2.1.299 session sets. |
+| 11 | A claimed session ignores unmarked Claude posts | holds | Both removed the claim branch and the pytest failed (1 failed, 27 passed). |
+| 12 | Nothing is written under `~/.claude` | holds | Both: the fingerprint test; the validator reports no environment writes. |
+| 13 | CI runs the plugin checks against 2.1.299 | holds as written; not run | Nothing is pushed, so no CI run includes the step. A ran both commands in a clean worktree, without the gitignored types folder, and both passed. |
+| T | TST-0094 fails when the behaviour breaks | holds in part | B: it failed on a real break (step 7, ISS-0319). A: no step raises a notification, a permission request or a subagent, so it would miss the gap in criterion 1. |
+
+**Findings to fix, all in code this feature changed** ([[TASK-0653-The-First-Reviews-Findings-Are-Fixed]]):
+
+1. No test raises five of the ten events (criterion 1).
+2. No test holds SessionEnd to one second, and a failed sleep removes the limit (criterion 4).
+3. An event the external hook (FEAT-0027) posts before the plugin is counted twice. The plugin's mark makes the two copies differ, so the two-second check no longer matches them (both reviewers).
+4. The comment in `register()` says nine events above eight registrations (both reviewers).
+
+**Observations answered without a change:**
+
+- *The validator warns "gating hook without .catch" for each `classic.*` hook* (A). The generated types say that without a `.catch` "a failed hook is absent", so a throw passes the event on, which is the intended behaviour. The packet's summary of the warnings was incomplete.
+- *The list of Claude variables a terminal drops is fixed* (A, B). It is the set Claude Code 2.1.299 sets for its child processes. A variable a later version adds would pass through; ISS-0319 records how the list was found.
+- *TST-0094's step 7 expectation was reworded after the run* (B). It was. The original said the session would not appear in the cockpit at all. That was wrong whenever the user's own `~/.claude/settings.json` registers the external hook, which reports every Claude session on the machine. The run log records the evidence: no plugin mark, no cost figures, prompt only.
+- *The node tests load `desktop/dist/`* (B). The author's counts came after `npm run build`; the review packet does not show that.
+- *`claude plugin test` refuses the `claude --dangerously-skip-permissions` alias* (B). Run it as `command claude`.
 
 ## Goal
 

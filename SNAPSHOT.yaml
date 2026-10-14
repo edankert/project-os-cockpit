@@ -79,7 +79,7 @@ counters:
   # A place in the product a check's area: names (TASK-0514).
   SUR: 6
   REL: 1
-  TASK: 652
+  TASK: 653
   TST: 94
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -134,7 +134,7 @@ items:
       status: doing
       owner: user:edwin
       phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
-      tasks: [TASK-0649, TASK-0650, TASK-0651, TASK-0652]
+      tasks: [TASK-0649, TASK-0650, TASK-0651, TASK-0652, TASK-0653]
       note: "FILED 2026-10-08 at backlog in planned PHASE-046 (leg 1, first). Feature note only, per feature-scaffold's short path for a planned phase: Findings carry the candidate task list, Open questions what must be decided before tasks are minted. The shell sets CLAUDE_CODE_PLUGIN_DIRS to a mod shipped with the cockpit; the mod posts the same payloads to /api/agent-hook and replaces statusline.sh with session.measure / $.session.usage. Retires the Claude half of the generated instrument dir (the claude wrapper, claude-settings.json, hook-forward.sh, statusline.sh); the zdotdir stays because Codex uses it. COCKPIT_NO_INSTRUMENT stays the kill switch; RISK-0004 holds. The 2s dedup window can only go once FEAT-0027's external hook no longer double-captures a cockpit session (open question)."
     FEAT-0157:
       file: "docs/features/session-band/FEAT-0157-The-Project-State-Sits-Above-The-Claude-Prompt.md"
@@ -2790,7 +2790,7 @@ items:
       owner: user:edwin
       goal: "A Claude Code session started from the cockpit is connected to it through Claude Code's mod interface, so everything the cockpit learns from the session, shows in it or sends to it travels over a supported channel, while Codex sessions keep working exactly as they do today."
       features: ["FEAT-0156", "FEAT-0157", "FEAT-0158", "FEAT-0159"]
-      tasks: [TASK-0649, TASK-0650, TASK-0651, TASK-0652]
+      tasks: [TASK-0649, TASK-0650, TASK-0651, TASK-0652, TASK-0653]
       note: "OPENED 2026-10-08 as PLANNED on Edwin's 'Plan the implementation in a new phase', after Claude Code mods shipped in v2.1.287 (installed 2.1.292) and the 2026-09-04 function-hooks review came due. Four features at backlog, feature notes only (feature-scaffold short path): FEAT-0156 plugin and telemetry first, then FEAT-0157 band and commands and FEAT-0158 submitted dispatch in either order, FEAT-0159 answerable approvals last and blocked on ISS-0301's secret. Risk notes are filed when the phase starts; the scan's findings are in the note. Leg 5 (porting project-os gates to a mod) and leg 6 (project-os as a plugin marketplace) are OUT: both are upstream-owned and recorded as follow-ups for project-os. Not active, no focus set; note writes need none (HC-001 exempts docs/)."
     PHASE-045:
       file: "docs/phases/PHASE-045-The-Cockpit-In-Layers.md"
@@ -3702,8 +3702,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 159
     features_done: 134
-    tasks_total: 646
-    tasks_done: 607
+    tasks_total: 647
+    tasks_done: 608
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

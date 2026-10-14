@@ -8,7 +8,8 @@
 // It replaces the generated claude-settings.json, hook-forward.sh and
 // statusline.sh, and posts what they posted to /api/agent-hook:
 //
-//   * nine hook events, as the JSON a command hook reads on stdin. Claude
+//   * nine hook events, as the JSON a command hook reads on stdin: eight
+//     through `forward`, and SessionEnd, which waits for its post. Claude
 //     Code raises `classic.<Event>` wherever it would run a settings hook,
 //     with that same JSON, so they are forwarded unchanged.
 //   * PreToolUse, rebuilt: `classic.PreToolUse` hands over the tool call
@@ -78,9 +79,14 @@ async function post($: EngineInterface, body: Payload): Promise<void> {
 async function postWithin($: EngineInterface, body: Payload, ms: number): Promise<void> {
   const timer = new AbortController()
   const posting = post($, body)
-  // A sleep that cannot start (or is aborted below) waits for the post
-  // instead, so the race never ends before the post was sent.
-  const limit = $.clock.sleep(ms, { signal: timer.signal }).then(() => undefined, () => posting)
+  // A sleep that fails, or cannot start, ends the wait at once: an exiting
+  // session is never held past `ms`, even when that drops its last post.
+  let limit: Promise<void>
+  try {
+    limit = $.clock.sleep(ms, { signal: timer.signal }).then(() => undefined, () => undefined)
+  } catch {
+    limit = Promise.resolve()
+  }
   await Promise.race([posting, limit])
   timer.abort()
 }
@@ -131,8 +137,9 @@ async function preToolUsePayload($: EngineInterface, e: Payload): Promise<Payloa
 }
 
 export const register: Register = on => {
-  // The nine events whose input is already the stdin JSON. The engine
-  // reads each event name only as a literal at the call site.
+  // Eight of the nine events whose input is already the stdin JSON;
+  // SessionEnd, the ninth, is below. The engine reads each event name only
+  // as a literal at the call site.
   on('classic.SessionStart', forward)
   on('classic.UserPromptSubmit', forward)
   on('classic.PostToolUse', forward)

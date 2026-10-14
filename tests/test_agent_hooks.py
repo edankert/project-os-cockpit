@@ -331,6 +331,28 @@ def test_plugin_session_ignores_the_external_hooks_second_capture(tmp_path: Path
     assert codex["ignored"] is False
 
 
+def test_an_event_the_external_hook_posts_first_is_counted_once(tmp_path: Path):
+    """The external hook (FEAT-0027) and the plugin capture the same event.
+    When the external hook's copy lands first, the plugin's copy differs
+    only by its mark, and is dropped as the same event; it still claims the
+    session, so the external hook's later posts are dropped (FEAT-0156
+    review, TASK-0653)."""
+    tracker = AgentSessionTracker(docs_root=tmp_path)
+    unmarked = {"hook_event_name": "UserPromptSubmit", "session_id": "s-r",
+                "prompt": "hi", "agent": "claude"}
+    marked = dict(unmarked, _cockpit_plugin=True)
+
+    assert tracker.ingest(unmarked)["state"] == "busy"
+    copy = tracker.ingest(marked)
+    assert copy["ignored"] is True and copy.get("duplicate") is True
+    assert [p["text"] for p in tracker._sessions["s-r"]["prompts"]] == ["hi"]
+    assert tracker._sessions["s-r"].get("plugin_claimed") is True
+
+    later = tracker.ingest(dict(unmarked, hook_event_name="Stop", prompt=None))
+    assert later["ignored"] is True, "the claim from the dropped copy holds"
+    assert tracker.ingest(dict(marked, hook_event_name="Stop", prompt=None))["state"] == "waiting"
+
+
 def test_last_session_retains_files_after_end(tmp_path: Path):
     """After a session ends, snapshot.last_session still carries the
     files it touched — the data the persistent agent strip renders."""

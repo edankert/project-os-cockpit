@@ -27,7 +27,12 @@ function sidecar(on: On, hookEnv: () => string = () => HOOK_ENV): Post[] {
   // tests raise as the engine would, with no settings hook configured.
   on('classic.SessionStart', () => ({}))
   on('classic.UserPromptSubmit', () => ({}))
+  on('classic.PostToolUse', () => ({}))
+  on('classic.Notification', () => ({}))
+  on('classic.PermissionRequest', () => ({}))
   on('classic.Stop', () => ({}))
+  on('classic.SubagentStart', () => ({}))
+  on('classic.SubagentStop', () => ({}))
   on('classic.SessionEnd', () => ({}))
   on('session.measure', ($, e) => ({ changed: e.changed }))
   return posts
@@ -62,8 +67,29 @@ describe('lifecycle events', () => {
     expect(prompt?.body.prompt).toBe('fix the rail')
   })
 
+  test('the other five events are posted with what the sidecar reads', async ($, on) => {
+    mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })
+    const posts = sidecar(on)
+    await $.classic.PostToolUse({ session_id: 's-11', tool_name: 'Edit', tool_input: { file_path: '/repo/a.md' } })
+    await $.classic.Notification({ session_id: 's-11', notification_type: 'permission_prompt', message: 'Claude needs your permission' })
+    await $.classic.PermissionRequest({ session_id: 's-11', tool_name: 'Bash', tool_input: { command: 'ls' } })
+    await $.classic.SubagentStart({ session_id: 's-11', agent_type: 'Explore', agent_id: 'a-1' })
+    await $.classic.SubagentStop({ session_id: 's-11', agent_type: 'Explore', agent_id: 'a-1' })
+    await settle()
+    const sent = (name: string) => posts.find(p => p.body.hook_event_name === name)?.body
+    expect(sent('PostToolUse')).toEqual(expect.objectContaining({ tool_name: 'Edit', tool_input: { file_path: '/repo/a.md' } }))
+    expect(sent('Notification')).toEqual(expect.objectContaining({ notification_type: 'permission_prompt' }))
+    expect(sent('PermissionRequest')).toEqual(expect.objectContaining({ tool_name: 'Bash' }))
+    expect(sent('SubagentStart')).toEqual(expect.objectContaining({ agent_type: 'Explore', agent_id: 'a-1' }))
+    expect(sent('SubagentStop')).toEqual(expect.objectContaining({ agent_type: 'Explore', agent_id: 'a-1' }))
+    expect(posts.every(p => p.body._cockpit_plugin === true && p.body.session_id === 's-11')).toBe(true)
+  })
+
   test('SessionEnd is delivered before the hook returns', async ($, on) => {
     mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })
+    // A clock that does not move: the one-second limit cannot be what ends
+    // the wait, so only the delivered post can.
+    mock.clock(on, { now: 0 })
     const posts = sidecar(on)
     await $.classic.SessionEnd({ session_id: 's-3', reason: 'prompt_input_exit' })
     expect(posts.map(p => p.body.hook_event_name)).toEqual(['SessionEnd'])
@@ -170,4 +196,38 @@ test('PreToolUse is rebuilt into the stdin shape, with the edited file', async (
     tool_input: expect.objectContaining({ file_path: '/repo/docs/TASK-0001.md' }),
     _cockpit_plugin: true,
   }))
+})
+
+/** A sidecar that takes the post and never answers. */
+function hungSidecar(on: On): void {
+  on('fs.read', ($, e, next) =>
+    e.path === `${DIR}/hook-env` ? { value: HOOK_ENV } : next(e))
+  on('http.fetch', () => new Promise<never>(() => {}))
+  on('classic.SessionEnd', () => ({}))
+}
+
+describe('SessionEnd holds an exiting session for at most a second', () => {
+  test('a sidecar that never answers holds it for one second, and no longer', async ($, on) => {
+    mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })
+    const clock = mock.clock(on, { now: 0 })
+    hungSidecar(on)
+    let returned = false
+    const ending = $.classic.SessionEnd({ session_id: 's-12', reason: 'prompt_input_exit' })
+      .then(() => { returned = true })
+    await clock.advance(999)
+    expect(returned).toBe(false)
+    await clock.advance(1)
+    await ending
+    expect(returned).toBe(true)
+  })
+
+  test('a clock that cannot sleep ends the wait at once', async ($, on) => {
+    mock.env(on, { COCKPIT_INSTRUMENT_DIR: DIR })
+    hungSidecar(on)
+    on('clock.sleep', () => { throw new Error('no timer') })
+    let returned = false
+    void $.classic.SessionEnd({ session_id: 's-13', reason: 'other' }).then(() => { returned = true })
+    await settle()
+    expect(returned).toBe(true)
+  })
 })

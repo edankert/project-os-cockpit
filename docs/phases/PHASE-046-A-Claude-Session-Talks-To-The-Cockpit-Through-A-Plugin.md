@@ -15,7 +15,7 @@ features:
   - "[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"
   - "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]"
 requirements: []
-tasks: ["[[TASK-0649]]", "[[TASK-0650]]", "[[TASK-0651]]", "[[TASK-0652]]"]
+tasks: ["[[TASK-0649]]", "[[TASK-0650]]", "[[TASK-0651]]", "[[TASK-0652]]", "[[TASK-0653]]"]
 issues: ["[[ISS-0319]]"]
 related:
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]]"

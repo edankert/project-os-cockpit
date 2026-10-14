@@ -347,18 +347,40 @@ class AgentSessionTracker:
             # Drop the terminal+external double-capture (TASK-0152):
             # identical payload for the same session/event within the
             # dedup window. Never persisted, no state/activity fan-out.
+            # The plugin's mark is left out of the comparison, so its copy
+            # and the external hook's match in either order (FEAT-0156
+            # review, TASK-0653). A marked copy dropped here still claims
+            # the session, so the external hook's later posts are dropped.
             now_ts = _parse_iso(ts)
+            marked = body.get(PLUGIN_MARK) is True
             try:
-                digest = hash(json.dumps(body, sort_keys=True, default=str))
+                digest = hash(json.dumps(
+                    {k: v for k, v in body.items() if k != PLUGIN_MARK},
+                    sort_keys=True, default=str))
             except (TypeError, ValueError):
                 digest = None
-            if digest is not None:
-                dk = (sid, event, digest)
+            dk = (sid, event, digest) if digest is not None else None
+            if dk is not None:
                 seen = self._recent_events.get(dk)
                 if seen is not None and now_ts - seen <= DEDUP_WINDOW_SECONDS:
+                    if marked and agent == "claude":
+                        self._session_locked(sid, agent, ts)["plugin_claimed"] = True
                     return {"ok": True, "state": None, "message": None,
                             "activity": None, "ignored": True,
                             "duplicate": True}
+            if agent == "claude":
+                claimed = self._sessions.get(sid, {}).get("plugin_claimed")
+                if marked:
+                    if not claimed:
+                        self._session_locked(sid, agent, ts)["plugin_claimed"] = True
+                elif claimed:
+                    return {"ok": True, "state": None, "message": None,
+                            "activity": None, "ignored": True,
+                            "duplicate": True}
+            # Only a post that is kept is remembered: a copy dropped above
+            # must not make the plugin's own copy of that event look like a
+            # duplicate of it.
+            if dk is not None:
                 self._recent_events[dk] = now_ts
                 if len(self._recent_events) > 256:
                     cutoff = now_ts - DEDUP_WINDOW_SECONDS
@@ -366,15 +388,6 @@ class AgentSessionTracker:
                         k: v for k, v in self._recent_events.items()
                         if v > cutoff
                     }
-            if agent == "claude":
-                claimed = self._sessions.get(sid, {}).get("plugin_claimed")
-                if body.get(PLUGIN_MARK) is True:
-                    if not claimed:
-                        self._session_locked(sid, agent, ts)["plugin_claimed"] = True
-                elif claimed:
-                    return {"ok": True, "state": None, "message": None,
-                            "activity": None, "ignored": True,
-                            "duplicate": True}
             sess = self._session_locked(sid, agent, ts)
             if agent == "codex" and body.get("_cockpit_notify"):
                 if sess.get("native_codex_hook_seen"):
