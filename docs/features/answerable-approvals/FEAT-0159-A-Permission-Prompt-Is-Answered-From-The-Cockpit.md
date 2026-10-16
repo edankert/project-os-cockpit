@@ -20,6 +20,7 @@ tasks:
   - "[[TASK-0666-The-Needs-You-Card-Answers-A-Permission-Prompt]]"
   - "[[TASK-0667-Tests-Prove-A-Deny-Survives-And-An-Answer-Without-The-Secret-Is-Refused]]"
   - "[[TASK-0670-A-Permission-Prompt-Sits-In-The-Needs-You-List-Like-Its-Other-Rows]]"
+  - "[[TASK-0677-The-Secret-Leak-Test-Runs-On-Python-3-11-And-3-12]]"
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]]"

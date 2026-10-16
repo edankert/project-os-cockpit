@@ -164,7 +164,12 @@ def test_a_sidecar_started_as_the_shell_starts_it_leaks_its_secret_nowhere(tmp_p
                 assert secret not in f.read_text(errors="replace"), f
     finally:
         proc.terminate()
-        _, err = proc.communicate(timeout=10)
+        # Not communicate(): before Python 3.13 it flushes stdin, which is
+        # closed above, and raises "I/O operation on closed file" (TASK-0677).
+        proc.wait(timeout=10)
+        err = proc.stderr.read()
+        proc.stdout.close()
+        proc.stderr.close()
     assert secret not in err, "the sidecar's stderr carries the secret"
 
 

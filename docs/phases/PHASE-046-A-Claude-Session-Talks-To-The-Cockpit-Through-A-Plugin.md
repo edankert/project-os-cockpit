@@ -15,7 +15,7 @@ features:
   - "[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"
   - "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]"
 requirements: []
-tasks: ["[[TASK-0649]]", "[[TASK-0650]]", "[[TASK-0651]]", "[[TASK-0652]]", "[[TASK-0653]]", "[[TASK-0654]]", "[[TASK-0655]]", "[[TASK-0656]]", "[[TASK-0657]]", "[[TASK-0658]]", "[[TASK-0659]]", "[[TASK-0660]]", "[[TASK-0661]]", "[[TASK-0662]]", "[[TASK-0664]]", "[[TASK-0665]]", "[[TASK-0666]]", "[[TASK-0667]]", "[[TASK-0670]]", "[[TASK-0671]]", "[[TASK-0672]]", "[[TASK-0673]]", "[[TASK-0674]]", "[[TASK-0675]]", "[[TASK-0676]]"]
+tasks: ["[[TASK-0649]]", "[[TASK-0650]]", "[[TASK-0651]]", "[[TASK-0652]]", "[[TASK-0653]]", "[[TASK-0654]]", "[[TASK-0655]]", "[[TASK-0656]]", "[[TASK-0657]]", "[[TASK-0658]]", "[[TASK-0659]]", "[[TASK-0660]]", "[[TASK-0661]]", "[[TASK-0662]]", "[[TASK-0664]]", "[[TASK-0665]]", "[[TASK-0666]]", "[[TASK-0667]]", "[[TASK-0670]]", "[[TASK-0671]]", "[[TASK-0672]]", "[[TASK-0673]]", "[[TASK-0674]]", "[[TASK-0675]]", "[[TASK-0676]]", "[[TASK-0677]]"]
 issues: ["[[ISS-0319]]"]
 related:
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]]"
