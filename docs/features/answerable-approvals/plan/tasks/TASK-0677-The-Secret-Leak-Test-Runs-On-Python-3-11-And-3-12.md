@@ -29,8 +29,8 @@ The sidecar is not at fault; only the test's cleanup changes. It now waits for t
 ## Definition of Done
 
 - [x] The test's cleanup no longer calls `communicate()` after closing stdin, and still asserts that stderr does not carry the secret.
-- [ ] The test passes on Python 3.13 here and in both CI workflows.
+- [x] The test passes on Python 3.13 here and in both CI workflows.
 
 ## Result
 
-The cleanup now calls `proc.wait()` and reads stderr. The test file passes here on 3.13 (17 passed). No 3.11 or 3.12 is installed here, so the cause was shown with Python 3.9.6 on a small script: `communicate()` after closing stdin raised `ValueError: I/O operation on closed file`, and the wait-and-read cleanup did not; on 3.13 both work. No other test closes stdin and then calls `communicate()`. The CI runs on the push after this commit are the check on 3.11 and 3.12.
+The cleanup now calls `proc.wait()` and reads stderr. The test file passes here on 3.13 (17 passed). No 3.11 or 3.12 is installed here, so the cause was shown with Python 3.9.6 on a small script: `communicate()` after closing stdin raised `ValueError: I/O operation on closed file`, and the wait-and-read cleanup did not; on 3.13 both work. No other test closes stdin and then calls `communicate()`. Both CI workflows passed on f2c09c1: validate-docs (Python 3.12, Linux) and observed-coverage (Python 3.11, macOS).
