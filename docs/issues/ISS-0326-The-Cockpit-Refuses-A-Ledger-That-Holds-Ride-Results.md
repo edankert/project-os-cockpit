@@ -3,7 +3,7 @@ type: "[[issue]]"
 id: ISS-0326
 aliases: ["ISS-0326"]
 title: "The cockpit refuses a ledger that holds a ride's results, drops fields it does not know when it rewrites one, and counts owed checks by command: alone"
-status: open
+status: fixed
 phase: ""
 owner: user:edwin
 created: 2026-10-21
@@ -36,4 +36,8 @@ Three smaller gaps sit beside it:
 The cockpit reads and keeps ride entries, keeps every field it does not know when it rewrites a ledger, counts owed checks the way `release-test.py` does on each platform, and shows the budget line beside the release's owed count.
 
 ## Next Actions
-- [ ] [[TASK-0678-The-Cockpit-Reads-Ride-Results-And-Counts-Owed-Checks-As-The-Release-Test-Does]]
+- [x] [[TASK-0678-The-Cockpit-Reads-Ride-Results-And-Counts-Owed-Checks-As-The-Release-Test-Does]]
+
+## Fixed, 2026-10-21
+
+[[TASK-0678-The-Cockpit-Reads-Ride-Results-And-Counts-Owed-Checks-As-The-Release-Test-Does]] fixed all four, and [[CHG-20261021-The-Cockpit-Reads-Ride-Results-And-Owes-What-The-Release-Test-Owes]] says what a person notices. The cockpit reads ride entries, keeps every field it does not know when it writes a ledger, owes a check per platform as `release-test.py` does, and shows the budget line on the release page.

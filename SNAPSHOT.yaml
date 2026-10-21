@@ -101,7 +101,8 @@ focus:
   # 2026-09-25, review: the FEAT-0019/FEAT-0027 shared review returned changes-requested; TASK-0638 fixes the findings.
   # 2026-09-25, close: FEAT-0019 and FEAT-0027 are done after a two-round shared review, and PHASE-007 is closed. No task is in flight; the next choice is Edwin's.
   # 2026-10-21: TASK-0678 (ISS-0326) brings the cockpit up to project-os a76657d: ride results in a ledger, unknown ledger fields kept, owed checks counted per platform, the hand-run budget shown.
-  task: "TASK-0678"
+  # 2026-10-21, close: TASK-0678 is done and ISS-0326 fixed (CHG-20261021-The-Cockpit-Reads-Ride-Results-And-Owes-What-The-Release-Test-Owes). Focus returns to where it was.
+  task: ""
   # TASK-0631 ran the actual walk in isolated Electron on copied Your Trainer docs and ledgers: Android survey, step advance, reload, blocked action, interrupted timer and uploaded PNG comparison worked. Review results now lists all 39 owed Android checks instead of hiding ten expired prior-release excuses. The iOS route loads 327 owed rows but has no open release id. Eighty focused renderer tests, the full desktop suite, 47 Python walk tests and docs gates pass; human and full iOS walks remain open.
   # TASK-0629 is correcting a full Electron walk finding: the session-wide readiness list stays expanded and repeats the current warning, and Walk options lacks a direct step picker. The isolated browser uses copied Your Trainer docs and ledgers.
   # TASK-0629 moved occasional walk navigation under Walk options and sitting state/equipment into required setup. The focused renderer suite passes 77 cases, and standalone Chrome rendered the current Android payload at desktop and narrow widths. Full Electron and Edwin walks remain open.
@@ -116,7 +117,7 @@ focus:
   # 2026-10-14, late: focus moves to FEAT-0157 (Edwin: "Can we first implement the rest of the features in this phase and then test!"). FEAT-0159 stays doing, waiting on TST-0096 step 9 and its review. FEAT-0157 waits on project-os-dev FEAT-0041 TASK-0198 for its line segment; TASK-0671, TASK-0672 and TASK-0675 can be built before that.
   feature: "FEAT-0157"
   phase: "PHASE-046"
-  issue: "ISS-0326"
+  issue: ""
   note: "2026-10-14, night: FEAT-0157 is BUILT, after project-os-dev FEAT-0041 (Edwin: 'Can we first implement the rest of the features in this phase and then test!'). Every PHASE-046 feature is now built; only testing is left. In order: rebuild and restart the app; TST-0096 step 9 (FEAT-0159); project-os-dev TST-0047 (the project-os line, wrong-model row, shell edits); TST-0097 (the cockpit's facts, the button, /cockpit-needs, /cockpit-release); then the independent reviews of FEAT-0159, FEAT-0157 and FEAT-0041. The deny hook from TST-0096 step 7 is still in project-os-deck/.claude/settings.local.json. Nothing is pushed. ISS-0107 (project-os-dev) holds two template tests that failed before this work and need Edwin's decision."
 
 items:
@@ -953,7 +954,7 @@ items:
   tasks:
     TASK-0678:
       file: docs/tasks/TASK-0678-The-Cockpit-Reads-Ride-Results-And-Counts-Owed-Checks-As-The-Release-Test-Does.md
-      status: doing
+      status: done
       parent: ISS-0326
     TASK-0671:
       file: docs/features/session-band/plan/tasks/TASK-0671-The-Shell-Keeps-A-File-Saying-What-Needs-You-In-The-Other-Projects.md
@@ -1634,7 +1635,7 @@ items:
     ISS-0326:
       file: "docs/issues/ISS-0326-The-Cockpit-Refuses-A-Ledger-That-Holds-Ride-Results.md"
       title: "The cockpit refuses a ledger that holds a ride's results, drops fields it does not know when it rewrites one, and counts owed checks by command: alone"
-      status: open
+      status: fixed
       owner: user:edwin
       phase: ""
       severity: high
@@ -3771,13 +3772,13 @@ metrics:
     features_total: 159
     features_done: 136
     tasks_total: 672
-    tasks_done: 632
+    tasks_done: 633
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182
     test_cases_passing: 181
     tests_failing: 0
-    issues_open: 20
+    issues_open: 19
     issues_triage: 3
     risks_open: 11
     releases_total: 1
