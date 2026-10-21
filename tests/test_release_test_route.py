@@ -237,9 +237,11 @@ def test_on_your_trainer_the_page_is_what_is_owed_plus_what_this_release_recorde
         pytest.skip("your-trainer is not checked out beside this repo")
     from project_os_cockpit.index import Index
     index = Index.build(YOUR_TRAINER)
-    manual = [i.note_id for i in acceptance.load(YOUR_TRAINER, index, platform="android").items
-              if i.note_id and acceptance.kind_of(i) in acceptance.MANUAL_KINDS]
     for platform in _ledger.platforms(YOUR_TRAINER):
+        #: Per platform: a `commands:` entry makes a check automated on one
+        #: platform and manual on the others ([[ISS-0326]]).
+        manual = [i.note_id for i in acceptance.load(YOUR_TRAINER, index, platform=platform).items
+                  if i.note_id and acceptance.kind_of(i) in acceptance.MANUAL_KINDS]
         page = acceptance.release_test_payload(YOUR_TRAINER, platform=platform)
         assert page["error"] == ""
         shown = set(_tests(page))

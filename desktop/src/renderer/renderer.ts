@@ -1821,6 +1821,10 @@ interface GatePayload {
    *  suite. A smaller number with no cause beside it is the defect this
    *  phase exists to remove. */
   deselection?: { features: number; checks: number };
+  /** The release test sheet's hand-run budget (ISS-0326): the owed checks
+   *  and hand steps against the limit, and the sheet's sentence. Only on a
+   *  release that names a platform with a ledger. */
+  budget?: { limit: number; checks: number; steps: number; over: number; line: string };
 }
 
 async function mountReleaseGate(): Promise<void> {
@@ -9417,6 +9421,15 @@ function buildGateSection(
   rule.className = 'meta';
   rule.textContent = gate.rule;
   g.appendChild(rule);
+  //: The sheet's own sentence, under the count it explains (ISS-0326):
+  //: "37 checks with 240 steps are owed by hand on Android. The limit is
+  //: 10 checks." It blocks nothing; it says how much is left for a person.
+  if (gate.budget?.line) {
+    const budget = document.createElement('p');
+    budget.className = 'meta release-gate-budget';
+    budget.textContent = gate.budget.line;
+    g.appendChild(budget);
+  }
   if (gate.delta?.summary) {
     const hist = document.createElement('p');
     hist.className = 'meta';
