@@ -69,6 +69,7 @@ jobs:
           for t in tools/scripts/test-*.sh; do echo "== $t"; bash "$t"; done
           python3 -B tools/scripts/test-retention.py
           python3 -B tools/scripts/test-release-test-preparation.py
+          python3 -B tools/scripts/test-release-ride.py
       # The project-os plugin runs inside Claude Code, against an interface that
       # is weeks old (project-os-dev FEAT-0041, RISK-0006). Validate and test it
       # on the version plugin.json names; raise the pin on purpose

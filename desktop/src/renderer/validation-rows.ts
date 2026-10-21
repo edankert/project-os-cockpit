@@ -142,6 +142,7 @@ const VALIDATION_LABELS: Record<string, string> = {
   'REVIEW-ROUND': 'a review ran more than two rounds',
   'ACCEPT-LOCATION': 'a manual check is outside docs/tests/acceptance/',
   'CHECK-KIND': 'a check declares a kind that cannot apply',
+  'CHECK-COMMANDS': "a check's per-platform commands or hand steps cannot be read",
   'ISSUE-REPORTER': 'an issue does not say who reported it',
   'ISSUE-QUESTION': 'an issue waits on the owner but states no question',
 };
