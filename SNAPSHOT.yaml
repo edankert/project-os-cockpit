@@ -118,7 +118,7 @@ focus:
   feature: "FEAT-0157"
   phase: "PHASE-046"
   issue: ""
-  note: "2026-10-14, night: FEAT-0157 is BUILT, after project-os-dev FEAT-0041 (Edwin: 'Can we first implement the rest of the features in this phase and then test!'). Every PHASE-046 feature is now built; only testing is left. In order: rebuild and restart the app; TST-0096 step 9 (FEAT-0159); project-os-dev TST-0047 (the project-os line, wrong-model row, shell edits); TST-0097 (the cockpit's facts, the button, /cockpit-needs, /cockpit-release); then the independent reviews of FEAT-0159, FEAT-0157 and FEAT-0041. The deny hook from TST-0096 step 7 is still in project-os-deck/.claude/settings.local.json. Nothing is pushed. ISS-0107 (project-os-dev) holds two template tests that failed before this work and need Edwin's decision."
+  note: "2026-10-21: every PHASE-046 feature is built and has been through independent review, two rounds each (FEAT-0157, FEAT-0159 here; project-os-dev FEAT-0041). Every code finding is fixed and pushed nowhere yet beyond what Edwin asked; each verdict stays changes-requested only for its walk. What is left is Edwin's: restart the app (it has run since 2026-10-14, dist is current), then walk TST-0096 step 9, project-os-dev TST-0047 and TST-0097, and decide FEAT-0159 open question 1 (refuse cockpit answers while a debugging port is open). Then the three features can close. The TST-0096 step 7 deny hook is still in project-os-deck/.claude/settings.local.json; remove it after the walks."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
