@@ -45,7 +45,7 @@ function world(on: On, w: Partial<World> = {}): World {
     const argv = [...e.argv]
     s.runs.push(argv)
     const ok = (stdout: string, exitCode = 0) => ({ value: { exitCode, stdout, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-    if (argv[1] === '-c' && argv[2]?.includes('git rev-parse')) {
+    if (argv[1]?.endsWith('/hooks/shared/fingerprint.sh')) {
       const next = s.prints.length > 1 ? s.prints.shift()! : s.prints[0]!
       return next === 'not-a-repo' ? ok('', 3) : ok(next)
     }
@@ -58,6 +58,7 @@ function world(on: On, w: Partial<World> = {}): World {
     return ok('')
   })
   on('classic.Stop', () => ({}))
+  on('tool.call', () => ({ result: 'ran' }))
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('turn.start', ($, e) => ({ turnId: e.turnId }))
   if (s.band) {
@@ -70,6 +71,8 @@ function world(on: On, w: Partial<World> = {}): World {
 }
 
 const markers = (w: World) => w.runs.filter(r => r[1] === '-c' && r[2]?.includes('session_marker'))
+const hintRuns = (w: World) => w.runs.filter(r => r[1]?.endsWith('model-routing-hint.sh')).length
+const sed = ($: any) => $.tool.call({ tool: 'Bash', input: { command: "sed -i '' s/a/b/ notes.md" } } as any)
 
 /** Lets the plugin's background work (never awaited by a hook) finish. */
 const settle = () => new Promise(r => setTimeout(r, 30))
@@ -83,10 +86,26 @@ describe('a file changed from the shell counts as a write (TASK-0200)', () => {
   test('a turn that changes the working tree leaves the marker, for this session', async ($, on) => {
     const w = world(on, { prints: ['all-1\ndocs-1\n', 'all-2\ndocs-1\n'] })
     await $.turn.start({ text: 'sed it', turnId: 't-1' })
+    await sed($)
     await $.classic.Stop({ session_id: 's-1', stop_hook_active: false })
     expect(markers(w)).toHaveLength(1)
     expect(markers(w)[0]).toContain('s-1')
     expect(markers(w)[0]!.some(a => a.endsWith('/hooks/shared/session-marker.sh'))).toBe(true)
+  })
+
+  test('a turn that ran no tool leaves no marker, even when the tree changed under it', async ($, on) => {
+    // Another session or the person changed a file while this turn only answered.
+    const w = world(on, { prints: ['all-1\ndocs-1\n', 'all-2\ndocs-1\n'] })
+    await $.turn.start({ text: 'what is HC-006?', turnId: 't-1' })
+    await $.classic.Stop({ session_id: 's-1', stop_hook_active: false })
+    expect(markers(w)).toHaveLength(0)
+  })
+
+  test('the fingerprint is the shared script, run from the session root', async ($, on) => {
+    const w = world(on)
+    await $.turn.start({ text: 'x', turnId: 't-1' })
+    await settle()
+    expect(w.runs.some(r => r[0] === 'bash' && r[1]!.endsWith('/hooks/shared/fingerprint.sh'))).toBe(true)
   })
 
   test('a turn that only reads leaves no marker', async ($, on) => {
@@ -107,6 +126,7 @@ describe('a file changed from the shell counts as a write (TASK-0200)', () => {
     const w = world(on, { prints: ['all-1\ndocs-1\n', 'all-2\ndocs-1\n'] })
     await $.turn.start({ text: 'main', turnId: 't-1' })
     await $.turn.start({ text: 'sub', turnId: 't-2', agentId: 'agent-1' })
+    await sed($)
     await $.classic.Stop({ session_id: 's-1', stop_hook_active: false })
     expect(markers(w)).toHaveLength(1)
   })
@@ -121,6 +141,15 @@ describe('the session runs on the pinned model (TASK-0201)', () => {
     expect(honoursPin('claude-sonnet-5-5', 'opus')).toBe(false)
     expect(honoursPin('claude-opus-5-5[1m]', 'claude-opus-5-5')).toBe(true)
     expect(honoursPin('claude-opus-5', 'claude-opus-5-5')).toBe(false)
+  })
+
+  test('a context suffix and the two aliases are read as Claude Code means them', () => {
+    expect(modelKey('Opus 5.5 (1M context)')).toBe('opus-5-5')
+    expect(honoursPin('Opus 5.5 (1M context)', 'claude-opus-5-5')).toBe(true)
+    expect(honoursPin('claude-haiku-5-5', 'default')).toBe(true)
+    expect(honoursPin('claude-sonnet-5-5', 'opusplan')).toBe(true)
+    expect(honoursPin('claude-opus-5-5', 'opusplan')).toBe(true)
+    expect(honoursPin('claude-haiku-5-5', 'opusplan')).toBe(false)
   })
 
   test('a different model draws the warning row and adds it to the context', async ($, on) => {
@@ -158,6 +187,45 @@ describe('the project line (TASK-0202)', () => {
     expect(lineText(facts)).toBe('FEAT-0157 doing · PHASE-046 · 2 validator errors · 1 review-stale · route: implement here')
     expect(lineText(parseHint('project-os: no focus item resolved: nothing in flight. ...'))).toBe('no focus item')
     expect(parseValidator({ exitCode: 0, stdout: 'validate-docs: OK (x)\n', stderr: '' })).toEqual({ errors: 0, reviewStale: 0 })
+  })
+
+  test('a REVIEW-STALE printed as an error is counted once, as review-stale', () => {
+    const out = 'ERROR [LINK] x\nERROR [REVIEW-STALE] ADR-1 is accepted\nvalidate-docs: FAIL (notes: FAIL)\n'
+    expect(parseValidator({ exitCode: 1, stdout: out, stderr: '' })).toEqual({ errors: 1, reviewStale: 1 })
+  })
+
+  test('a turn that changes the notes re-reads the line when it stops', async ($, on) => {
+    const w = world(on, { prints: ['all-1\ndocs-1\n', 'all-2\ndocs-2\n'] })
+    await $.turn.start({ text: 'set the focus', turnId: 't-1' })
+    await sed($)
+    const before = hintRuns(w)
+    await $.classic.Stop({ session_id: 's-1', stop_hook_active: false })
+    await settle()
+    expect(hintRuns(w)).toBe(before + 1)
+  })
+
+  test('notes changed between turns are re-read when the next turn starts', async ($, on) => {
+    // Turn 1 starts and stops on docs-1; then another terminal changes the
+    // notes; turn 2 starts on docs-2.
+    const w = world(on, { prints: ['all-1\ndocs-1\n', 'all-1\ndocs-1\n', 'all-2\ndocs-2\n'] })
+    await $.turn.start({ text: 'one', turnId: 't-1' })
+    await $.classic.Stop({ session_id: 's-1', stop_hook_active: false })
+    await settle()
+    const before = hintRuns(w)
+    await $.turn.start({ text: 'two', turnId: 't-2' })
+    await settle()
+    expect(hintRuns(w)).toBe(before + 1)
+  })
+
+  test('a turn that starts on unchanged notes reads nothing again', async ($, on) => {
+    const w = world(on, { prints: ['all-1\ndocs-1\n'] })
+    await $.turn.start({ text: 'one', turnId: 't-1' })
+    await $.classic.Stop({ session_id: 's-1', stop_hook_active: false })
+    await settle()
+    const before = hintRuns(w)
+    await $.turn.start({ text: 'two', turnId: 't-2' })
+    await settle()
+    expect(hintRuns(w)).toBe(before)
   })
 
   test('a validator that did not finish leaves its counts out, never zero', () => {

@@ -1073,6 +1073,9 @@ class Procedure:
     parse_warnings: list[tuple[str, str]] = field(default_factory=list)
     #: The same, plus what `audit_procedure` found on its last run.
     warnings: list[tuple[str, str]] = field(default_factory=list)
+    #: Every platform the repo keeps a ledger for, so a step with no
+    #: `step_platforms` is known to run on all of them (project-os-dev TASK-0207).
+    known_platforms: list[str] = field(default_factory=list)
 
 
 _SETUP_ITEM_RE = re.compile(r"^- \[([a-z][a-z0-9_-]*)\] (.+)$")
@@ -1555,6 +1558,7 @@ def load_procedures(docs_root: Path, repo_root: Path | None = None) -> list[Proc
                             + duplicate_declarations(front, shown_path)))
         procedure.parse_problems += unknown_platforms(
             procedure, known_platforms, {name for item in setup_items for name in item.platforms})
+        procedure.known_platforms = list(known_platforms)
         out.append(procedure)
     return out
 
@@ -2995,8 +2999,18 @@ def _audit_tag(procedure: Procedure, step: Step, expectation: Expectation,
     #: asked to repeat what CI already did, and the step would never print
     #: anyway because it is never owed. The other platform may still need
     #: it, which is what `step_platforms` is for.
+    #: **Unless another platform the step runs on still needs it**
+    #: (project-os-dev TASK-0207). A procedure is shared by every platform, and
+    #: a check may have a command on one only. Its steps stay for the others,
+    #: and the sheet already leaves a tag out where it is not owed; refusing
+    #: the citation failed every such step, and `step_platforms` cannot help a
+    #: step that also cites a check this platform still owes.
+    runs_on = sorted(step.platforms) if step.platforms else list(procedure.known_platforms)
+    needed_elsewhere = any((check_id, number) in check.hand_parts(other)
+                           for other in runs_on if other != platform)
     if (platform and check.automated_on(platform) and not check.hand_steps_broken
-            and (check_id, number) not in check.hand_parts(platform)):
+            and (check_id, number) not in check.hand_parts(platform)
+            and not needed_elsewhere):
         kept = check.hand_parts(platform)
         return ["%s cites %s, and on %s a command tests %s%s; take the tag out, or "
                 "limit the step to the other platforms with `step_platforms`"

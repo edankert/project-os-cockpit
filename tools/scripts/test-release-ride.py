@@ -197,16 +197,32 @@ def main() -> int:
         problems, _remarks = rt.check_repo(repo, "android")
         check("the procedure that limits command-covered steps to iOS passes --check on Android", problems == [],
               "; ".join(problems))
-        broken = PROCEDURE.replace("  3: [ios]\n", "")
-        write(repo / "docs/tests/acceptance/release-test/bench.md", broken)
+        # TASK-0207: a step shared by both platforms may cite a part only iOS still needs.
+        shared = PROCEDURE.replace("  3: [ios]\n", "")
+        write(repo / "docs/tests/acceptance/release-test/bench.md", shared)
         problems, _remarks = rt.check_repo(repo, "android")
-        check("--check refuses a procedure citing a step the Android command covers",
-              any("TST-0002.1" in p and "a command tests TST-0002 except steps 2" in p for p in problems),
-              "; ".join(problems))
+        check("a shared step may cite a part the Android command covers while iOS still needs it",
+              not any("a command tests" in p for p in problems), "; ".join(problems))
+        shared_android = rt.generate(repo, "REL-0002", "android")
+        check("and the Android sheet still prints only the hand step", parts(shared_android, "TST-0002") == ["TST-0002.2"],
+              str(parts(shared_android, "TST-0002")))
         problems, _remarks = rt.check_repo(repo, "ios")
         check("the same procedure is fine on iOS, where no command covers the check",
               not any("a command tests" in p for p in problems), "; ".join(problems))
+        android_only = PROCEDURE.replace("  3: [ios]\n", "  3: [android]\n")
+        write(repo / "docs/tests/acceptance/release-test/bench.md", android_only)
+        problems, _remarks = rt.check_repo(repo, "android")
+        check("--check refuses a step that runs only where a command covers its part",
+              any("TST-0002.1" in p and "a command tests TST-0002 except steps 2" in p for p in problems),
+              "; ".join(problems))
         write(repo / "docs/tests/acceptance/release-test/bench.md", PROCEDURE)
+        three = repo / "docs/tests/acceptance/TST-0003-A.md"
+        kept = three.read_text(encoding="utf-8")
+        write(three, kept.replace('commands: {android: "make test-android"}', 'command: "make test"'))
+        problems, _remarks = rt.check_repo(repo, "ios")
+        check("--check refuses a citation of a check `command:` covers on every platform",
+              any("TST-0003.1" in p and "a command tests TST-0003" in p for p in problems), "; ".join(problems))
+        write(three, kept)
 
         # The validator: commands: and hand_steps: are read and checked.
         def findings(extra: str, steps=("One.", "Two.")) -> list[str]:
@@ -226,6 +242,14 @@ def main() -> int:
         check("hand_steps with no command is refused", any("no `command:` or `commands:`" in m
                                                           for m in findings("hand_steps: [1]\n")))
         check("an empty command in commands: is refused", len(findings('commands: {android: ""}\n')) == 1)
+        older = repo / "docs/tests/acceptance/TST-0097-X.md"
+        write(older, note("TST-0097", "Alpha", 'commands: {android: "make a"}\nhand_steps: [2]\n', ["One.", "Two."],
+                          ["A.", "B."]).replace("## Steps", "## Procedure"))
+        report = vd.Report()
+        vd.validate_check_commands(repo, report, {"TST-0097": (older, vd.parse_frontmatter(older))})
+        older.unlink()
+        check("hand steps count the items under the older `## Procedure` heading (TASK-0207)",
+              not [m for m in report.errors if "CHECK-COMMANDS" in m], "; ".join(report.errors))
         check("a platform with no ledger in commands: is refused",
               any("platform andriod" in m for m in findings('commands: {andriod: "make a"}\n')))
         check("command: beside commands: is refused",

@@ -3023,23 +3023,28 @@ def _numbered_step_count(path):
     if text.startswith("---"):
         end = text.find("\n---", 3)
         text = text[end + 4:] if end != -1 else text
-    count, depth, inside, fence = 0, 0, False, False
-    for line in text.splitlines():
-        if _FENCE_LINE_RE.match(line):
-            fence = not fence
-            continue
-        if fence:
-            continue
-        heading = re.match(r"^(#{1,6})\s+(.*?)\s*$", line)
-        if heading:
-            if inside and len(heading.group(1)) <= depth:
-                break
-            if not inside and heading.group(2).strip().lower().rstrip(":") == "steps":
-                inside, depth = True, len(heading.group(1))
-            continue
-        if inside and _STEP_ITEM_RE.match(line):
-            count += 1
-    return count
+    # `## Steps`, or `## Procedure` when the note has no `## Steps`: the older
+    # heading `release-test.py` also reads (project-os-dev TASK-0207).
+    for name in ("steps", "procedure"):
+        count, depth, inside, fence, found = 0, 0, False, False, False
+        for line in text.splitlines():
+            if _FENCE_LINE_RE.match(line):
+                fence = not fence
+                continue
+            if fence:
+                continue
+            heading = re.match(r"^(#{1,6})\s+(.*?)\s*$", line)
+            if heading:
+                if inside and len(heading.group(1)) <= depth:
+                    break
+                if not inside and heading.group(2).strip().lower().rstrip(":") == name:
+                    inside, depth, found = True, len(heading.group(1)), True
+                continue
+            if inside and _STEP_ITEM_RE.match(line):
+                count += 1
+        if found:
+            return count
+    return 0
 
 
 def validate_check_commands(root, report, note_index):

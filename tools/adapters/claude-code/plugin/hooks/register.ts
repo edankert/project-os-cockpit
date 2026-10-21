@@ -13,7 +13,8 @@
 //     TASK-0200). The close-out check is told a session wrote something by a
 //     marker that only the Edit, Write and NotebookEdit tools leave. This
 //     module fingerprints the working tree when a main-loop turn starts and
-//     again when it stops, and leaves the same marker when the two differ.
+//     again when it stops, and leaves the same marker when the two differ and
+//     the turn ran a tool.
 //   * A session on the wrong model is named (HC-011, TASK-0201). A resumed
 //     session keeps the model its transcript was saved with, whatever the
 //     repo pins; a warning row above the prompt and a context block say so.
@@ -24,7 +25,9 @@
 //
 // Everything is read from the repo's own scripts, in the background, and kept
 // in memory; drawing never runs a script. A script that fails leaves its fact
-// out of the line. Nothing here ever blocks or slows a turn.
+// out of the line. The one thing a turn waits for is the working tree's
+// fingerprint at its stop (two `git` reads), so the marker is there before the
+// close-out check looks.
 
 import type { EngineInterface, Register } from 'claude-code'
 
@@ -47,21 +50,12 @@ const adapterDir = ($: EngineInterface): string => $.plugin.root.replace(/\/plug
 // ---------------------------------------------------------------------------
 // A file changed from the shell counts as a write (HC-006, TASK-0200)
 
-/** Two digests of the working tree: everything, and the part the line reads
- *  (SNAPSHOT.yaml and docs/). `git status` alone would miss a file that was
- *  already modified and is modified again, so the diff's digest is added. A
- *  path changed and changed back within one turn is not caught; the check is
- *  about a file left changed. Exit 3 means "not a git repository". */
-const FINGERPRINT = [
-  'git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 3',
-  'all=$( { git status --porcelain=v1 -z; git diff HEAD --no-ext-diff 2>/dev/null; } | cksum )',
-  'docs=$( { git status --porcelain=v1 -z -- SNAPSHOT.yaml docs; git diff HEAD --no-ext-diff -- SNAPSHOT.yaml docs 2>/dev/null; } | cksum )',
-  'printf \'%s\\n%s\\n\' "$all" "$docs"',
-].join('\n')
+/** Two digests of the working tree, everything and the part the line reads,
+ *  from hooks/shared/fingerprint.sh; what each covers is stated there. */
 
 export type Fingerprint = { all: string; docs: string }
 
-/** The two digests from FINGERPRINT's output, or undefined when it failed. */
+/** The two digests from fingerprint.sh's output, or undefined when it failed. */
 export function parseFingerprint(r: Ran | undefined): Fingerprint | undefined {
   if (!r || r.exitCode !== 0) return undefined
   const [all, docs] = r.stdout.split('\n')
@@ -69,7 +63,7 @@ export function parseFingerprint(r: Ran | undefined): Fingerprint | undefined {
 }
 
 async function fingerprint($: EngineInterface): Promise<Fingerprint | undefined> {
-  return parseFingerprint(await run($, ['bash', '-c', FINGERPRINT], await $.session.root()))
+  return parseFingerprint(await run($, ['bash', `${adapterDir($)}/hooks/shared/fingerprint.sh`], await $.session.root()))
 }
 
 /** Leave the marker session-touch.sh leaves, at the path shared/session-marker.sh
@@ -86,10 +80,12 @@ async function writeMarker($: EngineInterface, sessionId: string): Promise<void>
 // The session runs on the pinned model (HC-011, TASK-0201)
 
 /** One spelling for a model name: lower case, no `claude-` prefix, no date or
- *  context suffix. `$.session.model()` gives the name as /model shows it, and
- *  the pin may be a full ID; both become e.g. `opus-5-5`. */
+ *  context suffix (`[1m]` or `(1M context)`). `$.session.model()` gives the
+ *  name as /model shows it, and the pin may be a full ID; both become e.g.
+ *  `opus-5-5`. */
 export function modelKey(name: string): string {
   return name.trim().toLowerCase()
+    .replace(/\s*\([^)]*\)$/, '')
     .replace(/\[[^\]]*\]$/, '')
     .replace(/^claude[- ]/, '')
     .replace(/[ .]/g, '-')
@@ -97,13 +93,17 @@ export function modelKey(name: string): string {
 }
 
 /** Whether a session's model honours the pin. A pin that names only a family
- *  (`opus`, `sonnet`) is honoured by any model of that family. */
+ *  (`opus`, `sonnet`) is honoured by any model of that family. Two aliases are
+ *  not families: `default` is honoured by any model, and `opusplan` by Opus or
+ *  Sonnet, since it switches between them. */
 export function honoursPin(model: string, pin: string): boolean {
   const m = modelKey(model)
   const p = modelKey(pin)
-  if (!m || !p) return true
+  if (!m || !p || p === 'default') return true
   if (m === p) return true
-  return /^[a-z]+$/.test(p) && m.split('-')[0] === p
+  const family = m.split('-')[0]
+  if (p === 'opusplan') return family === 'opus' || family === 'sonnet'
+  return /^[a-z]+$/.test(p) && family === p
 }
 
 export function wrongModelSentence(model: string, pin: string): string {
@@ -172,8 +172,10 @@ export function parseValidator(r: Ran | undefined): Pick<Facts, 'errors' | 'revi
   const out = `${r.stdout}\n${r.stderr}`
   if (!/^validate-docs: (OK|FAIL)\b/m.test(out)) return undefined
   const lines = out.split('\n')
+  // A REVIEW-STALE line is counted once, as review-stale, whether the
+  // validator prints it as a warning or, from 2026-11-18, as an error.
   return {
-    errors: lines.filter(l => /^ERROR\b/.test(l)).length,
+    errors: lines.filter(l => /^ERROR\b/.test(l) && !l.includes('[REVIEW-STALE]')).length,
     reviewStale: lines.filter(l => l.includes('[REVIEW-STALE]')).length,
   }
 }
@@ -234,6 +236,10 @@ function fillSlot(tree: unknown, node: unknown): unknown {
 const facts: Facts = {}
 const st: {
   before?: Promise<Fingerprint | undefined>
+  /** Whether the turn so far ran a tool: only then can it have written. */
+  toolRan?: boolean
+  /** The notes' digest when the last turn ended, to see a change made between turns. */
+  lastDocs?: string
   warning?: string
   refreshing?: boolean
   again?: boolean
@@ -278,6 +284,7 @@ async function checkModel($: EngineInterface): Promise<void> {
 export const register: Register = on => {
   on('session.start', ($, e, next) => {
     refresh($)
+    void fingerprint($).then(f => { if (f && st.lastDocs === undefined) st.lastDocs = f.docs }).catch(() => undefined)
     void checkModel($).catch(() => undefined)
     return next(e)
   })
@@ -285,9 +292,19 @@ export const register: Register = on => {
   on('turn.start', ($, e, next) => {
     // A subagent's turn runs inside the main loop's.
     if (e.agentId === undefined) {
+      st.toolRan = false
       st.before = fingerprint($).catch(() => undefined)
+      // Notes changed between turns (another terminal, a checkout): re-read now.
+      void st.before.then(f => { if (f && st.lastDocs !== undefined && f.docs !== st.lastDocs) refresh($) })
       void checkModel($).catch(() => undefined)
     }
+    return next(e)
+  })
+
+  // Any tool, a subagent's included. A turn that ran none only answered, so a
+  // change in the tree during it is someone else's (FEAT-0041 review, round 1).
+  on('tool.call', ($, e, next) => {
+    st.toolRan = true
     return next(e)
   })
 
@@ -301,9 +318,11 @@ export const register: Register = on => {
       st.before = after ? Promise.resolve(after) : undefined
       if (before && after) {
         const sessionId = (e as { session_id?: unknown }).session_id
-        if (after.all !== before.all && typeof sessionId === 'string' && sessionId) await writeMarker($, sessionId)
+        if (after.all !== before.all && st.toolRan && typeof sessionId === 'string' && sessionId) await writeMarker($, sessionId)
         if (after.docs !== before.docs) refresh($)
       }
+      if (after) st.lastDocs = after.docs
+      st.toolRan = false
     } catch {
       // Whatever failed, the turn ends as it would have without this module.
     }

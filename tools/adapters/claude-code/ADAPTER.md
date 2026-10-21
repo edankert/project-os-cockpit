@@ -190,15 +190,17 @@ Claude Code runs the plugin from the repo's folder; it makes no copy. A sync tha
 
 **Turning it off in one repo.** Set `"project-os@project-os-<project>": false` under `enabledPlugins`: in `.claude/settings.local.json` for yourself only, or in `.claude/settings.json` for everyone. The generator never turns it back on.
 
-**What Claude Code writes beside it.** Each time it loads the plugin, Claude Code writes its type declarations into `plugin/.claude-plugin/types/`, with a `.gitignore` of their own. The sync neither copies nor deletes that folder (`tools/sync/MANIFEST.yaml`, `excludes:`). The plugin's `tsconfig.json` extends the one there, so an editor can check `register.ts` once a session has loaded it.
+**What Claude Code writes beside it.** Claude Code can write its type declarations into `plugin/.claude-plugin/types/`, with a `.gitignore` of their own. It did so in the template on 2026-10-14, during an interactive session that loaded the plugin through `CLAUDE_CODE_PLUGIN_DIRS`. A load from the repo's registration, a `claude -p` session, `claude plugin validate` and `claude plugin test` did not write it (checked 2026-10-21, Claude Code 2.1.303), so most repos have no such folder. The sync neither copies nor deletes it (`tools/sync/MANIFEST.yaml`, `excludes:`). The plugin's `tsconfig.json` extends the one there, so an editor can check `register.ts` only where the folder exists; the tests run without it.
+
+**Seeing that it loaded.** `claude plugin list` does not show it, because nothing is installed. Start a session with `claude --debug`; the newest file in `~/.claude/debug/` then has the line `hooks module project-os@project-os-<project> loaded`.
 
 **Inside a cockpit terminal** the cockpit's own plugin loads as well, through `CLAUDE_CODE_PLUGIN_DIRS`. The two share the line above the prompt without either naming the other; the contract is in project-os-dev REFERENCE-PROJECT-LINE-CONTRACT.
 
 ### What the plugin does
 
-- **A file changed from the shell counts as a write at close-out** (HC-006). The plugin fingerprints the working tree with `git` when a main-loop turn starts and when it stops, and leaves the marker `hooks/session-touch.sh` leaves when the two differ, at the path `hooks/shared/session-marker.sh` gives.
+- **A file changed from the shell counts as a write at close-out** (HC-006). The plugin fingerprints the working tree with `hooks/shared/fingerprint.sh` when a main-loop turn starts and when it stops. When the two differ and the turn ran a tool, it leaves the marker `hooks/session-touch.sh` leaves, at the path `hooks/shared/session-marker.sh` gives. The fingerprint covers tracked changes and untracked files' contents; `tools/scripts/test-plugin-fingerprint.sh` runs it on a real repository. A turn that ran no tool leaves no marker, because a change during it was made by someone else. A turn that ran a tool while another session changed the tree still counts; the fingerprint cannot tell whose change it was.
 - **A session on the wrong model is named** (HC-011): a warning row above the project line, and the same sentence in the model's context.
-- **The project line above the prompt** (HC-012): for example `FEAT-0157 doing · PHASE-046 · 2 validator errors · 61 review-stale · route: implement here`.
+- **The project line above the prompt** (HC-012): for example `FEAT-0157 doing · PHASE-046 · 2 validator errors · 61 review-stale · route: implement here`. It is read at session start, when a turn changes `SNAPSHOT.yaml` or `docs/`, and when a turn starts after they changed in between.
 
 Its tests run with `claude plugin test tools/adapters/claude-code/plugin`. Use the binary itself: a shell alias that puts an option before `plugin` makes the command refuse to run.
 
