@@ -79,7 +79,7 @@ counters:
   # A place in the product a check's area: names (TASK-0514).
   SUR: 6
   REL: 1
-  TASK: 678
+  TASK: 680
   TST: 97
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -145,7 +145,7 @@ items:
       status: doing
       owner: user:edwin
       phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
-      tasks: [TASK-0671, TASK-0672, TASK-0673, TASK-0674, TASK-0675, TASK-0676]
+      tasks: [TASK-0671, TASK-0672, TASK-0673, TASK-0674, TASK-0675, TASK-0676, TASK-0679]
       note: "STARTED 2026-10-14 on Edwin's 'implement the rest of the features in this phase and then test', after he chose 'Build FEAT-0041 too' (project-os-dev builds the line upstream first). Six tasks: TASK-0671 the shell's needs-elsewhere file per instrument dir, TASK-0672 GET /api/cockpit/line, TASK-0673 the cockpit's segment on the project-os line (project-os-dev REFERENCE-PROJECT-LINE-CONTRACT, joined through the render chain, project-os never names the cockpit), TASK-0674 Open in cockpit via cockpit://, TASK-0675 /cockpit-needs and /cockpit-release in a pane, TASK-0676 guarantees, register, change note. Acceptance TST-0097. Open questions settled: commands in the cockpit plugin; cockpit:// link; other projects' count only when non-zero (Edwin)."
     FEAT-0158:
       file: "docs/features/submitted-dispatch/FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed.md"
@@ -161,7 +161,7 @@ items:
       status: doing
       owner: user:edwin
       phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
-      tasks: [TASK-0664, TASK-0665, TASK-0666, TASK-0667, TASK-0670, TASK-0677]
+      tasks: [TASK-0664, TASK-0665, TASK-0666, TASK-0667, TASK-0670, TASK-0677, TASK-0680]
       note: "STARTED 2026-10-14. Four tasks: TASK-0664 the shell's secret (stdin at spawn, required on /api/cockpit/approve and /api/cockpit/deliveries), TASK-0665 the plugin's tool.check hook and the sidecar's ask and hand-back routes, TASK-0666 the Needs you card's Approve and Deny buttons through IPC to the main process, TASK-0667 the guarantee tests, register rows and change note. Acceptance TST-0096. Edwin's decisions 2026-10-14: secret on two routes only; agent:principal keeps its acceptance in approvals.answer, but the route needs the secret and no delegated path holds it; the wait is 5 s, per workspace. Nothing recorded an approval before this feature: the store existed and no client called it. Risks: RISK-0013 new, RISK-0012 extended."
     FEAT-0155:
       file: "docs/features/release-test/FEAT-0155-The-Release-Test-Goes-Section-By-Section.md"
@@ -2833,7 +2833,7 @@ items:
       owner: user:edwin
       goal: "A Claude Code session started from the cockpit is connected to it through Claude Code's mod interface, so everything the cockpit learns from the session, shows in it or sends to it travels over a supported channel, while Codex sessions keep working exactly as they do today."
       features: ["FEAT-0156", "FEAT-0157", "FEAT-0158", "FEAT-0159"]
-      tasks: [TASK-0649, TASK-0650, TASK-0651, TASK-0652, TASK-0653, TASK-0654, TASK-0655, TASK-0656, TASK-0657, TASK-0658, TASK-0659, TASK-0660, TASK-0661, TASK-0662, TASK-0664, TASK-0665, TASK-0666, TASK-0667, TASK-0670, TASK-0671, TASK-0672, TASK-0673, TASK-0674, TASK-0675, TASK-0676, TASK-0677]
+      tasks: [TASK-0649, TASK-0650, TASK-0651, TASK-0652, TASK-0653, TASK-0654, TASK-0655, TASK-0656, TASK-0657, TASK-0658, TASK-0659, TASK-0660, TASK-0661, TASK-0662, TASK-0664, TASK-0665, TASK-0666, TASK-0667, TASK-0670, TASK-0671, TASK-0672, TASK-0673, TASK-0674, TASK-0675, TASK-0676, TASK-0677, TASK-0679, TASK-0680]
       note: "OPENED 2026-10-08 as PLANNED on Edwin's 'Plan the implementation in a new phase', after Claude Code mods shipped in v2.1.287 (installed 2.1.292) and the 2026-09-04 function-hooks review came due. Four features at backlog, feature notes only (feature-scaffold short path): FEAT-0156 plugin and telemetry first, then FEAT-0157 band and commands and FEAT-0158 submitted dispatch in either order, FEAT-0159 answerable approvals last and blocked on ISS-0301's secret. Risk notes are filed when the phase starts; the scan's findings are in the note. Leg 5 (porting project-os gates to a mod) and leg 6 (project-os as a plugin marketplace) are OUT: both are upstream-owned and recorded as follow-ups for project-os. Not active, no focus set; note writes need none (HC-001 exempts docs/)."
     PHASE-045:
       file: "docs/phases/PHASE-045-The-Cockpit-In-Layers.md"
@@ -3771,8 +3771,8 @@ metrics:
     # lands with that phase's own close-out.
     features_total: 159
     features_done: 136
-    tasks_total: 672
-    tasks_done: 633
+    tasks_total: 674
+    tasks_done: 635
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182

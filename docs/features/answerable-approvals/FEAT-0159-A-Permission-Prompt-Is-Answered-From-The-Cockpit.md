@@ -7,7 +7,7 @@ status: doing
 phase: "[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]]"
 owner: user:edwin
 created: 2026-10-08
-updated: 2026-10-14
+updated: 2026-10-21
 source:
   - "Edwin 2026-10-08: 'Plan the implementation in a new phase.'"
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]], the paragraph on permission prompts"
@@ -21,6 +21,7 @@ tasks:
   - "[[TASK-0667-Tests-Prove-A-Deny-Survives-And-An-Answer-Without-The-Secret-Is-Refused]]"
   - "[[TASK-0670-A-Permission-Prompt-Sits-In-The-Needs-You-List-Like-Its-Other-Rows]]"
   - "[[TASK-0677-The-Secret-Leak-Test-Runs-On-Python-3-11-And-3-12]]"
+  - "[[TASK-0680-FEAT-0159-Review-Round-1-Fixes]]"
 release: ""
 acceptance_exception: ""
 acceptance: "[[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]]"
@@ -38,11 +39,15 @@ related:
   - "[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"
   - "[[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]"
   - "[[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]]"
+reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)"]
+review_date: 2026-10-21
+review_verdict: changes-requested
+review_round: 1
 ---
 
 # A permission prompt is answered from the cockpit
 
-**Built on 2026-10-14; all four tasks are done** ([[CHG-20261014-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]). It stays `doing` until Edwin walks [[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]] after a desktop rebuild and restart, and the independent review approves it. Two things changed while building, both from live runs in a real Claude session: an ask is offered only in manual or acceptEdits mode, because in auto mode every classified call waited 5 s for nothing; and a session's records also close when its main-loop turn ends or the person sends the next prompt, because a refusal in the terminal reports nothing. One question is still Edwin's: whether the card should offer no buttons while the app runs with a Chrome debugging port (plan, "Open question").
+**Built on 2026-10-14; its tasks are done** (six since TASK-0670 and TASK-0677) ([[CHG-20261014-A-Permission-Prompt-Is-Answered-From-The-Cockpit]]). It stays `doing` until Edwin walks [[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]] after a desktop rebuild and restart, and the independent review approves it. Two things changed while building, both from live runs in a real Claude session: an ask is offered only in manual or acceptEdits mode, because in auto mode every classified call waited 5 s for nothing; and a session's records also close when its main-loop turn ends or the person sends the next prompt, because a refusal in the terminal reports nothing. One question is still Edwin's: whether the card should offer no buttons while the app runs with a Chrome debugging port (plan, "Open question").
 
 *As started:*  Edwin chose to start it after [[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]] was done, and answered its three open questions (below, "Decisions"). It no longer waits on [[ISS-0301-A-Framed-Page-Can-Post-To-The-Loopback-Write-Endpoints]]: this feature builds the secret that issue's open half asks for, for two routes. The plan is `plan/PLAN.md`, the acceptance check is [[TST-0096-A-Permission-Prompt-Is-Answered-From-The-Needs-You-Card]], and the new hazard is [[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]].
 
@@ -58,6 +63,46 @@ related:
 1. **The secret guards two routes.** It is required on `POST /api/cockpit/approve` (the answer) and on `POST /api/cockpit/deliveries` (the route that puts a prompt into a Claude session, [[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]). Not on every write route; the rest stays under ISS-0301. The `cockpit dispatch` command is unaffected: it posts a note ID and a verb to `/api/cockpit/dispatch`, and the shell's main process turns that into a delivery and sends the secret itself.
 2. **`agent:principal` may answer a prompt that runs a command.** `approvals.answer` keeps accepting it. **Assumption that follows:** the route still requires the shell's secret, and only the shell's main process holds it and always answers as the person. So a delegated principal can answer only through a path that holds the secret, and this feature builds none. This resolves the tension with [[ADR-0009-The-Principal-Is-A-Role]] that PHASE-046's impact analysis recorded.
 3. **The wait is 5 seconds, configurable per workspace.** After it, the plugin returns the original `ask` and the terminal prompt appears as today. The value is `approvalWaitMs` on the workspace's record in the shell's `workspaces.json`; 0 turns cockpit answering off. No settings screen in this feature.
+
+## Acceptance Criteria
+
+Written 2026-10-21, after round 1 of the review found the note had none. They restate the goal, the plan's "What the implementation must not do" and the decisions of 2026-10-14.
+
+1. When Claude Code's own rules, mode and hooks answer `ask` for a tool call in manual or acceptEdits mode, the call appears in the cockpit's Needs you list within a second, naming the project, the agent, the tool and the whole command, with Approve and Deny.
+2. Approve or Deny on that row is the session's answer, and the terminal shows no prompt of its own while the row waits.
+3. With no click within the workspace's wait (5 s unless set; 0 turns this off), the terminal shows its own prompt as before, and the row says to answer there and offers no buttons.
+4. An `allow` or a `deny` from beneath the plugin, a PreToolUse hook's deny among them, is never changed.
+5. `POST /api/cockpit/approve` and `POST /api/cockpit/deliveries` refuse a request without the shell's secret. The secret reaches the sidecar on stdin only, never in its arguments, environment, responses or files, and only the shell's main process reads it.
+6. An `agent:` actor other than `agent:principal` cannot answer, even with the secret.
+7. The answer is recorded as the person's (`user:<name>`), whatever the renderer sends.
+8. A program connected to the app's debugging port can answer as the person can; the secret cannot tell them apart. Whether to refuse answers then is open question 1, Edwin's ([[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]]).
+
+## Review
+
+**Round 1, 2026-10-21: changes-requested.** Two `independent-reviewer` sessions (A and B) worked from the same packet in clean contexts. Both are the same model as the author (`claude-opus-5-5`); independence here is the clean context (ADR-0013).
+
+| # | Claim | Combined verdict | Evidence |
+|---|---|---|---|
+| 0 | The feature's acceptance criteria | refuted: none existed | Both. Written above, 2026-10-21. |
+| 1 | The secret is made per sidecar and passed on stdin only | holds | A: `randomBytes(32)`, `--secret-stdin`, `child.stdin?.end(...)`. B: the leak test searches argv, `ps -E`, four responses, `.cockpit/` and stderr. |
+| 2 | `/approve` and `/deliveries` refuse a request without the secret | holds | A: removing the check at each route failed 14 and 5 tests. B: making `_require_shell_secret` pass failed 17. |
+| 3 | An `agent:` actor other than `agent:principal` is refused | holds | A: `if False:` failed six cases. B: removing the lower-casing failed two. |
+| 4 | The plugin never changes an `allow` or a `deny` from beneath | holds | Both: removing `if (asked.decision !== 'ask') return false` failed "a deny from a PreToolUse hook survives…" and "an allow from beneath is returned as it is". A noted the live-hook test never reaches that line, so only the folded-verdict test guards it. |
+| 5 | The wait runs out to the terminal; offered only in manual and acceptEdits; `approvalWaitMs` 0 turns it off | holds (tests and reading) | Both. |
+| 6 | The renderer never holds the secret or chooses the actor | holds | Both: `postAnswer` adds the secret, the actor is `personActor()`, and the source scan allows exactly two callers. |
+| 7 | Goal: "nobody else can answer it" | refuted while a debugging port is open | A. This was already open question 1; criterion 8 now says it plainly. |
+| 8 | TST-0096 guards the behaviour | not checked: step 9 not yet walked | Both. |
+
+**The packet was incomplete.** It left out `1072111` (TASK-0665) and `ba33244` (TASK-0666), which hold the plugin's `tool.check` hook, the ask and hand-back routes and the shell's answer handler. Their subjects name only task IDs, and the packet script read the feature's `tasks:` field only when written on one line. Both reviewers followed their claims into that code. Fixed in the template: project-os-dev TASK-0210.
+
+**Other observations, and what was done:**
+
+- A localhost page opened in a new window might inherit the preload, and with it `window.cockpit` (A, unverified): **does not hold**. Checked on 2026-10-21 in Electron 32.3.3, the app's version, with a window built like the app's (preload, context isolation, the same `setWindowOpenHandler` returning `{ action: 'allow' }`): the main window saw `typeof window.cockpit` = `object`, the popup at `http://127.0.0.1:<port>/x` saw `undefined`.
+- `approvals.ask` reused a record by `tool_use_id` without checking the session (A): **fixed**, a record is reused only for the same session and tool call ([[TASK-0680-FEAT-0159-Review-Round-1-Fixes|TASK-0680]]).
+- TST-0096 step 1's `ls -la` may not ask at all (B): **fixed**, step 1 now asks for a command that writes a file.
+- The opening paragraph said "all four tasks" (A): **fixed**.
+- The plugin reads its answer from an unauthenticated `GET`, so a process that can rewrite `hook-env` in the app's own data folder, or answer on the sidecar's port after it exits, could grant asks (B): recorded in [[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]]. Both need a process running as the same user, which can already type into the terminal.
+- `cockpit dispatch` still reaches a session without the secret (A): decided on 2026-10-14 (Decision 1); [[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]] stays partly open for it.
 
 ## Goal
 
@@ -84,6 +129,15 @@ Today the cockpit shows an amber card when a Claude session asks for permission,
 1. **Should a cockpit approval be refused while the app runs with a Chrome debugging port?** Any local program connected to that port can press Approve as you do, and the secret cannot tell the difference ([[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]]). The app has been started with `--remote-debugging-port=9222` for development. Recommendation: the main process checks for the switch and, when it is set, the card says "Answer in the terminal: the app was started with a debugging port" and offers no buttons. This is not planned in any task; it would be a small addition to TASK-0666 if you want it.
 
 The three questions filed on 2026-10-08 are answered under "Decisions, 2026-10-14".
+
+## Verification
+
+Full run on 2026-10-21, project-os-cockpit 541bba6, after the push and with every later commit from other sessions included:
+
+- `.venv/bin/python -m pytest -q` (Python 3.13): 2254 passed, 10 skipped.
+- `node --test tests/*.test.mjs` in `desktop/` after `npm run build`: 229 tests, 229 pass.
+- `claude plugin test .` in `desktop/plugin/claude-code` (Claude Code 2.1.303): 62 pass, 0 fail.
+- CI on 65c6de9: validate-docs (Python 3.12, Linux) and observed-coverage (Python 3.11, macOS, Claude Code 2.1.300) both green, after TASK-0677 fixed one test that failed before Python 3.13.
 
 ## Links
 

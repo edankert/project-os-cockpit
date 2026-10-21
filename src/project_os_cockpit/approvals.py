@@ -134,8 +134,11 @@ class ApprovalStore:
     ) -> dict[str, Any] | None:
         """The cockpit plugin offers a permission ask (FEAT-0159 / TASK-0665).
 
-        Idempotent on ``tool_use_id``: one tool call is one approval whatever
-        its status, so a retried offer never asks the person twice. ``None``
+        Idempotent on the session and ``tool_use_id``: one tool call is one
+        approval whatever its status, so a retried offer never asks the person
+        twice. Another session's offer with the same ID gets its own record, so
+        it cannot put its input on that session's card (FEAT-0159 review,
+        round 1). ``None``
         when the input is too long to show in full (MAX_INPUT_BYTES).
         """
         text = json.dumps(tool_input, ensure_ascii=False)
@@ -143,7 +146,8 @@ class ApprovalStore:
             return None
         with self._lock:
             for item in self._items:
-                if tool_use_id and item.get("tool_use_id") == tool_use_id:
+                if (tool_use_id and item.get("tool_use_id") == tool_use_id
+                        and item.get("session_id") == str(session_id)):
                     return dict(item)
             entry = {
                 "approval_id": uuid.uuid4().hex[:12],

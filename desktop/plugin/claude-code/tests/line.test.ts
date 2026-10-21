@@ -9,7 +9,7 @@
 
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
-import { lineAnswer, needsRows, openUrl, releaseRows, segmentFacts, NOT_ANSWERING, NO_ELSEWHERE } from '../hooks/register.ts'
+import { lineAnswer, needsRows, openUrl, releaseRows, segmentFacts, workspaceOf, NOT_ANSWERING, NO_ELSEWHERE } from '../hooks/register.ts'
 
 const DIR = '/instrument/ws-7'
 const NOW = Date.UTC(2026, 9, 14, 21, 30)
@@ -79,13 +79,27 @@ async function started($: any): Promise<void> {
 
 describe("the segment's facts (TASK-0673)", () => {
   test('this project, the other projects, and the button', () => {
-    expect(segmentFacts(lineAnswer(LINE), ELSEWHERE as any, NOW)).toEqual({
+    expect(segmentFacts(lineAnswer(LINE), ELSEWHERE as any, NOW, 'ws-7')).toEqual({
       here: '3 need you', others: '5 in other projects', url: 'cockpit://ws-7/FEAT-0157',
     })
   })
 
+  test('one thing owed reads "1 needs you"', () => {
+    const one = lineAnswer({ ...LINE, needs_you: { total: 1, kinds: [LINE.needs_you.kinds[1]] } })
+    expect(segmentFacts(one, undefined, NOW, 'ws-7').here).toBe('1 needs you')
+  })
+
+  test("the button's workspace is the instrument folder's, with or without the other projects' file", () => {
+    expect(workspaceOf('/instrument/ws-7')).toBe('ws-7')
+    expect(workspaceOf('/instrument/ws-7/')).toBe('ws-7')
+    expect(workspaceOf(undefined)).toBeUndefined()
+    expect(segmentFacts(lineAnswer(LINE), undefined, NOW, 'ws-7').url).toBe('cockpit://ws-7/FEAT-0157')
+    // The file's own workspace field is not where it comes from.
+    expect(segmentFacts(lineAnswer(LINE), { ...ELSEWHERE, workspace_id: 'ws-other' } as any, NOW, 'ws-7').url).toBe('cockpit://ws-7/FEAT-0157')
+  })
+
   test('zero here draws no count, and the button stays', () => {
-    const f = segmentFacts(lineAnswer({ ...LINE, needs_you: { total: 0, kinds: [] } }), ELSEWHERE as any, NOW)
+    const f = segmentFacts(lineAnswer({ ...LINE, needs_you: { total: 0, kinds: [] } }), ELSEWHERE as any, NOW, 'ws-7')
     expect(f.here).toBeUndefined()
     expect(f.url).toBe('cockpit://ws-7/FEAT-0157')
   })
@@ -108,7 +122,7 @@ describe("the segment's facts (TASK-0673)", () => {
 
   test('a failed line route draws no count and no button', () => {
     expect(lineAnswer({ ok: false, error: 'line not computed' })).toBeUndefined()
-    const f = segmentFacts(undefined, ELSEWHERE as any, NOW)
+    const f = segmentFacts(undefined, ELSEWHERE as any, NOW, 'ws-7')
     expect(f.here).toBeUndefined()
     expect(f.url).toBeUndefined()
     expect(f.others).toBe('5 in other projects')
@@ -173,12 +187,19 @@ describe('Open in cockpit (TASK-0674)', () => {
     expect(w.runs).toEqual([['open', 'cockpit://ws-7/FEAT-0157']])
   })
 
-  test('a malformed workspace in the file draws no button and runs nothing', async ($, on) => {
-    const w = world(on, { elsewhere: { ...ELSEWHERE, workspace_id: '../evil' } })
+  test('a malformed folder name draws no button', () => {
+    expect(segmentFacts(lineAnswer(LINE), ELSEWHERE as any, NOW, workspaceOf('/instrument/ws 7')).url).toBeUndefined()
+    expect(segmentFacts(lineAnswer(LINE), ELSEWHERE as any, NOW, workspaceOf('/instrument/..')).url).toBeUndefined()
+  })
+
+  test("before the shell has written the other projects' file, the button is there and works", async ($, on) => {
+    const w = world(on, { elsewhere: undefined })
     await started($)
     const ui = await $.ui.mount({ plugin: 'project-os-cockpit', surface: 'terminal', ...BAND })
-    expect(await ui.find({ key: 'cockpit:open' })).toBeUndefined()
-    expect(w.runs).toEqual([])
+    const seg = await ui.find({ key: 'segment:cockpit' })
+    expect(seg!.text).not.toContain('in other projects')
+    await ui.press({ key: 'cockpit:open' })
+    expect(w.runs).toEqual([['open', 'cockpit://ws-7/FEAT-0157']])
   })
 })
 
@@ -198,8 +219,10 @@ describe('/cockpit-needs and /cockpit-release (TASK-0675)', () => {
   })
 
   test('the release pane says where the release stands', () => {
-    const rows = releaseRows({ title: 'Next release', exists: false, preparing: false, contents: { count: 119, since: 'REL-0001' }, gate: { blocked: true }, open_tests: [{}, {}], still_owed: [] }).map(r => r.text)
-    expect(rows).toEqual(['Next release: not prepared yet', '119 items since REL-0001', 'Blocked: 2 manual checks not settled'])
+    // The gate blocks on 3 checks across the repo; 2 of them are for what this
+    // release carries. The blocked count is the gate's.
+    const rows = releaseRows({ title: 'Next release', exists: false, preparing: false, contents: { count: 119, since: 'REL-0001' }, gate: { blocked: true, blocking: [{}, {}, {}] }, open_tests: [{}, {}], still_owed: [] }).map(r => r.text)
+    expect(rows).toEqual(['Next release: not prepared yet', '119 items since REL-0001', 'Blocked: 3 manual checks not settled'])
   })
 
   test('each command opens its pane and starts no turn', async ($, on) => {

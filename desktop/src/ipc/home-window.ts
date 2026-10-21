@@ -80,7 +80,10 @@ async function owedGroups(base: string): Promise<{ groups: unknown[]; total: num
     groups.push(...(landing.groups as unknown[]));
   }
   // The same count the project line's file carries for this project
-  // (needs-count.ts), so the two never disagree (FEAT-0157).
+  // (needs-count.ts), so where both show a number it is the same one
+  // (FEAT-0157). This window also needs /landing and /stats; when one of
+  // them fails it shows the project as not read, while the file still
+  // carries the live total.
   return { groups, total: liveCount(ob, Date.now()).count };
 }
 

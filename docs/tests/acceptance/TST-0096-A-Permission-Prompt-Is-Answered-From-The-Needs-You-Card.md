@@ -44,7 +44,7 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 
 ## Steps
 
-1. In the project's terminal run `claude`. Ask it to run `ls -la` with Bash. Watch the Needs you list.
+1. In the project's terminal run `claude`. Ask it to run `touch /tmp/tst-0096-step1.txt` with Bash. (Until 2026-10-21 this step said `ls -la`, which may be allowed without asking; the first run used `touch` instead.) Watch the Needs you list.
 2. Press Approve on the card.
 3. Ask it to run `echo hello` with Bash. Press Deny on the card.
 4. Ask it to run `date` with Bash, and do not touch the cockpit. Watch the terminal for ten seconds, then look at the card.
@@ -56,8 +56,8 @@ The desktop application rebuilt from these sources (`npm run build` in `desktop/
 
 ## Expect
 
-- In step 1 a card appears within a second, naming the project, Claude, `Bash` and the full command `ls -la`, with Approve and Deny. The terminal shows no permission dialog while the card is up.
-- In step 2 the card leaves the list, the status line says "Approved Bash", and Claude runs `ls -la` without asking in the terminal.
+- In step 1 a card appears within a second, naming the project, Claude, `Bash` and the full command `touch /tmp/tst-0096-step1.txt`, with Approve and Deny. The terminal shows no permission dialog while the card is up.
+- In step 2 the card leaves the list, the status line says "Approved Bash", and Claude runs the command without asking in the terminal.
 - In step 3 Claude does not run the command and reports that it was denied in the cockpit by you.
 - In step 4 the terminal's own permission dialog appears about 5 seconds after Claude asked. The card stays, without buttons, and says "Answer in the terminal: the cockpit's 5 s wait ran out".
 - In step 5 the card still has no Approve or Deny, so it cannot be answered from the cockpit. Answering in the terminal works as it always has, and the card leaves the list when the command has run. (Until 2026-10-14 this step said to press Approve on the card anyway. A card handed to the terminal has no buttons, so there is nothing to press. A click that lands in the moment before the card redraws gets the same sentence in the status line, and `tests/test_approval_ask.py` covers that 409.) (A prompt refused in the terminal with No or Esc leaves its card until your next message to Claude, because Claude Code reports nothing on a refusal.)

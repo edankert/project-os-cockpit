@@ -407,10 +407,22 @@ export function openUrl(workspaceId: unknown, target: string | null): string | u
   return NOTE_ID.test(target) ? `cockpit://${workspaceId}/${target}` : undefined
 }
 
-/** The segment's facts from what was read, by the plan's rules. */
-export function segmentFacts(answer: LineAnswer | undefined, elsewhere: Elsewhere | undefined, now: number): SegmentFacts {
+/** The workspace this session's terminal belongs to: the shell names each
+ *  workspace's instrument folder after its ID (`instrument/<ws>`). */
+export function workspaceOf(instrumentDir: string | undefined): string | undefined {
+  const name = instrumentDir?.replace(/\/+$/, '').split('/').pop()
+  return name || undefined
+}
+
+/** The segment's facts from what was read, by the plan's rules. The button's
+ *  workspace is the instrument folder's, so it does not wait for the shell's
+ *  first `needs-elsewhere.json` (FEAT-0157 review, round 1). */
+export function segmentFacts(
+  answer: LineAnswer | undefined, elsewhere: Elsewhere | undefined, now: number, workspaceId?: string,
+): SegmentFacts {
   const facts: SegmentFacts = {}
-  if (answer && answer.needs_you.total > 0) facts.here = `${answer.needs_you.total} need you`
+  const total = answer?.needs_you.total ?? 0
+  if (total > 0) facts.here = `${total} ${total === 1 ? 'needs' : 'need'} you`
   const written = elsewhere ? Date.parse(elsewhere.written_at) : NaN
   if (elsewhere && Array.isArray(elsewhere.projects) && Number.isFinite(written) && now - written <= ELSEWHERE_FRESH_MS) {
     let sum = 0
@@ -423,7 +435,7 @@ export function segmentFacts(answer: LineAnswer | undefined, elsewhere: Elsewher
     if (sum > 0) facts.others = `${sum}${partial ? '+' : ''} in other projects`
   }
   if (answer) {
-    const url = openUrl(elsewhere?.workspace_id, answer.open_target)
+    const url = openUrl(workspaceId, answer.open_target)
     if (url) facts.url = url
   }
   return facts
@@ -459,7 +471,8 @@ async function readLine($: EngineInterface): Promise<void> {
     const reply = await sidecarCall($, '/api/cockpit/line')
     line.answer = reply?.status === 200 ? lineAnswer(reply.json) : undefined
     line.elsewhere = await readElsewhere($)
-    line.facts = segmentFacts(line.answer, line.elsewhere, await $.clock.now())
+    const dir = (await $.env.get('COCKPIT_INSTRUMENT_DIR')) || undefined
+    line.facts = segmentFacts(line.answer, line.elsewhere, await $.clock.now(), workspaceOf(dir))
     const text = segmentText(line.facts)
     if (text !== line.text) {
       line.text = text
@@ -552,9 +565,16 @@ export function releaseRows(release: Record<string, unknown> | undefined): { tex
   if (typeof contents?.count === 'number') {
     rows.push({ text: `${contents.count} item${contents.count === 1 ? '' : 's'}${contents.since ? ` since ${contents.since}` : ''}` })
   }
-  const gate = release.gate as { blocked?: boolean; rule?: string } | undefined
-  const open = Array.isArray(release.open_tests) ? release.open_tests.length : 0
-  if (gate?.blocked) rows.push({ text: `Blocked: ${open} manual check${open === 1 ? '' : 's'} not settled` })
+  // The gate's own list: it counts every unsettled check in the repo, which
+  // is what blocks. `open_tests` is narrower (the checks for this release's
+  // contents), so it is not the blocked count (FEAT-0157 review, round 1).
+  const gate = release.gate as { blocked?: boolean; blocking?: unknown[]; rule?: string } | undefined
+  const blocking = Array.isArray(gate?.blocking) ? gate!.blocking!.length : undefined
+  if (gate?.blocked) {
+    rows.push({ text: blocking === undefined
+      ? 'Blocked: manual checks not settled'
+      : `Blocked: ${blocking} manual check${blocking === 1 ? '' : 's'} not settled` })
+  }
   else if (gate) rows.push({ text: 'Nothing blocks it' })
   const owed = Array.isArray(release.still_owed) ? release.still_owed as { id?: string; title?: string }[] : []
   if (owed.length) {

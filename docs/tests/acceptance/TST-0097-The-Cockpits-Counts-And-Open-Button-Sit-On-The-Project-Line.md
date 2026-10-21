@@ -45,7 +45,7 @@ Confirms what FEAT-0157 promises a person in a cockpit Claude terminal: the cock
 ## Steps
 
 1. Open a new cockpit terminal on project-os-cockpit and start `claude`. **Expect:** one line above the prompt. It starts with project-os's facts (focus item, status, phase, counts, route) and ends with ` · N need you`, ` · M in other projects` and `[ Open in cockpit ]`. There is no second line or band from the cockpit.
-2. Compare with the cockpit window's Needs you badge for this project and with the draft home window. **Expect:** N equals this project's badge total; M equals the sum of the other projects' counts in the home window.
+2. Compare with the cockpit window's Needs you badge for this project and with the draft home window. **Expect:** N equals this project's badge total. M equals the sum of the other projects' counts in the home window that are under a day old; if any project shows no count, or one older than a day, M ends in "+". (Wording corrected 2026-10-21 after FEAT-0157's review: the line leaves out a count older than a day, so a plain sum would not match.)
 3. Clear what is owed in every other project (or close them), and wait 30 seconds. **Expect:** "in other projects" disappears from the line; it never reads 0.
 4. Quit the desktop app, leaving the terminal running (a tmux terminal survives), and wait 2 minutes. **Expect:** the other-projects count disappears. This project's count and the button disappear when the sidecar stops answering.
 5. Restart the app. With a focus item set, press `[ Open in cockpit ]` (click it, or ctrl+x tab then its key). **Expect:** the cockpit window comes forward on this project with the focus item's note open.

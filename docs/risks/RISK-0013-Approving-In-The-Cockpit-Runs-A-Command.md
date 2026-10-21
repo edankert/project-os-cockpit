@@ -6,7 +6,7 @@ title: "Once a cockpit click approves a Claude permission prompt, anything that 
 status: open
 owner: user:edwin
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-21
 source: ["[[PHASE-046-A-Claude-Session-Talks-To-The-Cockpit-Through-A-Plugin]], risk scan item 3", "[[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]], risk scan 2026-10-14"]
 likelihood: low
 impact: high
@@ -37,6 +37,7 @@ After [[FEAT-0159-A-Permission-Prompt-Is-Answered-From-The-Cockpit]], pressing A
 
 - **Driving the cockpit window itself.** A program that can click in the window, or that connects to the app's Chrome debugging port when the app is started with `--remote-debugging-port` (as it has been for development, on port 9222), can press Approve as the person does. The secret proves the request came from the shell, not that a person pressed the button.
 - **Typing into the terminal.** The same user can already answer a terminal permission prompt with `tmux -L <socket> send-keys`. That predates this feature and is unchanged by it. The secret makes the HTTP path no weaker than that one; it does not make the machine safe from a hostile same-user process.
+- **The plugin's read of its answer.** The plugin finds out whether the person answered with `GET /api/cockpit/approvals?approval_id=…`, which needs no secret, at the address in `hook-env`. A same-user process that rewrites `hook-env` in the app's data folder, or that answers on the sidecar's port after the sidecar exits, could hand the plugin a grant. Both need a process running as the person, which can already type into the terminal (the item above). Found by FEAT-0159's review, round 1, 2026-10-21.
 - **Approving the wrong thing.** A person who approves a command they did not read runs it. The card shows the input in full and the plugin does not offer an input it cannot show, but the click is still the person's.
 
 ## Mitigation

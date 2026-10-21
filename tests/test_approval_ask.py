@@ -51,6 +51,21 @@ def test_an_ask_is_recorded_once_per_tool_call_with_its_command_in_full(tmp_path
         httpd.shutdown()
 
 
+def test_another_sessions_offer_with_the_same_call_id_gets_its_own_record(tmp_path: Path):
+    """FEAT-0159 review, round 1: the record is one per session and call, so
+    an offer from elsewhere cannot put its input on this session's card."""
+    docs = _make_workspace(tmp_path)
+    server, httpd, port = _spin_up(docs, shell_secret=SECRET)
+    try:
+        _, first = _ask(port, session_id="s-other", input={"command": "echo harmless"})
+        _, mine = _ask(port)
+        assert mine["approval_id"] != first["approval_id"]
+        record = _record(port, mine["approval_id"])
+        assert (record["session_id"], record["prompt"]) == ("s-1", "rm -rf build")
+    finally:
+        httpd.shutdown()
+
+
 def test_a_long_command_is_not_offered(tmp_path: Path):
     """A person must read what they approve in full; a longer one stays in the
     terminal rather than being shown cut short."""
