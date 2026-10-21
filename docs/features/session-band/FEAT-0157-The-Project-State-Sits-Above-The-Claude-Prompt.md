@@ -37,10 +37,10 @@ related:
   - "[[PHASE-045-The-Cockpit-In-Layers]]"
   - "[[ISS-0277-Nothing-Detects-A-Stale-Or-Broken-Vendored-Cockpit]]"
   - "[[RISK-0004-Hook-Injection-Surface]]"
-reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)"]
+reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)", "model:claude-opus-5-5 (independent-reviewer, round 2)"]
 review_date: 2026-10-21
 review_verdict: changes-requested
-review_round: 1
+review_round: 2
 ---
 
 # The cockpit's facts join the project line above the Claude prompt
@@ -73,6 +73,9 @@ Written 2026-10-21, after round 1 of the review found the note had none. Each re
 | 4 | Open in cockpit opens the focus item | holds up to the link; the window is TST-0097 step 5 | Both. Both noted the button appears only once the shell's other-projects file exists, because the workspace ID came from it. |
 | 5 | The two commands answer in a pane with no turn | holds | Both: `immediate: true`, the handler returns `{}`, plugin test "each command opens its pane and starts no turn". |
 | 6 | TST-0097 guards the behaviour | not checked: never walked | Both. Step 2 expects M to equal the home window's sum, which a day-old count makes untrue. |
+
+
+**Round 2, 2026-10-21: changes-requested, for the walk alone.** One `independent-reviewer` session checked commit 786590c from a round-2 packet. Every code and wording fix holds, each shown by undoing it: the button's workspace read from the file again failed 3 tests, counting `open_tests` again failed 1, a plain "need" failed 1. The criteria hold up as checkable. **Not fixed: finding 6**, because TST-0097 has not been walked. There is no round three; what is left is the walk, and the gate for `done` needs TST-0097 `passing`.
 
 **The packet was incomplete.** It left out `a204091`, which holds the plugin's segment, button and commands (about 300 lines of `register.ts`). Its subject names only TASK-0673 to TASK-0676. The packet script read the feature's `tasks:` field only when written on one line, and this note writes it as a block list. Both reviewers followed `line.test.ts` into `register.ts` for claims 2, 4 and 5. Fixed in the template: project-os-dev TASK-0210.
 

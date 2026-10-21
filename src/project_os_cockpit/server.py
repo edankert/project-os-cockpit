@@ -1884,7 +1884,12 @@ def _make_handler(
             # next prompt is what closes it.
             event_name = body.get("hook_event_name")
             if event_name == "PostToolUse":
-                closed = approval_store.close(tool_use_id=str(body.get("tool_use_id") or ""))
+                # Its own session's record only, as an ask reuses one
+                # (FEAT-0159 review, round 2).
+                closed = approval_store.close(
+                    session_id=str(body.get("session_id") or ""),
+                    tool_use_id=str(body.get("tool_use_id") or ""),
+                )
             elif event_name in ("Stop", "Interrupt", "UserPromptSubmit", "SessionEnd"):
                 closed = approval_store.close(
                     session_id=str(body.get("session_id") or ""),

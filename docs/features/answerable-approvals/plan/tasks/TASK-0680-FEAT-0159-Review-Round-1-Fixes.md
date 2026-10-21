@@ -27,6 +27,7 @@ Round 1 of FEAT-0159's independent review found these in code and notes the feat
 - [x] `approvals.ask` reuses an existing record only when both the session and the `tool_use_id` match. A test registers the same `tool_use_id` from two sessions and gets two records; it fails with the old match.
 - [x] TST-0096 step 1 asks Claude to create a file with Bash, which asks in manual mode, instead of `ls -la`, which may be allowed without asking.
 - [x] RISK-0013 names the plugin's unauthenticated `GET` of its answer: a process running as the same user that rewrites `hook-env`, or answers on the sidecar's port after it exits, could grant an ask.
+- [x] A finished call (`PostToolUse`) closes a record only for its own session, as an ask now reuses one. Raised beside round 2 of the review: `close()` already filters by session when given one, but the `PostToolUse` path passed only the call's ID. A test sends another session's `PostToolUse` with the same ID and the card stays open; it fails without the fix.
 - [x] The approval tests pass.
 
 ## Result
@@ -34,3 +35,4 @@ Round 1 of FEAT-0159's independent review found these in code and notes the feat
 - `ApprovalStore.ask` reuses a record only when `tool_use_id` and `session_id` both match. `test_another_sessions_offer_with_the_same_call_id_gets_its_own_record` fails with the old match (1 failed, 12 passed) and passes with the new one. The approval tests pass (39).
 - TST-0096 step 1 and its expectations use `touch /tmp/tst-0096-step1.txt`.
 - RISK-0013, "What the secret does not stop", names the plugin's unauthenticated read of its answer.
+- `server.py` passes the hook's `session_id` to `approval_store.close` for `PostToolUse`. `test_another_sessions_finished_call_with_the_same_id_leaves_the_card_open` fails without it (1 failed, 13 passed) and passes with it; the approval, hook and guard tests pass (64).

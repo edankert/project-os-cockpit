@@ -66,6 +66,18 @@ def test_another_sessions_offer_with_the_same_call_id_gets_its_own_record(tmp_pa
         httpd.shutdown()
 
 
+def test_another_sessions_finished_call_with_the_same_id_leaves_the_card_open(tmp_path: Path):
+    docs = _make_workspace(tmp_path)
+    _server, httpd, port = _spin_up(docs, shell_secret=SECRET)
+    try:
+        mine = _ask(port, "toolu_a")[1]["approval_id"]
+        _hook(port, {"hook_event_name": "PostToolUse", "session_id": "s-other",
+                     "tool_name": "Bash", "tool_use_id": "toolu_a", "agent": "claude"})
+        assert _record(port, mine)["status"] == "open"
+    finally:
+        httpd.shutdown()
+
+
 def test_a_long_command_is_not_offered(tmp_path: Path):
     """A person must read what they approve in full; a longer one stays in the
     terminal rather than being shown cut short."""

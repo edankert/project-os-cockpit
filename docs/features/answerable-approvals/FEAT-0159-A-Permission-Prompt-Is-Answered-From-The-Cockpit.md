@@ -12,7 +12,7 @@ source:
   - "Edwin 2026-10-08: 'Plan the implementation in a new phase.'"
   - "[[REFERENCE-FUNCTION-HOOKS-REVIEW]], the paragraph on permission prompts"
   - "Edwin 2026-10-14: 'Continue PHASE-046', and his answers to the three open questions"
-goal: "When a Claude session asks permission to use a tool, the person can approve or deny it with the cockpit's buttons, and that click is the session's answer; nobody else can answer it, and nothing the cockpit sends can turn a deny into an allow."
+goal: "When a Claude session asks permission to use a tool, the person can approve or deny it with the cockpit's buttons, and that click is the session's answer; nobody else can answer it except a program connected to the app's debugging port (open question 1, Edwin's), and nothing the cockpit sends can turn a deny into an allow."
 requirements: []
 tasks:
   - "[[TASK-0664-The-Sidecar-Requires-The-Shells-Secret-To-Answer-A-Prompt-Or-Deliver-One]]"
@@ -39,10 +39,10 @@ related:
   - "[[FEAT-0158-A-Dispatched-Prompt-Is-Submitted-Not-Typed]]"
   - "[[RISK-0012-A-Local-Request-Can-Put-A-Prompt-Into-A-Claude-Session]]"
   - "[[RISK-0013-Approving-In-The-Cockpit-Runs-A-Command]]"
-reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)"]
+reviewed_by: ["model:claude-opus-5-5 (independent-reviewer, round 1, A)", "model:claude-opus-5-5 (independent-reviewer, round 1, B)", "model:claude-opus-5-5 (independent-reviewer, round 2)"]
 review_date: 2026-10-21
 review_verdict: changes-requested
-review_round: 1
+review_round: 2
 ---
 
 # A permission prompt is answered from the cockpit
@@ -92,6 +92,11 @@ Written 2026-10-21, after round 1 of the review found the note had none. They re
 | 6 | The renderer never holds the secret or chooses the actor | holds | Both: `postAnswer` adds the secret, the actor is `personActor()`, and the source scan allows exactly two callers. |
 | 7 | Goal: "nobody else can answer it" | refuted while a debugging port is open | A. This was already open question 1; criterion 8 now says it plainly. |
 | 8 | TST-0096 guards the behaviour | not checked: step 9 not yet walked | Both. |
+
+
+**Round 2, 2026-10-21: changes-requested.** One `independent-reviewer` session checked commit 786590c from a round-2 packet. **Fixed:** the criteria (0), and the ask's record reused only for the same session and call (replacing the new condition with `and True` failed its test). **Not fixed: finding 7**, because the goal still said "nobody else can answer it" beside criterion 8's exception; **finding 8**, because TST-0096 step 9 has not been walked.
+
+After round 2: the goal now names the debugging-port exception, which open question 1 leaves to Edwin. The reviewer also noted, without raising it, that a finished call (`PostToolUse`) closed a record by its ID alone, so another session's event could close this session's card; fixed in [[TASK-0680-FEAT-0159-Review-Round-1-Fixes|TASK-0680]], with a test that fails without it. No round three checked these two; they go to Edwin with the walk.
 
 **The packet was incomplete.** It left out `1072111` (TASK-0665) and `ba33244` (TASK-0666), which hold the plugin's `tool.check` hook, the ask and hand-back routes and the shell's answer handler. Their subjects name only task IDs, and the packet script read the feature's `tasks:` field only when written on one line. Both reviewers followed their claims into that code. Fixed in the template: project-os-dev TASK-0210.
 
