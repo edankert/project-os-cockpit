@@ -71,7 +71,7 @@ counters:
   CHG:
     last_date: 20260916
     # Rename CHG dated 20260507 inserted post-hoc; does not advance last_date.
-  FEAT: 160
+  FEAT: 161
   ISS: 326
   PHASE: 46
   REQ: 72
@@ -79,7 +79,7 @@ counters:
   # A place in the product a check's area: names (TASK-0514).
   SUR: 6
   REL: 1
-  TASK: 680
+  TASK: 681
   TST: 97
   WF: 3 # WF-0001..0003 ship with the template under docs/workflows/
 
@@ -102,7 +102,8 @@ focus:
   # 2026-09-25, close: FEAT-0019 and FEAT-0027 are done after a two-round shared review, and PHASE-007 is closed. No task is in flight; the next choice is Edwin's.
   # 2026-10-21: TASK-0678 (ISS-0326) brings the cockpit up to project-os a76657d: ride results in a ledger, unknown ledger fields kept, owed checks counted per platform, the hand-run budget shown.
   # 2026-10-21, close: TASK-0678 is done and ISS-0326 fixed (CHG-20261021-The-Cockpit-Reads-Ride-Results-And-Owes-What-The-Release-Test-Owes). Focus returns to where it was.
-  task: ""
+  # 2026-10-22: TASK-0681 (FEAT-0161) puts the live test run and the latest CI run on the Tests page, the cockpit's part of project-os-dev FEAT-0042. The focus returns to FEAT-0157 when it is done.
+  task: "TASK-0681"
   # TASK-0631 ran the actual walk in isolated Electron on copied Your Trainer docs and ledgers: Android survey, step advance, reload, blocked action, interrupted timer and uploaded PNG comparison worked. Review results now lists all 39 owed Android checks instead of hiding ten expired prior-release excuses. The iOS route loads 327 owed rows but has no open release id. Eighty focused renderer tests, the full desktop suite, 47 Python walk tests and docs gates pass; human and full iOS walks remain open.
   # TASK-0629 is correcting a full Electron walk finding: the session-wide readiness list stays expanded and repeats the current warning, and Walk options lacks a direct step picker. The isolated browser uses copied Your Trainer docs and ledgers.
   # TASK-0629 moved occasional walk navigation under Walk options and sitting state/equipment into required setup. The focused renderer suite passes 77 cases, and standalone Chrome rendered the current Android payload at desktop and narrow widths. Full Electron and Edwin walks remain open.
@@ -115,14 +116,22 @@ focus:
   # FEAT-0151 is now implementing correction after a completed check leaves the owed walk. The completed-check index is browser local and the server still computes owed rows from the ledger.
   # TASK-0630 is also adding build identity and an optional PNG attachment at authored evidence prompts. The existing note attachment endpoint stores the PNG under the affected check.
   # 2026-10-14, late: focus moves to FEAT-0157 (Edwin: "Can we first implement the rest of the features in this phase and then test!"). FEAT-0159 stays doing, waiting on TST-0096 step 9 and its review. FEAT-0157 waits on project-os-dev FEAT-0041 TASK-0198 for its line segment; TASK-0671, TASK-0672 and TASK-0675 can be built before that.
-  feature: "FEAT-0157"
-  phase: "PHASE-046"
+  feature: "FEAT-0161"
+  phase: "PHASE-037"
   issue: ""
   note: "2026-10-21: every PHASE-046 feature is built and has been through independent review, two rounds each (FEAT-0157, FEAT-0159 here; project-os-dev FEAT-0041). Every code finding is fixed and pushed nowhere yet beyond what Edwin asked; each verdict stays changes-requested only for its walk. What is left is Edwin's: restart the app (it has run since 2026-10-14, dist is current), then walk TST-0096 step 9, project-os-dev TST-0047 and TST-0097, and decide FEAT-0159 open question 1 (refuse cockpit answers while a debugging port is open). Then the three features can close. The TST-0096 step 7 deny hook is still in project-os-deck/.claude/settings.local.json; remove it after the walks."
 
 items:
   # Pruned by retention policy (ADR-0018); the notes remain the archive.
   features:
+    FEAT-0161:
+      file: "docs/features/test-run-live/FEAT-0161-The-Tests-Page-Shows-The-Live-Test-Run-And-The-Latest-CI-Run.md"
+      title: "The Tests page shows a test run as it happens, each command linked to its log, and the latest CI run of each workflow"
+      status: doing
+      owner: user:edwin
+      phase: "[[PHASE-037-The-Surfaces-Report-At-The-Readers-Granularity]]"
+      tasks: ["TASK-0681"]
+      note: "STARTED 2026-10-22 as the cockpit's part of project-os-dev FEAT-0042 (its TASK-0216). The Tests page reads .project-os/runs/latest.json and .project-os/ci/latest.json, whose formats project-os's TEST-RUNS.md defines, redraws on cockpit:test-run, and opens each command's log through a loopback-only route that serves only logs the run file names."
     FEAT-0160:
       file: "docs/features/draft-window/FEAT-0160-A-Draft-Window-Shows-What-Needs-You.md"
       title: "A draft window shows what needs you, where work stands, the AIs"
@@ -952,6 +961,11 @@ items:
       path: "docs/features/cockpit-mcp/FEAT-0029-Cockpit-MCP-Server.md"
 
   tasks:
+    TASK-0681:
+      file: docs/features/test-run-live/plan/tasks/TASK-0681-The-Tests-Page-Reads-The-Run-And-CI-Files-Watches-Them-And-Serves-The-Logs.md
+      status: doing
+      parent: FEAT-0161
+      phase: "[[PHASE-037]]"
     TASK-0678:
       file: docs/tasks/TASK-0678-The-Cockpit-Reads-Ride-Results-And-Counts-Owed-Checks-As-The-Release-Test-Does.md
       status: done
@@ -1066,11 +1080,6 @@ items:
       status: doing
       parent: FEAT-0160
       phase: "[[PHASE-045]]"
-    TASK-0644:
-      file: docs/features/release-test/plan/tasks/TASK-0644-Retire-The-Walk-Page-In-The-Publication-View.md
-      status: done
-      parent: FEAT-0155
-      phase: "[[PHASE-043]]"
     TASK-0645:
       file: docs/features/release-test/plan/tasks/TASK-0645-Pilot-The-Equipment-Section-Then-The-Rest.md
       status: done
@@ -2904,7 +2913,7 @@ items:
       status: active
       owner: user:edwin
       goal: "Every verification surface answers the question its reader actually has, and the record can hold the answer — a release says what holds IT and offers no control that changes a check, the tests view leads with what a person owes rather than with an inventory, and a rendered mark is a check mark. Widened 2026-08-20: where a surface was found stating something nothing had recorded, this phase now also builds the place to record it. Found by use, not by audit."
-      features: ["FEAT-0125", "FEAT-0126", "FEAT-0127", "FEAT-0128", "FEAT-0129", "FEAT-0115", "FEAT-0130", "FEAT-0131", "FEAT-0132", "FEAT-0138", "FEAT-0142", "FEAT-0145"]
+      features: ["FEAT-0125", "FEAT-0126", "FEAT-0127", "FEAT-0128", "FEAT-0129", "FEAT-0115", "FEAT-0130", "FEAT-0131", "FEAT-0132", "FEAT-0138", "FEAT-0142", "FEAT-0145", "FEAT-0161"]
       issues: ["ISS-0210", "ISS-0211", "ISS-0212", "ISS-0280", "ISS-0281", "ISS-0282", "ISS-0214", "ISS-0222", "ISS-0223", "ISS-0224", "ISS-0225", "ISS-0226", "ISS-0227", "ISS-0228", "ISS-0229", "ISS-0231", "ISS-0232", "ISS-0233", "ISS-0234", "ISS-0235", "ISS-0241", "ISS-0242", "ISS-0243", "ISS-0244", "ISS-0245", "ISS-0246", "ISS-0247", "ISS-0248", "ISS-0249", "ISS-0250", "ISS-0251", "ISS-0252", "ISS-0253", "ISS-0283", "ISS-0284"]
       note: "REOPENED 2026-09-06 for ISS-0280, ISS-0281 and ISS-0282: three defects on the acceptance checks page Edwin found by walking your-trainer's suite, which is this phase's shape (a surface answering a question its reader did not ask). Close it again when the three are fixed (CLAUDE.md, reopen-and-close rule). Opened 2026-08-18 from five defects Edwin found by USE, not by audit — four are invisible to the validator and to the suite, and two are live regressions PHASE-036 introduced. Closed 2026-08-21 over 97 resolved children. Opens on ADR-0035 (a release page reports, it does not record)."
     PHASE-036:
@@ -3769,9 +3778,9 @@ metrics:
     # 2026-07-17: deltas applied for FEAT-0018 close-out + FEAT-0028/0029
     # scaffolds on the pre-PHASE-007 baseline; the PHASE-007 batch recount
     # lands with that phase's own close-out.
-    features_total: 159
+    features_total: 160
     features_done: 136
-    tasks_total: 674
+    tasks_total: 675
     tasks_done: 635
     tests_total: 51
     tests_passing: 2
