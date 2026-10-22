@@ -56,6 +56,7 @@ from .approvals import ApprovalStore
 from . import escalation
 from .review import ReviewStore
 from .terminal import TERMINAL_BASE_PATH, TerminalProcess
+from . import test_runs
 from .validation import ValidationRunner
 from .watcher import Watcher
 
@@ -519,6 +520,12 @@ class DocsServer:
             self.docs_root.parent, self.bus, resolver=self.index.resolve,
         )
         self.bus.subscribe(self.validation.on_event)
+        # The repo's latest test run and CI runs (FEAT-0161 / TASK-0681).
+        # `.project-os/` sits beside docs/ like SNAPSHOT.yaml, so it has its
+        # own observer; it publishes ``cockpit:test-run`` and starts in `run`.
+        self.test_runs: test_runs.TestRunWatcher = test_runs.TestRunWatcher(
+            self.docs_root.parent, self.bus,
+        )
         # Status-diff layer (FEAT-0036 / TASK-0162): note saves become
         # cockpit:status-change events feeding the live-work views.
         # Seeded from the current index so the first scan is silent.
@@ -571,6 +578,7 @@ class DocsServer:
         # SNAPSHOT.yaml sits above the docs root — the validation runner
         # owns its own non-recursive observer for it (TASK-0111).
         self.validation.start()
+        self.test_runs.start()
         # Background decay thread for agent-state (FEAT-0013 / TASK-0077).
         # Wakes once a minute, asks the state for any aged-out
         # busy/waiting it should now consider idle, and publishes the
@@ -617,6 +625,7 @@ class DocsServer:
             self._decay_stop.set()
             decay_thread.join(timeout=2)
             self.validation.stop()
+            self.test_runs.stop()
             self.watcher.stop()
 
     def _agent_state_decay_loop(self) -> None:
@@ -1089,6 +1098,49 @@ def _make_handler(
                     # clock rather than only the amber.
                     "escalation": escalation.sweep(open_prompts)["counts"],
                 })
+                return
+
+            #: The repo's latest test run and each CI workflow's latest run
+            #: ([[FEAT-0161]] / [[TASK-0681]]), read from `.project-os/`. The
+            #: page re-fetches this on ``cockpit:test-run``.
+            #:
+            #: **Loopback-only, both of them**, like the inbox's read paths. A
+            #: run's reasons are the last line a test printed, and its log is
+            #: everything it printed: a test that echoes a token puts the
+            #: token here. The render server binds 0.0.0.0 so a tablet can
+            #: read the notes; a log is not a note.
+            if path == "/api/cockpit/test-run":
+                if not self._require_loopback("test run reads"):
+                    return
+                self._respond_json({
+                    "schema_version": cockpit.SCHEMA_VERSION,
+                    **test_runs.payload(project_root),
+                })
+                return
+
+            if path == test_runs.LOG_ROUTE:
+                if not self._require_loopback("test run reads"):
+                    return
+                rel = (urllib.parse.parse_qs(parsed.query).get("path") or [""])[0]
+                target = test_runs.log_file(project_root, rel)
+                if target is None:
+                    # One answer for every refusal: a path the run file does
+                    # not name, one outside `.project-os/runs/`, and a log
+                    # that is gone all mean "not a log this run has".
+                    self._respond_json(
+                        {"ok": False,
+                         "error": "not a log the latest test run names"},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+                data = test_runs.read_log(target)
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Cache-Control", "no-cache")
+                self.send_header("X-Content-Type-Options", "nosniff")
+                self.end_headers()
+                self.wfile.write(data)
                 return
 
             if path == "/api/cockpit/acceptance-debt":

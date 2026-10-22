@@ -6348,11 +6348,73 @@ async function renderViewLanding(view: string): Promise<boolean> {
   page.dataset.view = view;
 
   page.appendChild(buildLandingHead(view));
+  //: The Tests page leads with the latest test run and CI ([[FEAT-0161]]):
+  //: while a push sits in its pre-push hook, how far it has got is the thing
+  //: the reader came for. Filled after the page is placed, so a slow or
+  //: missing route never holds up what the view owes.
+  if (view === 'tests') page.appendChild(buildTestRunPanel());
   for (const el of buildLandingLead(view, data.total)) page.appendChild(el);
   for (const el of buildLandingObligations(data)) page.appendChild(el);
 
   docView.appendChild(page);
+  if (view === 'tests') void refreshTestRunPanel();
   return true;
+}
+
+// ---- The latest test run and CI on the Tests page (FEAT-0161) ------------
+//
+// `test-run.ts` draws the two sections from `/api/cockpit/test-run`. This
+// half places them, opens what they link to, and keeps them current: the
+// sidecar publishes `cockpit:test-run` when either file under `.project-os/`
+// is rewritten, and only this panel is redrawn -- never the page under it.
+
+const TEST_RUN_PANEL_ID = 'test-run-panel';
+
+/** While a run reads as running, re-fetch this often even with no event.
+ *  The elapsed time should move, and a runner killed outright writes nothing
+ *  more: only a fresh read sees that its process is gone and says stopped. */
+const TEST_RUN_TICK_MS = 15_000;
+let testRunTick: number | null = null;
+
+function buildTestRunPanel(): HTMLElement {
+  const panel = document.createElement('div');
+  panel.id = TEST_RUN_PANEL_ID;
+  panel.className = 'test-run-panel';
+  return panel;
+}
+
+async function fetchTestRun(): Promise<TrPayload | null> {
+  if (!sidecarBaseUrl) return null;
+  try {
+    const resp = await fetch(`${sidecarBaseUrl}/api/cockpit/test-run`);
+    if (!resp.ok) return null;
+    return (await resp.json()) as TrPayload;
+  } catch { return null; }
+}
+
+/** Redraw the panel if it is on screen. A sidecar older than this route
+ *  answers 404, and the panel then stays empty rather than saying something
+ *  false about the run. */
+async function refreshTestRunPanel(): Promise<void> {
+  if (testRunTick != null) { window.clearTimeout(testRunTick); testRunTick = null; }
+  if (!document.getElementById(TEST_RUN_PANEL_ID)) return;
+  const base = sidecarBaseUrl;
+  const data = await fetchTestRun();
+  //: Looked up again after the fetch: the reader may have left the page,
+  //: or switched project, while it was in flight.
+  const panel = document.getElementById(TEST_RUN_PANEL_ID);
+  if (!panel || !data || base !== sidecarBaseUrl) return;
+  panel.replaceChildren(trBuildSections(data, {
+    //: A log opens in the system browser as plain text. The route is
+    //: loopback-only, and the browser on this Mac is loopback.
+    log: (route) => {
+      if (sidecarBaseUrl) void cockpitApi.app.openExternal(`${sidecarBaseUrl}${route}`);
+    },
+    external: (url) => { void cockpitApi.app.openExternal(url); },
+  }));
+  if (data.run && data.run.run && data.run.run.live) {
+    testRunTick = window.setTimeout(() => { void refreshTestRunPanel(); }, TEST_RUN_TICK_MS);
+  }
 }
 
 // ---- The viewer: any HTML page in the record, framed (FEAT-0148) --------
@@ -15514,6 +15576,11 @@ function attachSidecarEventStream(baseUrl: string): void {
     try {
       applyValidationReport(JSON.parse((e as MessageEvent).data) as ValidationReport);
     } catch { /* malformed frame — keep the last good report */ }
+  });
+  // The latest test run or CI result changed on disk (FEAT-0161). Only the
+  // Tests page's panel listens; on any other page this is a no-op.
+  es.addEventListener('cockpit:test-run', () => {
+    void refreshTestRunPanel();
   });
   // `cockpit:focus` stays on the main process's agent-focus bridge.
   es.onerror = () => {

@@ -5561,6 +5561,55 @@ body.is-measuring, body.is-measuring * { cursor: crosshair !important; }
   outline: 2px solid var(--accent-focus); outline-offset: -2px;
 }
 .view-landing-id { flex: none; color: var(--accent-link); font-size: 12px; }
+
+/* The latest test run and CI at the top of the Tests page (FEAT-0161).
+   The blocks are the terminal view's symbols in their state's colour, on no
+   background, so the page and `test-status.py` in a second terminal read as
+   the same picture. The colours are the status tokens the rest of the page
+   already uses: passing is done-green, failing is blocked-red. */
+.test-run-panel:empty { display: none; }
+.tr-head-aside {
+  float: right; font-weight: 400; letter-spacing: 0; text-transform: none;
+  color: var(--text-faint); font-family: var(--font-mono);
+}
+.tr-quiet { margin: 0 0 4px; font-size: 13px; color: var(--text-muted); }
+.tr-unreadable { color: var(--warn-fg); }
+.tr-run-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px;
+  margin: 0 0 8px; font-size: 13px;
+}
+.tr-run-header { color: var(--text); }
+.tr-run-state { color: var(--text-muted); font-size: 12px; }
+.tr-run-failing, .tr-run-stopped, .tr-run-interrupted { color: var(--status-blocked); }
+.tr-run-passing { color: var(--status-done); }
+.tr-grid {
+  display: flex; flex-wrap: wrap; gap: 1px; margin: 0 0 10px;
+  font-family: var(--font-mono); font-size: 15px; line-height: 1;
+}
+.tr-block {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.15em; height: 1.25em; padding: 0; border: none; border-radius: 3px;
+  background: transparent; font: inherit; color: var(--text-faint);
+}
+button.tr-block { cursor: pointer; }
+button.tr-block:hover { background: var(--bg-elevated); }
+button.tr-block:focus-visible { outline: 2px solid var(--accent-focus); outline-offset: -1px; }
+.tr-passing, .tr-ci-passing { color: var(--status-done); }
+.tr-failing, .tr-ci-failed { color: var(--status-blocked); }
+.tr-timed_out { color: var(--severity-high); }
+.tr-unrunnable { color: var(--severity-medium); }
+.tr-running, .tr-ci-running { color: var(--accent-focus); }
+.tr-waiting { color: var(--text-faint); }
+.tr-interrupted { color: var(--status-archived); }
+.tr-rows { margin-bottom: 4px; }
+.tr-row { cursor: default; }
+button.tr-row { cursor: pointer; }
+div.tr-row:hover { background: transparent; }
+.tr-row-symbol {
+  flex: none; width: 1.2em; text-align: center;
+  font-family: var(--font-mono); font-size: 13px;
+}
+.tr-row-text { font-size: 12px; }
 .view-landing-title {
   flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; font-size: 13px;
