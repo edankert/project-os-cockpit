@@ -72,7 +72,9 @@ The formats are defined once, upstream, in `tools/instructions/TEST-RUNS.md` of 
 
 ## Verification
 
-Filled at close-out.
+`.venv/bin/python -m pytest -q`, 2026-10-22: 2281 passed, 11 skipped, 1 failed. The failure is `test_desktop_build_is_not_stale`: it compares the built `desktop/dist/` with the TypeScript source, and passes after `npm run build` in `desktop/`, which was not run because it rewrites the files of the desktop cockpit Edwin had running. `tests/test_test_runs.py` holds this feature's 27 cases; what each guards is in [[CHG-20261022-The-Tests-Page-Shows-The-Live-Test-Run-And-The-Latest-CI-Run]].
+
+The feature stays `doing` until its independent review, and until project-os-dev releases it into the template with `release-to-project-os.sh`.
 
 ## Links
 

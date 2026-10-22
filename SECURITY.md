@@ -3,7 +3,7 @@ type: reference
 id: SECURITY
 owner: user:edwin
 created: 2026-01-26
-updated: 2026-08-12
+updated: 2026-10-22
 tags: [security]
 ---
 
@@ -25,6 +25,7 @@ This tool reads and writes a developer's project records on their own machine, a
 
 - The render server binds `0.0.0.0` deliberately, so a tablet on the same Wi-Fi can *read* the record ([[REQ-0013]]).
 - Every mutation endpoint refuses a non-loopback peer ([[REQ-0027]]). This is not a safety net over an authorisation model — **it is the authorisation model**.
+- A few reads are loopback-only as well, because they return more than notes: the inbox (external material), the approval and delivery lists (command and prompt text), the project line, and the latest test run and its logs, which hold whatever a test printed ([[FEAT-0161]]).
 - The guard is enumerated rather than remembered: `test_every_note_mutating_endpoint_requires_loopback` parses the POST dispatch table out of `server.py`, so an endpoint added without the check **fails the suite by existing** ([[RISK-0005]]).
 - It has been exercised for real, not only asserted: [[REL-0001]]'s verification drove every mutation endpoint over the LAN interface `192.168.68.123:8791` — **ten of ten returned 403 while reads returned 200**.
 - The embedded terminal is off by default, loopback-bound when on, and refuses a non-loopback bind without an explicit escape hatch ([[RISK-0001]]). Shell access is a different hazard and keeps its own rule.

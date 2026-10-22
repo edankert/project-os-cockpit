@@ -102,8 +102,9 @@ focus:
   # 2026-09-25, close: FEAT-0019 and FEAT-0027 are done after a two-round shared review, and PHASE-007 is closed. No task is in flight; the next choice is Edwin's.
   # 2026-10-21: TASK-0678 (ISS-0326) brings the cockpit up to project-os a76657d: ride results in a ledger, unknown ledger fields kept, owed checks counted per platform, the hand-run budget shown.
   # 2026-10-21, close: TASK-0678 is done and ISS-0326 fixed (CHG-20261021-The-Cockpit-Reads-Ride-Results-And-Owes-What-The-Release-Test-Owes). Focus returns to where it was.
-  # 2026-10-22: TASK-0681 (FEAT-0161) puts the live test run and the latest CI run on the Tests page, the cockpit's part of project-os-dev FEAT-0042. The focus returns to FEAT-0157 when it is done.
-  task: "TASK-0681"
+  # 2026-10-22: TASK-0681 (FEAT-0161) puts the live test run and the latest CI run on the Tests page, the cockpit's part of project-os-dev FEAT-0042.
+  # 2026-10-22, close: TASK-0681 is done (CHG-20261022-The-Tests-Page-Shows-The-Live-Test-Run-And-The-Latest-CI-Run). FEAT-0161 waits for its review and for project-os-dev to release it into the template. Focus returns to FEAT-0157.
+  task: ""
   # TASK-0631 ran the actual walk in isolated Electron on copied Your Trainer docs and ledgers: Android survey, step advance, reload, blocked action, interrupted timer and uploaded PNG comparison worked. Review results now lists all 39 owed Android checks instead of hiding ten expired prior-release excuses. The iOS route loads 327 owed rows but has no open release id. Eighty focused renderer tests, the full desktop suite, 47 Python walk tests and docs gates pass; human and full iOS walks remain open.
   # TASK-0629 is correcting a full Electron walk finding: the session-wide readiness list stays expanded and repeats the current warning, and Walk options lacks a direct step picker. The isolated browser uses copied Your Trainer docs and ledgers.
   # TASK-0629 moved occasional walk navigation under Walk options and sitting state/equipment into required setup. The focused renderer suite passes 77 cases, and standalone Chrome rendered the current Android payload at desktop and narrow widths. Full Electron and Edwin walks remain open.
@@ -116,8 +117,8 @@ focus:
   # FEAT-0151 is now implementing correction after a completed check leaves the owed walk. The completed-check index is browser local and the server still computes owed rows from the ledger.
   # TASK-0630 is also adding build identity and an optional PNG attachment at authored evidence prompts. The existing note attachment endpoint stores the PNG under the affected check.
   # 2026-10-14, late: focus moves to FEAT-0157 (Edwin: "Can we first implement the rest of the features in this phase and then test!"). FEAT-0159 stays doing, waiting on TST-0096 step 9 and its review. FEAT-0157 waits on project-os-dev FEAT-0041 TASK-0198 for its line segment; TASK-0671, TASK-0672 and TASK-0675 can be built before that.
-  feature: "FEAT-0161"
-  phase: "PHASE-037"
+  feature: "FEAT-0157"
+  phase: "PHASE-046"
   issue: ""
   note: "2026-10-21: every PHASE-046 feature is built and has been through independent review, two rounds each (FEAT-0157, FEAT-0159 here; project-os-dev FEAT-0041). Every code finding is fixed and pushed nowhere yet beyond what Edwin asked; each verdict stays changes-requested only for its walk. What is left is Edwin's: restart the app (it has run since 2026-10-14, dist is current), then walk TST-0096 step 9, project-os-dev TST-0047 and TST-0097, and decide FEAT-0159 open question 1 (refuse cockpit answers while a debugging port is open). Then the three features can close. The TST-0096 step 7 deny hook is still in project-os-deck/.claude/settings.local.json; remove it after the walks."
 
@@ -963,7 +964,7 @@ items:
   tasks:
     TASK-0681:
       file: docs/features/test-run-live/plan/tasks/TASK-0681-The-Tests-Page-Reads-The-Run-And-CI-Files-Watches-Them-And-Serves-The-Logs.md
-      status: doing
+      status: done
       parent: FEAT-0161
       phase: "[[PHASE-037]]"
     TASK-0678:
@@ -3781,7 +3782,7 @@ metrics:
     features_total: 160
     features_done: 136
     tasks_total: 675
-    tasks_done: 635
+    tasks_done: 636
     tests_total: 51
     tests_passing: 2
     test_cases_total: 182
