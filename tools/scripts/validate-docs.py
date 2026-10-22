@@ -3425,6 +3425,10 @@ def validate_citations(root, grandfathered, report):
                 ref = match.group(1)
                 if _CITATION_PLACEHOLDER_RE.search(ref) or Path(ref).name in _OPTIONAL_CITATIONS:
                     continue
+                # Runtime state the scripts write while they run, never committed
+                # (TEST-RUNS.md; project-os-dev FEAT-0042).
+                if ref.startswith(".project-os/"):
+                    continue
                 first = ref.split("/")[0]
                 #: Only the bases the path can start from: where its first
                 #: folder exists, or the citing folder for a `..` path.

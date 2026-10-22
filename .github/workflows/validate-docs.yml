@@ -48,6 +48,19 @@ jobs:
           if [ -f tools/scripts/run-tests.py ]; then
             python3 tools/scripts/run-tests.py --repo-root "$GITHUB_WORKSPACE" --ci
           fi
+      # The run file run-tests.py wrote, so ci-status.py can name a red run's
+      # failing tests instead of only its job (project-os-dev FEAT-0042;
+      # tools/instructions/TEST-RUNS.md). Hidden files must be asked for: the
+      # folder is .project-os/.
+      - name: Upload the test run's progress file, so ci-status.py can name the failing tests
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-os-test-run-${{ github.job }}
+          path: .project-os/runs/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Verify SNAPSHOT.yaml derived fields match the notes
         run: |
           if [ -f tools/scripts/sync-snapshot.py ]; then

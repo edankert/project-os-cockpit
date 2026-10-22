@@ -32,6 +32,7 @@ These files contain detailed rules. Read them when performing the related operat
 - Syncing template updates: tools/instructions/SYNCING.md
 - Hook contracts: tools/instructions/HOOKS.md
 - Cockpit driving (LLM in any terminal): tools/instructions/COCKPIT.md
+- Test runs and CI results you can watch: tools/instructions/TEST-RUNS.md
 
 ## Skill playbooks (read before performing these operations)
 

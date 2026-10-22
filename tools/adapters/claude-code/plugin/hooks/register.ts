@@ -19,9 +19,10 @@
 //     session keeps the model its transcript was saved with, whatever the
 //     repo pins; a warning row above the prompt and a context block say so.
 //   * The project line above the prompt (HC-012, TASK-0202): the focus item,
-//     its status and phase, the validator's counts and the routing hint.
-//     Another plugin may add its facts to the end of the same line; the rules
-//     are in ADAPTER.md, "The project line".
+//     its status and phase, the validator's counts and the routing hint, and
+//     the tests and CI segment from tools/scripts/test-status.py (FEAT-0042,
+//     TASK-0215). Another plugin may add its facts to the end of the same
+//     line; the rules are in ADAPTER.md, "The project line".
 //
 // Everything is read from the repo's own scripts, in the background, and kept
 // in memory; drawing never runs a script. A script that fails leaves its fact
@@ -137,8 +138,9 @@ async function modelWarning($: EngineInterface): Promise<string | undefined> {
 
 export type Focus = { id: string; status: string; phase?: string } | 'none'
 
-/** The facts on the line; a fact not read yet, or whose script failed, is absent. */
-export type Facts = { focus?: Focus; route?: string; errors?: number; reviewStale?: number }
+/** The facts on the line; a fact not read yet, or whose script failed, is absent.
+ *  `tests` is test-status.py's segment, such as `tests 44/139 ✗1 ▶ TST-0270 8m`. */
+export type Facts = { focus?: Focus; route?: string; errors?: number; reviewStale?: number; tests?: string }
 
 /** What the routing hint's category in brackets is called on the line. */
 const ROUTES: Record<string, string> = {
@@ -193,8 +195,24 @@ export function lineText(f: Facts): string {
   if (f.errors !== undefined) parts.push(plural(f.errors, 'validator error', 'validator errors'))
   if (f.reviewStale !== undefined) parts.push(`${f.reviewStale} review-stale`)
   if (f.route) parts.push(`route: ${f.route}`)
+  if (f.tests) parts.push(f.tests)
   return parts.join(' · ')
 }
+
+/** The segment from test-status.py's output: its one line, or undefined when it
+ *  failed or had nothing to show. */
+export function parseSegment(r: Ran | undefined): string | undefined {
+  if (!r || r.exitCode !== 0) return undefined
+  const line = r.stdout.split('\n')[0]?.trim()
+  return line ? line : undefined
+}
+
+/** A segment that shows a test run in progress: `tests 44/139 ...`. */
+export const RUNNING = /^tests \d+\/\d+/
+
+/** How often, in ms, the segment is re-read while a tool runs or a test run
+ *  is in progress. */
+const RUN_POLL_MS = 3000
 
 /** The keys the line contract names. */
 export const LINE_KEY = 'project-os:line'
@@ -244,6 +262,9 @@ const st: {
   refreshing?: boolean
   again?: boolean
   started?: boolean
+  /** Tool calls running now; a push runs its tests inside one. */
+  tools?: number
+  polling?: boolean
 } = {}
 
 /** Re-reads the line's facts, one refresh at a time; a request that arrives
@@ -265,11 +286,46 @@ async function refreshLoop($: EngineInterface): Promise<void> {
     facts.focus = read.focus
     facts.route = read.route
     $.ui.invalidate('ui.render')
+    await readSegment($, root)
+    // CI's latest runs, fetched at most every five minutes, so the segment
+    // can say `CI ✗` without the drawing ever touching the network.
+    await run($, ['python3', 'tools/scripts/ci-status.py', '--repo-root', root, '--max-age', '300', '--quiet'], root,
+      { timeoutMs: 30_000 })
+    await readSegment($, root)
+    // A run started outside any tool call, from another terminal.
+    if (RUNNING.test(facts.tests ?? '')) poll($)
     const counts = parseValidator(await run($, ['bash', 'tools/scripts/validate-docs.sh'], root, { timeoutMs: 300_000 }))
     // A run that did not finish keeps the last counts it had.
     if (counts) Object.assign(facts, counts)
     $.ui.invalidate('ui.render')
   } while (st.again)
+}
+
+/** Re-reads the tests and CI segment; redraws when it changed. */
+async function readSegment($: EngineInterface, root: string): Promise<void> {
+  const text = parseSegment(await run($, ['python3', 'tools/scripts/test-status.py', '--segment', '--repo-root', root], root,
+    { timeoutMs: 10_000 }))
+  if (text !== facts.tests) {
+    facts.tests = text
+    $.ui.invalidate('ui.render')
+  }
+}
+
+/** Keeps the segment current while a tool runs or a test run is in progress.
+ *  The tests of a push run inside one tool call, and no turn event fires until
+ *  it ends. Stops by itself when neither holds. */
+function poll($: EngineInterface): void {
+  if (st.polling) return
+  st.polling = true
+  const later = (f: () => void): void => {
+    const t = setTimeout(f, RUN_POLL_MS) as unknown as { unref?: () => void }
+    t.unref?.()
+  }
+  const loop = (): void => {
+    if (!st.tools && !RUNNING.test(facts.tests ?? '')) { st.polling = false; return }
+    void $.session.root().then(root => readSegment($, root)).catch(() => undefined).finally(() => later(loop))
+  }
+  later(loop)
 }
 
 /** Redraws when the wrong-model warning appears or goes away. */
@@ -303,9 +359,15 @@ export const register: Register = on => {
 
   // Any tool, a subagent's included. A turn that ran none only answered, so a
   // change in the tree during it is someone else's (FEAT-0041 review, round 1).
-  on('tool.call', ($, e, next) => {
+  on('tool.call', async ($, e, next) => {
     st.toolRan = true
-    return next(e)
+    st.tools = (st.tools ?? 0) + 1
+    poll($)
+    try {
+      return await next(e)
+    } finally {
+      st.tools = Math.max(0, (st.tools ?? 1) - 1)
+    }
   })
 
   // Before the settings Stop hooks run (close-out-check.sh among them), so the

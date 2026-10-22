@@ -35,8 +35,9 @@ Contract IDs are `HC-001`..`HC-012`. (Earlier revisions of this file used `CHC-0
   - Name any missing contract file (`AGENTS.md`, `CONTEXT.md`, `docs/INDEX.md`).
   - Fail open: when the slice prints nothing (no `python3`, no script, an unreadable snapshot), print the old reminder to read `SNAPSHOT.yaml`.
   - `bootstrap.sh` also shows the branch, head and working tree.
+  - End with one line per CI workflow whose latest run on the branch failed or is still running, from `tools/scripts/ci-status.py --session-line`: the workflow, the commit, how long ago, the failing test IDs and the run's URL (project-os-dev FEAT-0042). It reuses a result younger than five minutes, gives GitHub a few seconds at most, and prints nothing when it cannot ask: no `gh`, no network, no login, or an `origin` not on GitHub. The line keeps showing until a later run of that workflow is green; no issue note is created for it.
 - Implementations: Claude Code `hooks/snapshot-freshness.sh` (SessionStart); Codex `hooks/dispatch.py` (SessionStart) and `bash tools/agents/bootstrap.sh`; generic uses bootstrap. All three call the same script.
-- Test: `bash tools/scripts/test-hooks.sh` (the Claude Code hook and `bootstrap.sh`) and `python3 tools/scripts/test-codex-adapter.py` (Codex).
+- Test: `bash tools/scripts/test-hooks.sh` (the Claude Code hook and `bootstrap.sh`), `python3 tools/scripts/test-codex-adapter.py` (Codex), and `bash tools/scripts/test-ci-status.sh` (the CI line).
 - On failure: stop and fix missing required files before implementation.
 
 ## HC-003: Verification gate
@@ -125,9 +126,13 @@ Contract IDs are `HC-001`..`HC-012`. (Earlier revisions of this file used `CHC-0
   2. `--ci` runs the repo's `ci.suite_command` from `SNAPSHOT.yaml` once, when one is declared, and every command when none is.
   3. The pre-push hook runs the full set locally and refuses the push on a failure.
   4. A note at `status: retired` is not run, even under `--filter`. Its subject is gone, and its command often names a file deleted with it (project-os-dev ISS-0105).
+  5. While it runs, the runner rewrites `.project-os/runs/latest.json` and keeps each command's whole output in its own log, so `tools/scripts/test-status.py`, the status line and the cockpit can show how far it has got. The formats are in `TEST-RUNS.md`. It never writes to a note.
+  6. Each command runs in a process group of its own. A command that runs out of time has its whole group stopped, TERM and then KILL, so nothing it started outlives the runner; stopping the runner stops the running command the same way (project-os-dev TASK-0212).
+  7. When the tests pass, the pre-push hook tells the agent to run `python3 tools/scripts/ci-status.py --wait` after the push, which waits for CI's runs on that commit and reports them.
 - Why the split: a repo's test notes carry filtered commands, and a filtered command is a subset of the suite. your-health has 26 notes running the same Gradle task with different `--tests` filters; one by one on a cold runner that is about 45 minutes a push for an answer one suite run already gives. The suite is the covering command, so CI runs that and keeps the non-bypassable verdict; the filtered commands run where the toolchain is already warm.
 - Failure behaviour: pre-push exits non-zero and the push does not happen. `--no-verify` skips it, and `PROJECT_OS_SKIP_PREPUSH=1` skips it without skipping the rest — both leave CI's suite run in place, which is the point of keeping one there.
 - A repo that declares no `ci.suite_command` is unaffected: CI runs every command exactly as before.
+- Test: `bash tools/scripts/test-verdict-model.sh` and `bash tools/scripts/test-run-progress.sh`.
 
 ## HC-010: Review budget
 

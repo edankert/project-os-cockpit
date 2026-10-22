@@ -67,6 +67,7 @@ These files contain detailed rules. Read them when performing the related operat
 - Markdown formatting: tools/instructions/MARKDOWN.md
 - Writing clearly (prose, commit messages, replies): tools/instructions/WRITING.md
 - Acceptance tests and the release test: tools/instructions/TESTING.md
+- Test runs and CI results you can watch: tools/instructions/TEST-RUNS.md
 
 ## Skill playbooks (read before performing these operations)
 
@@ -201,6 +202,7 @@ Claude Code runs the plugin from the repo's folder; it makes no copy. A sync tha
 - **A file changed from the shell counts as a write at close-out** (HC-006). The plugin fingerprints the working tree with `hooks/shared/fingerprint.sh` when a main-loop turn starts and when it stops. When the two differ and the turn ran a tool, it leaves the marker `hooks/session-touch.sh` leaves, at the path `hooks/shared/session-marker.sh` gives. The fingerprint covers tracked changes and untracked files' contents; `tools/scripts/test-plugin-fingerprint.sh` runs it on a real repository. A turn that ran no tool leaves no marker, because a change during it was made by someone else. A turn that ran a tool while another session changed the tree still counts; the fingerprint cannot tell whose change it was.
 - **A session on the wrong model is named** (HC-011): a warning row above the project line, and the same sentence in the model's context.
 - **The project line above the prompt** (HC-012): for example `FEAT-0157 doing · PHASE-046 · 2 validator errors · 61 review-stale · route: implement here`. It is read at session start, when a turn changes `SNAPSHOT.yaml` or `docs/`, and when a turn starts after they changed in between.
+- **The tests and CI segment at the end of that line** (project-os-dev FEAT-0042): for example `tests 44/139 ✗1 ⏱2 ▶ TST-0270 8m` while a test run is in progress, and `CI ✗ android-tests 8bf1562` while the latest CI run of a workflow on the branch is red. It comes from `tools/scripts/test-status.py --segment`, read with the rest of the line. While a tool call runs, as `git push` does while the pre-push hook runs the tests, or while a run is shown as running, it is re-read every three seconds. Between turns the plugin also runs `tools/scripts/ci-status.py --max-age 300` in the background, so the segment knows CI's state without the drawing touching the network.
 
 Its tests run with `claude plugin test tools/adapters/claude-code/plugin`. Use the binary itself: a shell alias that puts an option before `plugin` makes the command refuse to run.
 
@@ -227,6 +229,23 @@ There is one line above the Claude Code prompt, and the project-os plugin draws 
 7. **Each plugin refreshes the band itself**, with `$.ui.invalidate("ui.render")` when its facts change; the whole chain redraws. No hook computes anything slow while drawing.
 8. **A fact that cannot be read is left out, never shown as zero.**
 9. **The wrong-model warning is not part of the line.** It is a row of its own just above it.
+
+## Tests and CI on the status line
+
+The project-os plugin already shows the tests and CI segment above the prompt, in every synced repo, with nothing to configure ("What the plugin does"). A person who also wants it on their Claude Code status line adds it to their own.
+
+**The template never sets `statusLine`.** A `statusLine` in a repo's `.claude/settings.json` replaces the one in the user's own `~/.claude/settings.json`, so a template setting would take away a status line the user built. Wrapping the user's command would mean the sync editing a setting the user owns. So the segment is a script that prints one short line, or nothing, and the user's status line calls it. The sync and `generate-adapters.py` never write `statusLine`.
+
+**Adding it.** Claude Code pipes a JSON description of the session to the status-line command; `test-status.py --segment` reads the repo's folder from it. A status line that is only the segment, in `~/.claude/settings.json`, which prints nothing in a repo without the script:
+
+```json
+"statusLine": {
+  "type": "command",
+  "command": "f=\"$(pwd)/tools/scripts/test-status.py\"; [ -f \"$f\" ] && python3 \"$f\" --segment || true"
+}
+```
+
+A status-line script of your own calls the same thing and adds its output to what it prints, passing on the JSON it was given: `printf '%s' "$input" | python3 "$dir/tools/scripts/test-status.py" --segment`. The segment reads only `.project-os/runs/latest.json` and `.project-os/ci/latest.json`; it never runs a test or calls GitHub. The formats are in `tools/instructions/TEST-RUNS.md`.
 
 ## Project-specific customization
 

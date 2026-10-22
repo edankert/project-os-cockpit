@@ -63,7 +63,7 @@ Pause for the user only when the work genuinely requires them: a destructive or 
 6. Apply the verification gate in `QUALITY.md`: a terminal status needs its required `[[test]]` notes `passing`.
 7. Run `bash tools/scripts/validate-docs.sh` and fix what it reports.
 8. Before pushing, run `bash tools/scripts/validate-docs.sh --as-committed`. Reason: CI reads the commit, so an ignored or unstaged file passes locally and is absent there.
-9. After pushing, confirm the run went green (`gh run list --limit 1`); until then the change has not landed.
+9. After pushing, `python3 tools/scripts/ci-status.py --wait` reports CI's verdict; until it is green the change has not landed.
 10. At the review gates `QUALITY.md` states ("Independent review"), run `../skills/independent-review/SKILL.md`.
 
 ## Snapshot retention (active + recent)

@@ -9,7 +9,7 @@
 
 import type { On } from 'claude-code'
 import { describe, expect, test } from 'claude-code/testing'
-import { honoursPin, lineText, modelKey, parseHint, parseValidator, takeSegments } from '../hooks/register.ts'
+import { honoursPin, lineText, modelKey, parseHint, parseSegment, parseValidator, takeSegments } from '../hooks/register.ts'
 
 const ROOT = '/repo'
 const HINT_DOING = "project-os: focus item FEAT-0157 is 'doing', phase PHASE-046 (execution): implement here. For new work outside it: ..."
@@ -23,6 +23,11 @@ type World = {
   validator: string | undefined
   settings: string | undefined
   model: string
+  /** What test-status.py --segment prints, in order; the last one repeats.
+   *  undefined stands for a script that failed. */
+  segments: (string | undefined)[]
+  /** How long a tool call takes, in ms. */
+  toolMs: number
   /** Whether the world draws an empty band beneath the plugin, as the engine
    *  does; a test that draws its own beneath turns it off. */
   band: boolean
@@ -31,7 +36,7 @@ type World = {
 function world(on: On, w: Partial<World> = {}): World {
   const s: World = {
     runs: [], prints: ['all-1\ndocs-1\n'], hint: HINT_DOING, validator: VALIDATOR,
-    settings: '{"model": "claude-opus-5-5"}', model: 'claude-opus-5-5', band: true, ...w,
+    settings: '{"model": "claude-opus-5-5"}', model: 'claude-opus-5-5', segments: [''], toolMs: 0, band: true, ...w,
   }
   on('session.root', () => ({ value: ROOT }))
   on('session.id', () => ({ value: 's-1' }))
@@ -51,6 +56,10 @@ function world(on: On, w: Partial<World> = {}): World {
     }
     if (argv[1] === '-c' && argv[2]?.includes('session_marker')) return ok('')
     if (argv[1]?.endsWith('model-routing-hint.sh')) return ok(s.hint)
+    if (argv[1] === 'tools/scripts/test-status.py') {
+      const next = s.segments.length > 1 ? s.segments.shift() : s.segments[0]
+      return next === undefined ? ok('', 2) : ok(next ? `${next}\n` : '')
+    }
     if (argv[1] === 'tools/scripts/validate-docs.sh') {
       if (s.validator === undefined) throw new Error('timed out')
       return ok(s.validator, 1)
@@ -58,7 +67,10 @@ function world(on: On, w: Partial<World> = {}): World {
     return ok('')
   })
   on('classic.Stop', () => ({}))
-  on('tool.call', () => ({ result: 'ran' }))
+  on('tool.call', async () => {
+    if (s.toolMs) await new Promise(r => setTimeout(r, s.toolMs))
+    return { result: 'ran' }
+  })
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   on('turn.start', ($, e) => ({ turnId: e.turnId }))
   if (s.band) {
@@ -71,6 +83,7 @@ function world(on: On, w: Partial<World> = {}): World {
 }
 
 const markers = (w: World) => w.runs.filter(r => r[1] === '-c' && r[2]?.includes('session_marker'))
+const segmentRuns = (w: World) => w.runs.filter(r => r[1] === 'tools/scripts/test-status.py').length
 const hintRuns = (w: World) => w.runs.filter(r => r[1]?.endsWith('model-routing-hint.sh')).length
 const sed = ($: any) => $.tool.call({ tool: 'Bash', input: { command: "sed -i '' s/a/b/ notes.md" } } as any)
 
@@ -295,5 +308,52 @@ describe('the project line (TASK-0202)', () => {
     expect((rest as any).children[0]).toBe(engine)
     expect((rest as any).children[1]).toEqual({ slot: true })
     expect(tree.children[1]).toBe(seg)
+  })
+})
+
+describe('the tests and CI segment on the line (FEAT-0042, TASK-0215)', () => {
+  test('the segment ends the project facts', () => {
+    const facts = { ...parseHint(HINT_DOING), tests: 'tests 3/5 ✗1 ▶ TST-0004 2m' }
+    expect(lineText(facts)).toBe('FEAT-0157 doing · PHASE-046 · route: implement here · tests 3/5 ✗1 ▶ TST-0004 2m')
+  })
+
+  test('a segment script that failed, or printed nothing, is left out', () => {
+    expect(parseSegment(undefined)).toBeUndefined()
+    expect(parseSegment({ exitCode: 2, stdout: 'Traceback', stderr: '' })).toBeUndefined()
+    expect(parseSegment({ exitCode: 0, stdout: '', stderr: '' })).toBeUndefined()
+    expect(parseSegment({ exitCode: 0, stdout: 'CI ✗ android-tests 8bf1562\n', stderr: '' })).toBe('CI ✗ android-tests 8bf1562')
+  })
+
+  test('session start draws the segment, after refreshing CI in the background', async ($, on) => {
+    const w = world(on, { segments: ['CI ✗ android-tests 8bf1562'] })
+    await $.session.start({ cwd: ROOT, surface: null, isInteractive: true } as any)
+    await settle()
+    const ui = await $.ui.mount({ plugin: 'project-os', surface: 'terminal', ...BAND })
+    const line = await ui.find({ key: 'project-os:line' })
+    expect(line!.text).toContain('route: implement here · CI ✗ android-tests 8bf1562')
+    const ci = w.runs.find(r => r[1] === 'tools/scripts/ci-status.py')
+    expect(ci).toEqual(['python3', 'tools/scripts/ci-status.py', '--repo-root', ROOT, '--max-age', '300', '--quiet'])
+  })
+
+  // Both wait out the real interval, three seconds, because the module the
+  // harness loads is not the copy this file imports.
+  test('during a long tool call the segment is re-read, so a push shows its tests filling in', async ($, on) => {
+    const w = world(on, { segments: ['', '', 'tests 2/3 ▶ TST-0003 0s'], toolMs: 3300 })
+    await $.session.start({ cwd: ROOT, surface: null, isInteractive: true } as any)
+    await settle()
+    const before = segmentRuns(w)
+    await $.tool.call({ tool: 'Bash', input: { command: 'git push' } } as any)
+    expect(segmentRuns(w)).toBe(before + 1)
+    const ui = await $.ui.mount({ plugin: 'project-os', surface: 'terminal', ...BAND })
+    expect((await ui.find({ key: 'project-os:line' }))!.text).toContain('tests 2/3 ▶ TST-0003')
+  })
+
+  test('with no tool running and no test run in progress, nothing is re-read', async ($, on) => {
+    const w = world(on, { segments: ['CI ✗ android-tests 8bf1562'] })
+    await $.session.start({ cwd: ROOT, surface: null, isInteractive: true } as any)
+    await settle()
+    const before = segmentRuns(w)
+    await new Promise(r => setTimeout(r, 3300))
+    expect(segmentRuns(w)).toBe(before)
   })
 })
